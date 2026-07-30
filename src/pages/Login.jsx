@@ -76,8 +76,8 @@ export default function Login() {
         </div>
 
         <div className="social-login-group">
-          <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Gmail')}>
-            <Mail size={18} /> Continue with Gmail
+          <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Google')}>
+            <Mail size={18} /> Continue with Google
           </button>
           <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Facebook')}>
             Continue with Facebook

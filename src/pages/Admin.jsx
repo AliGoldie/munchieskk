@@ -10,10 +10,11 @@ export default function Admin() {
   const { 
     menu, toggleStock, updatePrice, addMenuItem, updateStock, setStockQuantity,
     orders, updateOrderState, acceptOrder,
-    addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage
+    addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice
   } = useStore();
   
   const [editingPrice, setEditingPrice] = useState({});
+  const [editingAddonPrice, setEditingAddonPrice] = useState({});
   const [editingStock, setEditingStock] = useState({});
   const [activeTab, setActiveTab] = useState('inventory');
   
@@ -84,6 +85,15 @@ export default function Admin() {
     if (editingPrice[id] !== undefined && editingPrice[id] !== '') {
       updatePrice(id, parseFloat(editingPrice[id]));
       setEditingPrice({ ...editingPrice, [id]: undefined });
+    }
+  };
+
+  const handleAddonPriceChange = (id, value) => setEditingAddonPrice({ ...editingAddonPrice, [id]: value });
+  const saveAddonPrice = (id) => {
+    if (editingAddonPrice[id] !== undefined) {
+      const val = editingAddonPrice[id];
+      updateAddonPrice(id, val === '' ? '' : parseFloat(val));
+      setEditingAddonPrice({ ...editingAddonPrice, [id]: undefined });
     }
   };
 
@@ -168,6 +178,10 @@ export default function Admin() {
                 <div className="pending-alert-info">
                   <div className="pending-alert-title">NEW ORDER INCOMING!</div>
                   <div className="pending-alert-id">{order.id} · RM {(order.total / 100).toFixed(2)}</div>
+                  <div className="text-sm mt-1 mb-2">
+                    <span className="font-bold">{order.customer_name || 'Guest'}</span>
+                    {order.customer_phone && order.customer_phone !== 'No Phone' && <span className="text-muted ml-2">📞 {order.customer_phone}</span>}
+                  </div>
                   <div className="pending-alert-items">
                     {order.items.map((item, i) => (
                       <span key={i}>{item.quantity}× {item.name}{i < order.items.length - 1 ? ', ' : ''}</span>
@@ -204,7 +218,15 @@ export default function Admin() {
                 <tbody>
                   {activeOrders.filter(o => o.status !== 'PENDING').map(order => (
                     <tr key={order.id}>
-                      <td className="font-medium">{order.id}</td>
+                      <td className="font-medium">
+                        {order.id}
+                        <div className="text-xs text-muted mt-1 font-normal">
+                          {order.customer_name || 'Guest'}
+                          {order.customer_phone && order.customer_phone !== 'No Phone' && (
+                            <div className="mt-1">📞 {order.customer_phone}</div>
+                          )}
+                        </div>
+                      </td>
                       <td className={`font-black ${getCookTimeLeft(order) === '0:00' ? 'text-danger' : 'text-orange'}`}>
                         {getCookTimeLeft(order) || '—'}
                       </td>
@@ -325,15 +347,24 @@ export default function Admin() {
                         </span>
                       </td>
                     <td>
-                      <div className="price-edit-group">
-                        <input 
-                          type="number" step="0.10"
-                          value={editingPrice[item.id] !== undefined ? editingPrice[item.id] : (item.price / 100).toFixed(2)}
-                          onChange={(e) => handlePriceChange(item.id, e.target.value)}
-                          className="price-input"
-                        />
-                        {editingPrice[item.id] !== undefined && (
-                          <button className="btn btn-sm btn-primary" onClick={() => savePrice(item.id)}>Save</button>
+                      <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {editingPrice[item.id] !== undefined ? (
+                          <>
+                            <input 
+                              type="number" step="0.10"
+                              value={editingPrice[item.id]}
+                              onChange={(e) => handlePriceChange(item.id, e.target.value)}
+                              className="price-input"
+                              style={{ width: '80px', padding: '4px' }}
+                            />
+                            <button className="btn btn-sm btn-primary" onClick={() => savePrice(item.id)}>Save</button>
+                            <button className="btn btn-sm btn-secondary" onClick={() => setEditingPrice({ ...editingPrice, [item.id]: undefined })}>Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <span>RM {(item.price / 100).toFixed(2)}</span>
+                            <button className="btn btn-sm btn-secondary" onClick={() => handlePriceChange(item.id, (item.price / 100).toFixed(2))}>Edit</button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -428,7 +459,29 @@ export default function Admin() {
                 {addons.map(addon => (
                   <tr key={addon.id}>
                     <td className="font-medium">{addon.name}</td>
-                    <td>{addon.price === null ? 'TBD' : `RM ${(addon.price / 100).toFixed(2)}`}</td>
+                    <td>
+                      <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {editingAddonPrice[addon.id] !== undefined ? (
+                          <>
+                            <input 
+                              type="number" step="0.10"
+                              placeholder="TBD"
+                              value={editingAddonPrice[addon.id]}
+                              onChange={(e) => handleAddonPriceChange(addon.id, e.target.value)}
+                              className="price-input"
+                              style={{ width: '80px', padding: '4px' }}
+                            />
+                            <button className="btn btn-sm btn-primary" onClick={() => saveAddonPrice(addon.id)}>Save</button>
+                            <button className="btn btn-sm btn-secondary" onClick={() => setEditingAddonPrice({ ...editingAddonPrice, [addon.id]: undefined })}>Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <span>{addon.price === null ? 'TBD' : `RM ${(addon.price / 100).toFixed(2)}`}</span>
+                            <button className="btn btn-sm btn-secondary" onClick={() => handleAddonPriceChange(addon.id, addon.price === null ? '' : (addon.price / 100).toFixed(2))}>Edit</button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                     <td>
                       <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxWidth: '400px'}}>
                         {menu.map(m => (

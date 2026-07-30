@@ -73,8 +73,8 @@ export default function Signup() {
         </div>
 
         <div className="social-login-group">
-          <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Gmail')}>
-            <Mail size={18} /> Sign up with Gmail
+          <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Google')}>
+            <Mail size={18} /> Sign up with Google
           </button>
           <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Phone')}>
             <Phone size={18} /> Sign up with Phone

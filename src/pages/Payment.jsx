@@ -1,16 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
+import { useAuth } from '../contexts/AuthContext';
 import { CreditCard, QrCode, Building2, CheckCircle2, Loader2 } from 'lucide-react';
 import './Payment.css';
 
 export default function Payment() {
   const { cart, cartTotal, placeOrder } = useStore();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [method, setMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [bank, setBank] = useState('');
+
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
 
   if (cart.length === 0 && !isSuccess) {
     navigate('/cart');

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Trash2, Plus, Sparkles, ChevronRight } from 'lucide-react';
 import './Cart.css';
 
 export default function Cart() {
   const { cart, cartTotal, removeFromCart, updateQuantity, addToCart, menu, itemAddons } = useStore();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [addedIds, setAddedIds] = useState({});
 
@@ -132,8 +134,17 @@ export default function Cart() {
             <p>Proceed to payment to select your preferred method (TNG, FPX, or QR) and complete your order.</p>
           </div>
 
-          <button className="btn btn-primary w-full checkout-btn" onClick={() => navigate('/payment')}>
-            Proceed to Payment
+          <button 
+            className="btn btn-primary w-full checkout-btn" 
+            onClick={() => {
+              if (!user) {
+                navigate('/login');
+              } else {
+                navigate('/payment');
+              }
+            }}
+          >
+            {user ? 'Proceed to Payment' : 'Log in to Checkout'}
           </button>
         </div>
       </div>

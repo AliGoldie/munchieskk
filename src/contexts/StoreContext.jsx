@@ -231,6 +231,16 @@ export function StoreProvider({ children }) {
     await supabase.from('addons').delete().eq('id', id);
   };
   
+  const updateAddonPrice = async (id, newPriceFloat) => {
+    const cents = newPriceFloat === '' || isNaN(newPriceFloat) ? null : Math.round(newPriceFloat * 100);
+    
+    // Optimistic UI update
+    setAddons(addons.map(a => a.id === id ? { ...a, price: cents } : a));
+    
+    // DB update
+    await supabase.from('addons').update({ price: cents }).eq('id', id);
+  };
+  
   const toggleItemAddon = async (itemId, addonId) => {
     const currentList = itemAddons[itemId] || [];
     const isLinked = currentList.includes(addonId);
@@ -342,6 +352,7 @@ export function StoreProvider({ children }) {
       cook_time_seconds: null,
       payment_method: paymentMethod,
       customer_name: user ? user.name : 'Guest',
+      customer_phone: user && user.phone ? user.phone : 'No Phone',
       user_id: user ? user.id : null
     };
 
@@ -425,7 +436,7 @@ export function StoreProvider({ children }) {
       menu, cart, cartTotal: cartTotalCents, cartCount,
       points, tier, pointHistory, orders, addons, itemAddons,
       toggleStock, updatePrice, addMenuItem, updateOrderState, updateStock, setStockQuantity,
-      uploadImage, addAddon, deleteAddon, toggleItemAddon,
+      uploadImage, addAddon, deleteAddon, toggleItemAddon, updateAddonPrice,
       addToCart, removeFromCart, updateQuantity, clearCart,
       placeOrder, acceptOrder, addPoints
     }}>
