@@ -1,0 +1,3 @@
+Key: sk-41fb038946360b10-akaonx-d6566eb7
+Name: antiApi
+ID: 4a6d292d-c1f7-4ee9-a1a0-7f45d3dc3c7d

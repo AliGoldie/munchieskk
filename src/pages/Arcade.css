@@ -1,0 +1,253 @@
+.arcade-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+}
+
+/* Weekly Prize Banner */
+.arcade-prize-banner {
+  background-color: var(--munchies-orange);
+  color: var(--munchies-white);
+  padding: var(--space-6) var(--space-4);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.badge-light-blue {
+  background-color: var(--munchies-blue);
+  color: var(--munchies-dark);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.7rem;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  margin-bottom: var(--space-4);
+  border: 2px solid var(--munchies-dark);
+}
+
+.prize-content {
+  z-index: 2;
+  width: 65%;
+}
+
+.prize-content h2 {
+  font-size: 2rem;
+  line-height: 1.1;
+  text-shadow: 2px 2px 0 var(--munchies-dark);
+  margin-bottom: var(--space-2);
+}
+
+.prize-content p {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: var(--space-3);
+}
+
+.prize-img-wrapper {
+  position: absolute;
+  right: -20px;
+  bottom: -20px;
+  width: 150px;
+  height: 150px;
+}
+
+.prize-img-circle {
+  width: 100%;
+  height: 100%;
+  background-color: #8c2b0a; /* Darker orange */
+  border-radius: 50%;
+  border: var(--border-thick);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prize-burger {
+  width: 120%;
+  height: 120%;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: rotate(-10deg);
+}
+
+/* Rank Card */
+.rank-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.rank-icon {
+  margin-bottom: 4px;
+}
+
+.rank-label {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.rank-number {
+  font-size: 3rem;
+  color: var(--munchies-orange);
+  text-shadow: 2px 2px 0 var(--munchies-dark);
+}
+
+.rank-sub {
+  background-color: #f0f0f0;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  margin-top: 8px;
+}
+
+/* Token Balance */
+.token-card {
+  background-color: var(--munchies-blue);
+  padding: var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.token-left h2 {
+  font-size: 1.5rem;
+  color: var(--munchies-dark);
+  margin-bottom: 4px;
+}
+
+.token-amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(0,0,0,0.1);
+  padding: 4px 16px 4px 4px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  border: 2px solid var(--munchies-dark);
+  background: #a87b32; /* Bronze color */
+  color: var(--munchies-white);
+}
+
+.coin {
+  width: 28px;
+  height: 28px;
+  background-color: var(--munchies-yellow);
+  border: 2px solid var(--munchies-dark);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--munchies-dark);
+}
+
+.add-token-btn {
+  width: 48px;
+  height: 48px;
+  background-color: var(--munchies-white);
+  border: var(--border-thick);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-brutalist-sm);
+}
+
+/* Games List */
+.games-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.game-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.game-img-container {
+  height: 160px;
+  border-bottom: var(--border-thick);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-bg-yellow { background-color: #fff1b8; }
+.game-bg-blue { background-color: #e6f7ff; }
+.game-bg-pink { background-color: #fff0f6; }
+
+.difficulty-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: var(--munchies-dark);
+  color: var(--munchies-white);
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  z-index: 10;
+}
+
+.game-pattern {
+  /* Placeholder for retro arcade background patterns */
+  position: absolute;
+  inset: 0;
+  opacity: 0.3;
+  background-image: radial-gradient(circle at 2px 2px, var(--munchies-dark) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.game-thumb {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 2;
+}
+
+.game-info {
+  padding: var(--space-4);
+}
+
+.game-info h3 {
+  font-size: 1.25rem;
+  margin-bottom: 4px;
+}
+
+.game-info p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+  line-height: 1.4;
+}
+
+.game-stats {
+  display: flex;
+  gap: var(--space-4);
+  font-size: 0.8rem;
+  font-family: var(--font-heading);
+  color: var(--text-muted);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

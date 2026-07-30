@@ -1,0 +1,138 @@
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-bottom: 70px; /* Space for bottom nav */
+}
+
+/* Top Header */
+.top-header {
+  background-color: var(--munchies-dark);
+  color: var(--munchies-white);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+
+.menu-btn {
+  color: var(--munchies-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.logo {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: var(--munchies-white);
+}
+
+.cart-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.cart-badge {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background-color: var(--munchies-orange);
+  color: var(--munchies-white);
+  font-size: 0.75rem;
+  font-weight: 800;
+  height: 20px;
+  min-width: 20px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--munchies-dark);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-6);
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: var(--munchies-white);
+  border-top: var(--border-thick);
+  z-index: 100;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 70px;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--munchies-dark);
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex: 1;
+  height: 100%;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+}
+
+.nav-item span {
+  margin-top: 2px;
+}
+
+.nav-item.active {
+  background-color: var(--munchies-orange);
+  color: var(--munchies-white);
+  border-radius: 50% 50% 0 0; /* Creates an arch effect or pill shape */
+  border: var(--border-thick);
+  border-bottom: none;
+  transform: translateY(-4px);
+  padding-top: 4px;
+}
+
+/* Admin Styles */
+.admin-layout {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+}
+
+.admin-header {
+  background-color: var(--surface-color);
+  border-bottom: var(--border-thick);
+  padding: var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-main {
+  padding: var(--space-4);
+}

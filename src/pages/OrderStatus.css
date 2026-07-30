@@ -1,0 +1,123 @@
+.order-status-page {
+  min-height: calc(100vh - 70px);
+  padding: var(--space-4) 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-card {
+  background-color: var(--munchies-white);
+  border: var(--border-thick);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-brutalist);
+  padding: var(--space-6);
+  text-align: center;
+  width: 100%;
+}
+
+.kitchen-visual {
+  height: 150px;
+  background-color: var(--munchies-dark);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+  color: var(--munchies-orange);
+}
+
+.timer-text {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+.pulse-urgent {
+  animation: pulse-urgent 0.5s infinite;
+  color: var(--danger-color);
+}
+
+.pulse-urgent-bg {
+  background-color: var(--danger-color) !important;
+  animation: pulse-urgent 0.5s infinite;
+}
+
+.pulse-button {
+  animation: pulse-border 1.5s infinite;
+}
+
+.scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.ready-visual {
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-box {
+  background-color: var(--munchies-yellow);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: var(--border-thick);
+}
+
+.social-prompt {
+  background-color: var(--munchies-pink);
+  border: var(--border-thick);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.social-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background-color: var(--munchies-white);
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse-urgent {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(199, 59, 15, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(199, 59, 15, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(199, 59, 15, 0); }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

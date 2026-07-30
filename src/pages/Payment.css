@@ -1,0 +1,133 @@
+.payment-page {
+  padding: var(--space-8) var(--space-4);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.payment-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+}
+
+@media (min-width: 768px) {
+  .payment-layout {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+.payment-methods h2 {
+  margin-bottom: var(--space-4);
+}
+
+.method-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: var(--surface-color);
+}
+
+.method-card:hover {
+  border-color: var(--primary-color);
+  background-color: rgb(249 115 22 / 0.05);
+}
+
+.method-card.selected {
+  border-color: var(--primary-color);
+  background-color: rgb(249 115 22 / 0.1);
+}
+
+.method-card svg {
+  color: var(--primary-color);
+}
+
+.method-info h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.method-info p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.fpx-dropdown {
+  margin-top: -0.5rem;
+  margin-bottom: var(--space-4);
+  padding: 0 var(--space-4);
+}
+
+.qr-display {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+
+.qr-placeholder {
+  background: white;
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+  border: 1px dashed var(--border-color);
+}
+
+.payment-summary {
+  background-color: var(--surface-color);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  height: fit-content;
+}
+
+.summary-items {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+  color: var(--text-muted);
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: var(--space-6);
+}
+
+.pay-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+.success-view {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding-top: 10vh;
+}

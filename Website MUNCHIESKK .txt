@@ -1,0 +1,13 @@
+Website MUNCHIESKK
+Made With Love To Satisfy Your Hunger
+
+HOME: Mainpage (Main hero menu /  
+
+MENU: FOOD / DRINKS / DESSERTS (Front end + CRM for back end / stock and setting no.)
+
+ARCADE: Game 1 /  Game 2 / Game 3 (3 gamified for user points system)
+
+LOYALTY POINTS: Current Tier / Prize Vault / Point History / Referral
+
+PROFILE: Current Points / Personal Info / Order History / Payment Methods / Promo Codes / Settings / LOGOUT
+

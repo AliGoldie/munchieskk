@@ -1,0 +1,114 @@
+.addon-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end; /* Mobile: slide up from bottom */
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.addon-modal-content {
+  background-color: var(--munchies-white);
+  width: 100%;
+  max-width: 500px;
+  border-radius: 24px 24px 0 0;
+  padding: 1.5rem;
+  position: relative;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1);
+}
+
+.addon-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--munchies-light);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--munchies-dark);
+}
+
+.addon-modal-header {
+  margin-bottom: 1.5rem;
+  padding-right: 2rem;
+}
+
+.addon-modal-header h2 {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 1.5rem;
+}
+
+.addon-options-list {
+  overflow-y: auto;
+  flex: 1;
+  margin-bottom: 1rem;
+}
+
+.addon-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+}
+
+.addon-option:last-child {
+  border-bottom: none;
+}
+
+.addon-option-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.addon-name {
+  font-weight: 600;
+  color: var(--munchies-dark);
+}
+
+.addon-price {
+  font-size: 0.875rem;
+  color: var(--munchies-orange);
+  font-weight: 500;
+}
+
+.addon-checkbox {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--munchies-orange);
+  cursor: pointer;
+}
+
+.addon-modal-footer {
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+@media (min-width: 768px) {
+  .addon-modal-overlay {
+    align-items: center;
+  }
+  .addon-modal-content {
+    border-radius: 24px;
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

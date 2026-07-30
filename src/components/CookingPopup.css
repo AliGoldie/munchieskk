@@ -1,0 +1,141 @@
+.cooking-popup {
+  position: fixed;
+  bottom: 90px; /* above bottom nav */
+  right: 16px;
+  z-index: 900;
+  width: 260px;
+  background: #1e293b;
+  color: white;
+  border-radius: 16px;
+  padding: 14px 16px 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  animation: slideInPopup 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, width 0.3s ease;
+  overflow: hidden;
+}
+
+.cooking-popup:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.cooking-popup-ready {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  width: 310px;
+  padding: 18px 20px 14px;
+  animation: slideInPopup 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+             readyPulse 1.5s ease-in-out infinite;
+}
+
+.cooking-popup-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.cooking-popup-close:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* COOKING layout */
+.popup-cooking-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.popup-flame {
+  font-size: 2rem;
+  animation: flickerFlame 0.6s ease-in-out infinite alternate;
+}
+
+.popup-label {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+
+.popup-timer {
+  font-family: 'Courier New', monospace;
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+/* READY layout */
+.popup-ready-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.popup-ready-icon {
+  font-size: 2.8rem;
+  animation: bounceIcon 0.8s ease infinite alternate;
+}
+
+.popup-ready-title {
+  font-weight: 900;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+}
+
+.popup-ready-sub {
+  font-size: 0.78rem;
+  opacity: 0.85;
+  margin-top: 3px;
+}
+
+/* Progress bar */
+.popup-progress-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.popup-progress-fill {
+  height: 100%;
+  background: var(--munchies-orange, #f97316);
+  border-radius: 4px;
+  transition: width 1s linear;
+}
+
+/* Animations */
+@keyframes slideInPopup {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes flickerFlame {
+  from { transform: scale(1) rotate(-3deg); }
+  to   { transform: scale(1.15) rotate(3deg); }
+}
+
+@keyframes bounceIcon {
+  from { transform: scale(1); }
+  to   { transform: scale(1.18); }
+}
+
+@keyframes readyPulse {
+  0%, 100% { box-shadow: 0 8px 32px rgba(22, 163, 74, 0.4); }
+  50%       { box-shadow: 0 8px 48px rgba(22, 163, 74, 0.8); }
+}
