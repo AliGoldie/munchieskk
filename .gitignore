@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets
+.env
+router9 -APi.txt
+Client ID Secret Google oAuth.txt
+Website MUNCHIESKK .txt
