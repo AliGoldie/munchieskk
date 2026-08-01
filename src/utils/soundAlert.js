@@ -5,6 +5,7 @@
 export function playReadySound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
     const notes = [523.25, 659.25, 783.99, 880.00, 1046.50]; // C5, E5, G5, A5, C6
 
     notes.forEach((freq, i) => {
@@ -37,6 +38,9 @@ function _playAlertBeep() {
   try {
     if (!_alertCtx || _alertCtx.state === 'closed') {
       _alertCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (_alertCtx.state === 'suspended') {
+      _alertCtx.resume();
     }
     // Two-tone urgent beep: high then low
     [[880, 0], [660, 0.18]].forEach(([freq, delay]) => {
