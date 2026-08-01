@@ -189,20 +189,27 @@ export default function Menu() {
           
           return (
             <div key={cat} id={`category-${cat}`} className="category-section" style={{ marginTop: '3rem' }}>
-              {/* Fit-width colored header band */}
               <div 
                 className="category-header-band"
                 style={{ 
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '1rem',
+                  gap: '1.25rem',
                   marginBottom: '2rem',
-                  paddingBottom: '1rem',
-                  borderBottom: `2px solid ${colors.tint}`
+                  padding: '1.25rem 2rem',
+                  backgroundColor: '#1c1c1e',
+                  borderRadius: '20px',
+                  boxShadow: `0 12px 30px ${colors.tint}50`,
+                  borderLeft: `8px solid ${colors.accent}`
                 }}
               >
-                <span className="category-header-icon" style={{ fontSize: '2.5rem' }}>{colors.icon}</span>
-                <h2 style={{ color: colors.accent, fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>{cat}</h2>
+                <span className="category-header-icon" style={{ fontSize: '3rem', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>{colors.icon}</span>
+                <h2 style={{ color: '#ffffff', fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '1px', textTransform: 'uppercase', lineHeight: '1.1' }}>
+                  {cat}
+                  <span style={{ display: 'block', fontSize: '0.9rem', color: colors.accent, fontWeight: 700, letterSpacing: '3px', marginTop: '4px' }}>
+                    SIGNATURE {cat}
+                  </span>
+                </h2>
               </div>
               
               <div className="hot-list-grid">
