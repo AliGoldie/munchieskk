@@ -281,17 +281,35 @@ export function StoreProvider({ children }) {
     // Optimistic update
     setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED', cancellation_reason: reason } : o));
     
-    // DB update via atomic RPC
-    const { error } = await supabase.rpc('cancel_order', {
-      p_order_id: orderId,
-      p_reason: reason
-    });
+    // DB update for status and reason (handle missing column gracefully)
+    let { error } = await supabase.from('orders')
+      .update({ status: 'CANCELLED', cancellation_reason: reason })
+      .eq('id', orderId);
+
+    if (error && error.message.includes("cancellation_reason")) {
+      // Fallback if the user hasn't run the SQL migration to add cancellation_reason
+      const { error: fallbackError } = await supabase.from('orders')
+        .update({ status: 'CANCELLED' })
+        .eq('id', orderId);
+      error = fallbackError;
+    }
 
     if (error) {
-      console.error('Failed to cancel order via RPC:', error);
+      console.error('Failed to cancel order:', error);
       alert('Failed to cancel order: ' + error.message);
       // Revert optimistic update
       setOrders(orders.map(o => o.id === orderId ? order : o));
+      return;
+    }
+
+    // Restore stock for each item in the cancelled order
+    if (order.items && Array.isArray(order.items)) {
+      for (const item of order.items) {
+        if (item.id && item.quantity) {
+          // Add back the quantity to stock
+          await updateStock(item.id, item.quantity);
+        }
+      }
     }
   };
 
