@@ -4,6 +4,7 @@ import { Gamepad2, Award, Plus } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useNavigate } from 'react-router-dom';
 import AddonModal from '../components/AddonModal';
+import { siteConfig } from '../config/siteConfig';
 import './Home.css';
 
 export default function Home() {
@@ -22,12 +23,22 @@ export default function Home() {
           <p className="welcome-back">WELCOME BACK</p>
           <h1>HEY,<br/>GOURMET!</h1>
         </div>
-        <div className="points-badge">
-          <Award size={16} />
-          <div className="points-info">
-            <span className="points-val">1,250</span>
-            <span className="points-lbl">Pts</span>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-end'}}>
+          <div className="points-badge">
+            <Award size={16} />
+            <div className="points-info">
+              <span className="points-val">1,250</span>
+              <span className="points-lbl">Pts</span>
+            </div>
           </div>
+          <a 
+            href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappGreeting)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="btn"
+            style={{backgroundColor: '#25d366', color: 'white', padding: '4px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '20px', fontWeight: 'bold'}}
+          >
+            💬 WhatsApp
+          </a>
         </div>
       </div>
 

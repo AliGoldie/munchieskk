@@ -11,6 +11,7 @@ export function StoreProvider({ children }) {
   const [addons, setAddons] = useState([]);
   const [itemAddons, setItemAddons] = useState({});
   const [orders, setOrders] = useState([]);
+  const [customers, setCustomers] = useState([]);
 
   // Local-only state for Cart & Point History
   const loadState = (key, defaultVal) => {
@@ -31,12 +32,14 @@ export function StoreProvider({ children }) {
     const fetchInitialData = async () => {
       // 1. Fetch Menu
       const { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*').order('created_at', { ascending: true });
-      if (menuData) setMenu(menuData.map(item => ({...item, inStock: item.in_stock})));
+      if (menuData) setMenu(menuData.map(item => ({...item, inStock: item.in_stock, low_stock_threshold: item.low_stock_threshold ?? 5})));
       else console.error('Menu fetch error:', menuErr);
 
-      // 2. Fetch Orders
+      // 2. Fetch Orders (Filtering out all orders created before this moment to provide a clean slate)
       const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-      if (ordersData) setOrders(ordersData);
+      if (ordersData) {
+        setOrders(ordersData.filter(o => new Date(o.created_at || 0) > new Date('2026-07-31T11:20:00Z')));
+      }
 
       // 3. Fetch Addons
       const { data: addonsData } = await supabase.from('addons').select('*').order('created_at', { ascending: true });
@@ -52,6 +55,10 @@ export function StoreProvider({ children }) {
         });
         setItemAddons(mapping);
       }
+
+      // 5. Fetch Profiles (Customers)
+      const { data: profilesData } = await supabase.from('profiles').select('*');
+      if (profilesData) setCustomers(profilesData);
     };
 
     fetchInitialData();
@@ -60,9 +67,9 @@ export function StoreProvider({ children }) {
     const channel = supabase.channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, payload => {
         if (payload.eventType === 'INSERT') {
-          setMenu(prev => prev.some(i => i.id === payload.new.id) ? prev : [...prev, { ...payload.new, inStock: payload.new.in_stock }]);
+          setMenu(prev => prev.some(i => i.id === payload.new.id) ? prev : [...prev, { ...payload.new, inStock: payload.new.in_stock, low_stock_threshold: payload.new.low_stock_threshold ?? 5 }]);
         } else if (payload.eventType === 'UPDATE') {
-          setMenu(prev => prev.map(item => item.id === payload.new.id ? { ...payload.new, inStock: payload.new.in_stock } : item));
+          setMenu(prev => prev.map(item => item.id === payload.new.id ? { ...payload.new, inStock: payload.new.in_stock, low_stock_threshold: payload.new.low_stock_threshold ?? 5 } : item));
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
@@ -90,11 +97,49 @@ export function StoreProvider({ children }) {
           });
         }
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
+        if (payload.eventType === 'INSERT') setCustomers(prev => [...prev, payload.new]);
+        else if (payload.eventType === 'UPDATE') setCustomers(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
+  }, []);
+
+  // Polling fallback in case Supabase Realtime is disabled on the orders table
+  useEffect(() => {
+    const pollOrders = setInterval(async () => {
+      const { data: latestOrdersRaw } = await supabase.from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      if (latestOrdersRaw) {
+        const latestOrders = latestOrdersRaw.filter(o => new Date(o.created_at || 0) > new Date('2026-07-31T11:20:00Z'));
+        setOrders(prev => {
+          let newOrders = [...prev];
+          let changed = false;
+          latestOrders.forEach(lo => {
+            const index = newOrders.findIndex(po => po.id === lo.id);
+            if (index === -1) {
+              newOrders.push(lo);
+              changed = true;
+            } else if (newOrders[index].status !== lo.status) {
+              newOrders[index] = lo;
+              changed = true;
+            }
+          });
+          if (changed) {
+            return newOrders.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+          }
+          return prev;
+        });
+      }
+    }, 5000); // 5 second polling
+
+    return () => clearInterval(pollOrders);
   }, []);
 
   // --- CRM & Admin Actions ---
@@ -118,6 +163,16 @@ export function StoreProvider({ children }) {
     
     // DB update
     await supabase.from('menu_items').update({ price: cents }).eq('id', id);
+  };
+
+  const updateLowStockThreshold = async (id, threshold) => {
+    const val = Math.max(0, parseInt(threshold) || 0);
+    
+    // Optimistic UI update
+    setMenu(menu.map(item => item.id === id ? { ...item, low_stock_threshold: val } : item));
+    
+    // DB update
+    await supabase.from('menu_items').update({ low_stock_threshold: val }).eq('id', id);
   };
 
   const addMenuItem = async (item) => {
@@ -172,12 +227,62 @@ export function StoreProvider({ children }) {
       .eq('id', id);
   };
 
+  const isPromoActive = (item) => {
+    if (!item.promo_price) return false;
+    const now = new Date();
+    const start = item.promo_start ? new Date(item.promo_start) : null;
+    const end = item.promo_end ? new Date(item.promo_end) : null;
+    if (start && now < start) return false;
+    if (end && now > end) return false;
+    return true;
+  };
+
+  const updatePromo = async (id, promoPriceCents, startDateIso, endDateIso) => {
+    const promoData = {
+      promo_price: promoPriceCents || null,
+      promo_start: startDateIso || null,
+      promo_end: endDateIso || null,
+    };
+    
+    // Optimistic UI update
+    setMenu(prev => prev.map(m => m.id === id ? { ...m, ...promoData } : m));
+    
+    // DB update
+    await supabase.from('menu_items').update(promoData).eq('id', id);
+  };
+
   const updateOrderState = async (orderId, newState) => {
     // Optimistic UI update
     setOrders(orders.map(o => o.id === orderId ? { ...o, status: newState } : o));
     
     // DB update
     await supabase.from('orders').update({ status: newState }).eq('id', orderId);
+  };
+
+  const cancelOrder = async (orderId) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || order.status === 'COLLECTED' || order.status === 'CANCELLED') return;
+
+    // Optimistic update
+    setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED' } : o));
+    
+    // DB update
+    await supabase.from('orders').update({ status: 'CANCELLED' }).eq('id', orderId);
+
+    // Revert stock logically
+    const stockAdditions = {};
+    (order.items || []).forEach(item => {
+      stockAdditions[item.id] = (stockAdditions[item.id] || 0) + (item.quantity || 1);
+    });
+
+    for (const [itemId, qtyToRestore] of Object.entries(stockAdditions)) {
+      const menuItem = menu.find(m => m.id === itemId);
+      if (!menuItem || menuItem.stock_quantity == null) continue;
+      const newQty = menuItem.stock_quantity + qtyToRestore;
+      const newInStock = newQty > 0;
+      setMenu(prev => prev.map(i => i.id === itemId ? { ...i, stock_quantity: newQty, inStock: newInStock, in_stock: newInStock } : i));
+      await supabase.from('menu_items').update({ stock_quantity: newQty, in_stock: newInStock }).eq('id', itemId);
+    }
   };
 
   const uploadImage = async (file) => {
@@ -331,45 +436,75 @@ export function StoreProvider({ children }) {
     setCart(prev => prev.map(i => i.cartItemId === cartItemId ? { ...i, quantity } : i));
   };
 
+  const updateCartItemAddons = (oldCartItemId, newSelectedAddons) => {
+    setCart(prev => {
+      const oldItem = prev.find(i => i.cartItemId === oldCartItemId);
+      if (!oldItem) return prev;
+
+      const addonKey = newSelectedAddons.map(a => a.id).sort().join('_');
+      const newCartItemId = addonKey ? `${oldItem.id}_${addonKey}` : oldItem.id;
+
+      if (newCartItemId === oldCartItemId) return prev; // no change
+
+      const existingItem = prev.find(i => i.cartItemId === newCartItemId);
+      if (existingItem) {
+        // Merge quantities if the new addon combo already exists
+        return prev
+          .map(i => i.cartItemId === newCartItemId ? { ...i, quantity: i.quantity + oldItem.quantity } : i)
+          .filter(i => i.cartItemId !== oldCartItemId);
+      } else {
+        // Just update the item in place
+        return prev.map(i => i.cartItemId === oldCartItemId ? { ...i, cartItemId: newCartItemId, selectedAddons: newSelectedAddons } : i);
+      }
+    });
+  };
+
   const clearCart = () => setCart([]);
 
 
-  const cartTotalCents = cart.reduce((total, item) => {
-    const addonTotal = (item.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0);
-    return total + ((item.price + addonTotal) * item.quantity);
+  const cartTotal = cart.reduce((total, cartItem) => {
+    const menuItem = menu.find(m => m.id === cartItem.id);
+    if (!menuItem) return total;
+    const priceToUse = isPromoActive(menuItem) ? menuItem.promo_price : menuItem.price;
+    const addonsTotal = (cartItem.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0);
+    return total + ((priceToUse + addonsTotal) * cartItem.quantity);
   }, 0);
+
+
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
 
   const placeOrder = async (paymentMethod = 'Cash') => {
     if (cart.length === 0) return null;
 
+    // Calculate deductions
+    const stockDeductions = {};
+    cart.forEach(cartItem => {
+      stockDeductions[cartItem.id] = (stockDeductions[cartItem.id] || 0) + cartItem.quantity;
+    });
+
+    // Fallback: Client-side insert to completely bypass Supabase RPC schema cache issues
     const newOrder = {
-      id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: crypto.randomUUID(),
       items: cart,
-      total: cartTotalCents,
+      total: cartTotal,
       status: 'PENDING',
-      cooking_started_at: null,
-      cook_time_seconds: null,
       payment_method: paymentMethod,
       customer_name: user ? user.name : 'Guest',
       customer_phone: user && user.phone ? user.phone : 'No Phone',
       user_id: user ? user.id : null
     };
 
-    // Save order to Supabase
-    const { error } = await supabase.from('orders').insert([newOrder]);
+    const { data, error } = await supabase.from('orders').insert([newOrder]).select('id').single();
+
     if (error) {
       console.error('Failed to place order in DB:', error);
       alert('Failed to place order. Database error: ' + error.message);
       return null;
     }
 
-    // Deduct stock for each ordered item (group by base item.id)
-    const stockDeductions = {};
-    cart.forEach(cartItem => {
-      stockDeductions[cartItem.id] = (stockDeductions[cartItem.id] || 0) + cartItem.quantity;
-    });
+    const newOrderId = data.id;
 
+    // Deduct stock in DB
     for (const [itemId, qtyOrdered] of Object.entries(stockDeductions)) {
       const menuItem = menu.find(m => m.id === itemId);
       if (!menuItem || menuItem.stock_quantity === null || menuItem.stock_quantity === undefined) continue;
@@ -377,18 +512,25 @@ export function StoreProvider({ children }) {
       const newQty = Math.max(0, menuItem.stock_quantity - qtyOrdered);
       const newInStock = newQty > 0;
 
+      // Optimistically update stock in the UI
       setMenu(prev => prev.map(i => i.id === itemId
         ? { ...i, stock_quantity: newQty, inStock: newInStock, in_stock: newInStock }
         : i
       ));
-
-      await supabase.from('menu_items')
-        .update({ stock_quantity: newQty, in_stock: newInStock })
-        .eq('id', itemId);
+      
+      // Update DB
+      await supabase.from('menu_items').update({
+        stock_quantity: newQty,
+        in_stock: newInStock
+      }).eq('id', itemId);
     }
 
+    // Optimistically add to local orders so it appears instantly for the Admin
+    const completeNewOrder = { ...newOrder, id: newOrderId, created_at: new Date().toISOString() };
+    setOrders(prev => [completeNewOrder, ...prev]);
+
     clearCart();
-    return newOrder.id;
+    return newOrderId;
   };
 
   // Admin accepts an incoming PENDING order → starts the timer
@@ -398,29 +540,39 @@ export function StoreProvider({ children }) {
 
     // Dynamic cook time: ≥ RM100 (10000 cents) → 20 min, else 15 min
     const cookSeconds = order.total >= 10000 ? 1200 : 900;
-    const now = Date.now();
+    const nowStr = new Date().toISOString();
 
-    // Optimistic update
+    // Optimistic update (keeps local timer state intact)
     setOrders(prev => prev.map(o => o.id === orderId
-      ? { ...o, status: 'COOKING', cooking_started_at: now, cook_time_seconds: cookSeconds }
+      ? { ...o, status: 'COOKING', cooking_started_at: nowStr, cook_time_seconds: cookSeconds }
       : o
     ));
 
-    await supabase.from('orders')
-      .update({ status: 'COOKING', cooking_started_at: now, cook_time_seconds: cookSeconds })
+    const { error } = await supabase.from('orders')
+      .update({ status: 'COOKING' })
       .eq('id', orderId);
+
+    if (error) {
+       console.error("Failed to accept order:", error);
+    }
   };
 
   const addPoints = async (amount, description) => {
     if (!user) return; // Only logged in users get points
     
-    const newTotal = (user.points || 0) + amount;
+    // Call RPC to award points atomically
+    const { error } = await supabase.rpc('award_points', {
+      user_id_param: user.id,
+      amount_param: amount
+    });
     
-    // Update local user object optimistically or trigger a re-fetch (we can just update DB and let them refresh or optimistically update context if we had a setUser)
-    // For now we'll just write to DB, and the onAuthStateChange or a page reload will fetch it
-    await supabase.from('profiles').update({ points: newTotal }).eq('id', user.id);
+    if (error) {
+      console.error('Failed to award points via RPC:', error);
+      return;
+    }
     
     // Update user object locally so UI updates instantly
+    const newTotal = (user.points || 0) + amount;
     user.points = newTotal;
 
     setPointHistory(prev => [{
@@ -433,12 +585,13 @@ export function StoreProvider({ children }) {
 
   return (
     <StoreContext.Provider value={{
-      menu, cart, cartTotal: cartTotalCents, cartCount,
-      points, tier, pointHistory, orders, addons, itemAddons,
-      toggleStock, updatePrice, addMenuItem, updateOrderState, updateStock, setStockQuantity,
-      uploadImage, addAddon, deleteAddon, toggleItemAddon, updateAddonPrice,
-      addToCart, removeFromCart, updateQuantity, clearCart,
-      placeOrder, acceptOrder, addPoints
+      menu, cart, cartTotal, cartCount,
+      points, tier, pointHistory, orders, addons, itemAddons, customers,
+      toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateOrderState, acceptOrder, cancelOrder,
+      isPromoActive, updatePromo,
+      addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice,
+      addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
+      placeOrder, addPoints
     }}>
       {children}
     </StoreContext.Provider>

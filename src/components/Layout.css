@@ -121,18 +121,33 @@
 /* Admin Styles */
 .admin-layout {
   min-height: 100vh;
-  background-color: var(--bg-color);
+  background-color: #f4f7fe; /* Sedap light gray */
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 .admin-header {
-  background-color: var(--surface-color);
-  border-bottom: var(--border-thick);
-  padding: var(--space-4);
+  background-color: white;
+  padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid #f0f2f8;
+  z-index: 10;
+}
+
+.admin-header h2 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  color: #2b3674;
+  margin: 0;
+  font-size: 1.5rem;
 }
 
 .admin-main {
-  padding: var(--space-4);
+  flex: 1;
+  padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
 }

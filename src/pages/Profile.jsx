@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
+import { siteConfig } from '../config/siteConfig';
 import './Profile.css';
 
 export default function Profile() {
@@ -76,6 +77,15 @@ export default function Profile() {
           >
             LOGOUT
           </button>
+          
+          <a 
+            href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappGreeting)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="btn w-full"
+            style={{ backgroundColor: '#25d366', color: 'white', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          >
+            💬 Support via WhatsApp
+          </a>
         </div>
 
         <div className="profile-card">

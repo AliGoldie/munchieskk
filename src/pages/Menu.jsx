@@ -16,7 +16,40 @@ const CATEGORY_COLORS = {
 const DEFAULT_COLOR = { bg: '#F5F5F5', tint: '#E0E0E0', text: '#333', accent: '#666', icon: '📦' };
 
 export default function Menu() {
-  const { menu, addToCart } = useStore();
+  const { menu, addToCart, isPromoActive } = useStore();
+
+  const PromoCountdown = ({ promoEnd }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+      if (!promoEnd) return;
+      const update = () => {
+        const diff = new Date(promoEnd) - new Date();
+        if (diff <= 0) {
+          setTimeLeft('Sale ended');
+          return;
+        }
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const m = Math.floor((diff / 1000 / 60) % 60);
+        
+        if (d > 0) setTimeLeft(`Ends in ${d}d ${h}h`);
+        else if (h > 0) setTimeLeft(`Ends in ${h}h ${m}m`);
+        else setTimeLeft(`Ends in ${m} mins!`);
+      };
+      update();
+      const interval = setInterval(update, 60000);
+      return () => clearInterval(interval);
+    }, [promoEnd]);
+
+    if (!timeLeft || timeLeft === 'Sale ended') return null;
+    
+    return (
+      <div style={{ fontSize: '0.75rem', color: '#ff2a2a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', backgroundColor: '#ffe5e5', padding: '2px 8px', borderRadius: '12px', width: 'fit-content' }}>
+        <Flame size={12} /> {timeLeft}
+      </div>
+    );
+  };
   const [selectedItem, setSelectedItem] = useState(null);
   const [activeCategory, setActiveCategory] = useState('');
 
@@ -112,10 +145,21 @@ export default function Menu() {
           <div className="menu-hero-info">
             <h2>{heroItem.name}</h2>
             <p className="menu-desc">{heroItem.description}</p>
-            <div className="price-row">
-              <span className="pts-badge">+250 PTS</span>
-              <span className="price-large">RM {(heroItem.price / 100).toFixed(2)}</span>
-            </div>
+            {isPromoActive(heroItem) ? (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div className="price-row mt-2" style={{ alignItems: 'baseline', gap: '8px' }}>
+                  <span className="pts-badge">+250 PTS</span>
+                  <span className="price-large text-danger font-black">RM {(heroItem.promo_price / 100).toFixed(2)}</span>
+                  <span className="text-muted" style={{ textDecoration: 'line-through', fontSize: '1.2rem', fontWeight: 600 }}>RM {(heroItem.price / 100).toFixed(2)}</span>
+                </div>
+                <PromoCountdown promoEnd={heroItem.promo_end} />
+              </div>
+            ) : (
+              <div className="price-row mt-2">
+                <span className="pts-badge">+250 PTS</span>
+                <span className="price-large">RM {(heroItem.price / 100).toFixed(2)}</span>
+              </div>
+            )}
             <button 
               className="btn btn-primary w-full mt-3"
               onClick={(e) => {
@@ -182,8 +226,16 @@ export default function Menu() {
                         </span>
                       </div>
                       <p className="menu-desc mt-2">{item.description}</p>
+                      {isPromoActive(item) && <PromoCountdown promoEnd={item.promo_end} />}
                       <div className="flex-between mt-3">
-                        <span className="price-large">RM {(item.price / 100).toFixed(2)}</span>
+                        {isPromoActive(item) ? (
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span className="price-large text-danger font-black">RM {(item.promo_price / 100).toFixed(2)}</span>
+                            <span className="text-muted" style={{ textDecoration: 'line-through', fontSize: '0.9rem', fontWeight: 600, marginTop: '-4px' }}>RM {(item.price / 100).toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <span className="price-large">RM {(item.price / 100).toFixed(2)}</span>
+                        )}
                         <div className="flex items-center gap-2">
                           <span className="pts-badge-dark">+300 PTS</span>
                           <button 

@@ -1,87 +1,80 @@
 .admin-page {
-  background-color: #f8fafc; /* light grey/slate background */
-  min-height: 100vh;
-  padding: 2rem 1rem;
-  color: #334155;
+  color: #2b3674; /* Soft dark blue/gray for main text */
+  font-family: 'Inter', sans-serif;
 }
 
 .admin-header-section h1 {
-  font-family: var(--font-sans);
   font-weight: 700;
-  text-transform: none;
   letter-spacing: -0.5px;
-  color: #0f172a;
+  color: #2b3674;
 }
 
 .admin-card {
   background-color: #ffffff;
   border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); /* Soft Sedap shadow */
   padding: 1.5rem;
   margin-bottom: 2rem;
-  border: 1px solid #e2e8f0;
+  border: none;
 }
 
 .admin-card h3 {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 700;
+  color: #2b3674;
   margin-bottom: 1.5rem;
-  text-transform: none;
   font-size: 1.25rem;
+}
+
+.admin-card h4 {
+  color: #a3aed1;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .admin-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 8px; /* gap between rows */
+  border-spacing: 0 8px;
   margin-top: -8px;
 }
 
 .admin-table th {
   text-align: left;
   padding: 0.75rem 1rem;
-  font-weight: 500;
-  color: #64748b;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #a3aed1;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #f0f2f8;
 }
 
 .admin-table td {
   padding: 1rem;
   background-color: #ffffff;
-  border-top: 1px solid #f1f5f9;
-  border-bottom: 1px solid #f1f5f9;
+  border-top: 1px solid #f8f9fc;
+  border-bottom: 1px solid #f8f9fc;
   vertical-align: middle;
+  color: #2b3674;
 }
 
 .admin-table tbody tr {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
 .admin-table tbody tr:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
 }
 
 .admin-table td:first-child {
-  border-left: 1px solid #f1f5f9;
+  border-left: 1px solid #f8f9fc;
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
 }
 
 .admin-table td:last-child {
-  border-right: 1px solid #f1f5f9;
+  border-right: 1px solid #f8f9fc;
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
-}
-
-.row-inactive td {
-  background-color: #f8fafc;
-  color: #94a3b8;
 }
 
 .status-badge {
@@ -90,331 +83,312 @@
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+  font-weight: 700;
 }
 
-.status-badge.in-stock {
-  background-color: #dcfce7;
-  color: #166534;
+.status-badge.in-stock, .status-badge.completed {
+  background-color: rgba(0, 176, 116, 0.1);
+  color: #00b074;
 }
 
-.status-badge.out-stock {
-  background-color: #fee2e2;
-  color: #991b1b;
+.status-badge.out-stock, .status-badge.cancelled {
+  background-color: rgba(255, 91, 91, 0.1);
+  color: #ff5b5b;
 }
 
-.price-edit-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.status-badge.pending {
+  background-color: rgba(255, 173, 10, 0.1);
+  color: #ffad0a;
 }
 
-.price-input {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  outline: none;
-  transition: border-color 0.2s ease;
-  width: 100px;
-}
-
-.price-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-/* Override global buttons specifically for admin page */
+/* Button overrides for Sedap */
 .admin-page .btn {
   border: none;
   box-shadow: none;
-  border-radius: 8px;
-  font-family: var(--font-sans);
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-}
-
-.admin-page .btn:active {
-  transform: scale(0.98);
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
 }
 
 .admin-page .btn-primary {
-  background-color: #2563eb;
+  background-color: #00b074;
   color: white;
 }
-
 .admin-page .btn-primary:hover {
-  background-color: #1d4ed8;
+  background-color: #009966;
 }
 
 .admin-page .btn-secondary {
-  background-color: #e2e8f0;
-  color: #475569;
-}
-
-.admin-page .btn-secondary:hover {
-  background-color: #cbd5e1;
-}
-
-.admin-page .btn-danger {
-  background-color: white;
-  border: 1px solid #f87171;
-  color: #ef4444;
-}
-
-.admin-page .btn-danger:hover {
-  background-color: #fef2f2;
-}
-
-.admin-page .btn-success {
-  background-color: white;
-  border: 1px solid #4ade80;
-  color: #22c55e;
-}
-
-.admin-page .btn-success:hover {
-  background-color: #f0fdf4;
-}
-
-.admin-page .btn-dark {
-  background-color: #334155;
-  color: white;
+  background-color: #f4f7fe;
+  color: #2b3674;
 }
 
 .new-item-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
-  background-color: #f8fafc;
+  background-color: #ffffff;
   padding: 1.5rem;
-  border-radius: 12px;
+  border-radius: 16px;
   margin-bottom: 2rem;
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
 }
 
-.new-item-form .form-group {
+.admin-dashboard-layout {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.new-item-form label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #475569;
-}
-
-.new-item-form input,
-.new-item-form select {
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  align-items: flex-start;
   width: 100%;
 }
 
-/* Stock Quantity Controls */
-.qty-control {
+/* Sidebar */
+.admin-sidebar {
+  width: 250px;
+  flex-shrink: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.5rem;
+  position: sticky;
+  top: 2rem;
+  background: white;
+  padding: 1.5rem 1rem;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
 }
 
-.qty-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  background: transparent;
   border: none;
-  font-size: 1.1rem;
-  font-weight: 700;
+  color: #a3aed1;
+  font-weight: 600;
   cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  position: relative;
+}
+
+.sidebar-item:hover {
+  color: #00b074;
+}
+
+.sidebar-item.active {
+  background-color: rgba(0, 176, 116, 0.1);
+  color: #00b074;
+}
+.sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  width: 4px;
+  background-color: #00b074;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.sidebar-badge {
+  background-color: #ff5b5b;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: auto;
+}
+
+.admin-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sedap Dashboard Metrics Grid */
+.dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.sedap-metric-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sedap-metric-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.1s ease, opacity 0.2s;
-  line-height: 1;
+  font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
-.qty-btn:active {
-  transform: scale(0.9);
+.sedap-metric-icon.green {
+  background-color: rgba(0, 176, 116, 0.15);
+  color: #00b074;
 }
 
-.qty-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+.sedap-metric-icon.red {
+  background-color: rgba(255, 91, 91, 0.15);
+  color: #ff5b5b;
 }
 
-.qty-btn-minus {
-  background-color: #fee2e2;
-  color: #dc2626;
+.sedap-metric-icon.blue {
+  background-color: rgba(45, 153, 255, 0.15);
+  color: #2d99ff;
 }
 
-.qty-btn-minus:hover:not(:disabled) {
-  background-color: #fecaca;
+.sedap-metric-content {
+  display: flex;
+  flex-direction: column;
 }
 
-.qty-btn-plus {
-  background-color: #dcfce7;
-  color: #16a34a;
+.sedap-metric-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #2b3674;
+  line-height: 1.2;
 }
 
-.qty-btn-plus:hover {
-  background-color: #bbf7d0;
+.sedap-metric-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a3aed1;
+  margin-top: 4px;
 }
 
-.qty-value {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 1rem;
-  min-width: 28px;
-  text-align: center;
-  color: #1e293b;
+/* Dashboard Bottom Layout */
+.dashboard-bottom {
+  display: grid;
+  grid-template-columns: 2.5fr 1fr;
+  gap: 1.5rem;
 }
 
-.qty-input {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 1rem;
-  width: 52px;
-  text-align: center;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 3px 4px;
-  outline: none;
-  transition: border-color 0.2s;
-  -moz-appearance: textfield;
+.dashboard-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.qty-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+.chart-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
 }
 
-/* Hide number input arrows */
-.qty-input::-webkit-outer-spin-button,
-.qty-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.chart-header h3 {
   margin: 0;
 }
 
-.qty-zero {
-  color: #ef4444;
-  font-weight: 900;
+.top-selling-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-/* ─────────────────────────────────────────
-   TAB ALERT — Live Orders button
-───────────────────────────────────────── */
-.tab-btn-alert {
-  animation: tabShake 0.5s ease-in-out infinite alternate,
-             tabGlow 1s ease-in-out infinite !important;
-  border-color: #ef4444 !important;
-}
-
-@keyframes tabShake {
-  from { transform: translateY(0) rotate(-1deg); }
-  to   { transform: translateY(-2px) rotate(1deg); }
-}
-
-@keyframes tabGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
-  50%       { box-shadow: 0 0 12px 4px rgba(239,68,68,0.35); }
-}
-
-.tab-alert-dot {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: #ef4444;
-  color: white;
-  font-size: 0.65rem;
-  font-weight: 900;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+.top-selling-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border: 2px solid white;
-  animation: dotPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+.top-selling-item:hover {
+  background: #f8f9fc;
 }
 
-@keyframes dotPop {
-  from { transform: scale(0); }
-  to   { transform: scale(1); }
+.top-selling-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
 }
 
+.top-selling-info {
+  flex: 1;
+}
 
+.top-selling-name {
+  font-weight: 700;
+  color: #2b3674;
+  font-size: 0.9rem;
+}
+
+.top-selling-sales {
+  font-size: 0.8rem;
+  color: #a3aed1;
+  font-weight: 600;
+}
+
+/* --- Live Orders: Pending Alerts --- */
 .pending-badge-pill {
-  background: #ef4444;
+  background: #ff5b5b;
   color: white;
-  font-size: 0.72rem;
-  font-weight: 800;
   padding: 4px 12px;
-  border-radius: 999px;
-  letter-spacing: 0.08em;
-  animation: pillPulse 1s ease-in-out infinite;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  animation: pulse-red 2s infinite;
 }
 
-@keyframes pillPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
-  50%       { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(255, 91, 91, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(255, 91, 91, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 91, 91, 0); }
 }
 
 .pending-alert-card {
-  background: linear-gradient(135deg, #1a1a1a, #3b0000);
-  border: 2px solid #ef4444;
-  border-radius: 16px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1rem;
-  animation: alertSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-             alertBorderPulse 1.5s ease-in-out infinite;
-  position: relative;
-  overflow: hidden;
-}
-
-.pending-alert-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 12px,
-    rgba(239,68,68,0.06) 12px,
-    rgba(239,68,68,0.06) 24px
-  );
-  pointer-events: none;
-}
-
-@keyframes alertSlideIn {
-  from { transform: translateY(-12px); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
-}
-
-@keyframes alertBorderPulse {
-  0%, 100% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
-  50%       { border-color: #ff6b6b; box-shadow: 0 0 20px 4px rgba(239,68,68,0.25); }
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-left: 6px solid #ff5b5b;
+  box-shadow: 0 8px 30px rgba(255, 91, 91, 0.15);
+  display: flex;
+  flex-direction: column;
 }
 
 .pending-alert-top {
   display: flex;
+  gap: 1.5rem;
   align-items: center;
-  gap: 1rem;
-  position: relative;
-  z-index: 1;
 }
 
 .pending-alert-icon {
-  font-size: 2.4rem;
-  animation: bellShake 0.6s ease-in-out infinite alternate;
-  flex-shrink: 0;
+  font-size: 2.5rem;
+  animation: shake 0.5s infinite alternate;
 }
 
-@keyframes bellShake {
-  from { transform: rotate(-12deg); }
-  to   { transform: rotate(12deg); }
+@keyframes shake {
+  0% { transform: rotate(-10deg); }
+  100% { transform: rotate(10deg); }
 }
 
 .pending-alert-info {
@@ -422,54 +396,101 @@
 }
 
 .pending-alert-title {
-  font-weight: 900;
-  font-size: 1rem;
-  color: #ff6b6b;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-bottom: 2px;
+  color: #ff5b5b;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
 }
 
 .pending-alert-id {
-  font-size: 0.8rem;
-  color: rgba(255,255,255,0.6);
-  margin-bottom: 4px;
+  font-family: var(--font-mono, monospace);
+  color: #1e293b;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .pending-alert-items {
-  font-size: 0.85rem;
-  color: rgba(255,255,255,0.9);
-  font-weight: 500;
+  background: #f4f7fe;
+  padding: 0.75rem;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .pending-accept-btn {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: #00b074;
   color: white;
   border: none;
+  padding: 1rem 2rem;
   border-radius: 12px;
-  padding: 0.7rem 1.2rem;
-  font-weight: 900;
-  font-size: 0.95rem;
+  font-weight: 800;
+  font-size: 1.1rem;
   cursor: pointer;
-  text-align: center;
-  line-height: 1.4;
-  box-shadow: 0 4px 12px rgba(34,197,94,0.4);
-  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
-              box-shadow 0.2s ease;
-  flex-shrink: 0;
-  min-width: 90px;
+  box-shadow: 0 8px 20px rgba(0, 176, 116, 0.3);
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .pending-accept-btn:hover {
-  transform: scale(1.08);
-  box-shadow: 0 6px 20px rgba(34,197,94,0.55);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 25px rgba(0, 176, 116, 0.4);
+  background: #00c783;
 }
 
-.pending-accept-btn:active {
-  transform: scale(0.95);
+/* --- Menu Inventory Quantity Controls --- */
+.qty-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
 }
 
-.text-danger {
-  color: #ef4444;
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background-color: #ffca08;
+  color: #111;
+  font-weight: bold;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+  padding: 0;
+  line-height: 1;
 }
 
+.qty-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  background-color: #e6b607;
+}
+
+.qty-btn:disabled {
+  background-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.qty-input {
+  width: 60px;
+  height: 32px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1e293b;
+  -moz-appearance: textfield;
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

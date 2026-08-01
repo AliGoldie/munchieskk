@@ -7,11 +7,11 @@ import './OrderStatus.css';
 
 export default function OrderStatus() {
   const { id } = useParams();
-  const { orders, updateOrderState, addPoints } = useStore();
+  const { orders, updateOrderState, addPoints, cancelOrder } = useStore();
   const order = orders.find(o => o.id === id);
 
   const cookTime = order?.cook_time_seconds || loyaltyConfig.DEFAULT_COOK_TIME_SECONDS;
-  const [timeLeft, setTimeLeft] = useState(cookTime);
+  const [timeElapsed, setTimeElapsed] = useState(0);
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [claimedReview, setClaimedReview] = useState(false);
 
@@ -21,9 +21,10 @@ export default function OrderStatus() {
 
     const ct = order.cook_time_seconds || loyaltyConfig.DEFAULT_COOK_TIME_SECONDS;
     const interval = setInterval(() => {
-      const elapsedSeconds = Math.floor((Date.now() - order.cooking_started_at) / 1000);
-      const remaining = Math.max(0, ct - elapsedSeconds);
-      setTimeLeft(remaining);
+      const startedAt = order.cooking_started_at || order.created_at;
+      const startMs = new Date(startedAt).getTime();
+      const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+      setTimeElapsed(elapsedSeconds);
     }, 1000);
 
     return () => clearInterval(interval);
@@ -51,7 +52,7 @@ export default function OrderStatus() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const progressPercent = Math.min(100, 100 - (timeLeft / cookTime) * 100);
+  const progressPercent = Math.min(100, (timeElapsed / cookTime) * 100);
 
   return (
     <div className="order-status-page">
@@ -62,13 +63,34 @@ export default function OrderStatus() {
           <div className="status-card cooking-card">
             <div className="kitchen-visual" style={{fontSize:'4rem', animation:'pulse 2s ease-in-out infinite'}}>⏳</div>
             <h2>ORDER RECEIVED!</h2>
-            <p className="order-id">Order ID: {order.id}</p>
+            <p className="order-id">Order ID: #{order.id.split('-')[0].toUpperCase()}</p>
             <p className="text-muted mt-3" style={{lineHeight:'1.6'}}>
               Your order is with the kitchen.<br/>We'll start the timer once they confirm it!
             </p>
             <div style={{marginTop:'1.5rem', background:'rgba(255,202,8,0.15)', borderRadius:'12px', padding:'1rem'}}>
               <p className="font-black" style={{color:'var(--munchies-orange)', fontSize:'0.85rem', letterSpacing:'0.05em'}}>⚡ PREPARING YOUR ORDER</p>
             </div>
+            <button 
+              className="btn mt-4 w-100" 
+              style={{ background: 'transparent', border: '2px solid #ff5b5b', color: '#ff5b5b', fontWeight: '800', borderRadius: '12px' }}
+              onClick={() => {
+                cancelOrder(order.id);
+                alert('Your order has been cancelled.');
+              }}
+            >
+              CANCEL ORDER
+            </button>
+          </div>
+        )}
+
+        {/* CANCELLED STATE */}
+        {order.status === 'CANCELLED' && (
+          <div className="status-card" style={{borderTop: '6px solid #ff5b5b'}}>
+            <div className="kitchen-visual" style={{fontSize:'4rem'}}>❌</div>
+            <h2 style={{color: '#ff5b5b'}}>ORDER CANCELLED</h2>
+            <p className="order-id">Order ID: #{order.id.split('-')[0].toUpperCase()}</p>
+            <p className="text-muted mt-3">This order has been cancelled.</p>
+            <Link to="/" className="btn btn-dark w-100 mt-4">RETURN TO MENU</Link>
           </div>
         )}
 
@@ -76,24 +98,24 @@ export default function OrderStatus() {
         {order.status === 'COOKING' && (
           <div className="status-card cooking-card">
             <div className="kitchen-visual">
-              <Flame size={80} className={`flame-icon ${timeLeft === 0 ? 'pulse-urgent' : 'pulse'}`} />
+              <Flame size={80} className="flame-icon pulse" />
             </div>
             
             <h2>ORDER IN KITCHEN</h2>
-            <p className="order-id">Order ID: {order.id}</p>
+            <p className="order-id">Order ID: #{order.id.split('-')[0].toUpperCase()}</p>
             
             <div className="timer-container mt-4">
               <div className="timer-text font-black text-orange">
-                {timeLeft > 0 ? formatTime(timeLeft) : 'ALMOST READY!'}
+                {formatTime(timeElapsed)}
               </div>
               <p className="text-muted text-sm mt-1">
-                {timeLeft > 0 ? 'Estimated time remaining' : 'Hang tight, final touches!'}
+                Time Elapsed
               </p>
               
               <div className="progress-bar mt-3">
                 <div 
-                  className={`progress-fill ${timeLeft === 0 ? 'pulse-urgent-bg' : ''}`} 
-                  style={{ width: `${progressPercent}%` }}
+                  className="progress-fill" 
+                  style={{ width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? '#ef4444' : '#f59e0b' }}
                 ></div>
               </div>
             </div>

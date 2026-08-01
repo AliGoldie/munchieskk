@@ -9,7 +9,7 @@ export default function CookingPopup() {
   const { orders } = useStore();
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState(() => localStorage.getItem('munchies_active_order'));
-  const [timeLeft, setTimeLeft] = useState(loyaltyConfig.DEFAULT_COOK_TIME_SECONDS);
+  const [timeElapsed, setTimeElapsed] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const prevStatus = useRef(null);
   const originalTitle = useRef(document.title);
@@ -41,8 +41,10 @@ export default function CookingPopup() {
   useEffect(() => {
     if (!order || order.status !== 'COOKING') return;
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - order.cooking_started_at) / 1000);
-      setTimeLeft(Math.max(0, loyaltyConfig.DEFAULT_COOK_TIME_SECONDS - elapsed));
+      const startedAt = order.cooking_started_at || order.created_at;
+      const startMs = new Date(startedAt).getTime();
+      const elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+      setTimeElapsed(elapsed);
     }, 1000);
     return () => clearInterval(interval);
   }, [order]);
@@ -82,7 +84,7 @@ export default function CookingPopup() {
   if (!order || dismissed || order.status === 'COLLECTED') return null;
 
   const cookTime = order.cook_time_seconds || loyaltyConfig.DEFAULT_COOK_TIME_SECONDS;
-  const progressPercent = Math.min(100, 100 - (timeLeft / cookTime) * 100);
+  const progressPercent = Math.min(100, (timeElapsed / cookTime) * 100);
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
   const isPending = order.status === 'PENDING';
   const isReady = order.status === 'READY';
@@ -100,7 +102,7 @@ export default function CookingPopup() {
           <div className="popup-ready-icon">🍔</div>
           <div>
             <div className="popup-ready-title">Your order is READY!</div>
-            <div className="popup-ready-sub">Tap to collect · {orderId}</div>
+            <div className="popup-ready-sub">Tap to collect · #{orderId.split('-')[0].toUpperCase()}</div>
           </div>
         </div>
       ) : isPending ? (
@@ -115,15 +117,15 @@ export default function CookingPopup() {
         <div className="popup-cooking-content">
           <div className="popup-flame">🔥</div>
           <div className="popup-text">
-            <div className="popup-label">Cooking your order…</div>
-            <div className="popup-timer">{formatTime(timeLeft)}</div>
+            <div className="popup-label">Time Elapsed…</div>
+            <div className="popup-timer">{formatTime(timeElapsed)}</div>
           </div>
         </div>
       )}
 
       {!isReady && (
         <div className="popup-progress-bar">
-          <div className="popup-progress-fill" style={{ width: `${progressPercent}%` }} />
+          <div className="popup-progress-fill" style={{ width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? '#ef4444' : '#f59e0b' }} />
         </div>
       )}
     </div>

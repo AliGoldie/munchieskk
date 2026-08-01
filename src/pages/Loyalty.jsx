@@ -3,7 +3,7 @@ import { useStore } from '../contexts/StoreContext';
 import './Loyalty.css';
 
 export default function Loyalty() {
-  const points = 2450;
+  const { points } = useStore();
   const nextRank = 3000;
   const progress = (points / nextRank) * 100;
 

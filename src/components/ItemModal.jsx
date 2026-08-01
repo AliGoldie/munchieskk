@@ -4,11 +4,11 @@ import { getPointsForItem } from '../config/loyaltyConfig';
 import { useStore } from '../contexts/StoreContext';
 import './ItemModal.css';
 
-export default function ItemModal({ item, onClose }) {
+export default function ItemModal({ item, onClose, editMode = false, initialCartItem = null, onSave = null }) {
   const [isClosing, setIsClosing] = useState(false);
-  const [selectedAddonIds, setSelectedAddonIds] = useState([]);
+  const [selectedAddonIds, setSelectedAddonIds] = useState(initialCartItem ? (initialCartItem.selectedAddons || []).map(a => a.id) : []);
   const [quantity, setQuantity] = useState(1);
-  const { addToCart, addons, itemAddons } = useStore();
+  const { addToCart, addons, itemAddons, isPromoActive } = useStore();
 
   // Find which addons are available for this item
   const availableAddonIds = itemAddons[item?.id] || [];
@@ -44,13 +44,19 @@ export default function ItemModal({ item, onClose }) {
     return total + (addon?.price || 0);
   }, 0);
 
-  const unitPrice = item.price + addonTotalCents;
+  const basePrice = isPromoActive(item) ? item.promo_price : item.price;
+  const unitPrice = basePrice + addonTotalCents;
   const totalPrice = unitPrice * quantity;
 
   const handleAddToCart = () => {
-    const selected = addons.filter(a => selectedAddonIds.includes(a.id));
-    for (let i = 0; i < quantity; i++) {
-      addToCart(item, selected);
+    if (editMode && onSave) {
+      const selected = addons.filter(a => selectedAddonIds.includes(a.id));
+      onSave(selected);
+    } else {
+      const selected = addons.filter(a => selectedAddonIds.includes(a.id));
+      for (let i = 0; i < quantity; i++) {
+        addToCart(item, selected);
+      }
     }
     handleClose();
   };
@@ -68,13 +74,23 @@ export default function ItemModal({ item, onClose }) {
         </button>
         
         <div className="modal-image-container" style={{ backgroundImage: `url('${item.image}')` }}></div>
-        
         <div className="modal-body">
-          <div className="modal-header">
-            <h2>{item.name}</h2>
-            <span className="modal-price">RM {(item.price / 100).toFixed(2)}</span>
+          {/* Base Price Row */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>
+              {item.name}
+            </h2>
+            <div style={{ textAlign: 'right' }}>
+              {isPromoActive(item) ? (
+                <>
+                  <div className="text-muted" style={{ textDecoration: 'line-through', fontSize: '0.9rem', fontWeight: 600 }}>RM {(item.price / 100).toFixed(2)}</div>
+                  <div className="text-danger font-black" style={{ fontSize: '1.25rem' }}>RM {(item.promo_price / 100).toFixed(2)}</div>
+                </>
+              ) : (
+                <div className="text-success font-black" style={{ fontSize: '1.25rem' }}>RM {(item.price / 100).toFixed(2)}</div>
+              )}
+            </div>
           </div>
-          
           <p className="modal-description">{extendedDescription}</p>
           
           <div className="modal-points-banner">
@@ -113,32 +129,34 @@ export default function ItemModal({ item, onClose }) {
           )}
 
           {/* Quantity Selector */}
-          <div className="modal-qty-row">
-            <span className="modal-qty-label">Quantity</span>
-            <div className="modal-qty-controls">
-              <button 
-                className="modal-qty-btn" 
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                disabled={quantity <= 1}
-              >
-                <Minus size={16} />
-              </button>
-              <span className="modal-qty-value">{quantity}</span>
-              <button 
-                className="modal-qty-btn" 
-                onClick={() => setQuantity(q => q + 1)}
-              >
-                <Plus size={16} />
-              </button>
+          {!editMode && (
+            <div className="modal-qty-row">
+              <span className="modal-qty-label">Quantity</span>
+              <div className="modal-qty-controls">
+                <button 
+                  className="modal-qty-btn" 
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
+                >
+                  <Minus size={16} />
+                </button>
+                <span className="modal-qty-value">{quantity}</span>
+                <button 
+                  className="modal-qty-btn" 
+                  onClick={() => setQuantity(q => q + 1)}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <button 
             className="btn btn-primary w-full modal-add-btn"
             disabled={!item.inStock}
             onClick={handleAddToCart}
           >
-            {item.inStock ? `Add to Cart — RM ${(totalPrice / 100).toFixed(2)}` : 'Sold Out'}
+            {editMode ? 'Save Changes' : (item.inStock ? `Add to Cart — RM ${(totalPrice / 100).toFixed(2)}` : 'Sold Out')}
           </button>
         </div>
       </div>

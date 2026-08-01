@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Trash2, Plus, Sparkles, ChevronRight } from 'lucide-react';
+import ItemModal from '../components/ItemModal';
 import './Cart.css';
 
 export default function Cart() {
-  const { cart, cartTotal, removeFromCart, updateQuantity, addToCart, menu, itemAddons } = useStore();
+  const { cart, cartTotal, removeFromCart, updateQuantity, addToCart, menu, itemAddons, updateCartItemAddons } = useStore();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [addedIds, setAddedIds] = useState({});
+  const [editingCartItem, setEditingCartItem] = useState(null);
 
   // Smart suggestions: prioritise DRINKS then SIDES, exclude already-in-cart items
   const cartItemIds = cart.map(i => i.id);
@@ -47,7 +49,13 @@ export default function Cart() {
           {/* Cart Items */}
           <div className="cart-items">
             {cart.map(item => (
-              <div key={item.cartItemId} className="cart-item">
+              <div 
+                key={item.cartItemId} 
+                className="cart-item"
+                style={{ cursor: 'pointer' }}
+                onDoubleClick={() => setEditingCartItem(item)}
+                title="Double click to edit add-ons"
+              >
                 <div className="cart-item-details">
                   <h3>{item.name}</h3>
                   {item.selectedAddons && item.selectedAddons.length > 0 && (
@@ -59,7 +67,7 @@ export default function Cart() {
                     RM {((item.price + (item.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0)) / 100).toFixed(2)}
                   </span>
                 </div>
-                <div className="cart-item-actions">
+                <div className="cart-item-actions" onDoubleClick={(e) => e.stopPropagation()}>
                   <div className="quantity-controls">
                     <button className="btn-qty" onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}>-</button>
                     <span className="qty">{item.quantity}</span>
@@ -148,6 +156,19 @@ export default function Cart() {
           </button>
         </div>
       </div>
+
+      {editingCartItem && (
+        <ItemModal
+          item={menu.find(i => i.id === editingCartItem.id) || editingCartItem}
+          editMode={true}
+          initialCartItem={editingCartItem}
+          onSave={(newSelectedAddons) => {
+            updateCartItemAddons(editingCartItem.cartItemId, newSelectedAddons);
+            setEditingCartItem(null);
+          }}
+          onClose={() => setEditingCartItem(null)}
+        />
+      )}
     </div>
   );
 }
