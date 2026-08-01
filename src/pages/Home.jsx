@@ -37,7 +37,7 @@ export default function Home() {
           <p className="welcome-back">WELCOME BACK</p>
           <h1>HEY,<br/>GOURMET!</h1>
         </div>
-        <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-end'}}>
+        <div style={{display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center'}}>
           <div className="points-badge">
             <Award size={16} />
             <div className="points-info">
