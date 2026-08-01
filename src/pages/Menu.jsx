@@ -137,10 +137,15 @@ export default function Menu() {
 
       {/* Hero Menu Item */}
       {heroItem && (
-        <div className="card menu-hero-card" onClick={() => setSelectedItem(heroItem)}>
+        <div className={`card menu-hero-card ${!heroItem.inStock ? 'card-oos' : ''}`} onClick={() => { if (heroItem.inStock) setSelectedItem(heroItem); }}>
           <span className="badge-red hero-badge">MUST TRY!</span>
-          <div className="hero-img-bg">
+          <div className="hero-img-bg" style={{ position: 'relative' }}>
             <div className="hero-img" style={{ backgroundImage: `url('${heroItem.image}')` }}></div>
+            {!heroItem.inStock && (
+              <div className="oos-overlay">
+                <span className="oos-label">OUT OF STOCK</span>
+              </div>
+            )}
           </div>
           <div className="menu-hero-info">
             <h2>{heroItem.name}</h2>
@@ -161,13 +166,16 @@ export default function Menu() {
               </div>
             )}
             <button 
-              className="btn btn-primary w-full mt-3"
+              className={`btn w-full mt-3 ${!heroItem.inStock ? 'btn-secondary' : 'btn-primary'}`}
+              disabled={!heroItem.inStock}
+              style={!heroItem.inStock ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
               onClick={(e) => {
                 e.stopPropagation();
+                if (!heroItem.inStock) return;
                 setSelectedItem(heroItem);
               }}
             >
-              ADD TO BAG
+              {heroItem.inStock ? 'ADD TO BAG' : 'SOLD OUT'}
             </button>
           </div>
         </div>
@@ -199,7 +207,7 @@ export default function Menu() {
               
               <div className="hot-list-grid">
                 {categoryItems.map(item => (
-                  <div key={item.id} className={`card hot-list-card ${!item.inStock ? 'card-oos' : ''}`} onClick={() => setSelectedItem(item)}>
+                  <div key={item.id} className={`card hot-list-card ${!item.inStock ? 'card-oos' : ''}`} onClick={() => { if (item.inStock) setSelectedItem(item); }}>
                     <div className="hot-list-img-wrap">
                       <div className="hot-list-img" style={{ backgroundImage: `url('${item.image}')` }}></div>
                       {!item.inStock && (
