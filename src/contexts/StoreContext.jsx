@@ -136,8 +136,14 @@ export function StoreProvider({ children }) {
               newOrders.push(lo);
               changed = true;
             } else if (newOrders[index].status !== lo.status) {
-              newOrders[index] = lo;
-              changed = true;
+              const statusOrder = { 'PENDING': 0, 'COOKING': 1, 'READY': 2, 'COLLECTED': 3, 'CANCELLED': 4 };
+              const oldRank = statusOrder[newOrders[index].status] ?? 0;
+              const newRank = statusOrder[lo.status] ?? 0;
+              
+              if (newRank >= oldRank) {
+                newOrders[index] = lo;
+                changed = true;
+              }
             }
           });
           if (changed) {
@@ -562,6 +568,9 @@ export function StoreProvider({ children }) {
 
     if (error) {
        console.error("Failed to accept order:", error);
+       alert("Failed to accept order: " + error.message + " (Did you run the SQL migration?)");
+       // Revert optimistic update
+       setOrders(prev => prev.map(o => o.id === orderId ? order : o));
     }
   };
 
