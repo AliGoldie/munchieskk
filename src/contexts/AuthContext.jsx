@@ -118,7 +118,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithProvider, signup, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, loginWithProvider, signup, logout }}>
       {!loading && children}
     </AuthContext.Provider>
   );

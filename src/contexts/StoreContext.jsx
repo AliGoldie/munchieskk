@@ -5,13 +5,14 @@ import { useAuth } from './AuthContext';
 const StoreContext = createContext();
 
 export function StoreProvider({ children }) {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
   const [menu, setMenu] = useState([]);
   const [addons, setAddons] = useState([]);
   const [itemAddons, setItemAddons] = useState({});
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
 
   // Local-only state for Cart & Point History
   const loadState = (key, defaultVal) => {
@@ -35,10 +36,10 @@ export function StoreProvider({ children }) {
       if (menuData) setMenu(menuData.map(item => ({...item, inStock: item.in_stock, low_stock_threshold: item.low_stock_threshold ?? 5})));
       else console.error('Menu fetch error:', menuErr);
 
-      // 2. Fetch Orders (Filtering out all orders created before this moment to provide a clean slate)
+      // 2. Fetch Orders
       const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
       if (ordersData) {
-        setOrders(ordersData.filter(o => new Date(o.created_at || 0) > new Date('2026-07-31T11:20:00Z')));
+        setOrders(ordersData);
       }
 
       // 3. Fetch Addons
@@ -101,7 +102,13 @@ export function StoreProvider({ children }) {
         if (payload.eventType === 'INSERT') setCustomers(prev => [...prev, payload.new]);
         else if (payload.eventType === 'UPDATE') setCustomers(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsRealtimeConnected(true);
+        } else {
+          setIsRealtimeConnected(false);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -111,13 +118,15 @@ export function StoreProvider({ children }) {
   // Polling fallback in case Supabase Realtime is disabled on the orders table
   useEffect(() => {
     const pollOrders = setInterval(async () => {
+      if (isRealtimeConnected) return; // Only poll if realtime is down
+
       const { data: latestOrdersRaw } = await supabase.from('orders')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
       
       if (latestOrdersRaw) {
-        const latestOrders = latestOrdersRaw.filter(o => new Date(o.created_at || 0) > new Date('2026-07-31T11:20:00Z'));
+        const latestOrders = latestOrdersRaw;
         setOrders(prev => {
           let newOrders = [...prev];
           let changed = false;
@@ -140,7 +149,7 @@ export function StoreProvider({ children }) {
     }, 5000); // 5 second polling
 
     return () => clearInterval(pollOrders);
-  }, []);
+  }, [isRealtimeConnected]);
 
   // --- CRM & Admin Actions ---
   const toggleStock = async (id) => {
@@ -177,7 +186,7 @@ export function StoreProvider({ children }) {
 
   const addMenuItem = async (item) => {
     const newItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: item.name,
       category: item.category,
       price: Math.round(item.price * 100),
@@ -259,29 +268,24 @@ export function StoreProvider({ children }) {
     await supabase.from('orders').update({ status: newState }).eq('id', orderId);
   };
 
-  const cancelOrder = async (orderId) => {
+  const cancelOrder = async (orderId, reason) => {
     const order = orders.find(o => o.id === orderId);
     if (!order || order.status === 'COLLECTED' || order.status === 'CANCELLED') return;
 
     // Optimistic update
-    setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED' } : o));
+    setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED', cancellation_reason: reason } : o));
     
-    // DB update
-    await supabase.from('orders').update({ status: 'CANCELLED' }).eq('id', orderId);
-
-    // Revert stock logically
-    const stockAdditions = {};
-    (order.items || []).forEach(item => {
-      stockAdditions[item.id] = (stockAdditions[item.id] || 0) + (item.quantity || 1);
+    // DB update via atomic RPC
+    const { error } = await supabase.rpc('cancel_order', {
+      p_order_id: orderId,
+      p_reason: reason
     });
 
-    for (const [itemId, qtyToRestore] of Object.entries(stockAdditions)) {
-      const menuItem = menu.find(m => m.id === itemId);
-      if (!menuItem || menuItem.stock_quantity == null) continue;
-      const newQty = menuItem.stock_quantity + qtyToRestore;
-      const newInStock = newQty > 0;
-      setMenu(prev => prev.map(i => i.id === itemId ? { ...i, stock_quantity: newQty, inStock: newInStock, in_stock: newInStock } : i));
-      await supabase.from('menu_items').update({ stock_quantity: newQty, in_stock: newInStock }).eq('id', itemId);
+    if (error) {
+      console.error('Failed to cancel order via RPC:', error);
+      alert('Failed to cancel order: ' + error.message);
+      // Revert optimistic update
+      setOrders(orders.map(o => o.id === orderId ? order : o));
     }
   };
 
@@ -312,7 +316,7 @@ export function StoreProvider({ children }) {
   const addAddon = async (name, priceFloat, image = null) => {
     const cents = priceFloat === '' ? null : Math.round(parseFloat(priceFloat) * 100);
     const newAddon = {
-      id: `a${Date.now()}`,
+      id: crypto.randomUUID(),
       name,
       price: cents,
       image
@@ -549,7 +553,11 @@ export function StoreProvider({ children }) {
     ));
 
     const { error } = await supabase.from('orders')
-      .update({ status: 'COOKING' })
+      .update({ 
+        status: 'COOKING',
+        cooking_started_at: nowStr,
+        cook_time_seconds: cookSeconds
+      })
       .eq('id', orderId);
 
     if (error) {
@@ -573,7 +581,7 @@ export function StoreProvider({ children }) {
     
     // Update user object locally so UI updates instantly
     const newTotal = (user.points || 0) + amount;
-    user.points = newTotal;
+    setUser(prev => ({ ...prev, points: newTotal }));
 
     setPointHistory(prev => [{
       id: `TXN-${Math.floor(Math.random() * 10000)}`,

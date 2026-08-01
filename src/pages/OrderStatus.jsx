@@ -74,7 +74,7 @@ export default function OrderStatus() {
               className="btn mt-4 w-100" 
               style={{ background: 'transparent', border: '2px solid #ff5b5b', color: '#ff5b5b', fontWeight: '800', borderRadius: '12px' }}
               onClick={() => {
-                cancelOrder(order.id);
+                cancelOrder(order.id, "Cancelled by Customer");
                 alert('Your order has been cancelled.');
               }}
             >

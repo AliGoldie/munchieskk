@@ -207,13 +207,18 @@ export default function Admin() {
   };
 
   const getCookTimeLeft = (order) => {
-    const startedAt = order.cooking_started_at || order.created_at;
-    if (!startedAt) return null;
-    const startMs = new Date(startedAt).getTime();
-    const elapsed = Math.max(0, Math.floor((now - startMs) / 1000));
-    const m = Math.floor(elapsed / 60);
-    const s = elapsed % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+    if (order.status !== 'COOKING') return null;
+    if (!order.cooking_started_at || !order.cook_time_seconds) return '—';
+    const started = new Date(order.cooking_started_at).getTime();
+    const now = Date.now();
+    const elapsedSeconds = Math.floor((now - started) / 1000);
+    const cookTime = order.cook_time_seconds;
+    
+    if (elapsedSeconds >= cookTime) return 'OVERDUE';
+    const left = cookTime - elapsedSeconds;
+    const m = Math.floor(left / 60);
+    const s = left % 60;
+    return `${m}m ${s}s`;
   };
 
   const formatOrderId = (id) => {
@@ -655,6 +660,20 @@ export default function Admin() {
                             Mark Collected
                           </button>
                         )}
+                        <button 
+                          className="btn btn-sm btn-secondary" 
+                          style={{marginLeft: '0.5rem'}}
+                          onClick={() => {
+                            const reason = window.prompt("Enter cancellation reason:");
+                            if (reason && reason.trim()) {
+                              cancelOrder(order.id, reason.trim());
+                            } else {
+                              alert("Cancellation reason is required.");
+                            }
+                          }}
+                        >
+                          Cancel
+                        </button>
                       </td>
                     </tr>
                   ))}
