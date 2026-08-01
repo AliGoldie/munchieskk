@@ -56,11 +56,11 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background-color: var(--munchies-white);
+  background-color: #1c1c1e; /* Soft charcoal */
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15); /* Slightly darker shadow for charcoal */
+  border: 1px solid rgba(255,255,255,0.05); /* subtle highlight border */
   margin-top: 1rem;
 }
 
@@ -133,32 +133,25 @@
 .hero-spotlight-content {
   padding: 1.5rem;
   z-index: 1;
-  background-color: white;
+  background-color: #1c1c1e;
 }
 
 .hero-spotlight-content h2 {
   font-size: 2.2rem;
   margin-bottom: 0.5rem;
   line-height: 1.1;
-  color: #1e293b;
+  color: #f8fafc; /* off-white */
 }
 
 .hero-spotlight-content p {
   font-size: 0.9rem;
-  color: #64748b;
+  color: #94a3b8; /* lighter grey for contrast against charcoal */
   margin-bottom: 1.2rem;
 }
 
-.hero-spotlight-action {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.price-large {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #0f172a;
+.hero-spotlight-content .price-large {
+  display: block;
+  color: #f8fafc; /* override for dark background */
 }
 
 .btn-sleek {
@@ -175,20 +168,24 @@
   border: none;
 }
 
+.hero-cta-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 14px 20px;
+}
+
 .hero-dots {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
   display: flex;
-  gap: 6px;
-  z-index: 2;
+  justify-content: flex-start;
+  gap: 10px;
+  margin: 16px 0 24px 0; /* Clear spacing from price above and button below */
 }
 
 .hero-dot {
-  width: 8px;
-  height: 8px;
+  width: 12px; /* Increased size for mobile tappability */
+  height: 12px;
   border-radius: 50%;
-  background-color: rgba(0,0,0,0.2);
+  background-color: rgba(255,255,255,0.3); /* muted grey on dark background */
   border: none;
   padding: 0;
   cursor: pointer;
@@ -197,8 +194,8 @@
 
 .hero-dot.active {
   background-color: var(--munchies-yellow);
-  width: 24px;
-  border-radius: 4px;
+  width: 32px;
+  border-radius: 6px;
 }
 
 /* Categories Clean */
