@@ -27,6 +27,8 @@
   align-items: center;
   justify-content: center;
   padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .logo {
@@ -43,6 +45,8 @@
   align-items: center;
   justify-content: center;
   padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .cart-badge {
@@ -129,12 +133,18 @@
 
 .admin-header {
   background-color: white;
-  padding: 1rem 2rem;
+  padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #f0f2f8;
   z-index: 10;
+}
+
+@media (min-width: 768px) {
+  .admin-header {
+    padding: 1rem 2rem;
+  }
 }
 
 .admin-header h2 {
@@ -147,7 +157,13 @@
 
 .admin-main {
   flex: 1;
-  padding: 2rem;
+  padding: 1rem;
   width: 100%;
   box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .admin-main {
+    padding: 2rem;
+  }
 }

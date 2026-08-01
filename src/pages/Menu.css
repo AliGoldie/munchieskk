@@ -297,9 +297,6 @@
   box-shadow: 0px 0px 0px 0px var(--munchies-dark);
 }
 
-.hot-list-info {
-  padding: var(--space-4);
-}
 
 .flex-between {
   display: flex;

@@ -9,6 +9,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .welcome-back {
@@ -78,10 +80,16 @@
 
 .hero-spotlight-image-container {
   position: relative;
-  height: 260px;
+  height: 200px;
   width: 100%;
   cursor: pointer;
   z-index: 1;
+}
+
+@media (min-width: 768px) {
+  .hero-spotlight-image-container {
+    height: 260px;
+  }
 }
 
 .hero-spotlight-image {
@@ -319,8 +327,14 @@
 /* Product Grid */
 .product-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .product-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .product-card {

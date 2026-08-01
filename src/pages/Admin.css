@@ -31,11 +31,35 @@
   font-size: 0.9rem;
 }
 
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-charts-grid,
+.admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .admin-charts-grid {
+    grid-template-columns: 1.5fr 1fr;
+    margin-top: 2rem;
+  }
+  .admin-dashboard-grid {
+    grid-template-columns: 1fr 1.5fr;
+  }
+}
+
 .admin-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0 8px;
   margin-top: -8px;
+  min-width: 600px; /* Ensure table doesn't squash too much */
 }
 
 .admin-table th {

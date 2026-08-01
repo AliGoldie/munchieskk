@@ -390,7 +390,7 @@ export default function Admin() {
 
               <div className="dashboard-bottom">
                 <div className="dashboard-charts">
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem' }}>
+                  <div className="admin-dashboard-grid">
                     <div className="chart-card">
                       <div className="chart-header">
                         <h3>Sales by Category</h3>
@@ -498,7 +498,7 @@ export default function Admin() {
                 </div>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', marginTop: '2rem' }}>
+              <div className="admin-charts-grid">
                 <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0, padding: '1.5rem' }}>
                   <h4 style={{ marginBottom: '1.5rem', color: '#475569', fontSize: '1rem', fontWeight: 600 }}>Sales & Orders Trend</h4>
                   <div style={{ height: '350px' }}>
