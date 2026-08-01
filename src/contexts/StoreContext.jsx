@@ -476,13 +476,18 @@ export function StoreProvider({ children }) {
   const placeOrder = async (paymentMethod = 'Cash') => {
     if (cart.length === 0) return null;
 
-    // Calculate deductions
-    const stockDeductions = {};
+    // Calculate deductions as a hash map first
+    const stockMap = {};
     cart.forEach(cartItem => {
-      stockDeductions[cartItem.id] = (stockDeductions[cartItem.id] || 0) + cartItem.quantity;
+      stockMap[cartItem.id] = (stockMap[cartItem.id] || 0) + cartItem.quantity;
     });
 
-    // Fallback: Client-side insert to completely bypass Supabase RPC schema cache issues
+    // Convert map to array of objects for the RPC function
+    const deductions = Object.entries(stockMap).map(([item_id, quantity]) => ({
+      item_id,
+      quantity
+    }));
+
     const newOrder = {
       id: crypto.randomUUID(),
       items: cart,
@@ -494,38 +499,33 @@ export function StoreProvider({ children }) {
       user_id: user ? user.id : null
     };
 
-    const { data, error } = await supabase.from('orders').insert([newOrder]).select('id').single();
+    // Use atomic RPC for race-condition-free stock deduction + order creation
+    const { data, error } = await supabase.rpc('place_order', { 
+      deductions, 
+      payload: newOrder 
+    });
 
     if (error) {
-      console.error('Failed to place order in DB:', error);
-      alert('Failed to place order. Database error: ' + error.message);
+      console.error('Failed to place order via RPC:', error);
+      alert('Failed to place order. ' + (error.message || 'Unknown error'));
       return null;
     }
 
-    const newOrderId = data.id;
+    const newOrderId = data || newOrder.id; // rpc might return the ID
 
-    // Deduct stock in DB
-    for (const [itemId, qtyOrdered] of Object.entries(stockDeductions)) {
-      const menuItem = menu.find(m => m.id === itemId);
-      if (!menuItem || menuItem.stock_quantity === null || menuItem.stock_quantity === undefined) continue;
+    // Optimistically update stock in the UI
+    deductions.forEach(({ item_id, quantity }) => {
+      setMenu(prev => prev.map(i => {
+        if (i.id === item_id) {
+          const newQty = Math.max(0, (i.stock_quantity || 0) - quantity);
+          const newInStock = newQty > 0;
+          return { ...i, stock_quantity: newQty, inStock: newInStock, in_stock: newInStock };
+        }
+        return i;
+      }));
+    });
 
-      const newQty = Math.max(0, menuItem.stock_quantity - qtyOrdered);
-      const newInStock = newQty > 0;
-
-      // Optimistically update stock in the UI
-      setMenu(prev => prev.map(i => i.id === itemId
-        ? { ...i, stock_quantity: newQty, inStock: newInStock, in_stock: newInStock }
-        : i
-      ));
-      
-      // Update DB
-      await supabase.from('menu_items').update({
-        stock_quantity: newQty,
-        in_stock: newInStock
-      }).eq('id', itemId);
-    }
-
-    // Optimistically add to local orders so it appears instantly for the Admin
+    // Optimistically add to local orders
     const completeNewOrder = { ...newOrder, id: newOrderId, created_at: new Date().toISOString() };
     setOrders(prev => [completeNewOrder, ...prev]);
 
