@@ -83,24 +83,24 @@ export default function Home() {
               RM {( (isPromoActive(activeHero) ? activeHero.promo_price : activeHero.price) / 100).toFixed(2)}
             </span>
 
-            {/* Dot Navigation */}
-            {heroItems.length > 1 && (
-              <div className="hero-dots">
-                {heroItems.map((_, idx) => (
-                  <button 
-                    key={idx} 
-                    className={`hero-dot ${idx === currentHeroIdx ? 'active' : ''}`}
-                    onClick={() => setCurrentHeroIdx(idx)}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-
-            <button className="btn btn-primary btn-sleek hero-cta-btn" onClick={() => navigate('/menu')}>
+            <button className="btn btn-primary btn-sleek hero-cta-btn mt-2" onClick={() => navigate('/menu')}>
               ORDER NOW <ChevronRight size={16} />
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Dot Navigation Below Hero */}
+      {heroItems.length > 1 && (
+        <div className="hero-dots-outer">
+          {heroItems.map((_, idx) => (
+            <button 
+              key={idx} 
+              className={`hero-dot ${idx === currentHeroIdx ? 'active' : ''}`}
+              onClick={() => setCurrentHeroIdx(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
         </div>
       )}
 
