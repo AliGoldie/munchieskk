@@ -123,7 +123,7 @@ export function StoreProvider({ children }) {
       const { data: latestOrdersRaw } = await supabase.from('orders')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(100);
       
       if (latestOrdersRaw) {
         const latestOrders = latestOrdersRaw;
@@ -267,11 +267,20 @@ export function StoreProvider({ children }) {
   };
 
   const updateOrderState = async (orderId, newState) => {
+    // Save original state for potential rollback
+    const originalOrders = [...orders];
+
     // Optimistic UI update
-    setOrders(orders.map(o => o.id === orderId ? { ...o, status: newState } : o));
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newState } : o));
     
     // DB update
-    await supabase.from('orders').update({ status: newState }).eq('id', orderId);
+    const { error } = await supabase.from('orders').update({ status: newState }).eq('id', orderId);
+    if (error) {
+      console.error("Failed to update order state:", error);
+      alert("Failed to update order status: " + error.message);
+      // Revert optimistic update
+      setOrders(originalOrders);
+    }
   };
 
   const cancelOrder = async (orderId, reason) => {
