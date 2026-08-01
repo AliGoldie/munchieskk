@@ -21,7 +21,10 @@ export default function OrderStatus() {
 
     const ct = order.cook_time_seconds || loyaltyConfig.DEFAULT_COOK_TIME_SECONDS;
     const interval = setInterval(() => {
-      const startedAt = order.cooking_started_at || order.created_at;
+      let startedAt = order.cooking_started_at || order.created_at;
+      if (typeof startedAt === 'string' && /^\d+$/.test(startedAt)) {
+        startedAt = parseInt(startedAt, 10);
+      }
       const startMs = new Date(startedAt).getTime();
       const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
       setTimeElapsed(elapsedSeconds);

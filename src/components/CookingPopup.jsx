@@ -41,7 +41,10 @@ export default function CookingPopup() {
   useEffect(() => {
     if (!order || order.status !== 'COOKING') return;
     const interval = setInterval(() => {
-      const startedAt = order.cooking_started_at || order.created_at;
+      let startedAt = order.cooking_started_at || order.created_at;
+      if (typeof startedAt === 'string' && /^\d+$/.test(startedAt)) {
+        startedAt = parseInt(startedAt, 10);
+      }
       const startMs = new Date(startedAt).getTime();
       const elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
       setTimeElapsed(elapsed);

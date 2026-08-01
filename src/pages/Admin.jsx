@@ -199,7 +199,11 @@ export default function Admin() {
   }, [pendingOrders.length]);
 
   const getElapsedTime = (startedAt) => {
-    const startMs = new Date(startedAt).getTime();
+    let parsedStartedAt = startedAt;
+    if (typeof parsedStartedAt === 'string' && /^\d+$/.test(parsedStartedAt)) {
+      parsedStartedAt = parseInt(parsedStartedAt, 10);
+    }
+    const startMs = new Date(parsedStartedAt).getTime();
     const diff = Math.floor((now - startMs) / 1000);
     const mins = Math.floor(diff / 60);
     const secs = diff % 60;
@@ -628,7 +632,7 @@ export default function Admin() {
                         </div>
                       </td>
                       <td className="font-black text-orange">
-                        {getCookTimeLeft(order) || '—'}
+                        {order.status === 'COOKING' ? getElapsedTime(order.cooking_started_at || order.created_at) : '—'}
                       </td>
                       <td>
                       <div className="flex flex-col text-sm">
