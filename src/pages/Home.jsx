@@ -62,7 +62,7 @@ export default function Home() {
           <div className="hero-spotlight-bg-shape"></div>
           
           <div className="hero-spotlight-image-container" onClick={() => navigate('/menu')}>
-            <div className="hero-spotlight-image" style={{ backgroundImage: `url('${activeHero.image}')` }}></div>
+            <div key={activeHero.id} className="hero-spotlight-image" style={{ backgroundImage: `url('${activeHero.image}')` }}></div>
             
             {/* Dynamic Badges based on index or promo */}
             <div className="hero-badges">

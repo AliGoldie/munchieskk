@@ -92,12 +92,18 @@
   }
 }
 
+@keyframes fadeFromWhite {
+  0% { filter: brightness(10) contrast(0); opacity: 0.5; }
+  100% { filter: brightness(1) contrast(1); opacity: 1; }
+}
+
 .hero-spotlight-image {
   width: 100%;
   height: 100%;
   background-size: cover;
   background-position: center;
   transition: transform 0.3s ease;
+  animation: fadeFromWhite 1.2s ease-out forwards;
 }
 
 .hero-spotlight-image-container:hover .hero-spotlight-image {
