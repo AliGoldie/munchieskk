@@ -185,19 +185,16 @@ export default function Menu() {
               <div 
                 className="category-header-band"
                 style={{ 
-                  backgroundColor: colors.tint,
-                  borderLeft: `5px solid ${colors.accent}`,
-                  width: 'fit-content',
-                  padding: '0.5rem 1.5rem 0.5rem 0.5rem', /* slightly bigger padding */
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.75rem',
-                  marginBottom: '1.5rem', /* more space below title */
-                  borderRadius: '0 8px 8px 0'
+                  gap: '1rem',
+                  marginBottom: '2rem',
+                  paddingBottom: '1rem',
+                  borderBottom: `2px solid ${colors.tint}`
                 }}
               >
-                <span className="category-header-icon">{colors.icon}</span>
-                <h2 style={{ color: colors.text }}>{cat}</h2>
+                <span className="category-header-icon" style={{ fontSize: '2.5rem' }}>{colors.icon}</span>
+                <h2 style={{ color: colors.accent, fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>{cat}</h2>
               </div>
               
               <div className="hot-list-grid">

@@ -51,130 +51,227 @@
   font-weight: 700;
 }
 
-/* Hero Card */
-.hero-card {
+/* --- New Sleek Rotating Hero Spotlight --- */
+.hero-spotlight {
+  position: relative;
   display: flex;
   flex-direction: column;
-}
-
-.hero-content {
-  padding: var(--space-6);
   background-color: var(--munchies-white);
-  border-bottom: var(--border-thick);
-}
-
-.badge-red {
-  display: inline-block;
-  background-color: var(--munchies-orange);
-  color: white;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 800;
-  border: 2px solid var(--munchies-dark);
-  margin-bottom: var(--space-4);
-  font-family: var(--font-heading);
-}
-
-.hero-content h2 {
-  font-size: 2.2rem;
-  margin-bottom: var(--space-2);
-}
-
-.hero-content p {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.hero-image {
-  background-color: var(--munchies-yellow);
-  height: 200px;
-  position: relative;
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.05);
+  margin-top: 1rem;
 }
 
-.hero-image-inner {
+.hero-spotlight-bg-shape {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 250px;
+  height: 250px;
+  background-color: var(--munchies-yellow);
+  border-radius: 50%;
+  opacity: 0.8;
+  z-index: 0;
+}
+
+.hero-spotlight-image-container {
+  position: relative;
+  height: 260px;
+  width: 100%;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.hero-spotlight-image {
   width: 100%;
   height: 100%;
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
 }
 
-.starburst {
+.hero-spotlight-image-container:hover .hero-spotlight-image {
+  transform: scale(1.03);
+}
+
+.hero-badges {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: var(--munchies-orange);
-  color: white;
-  font-family: var(--font-heading);
-  font-weight: 800;
-  padding: 16px;
-  text-align: center;
-  transform: rotate(15deg);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-  font-size: 0.8rem;
-  line-height: 1;
-  width: 80px;
-  height: 80px;
+  top: 16px;
+  left: 16px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Categories */
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.section-header h3 {
-  font-size: 1.25rem;
-}
-
-.see-all {
-  font-weight: 800;
-  font-size: 0.75rem;
-  text-decoration: underline;
-  color: var(--munchies-orange);
-}
-
-.categories-row {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.category-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 8px;
 }
 
-.category-icon {
-  width: 64px;
-  height: 64px;
-  background-color: var(--munchies-white);
-  border: var(--border-thick);
-  border-radius: 50%;
+.hero-badge {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.badge-bestseller {
+  background-color: var(--munchies-yellow);
+  color: #8B4513;
+}
+
+.badge-fresh {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.badge-promo {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.hero-spotlight-content {
+  padding: 1.5rem;
+  z-index: 1;
+  background-color: white;
+}
+
+.hero-spotlight-content h2 {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.1;
+  color: #1e293b;
+}
+
+.hero-spotlight-content p {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 1.2rem;
+}
+
+.hero-spotlight-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price-large {
   font-size: 1.5rem;
-  box-shadow: var(--shadow-brutalist-sm);
-  transition: transform 0.1s;
+  font-weight: 900;
+  color: #0f172a;
 }
 
-.category-item:active .category-icon {
-  transform: translate(2px, 2px);
-  box-shadow: none;
+.btn-sleek {
+  border-radius: 24px;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(255, 204, 0, 0.4);
+  background-color: var(--munchies-yellow);
+  color: #333;
+  border: none;
 }
 
-.category-item span {
-  font-size: 0.8rem;
-  font-weight: 600;
+.hero-dots {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(0,0,0,0.2);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hero-dot.active {
+  background-color: var(--munchies-yellow);
+  width: 24px;
+  border-radius: 4px;
+}
+
+/* Categories Clean */
+.section-header-clean {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header-clean h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.see-all-sleek {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.see-all-sleek:hover {
+  color: var(--munchies-orange);
+}
+
+.categories-grid-clean {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  /* hide scrollbar for sleekness */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.categories-grid-clean::-webkit-scrollbar {
+  display: none;
+}
+
+.cat-card-clean {
+  flex: 1;
+  min-width: 60px;
+  background-color: #fff;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 8px;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  text-decoration: none;
+  color: #334155;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cat-card-clean:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+}
+
+.cat-icon-clean {
+  font-size: 1.8rem;
+}
+
+.cat-title-clean {
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 /* Banners */

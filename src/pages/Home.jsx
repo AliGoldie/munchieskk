@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Gamepad2, Award, Plus } from 'lucide-react';
+import { Gamepad2, Award, ChevronRight, Flame, Clock, Sparkles, Plus } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useNavigate } from 'react-router-dom';
 import AddonModal from '../components/AddonModal';
@@ -8,12 +8,26 @@ import { siteConfig } from '../config/siteConfig';
 import './Home.css';
 
 export default function Home() {
-  const { menu, addToCart, itemAddons } = useStore();
+  const { menu, isPromoActive, addToCart, itemAddons } = useStore();
   const navigate = useNavigate();
   const [addonModalItem, setAddonModalItem] = useState(null);
 
   // Just grab some items for the grid
   const featuredItems = menu.slice(0, 4);
+
+  // Hero Spotlight Logic
+  const [currentHeroIdx, setCurrentHeroIdx] = useState(0);
+  const heroItems = menu.filter(m => m.inStock).slice(0, 3); // Get top 3 items
+
+  useEffect(() => {
+    if (heroItems.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentHeroIdx((prev) => (prev + 1) % heroItems.length);
+    }, 5000); // 5-second rotation
+    return () => clearInterval(interval);
+  }, [heroItems.length]);
+
+  const activeHero = heroItems[currentHeroIdx];
 
   return (
     <div className="home-page">
@@ -42,45 +56,81 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Hero Card */}
-      <div className="card hero-card">
-        <div className="hero-content">
-          <span className="badge-red">LIMITED DROP</span>
-          <h2>SUMANDAK<br/>BURGER</h2>
-          <p>Special local style burger packed with flavor.</p>
-          <button className="btn btn-primary mt-3">GRAB IT NOW</button>
+      {/* Rotating Hero Spotlight */}
+      {activeHero && (
+        <div className="hero-spotlight">
+          <div className="hero-spotlight-bg-shape"></div>
+          
+          <div className="hero-spotlight-image-container" onClick={() => navigate('/menu')}>
+            <div className="hero-spotlight-image" style={{ backgroundImage: `url('${activeHero.image}')` }}></div>
+            
+            {/* Dynamic Badges based on index or promo */}
+            <div className="hero-badges">
+              {isPromoActive(activeHero) ? (
+                <div className="hero-badge badge-promo"><Sparkles size={14} /> ON SALE</div>
+              ) : currentHeroIdx === 0 ? (
+                <div className="hero-badge badge-bestseller"><Flame size={14} /> BEST SELLER</div>
+              ) : (
+                <div className="hero-badge badge-fresh"><Clock size={14} /> FRESH DAILY</div>
+              )}
+            </div>
+          </div>
+
+          <div className="hero-spotlight-content">
+            <h2>{activeHero.name}</h2>
+            <p>{activeHero.description}</p>
+            <div className="hero-spotlight-action">
+              <span className="price-large">
+                RM {( (isPromoActive(activeHero) ? activeHero.promo_price : activeHero.price) / 100).toFixed(2)}
+              </span>
+              <button className="btn btn-primary btn-sleek" onClick={() => navigate('/menu')}>
+                ORDER NOW <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Dot Navigation */}
+          {heroItems.length > 1 && (
+            <div className="hero-dots">
+              {heroItems.map((_, idx) => (
+                <button 
+                  key={idx} 
+                  className={`hero-dot ${idx === currentHeroIdx ? 'active' : ''}`}
+                  onClick={() => setCurrentHeroIdx(idx)}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
-        <div className="hero-image">
-          <div className="hero-image-inner" style={{ backgroundImage: "url('/images/sumandak burger.jpg')" }}></div>
-          <div className="starburst">NEW DROP!</div>
-        </div>
+      )}
+
+      {/* Clean Section Header */}
+      <div className="section-header-clean mt-8">
+        <h3>Menu Lineup</h3>
+        <Link to="/menu" className="see-all-sleek">See All Menu <ChevronRight size={16} /></Link>
       </div>
 
-      {/* Categories */}
-      <div className="section-header">
-        <h3>THE LINEUP</h3>
-        <Link to="/menu" className="see-all">SEE ALL</Link>
-      </div>
-      <div className="categories-row">
-        <Link to="/menu#BBQ" className="category-item">
-          <div className="category-icon">🍖</div>
-          <span>BBQ</span>
+      <div className="categories-grid-clean">
+        <Link to="/menu#BBQ" className="cat-card-clean">
+          <span className="cat-icon-clean">🍖</span>
+          <span className="cat-title-clean">BBQ</span>
         </Link>
-        <Link to="/menu#PREMIUM" className="category-item">
-          <div className="category-icon">🍔</div>
-          <span>Premium</span>
+        <Link to="/menu#PREMIUM" className="cat-card-clean">
+          <span className="cat-icon-clean">👑</span>
+          <span className="cat-title-clean">Premium</span>
         </Link>
-        <Link to="/menu#PLATTERS" className="category-item">
-          <div className="category-icon">🍗</div>
-          <span>Platters</span>
+        <Link to="/menu#PLATTERS" className="cat-card-clean">
+          <span className="cat-icon-clean">🍽️</span>
+          <span className="cat-title-clean">Platters</span>
         </Link>
-        <Link to="/menu#SIDES" className="category-item">
-          <div className="category-icon">🍟</div>
-          <span>Sides</span>
+        <Link to="/menu#SIDES" className="cat-card-clean">
+          <span className="cat-icon-clean">🥗</span>
+          <span className="cat-title-clean">Sides</span>
         </Link>
-        <Link to="/menu#DRINKS" className="category-item">
-          <div className="category-icon">🥤</div>
-          <span>Drinks</span>
+        <Link to="/menu#DRINKS" className="cat-card-clean">
+          <span className="cat-icon-clean">🥤</span>
+          <span className="cat-title-clean">Drinks</span>
         </Link>
       </div>
 
@@ -131,6 +181,13 @@ export default function Home() {
           </div>
         ))}
       </div>
+      
+      {addonModalItem && (
+        <AddonModal 
+          item={addonModalItem} 
+          onClose={() => setAddonModalItem(null)} 
+        />
+      )}
     </div>
   );
 }
