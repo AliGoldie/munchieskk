@@ -558,13 +558,25 @@ export function StoreProvider({ children }) {
       : o
     ));
 
-    const { error } = await supabase.from('orders')
+    let { error } = await supabase.from('orders')
       .update({ 
         status: 'COOKING',
         cooking_started_at: nowStr,
         cook_time_seconds: cookSeconds
       })
       .eq('id', orderId);
+
+    // Fallback if the user's database has cooking_started_at as bigint (int8) instead of timestamptz
+    if (error && error.message.includes("type bigint")) {
+      const { error: retryError } = await supabase.from('orders')
+        .update({ 
+          status: 'COOKING',
+          cooking_started_at: Date.now(),
+          cook_time_seconds: cookSeconds
+        })
+        .eq('id', orderId);
+      error = retryError;
+    }
 
     if (error) {
        console.error("Failed to accept order:", error);
