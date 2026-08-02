@@ -5,6 +5,10 @@
   padding: var(--space-4) 0;
 }
 
+.category-header-band {
+  scroll-margin-top: 80px;
+}
+
 /* Filters */
 .filters-row {
   display: flex;

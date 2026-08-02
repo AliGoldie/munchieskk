@@ -124,17 +124,9 @@ export default function Cart() {
         {/* Order Summary */}
         <div className="cart-summary">
           <h3>Order Summary</h3>
-          <div className="summary-row">
-            <span>Subtotal</span>
-            <span>RM {(cartTotal / 100).toFixed(2)}</span>
-          </div>
-          <div className="summary-row text-muted">
-            <span>SST (6%)</span>
-            <span>RM {((cartTotal / 100) * 0.06).toFixed(2)}</span>
-          </div>
           <div className="summary-row total-row font-black">
             <span>Total</span>
-            <span className="text-primary">RM {((cartTotal / 100) * 1.06).toFixed(2)}</span>
+            <span className="text-primary">RM {(cartTotal / 100).toFixed(2)}</span>
           </div>
 
           <div className="checkout-instructions">

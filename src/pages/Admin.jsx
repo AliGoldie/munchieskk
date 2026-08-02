@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -7,7 +7,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import './Admin.css';
 
 export default function Admin() {
@@ -25,7 +27,8 @@ export default function Admin() {
   const [editingLowStock, setEditingLowStock] = useState({});
   const [editingPromo, setEditingPromo] = useState({});
   const [activeTab, setActiveTab] = useState('overview');
-  const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'weekly', 'monthly'
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'monthly', 'yearly'
+  const [selectedDate, setSelectedDate] = useState(''); // YYYY-MM-DD
   const [menuSearchQuery, setMenuSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   
@@ -47,20 +50,29 @@ export default function Admin() {
   }
 
   const pendingOrders = orders.filter(o => o.status === 'PENDING');
-  const activeOrders = orders.filter(o => o.status !== 'COLLECTED');
+  const activeOrders = orders.filter(o => o.status !== 'COLLECTED' && o.status !== 'CANCELLED');
   
   const [now, setNow] = useState(Date.now());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
+
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const totalCompleted = orders.filter(o => o.status === 'COLLECTED').length;
+  const [perfAnim, setPerfAnim] = useState(0);
+  useEffect(() => {
+    const target = orders.length > 0 ? (totalCompleted / orders.length * 100) : 0;
+    const t = setTimeout(() => setPerfAnim(target), 100);
+    return () => clearTimeout(t);
+  }, [totalCompleted, orders.length, activeTab]);
 
   // Metrics calculation for Overview
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todaysOrders = orders.filter(o => new Date(o.created_at || now) >= todayStart && o.status !== 'PENDING');
   const todaysRevenue = todaysOrders.reduce((sum, o) => sum + o.total, 0);
-  const totalCompleted = orders.filter(o => o.status === 'COLLECTED').length;
   const lowStockCount = menu.filter(item => (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 5)).length;
 
   const categorySales = {};
@@ -99,26 +111,44 @@ export default function Admin() {
     
     const nowD = new Date(now);
     let cutoff = new Date(nowD);
-    if (analyticsPeriod === 'daily') cutoff.setDate(cutoff.getDate() - 7);
-    else if (analyticsPeriod === 'weekly') cutoff.setDate(cutoff.getDate() - 28);
-    else if (analyticsPeriod === 'monthly') cutoff.setMonth(cutoff.getMonth() - 6);
+    if (selectedDate) {
+      cutoff = new Date(selectedDate);
+    } else {
+      if (analyticsPeriod === 'daily') cutoff.setDate(cutoff.getDate() - 7);
+      else if (analyticsPeriod === 'monthly') cutoff.setMonth(cutoff.getMonth() - 6);
+      else if (analyticsPeriod === 'yearly') cutoff.setFullYear(cutoff.getFullYear() - 3);
+    }
     
     // Set to start of day for cutoff
     cutoff.setHours(0, 0, 0, 0);
 
-    const periodOrders = validOrders.filter(o => new Date(o.created_at || now) >= cutoff);
+    let periodOrders = validOrders.filter(o => new Date(o.created_at || now) >= cutoff);
+    if (selectedDate) {
+      const endOfDay = new Date(cutoff);
+      endOfDay.setHours(23, 59, 59, 999);
+      periodOrders = periodOrders.filter(o => new Date(o.created_at || now) <= endOfDay);
+    }
     
     // Top 10 Sales
-    const itemCounts = {};
+    const itemStats = {};
     periodOrders.forEach(order => {
       (order.items || []).forEach(item => {
-        if (!itemCounts[item.name]) itemCounts[item.name] = 0;
-        itemCounts[item.name] += item.quantity;
+        if (!itemStats[item.name]) itemStats[item.name] = { quantity: 0, revenue: 0 };
+        itemStats[item.name].quantity += item.quantity || 1;
+        itemStats[item.name].revenue += (item.price || 0) * (item.quantity || 1);
       });
     });
     
-    const topItemsData = Object.keys(itemCounts)
-      .map(name => ({ name, sales: itemCounts[name] }))
+    const topItemsData = Object.keys(itemStats)
+      .map(name => {
+        const menuItem = menu.find(m => m.name === name);
+        return { 
+          name, 
+          sales: itemStats[name].quantity, 
+          revenue: itemStats[name].revenue,
+          image: menuItem?.image || '/images/hero_burger.png'
+        };
+      })
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 10);
       
@@ -135,21 +165,6 @@ export default function Admin() {
           ordersCount: 0
         });
       }
-    } else if (analyticsPeriod === 'weekly') {
-      for (let i = 3; i >= 0; i--) {
-        const d = new Date(nowD);
-        d.setDate(d.getDate() - (i * 7));
-        const endD = new Date(d);
-        endD.setDate(endD.getDate() + 6);
-        trendData.push({
-          dateStr: d.toISOString().split('T')[0], 
-          displayDate: `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-          revenue: 0,
-          ordersCount: 0,
-          bucketStart: new Date(d).setHours(0,0,0,0),
-          bucketEnd: new Date(endD).setHours(23,59,59,999)
-        });
-      }
     } else if (analyticsPeriod === 'monthly') {
       for (let i = 5; i >= 0; i--) {
         const d = new Date(nowD);
@@ -161,20 +176,36 @@ export default function Admin() {
           ordersCount: 0
         });
       }
+    } else if (analyticsPeriod === 'yearly') {
+      for (let i = 2; i >= 0; i--) {
+        const d = new Date(nowD);
+        d.setFullYear(d.getFullYear() - i);
+        trendData.push({
+          dateStr: `${d.getFullYear()}`,
+          displayDate: `${d.getFullYear()}`,
+          revenue: 0,
+          ordersCount: 0
+        });
+      }
     }
     
     periodOrders.forEach(order => {
       const orderD = new Date(order.created_at || now);
       let matchedBucket = null;
 
-      if (analyticsPeriod === 'daily') {
+      if (analyticsPeriod === 'daily' || selectedDate) {
         const dateStr = orderD.toISOString().split('T')[0];
         matchedBucket = trendData.find(d => d.dateStr === dateStr);
-      } else if (analyticsPeriod === 'weekly') {
-        matchedBucket = trendData.find(d => orderD.getTime() >= d.bucketStart && orderD.getTime() <= d.bucketEnd);
+        if (selectedDate && !matchedBucket) {
+           matchedBucket = { dateStr, displayDate: dateStr, revenue: 0, ordersCount: 0 };
+           trendData.push(matchedBucket);
+        }
       } else if (analyticsPeriod === 'monthly') {
         const monthStr = `${orderD.getFullYear()}-${(orderD.getMonth()+1).toString().padStart(2, '0')}`;
         matchedBucket = trendData.find(d => d.dateStr === monthStr);
+      } else if (analyticsPeriod === 'yearly') {
+        const yearStr = `${orderD.getFullYear()}`;
+        matchedBucket = trendData.find(d => d.dateStr === yearStr);
       }
 
       if (matchedBucket) {
@@ -187,6 +218,81 @@ export default function Admin() {
   };
 
   const { topItemsData, trendData } = processAnalyticsData();
+
+  const customerInsights = useMemo(() => {
+    // Only consider pickup orders
+    const pickupOrders = orders.filter(o => o.order_type === 'pickup');
+    
+    // Group by customer_name (fallback to customer_id if missing name)
+    const customersMap = {};
+    
+    pickupOrders.forEach(o => {
+      const customerKey = o.customer_name?.trim() || o.customer_id || 'Unknown Guest';
+      if (!customersMap[customerKey]) {
+        customersMap[customerKey] = {
+          name: customerKey,
+          orders: [],
+          totalSpend: 0,
+          itemsCount: {}
+        };
+      }
+      customersMap[customerKey].orders.push(o);
+      customersMap[customerKey].totalSpend += o.total;
+      
+      (o.items || []).forEach(item => {
+        if (!customersMap[customerKey].itemsCount[item.name]) {
+          customersMap[customerKey].itemsCount[item.name] = 0;
+        }
+        customersMap[customerKey].itemsCount[item.name] += (item.quantity || 1);
+      });
+    });
+
+    const customersArray = Object.values(customersMap);
+    const newCustomers = customersArray.filter(c => c.orders.length === 1);
+    const returningCustomers = customersArray.filter(c => c.orders.length >= 2);
+    
+    // Order Frequency
+    let totalDaysBetween = 0;
+    let frequencyPairs = 0;
+    
+    returningCustomers.forEach(c => {
+      const sortedDates = c.orders.map(o => new Date(o.created_at || Date.now()).getTime()).sort((a, b) => a - b);
+      if (sortedDates.length >= 2) {
+        const first = sortedDates[0];
+        const last = sortedDates[sortedDates.length - 1];
+        const daysDiff = (last - first) / (1000 * 60 * 60 * 24);
+        totalDaysBetween += daysDiff;
+        frequencyPairs += (sortedDates.length - 1);
+      }
+    });
+    
+    const avgOrderFrequency = frequencyPairs > 0 ? (totalDaysBetween / frequencyPairs) : 0;
+    
+    // Process top customers favorite items
+    customersArray.forEach(c => {
+      let favItem = 'None';
+      let maxQty = 0;
+      for (const [itemName, qty] of Object.entries(c.itemsCount)) {
+        if (qty > maxQty) {
+          maxQty = qty;
+          favItem = itemName;
+        }
+      }
+      c.favoriteItem = favItem;
+    });
+    
+    const topSpenders = [...customersArray].sort((a, b) => b.totalSpend - a.totalSpend).slice(0, 3);
+    
+    return {
+      total: customersArray.length,
+      newCount: newCustomers.length,
+      returningCount: returningCustomers.length,
+      newPercent: customersArray.length ? (newCustomers.length / customersArray.length * 100) : 0,
+      returningPercent: customersArray.length ? (returningCustomers.length / customersArray.length * 100) : 0,
+      avgOrderFrequency,
+      topSpenders
+    };
+  }, [orders]);
 
   // Start / stop looping alert sound based on pending orders
   useEffect(() => {
@@ -322,6 +428,51 @@ export default function Admin() {
     }
   };
 
+  const handleGeneratePDF = () => {
+    const doc = new jsPDF();
+    const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    doc.setFontSize(20);
+    doc.text(`Monthly Report: ${currentMonth}`, 14, 22);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+    
+    const tableData = [
+      ['Total Orders', orders.length.toString()],
+      ['Total Revenue', `RM ${(orders.reduce((sum, o) => sum + o.total, 0) / 100).toFixed(2)}`],
+      ['Total Completed', totalCompleted.toString()],
+      ['Pending Orders', pendingOrders.length.toString()]
+    ];
+
+    doc.autoTable({
+      startY: 40,
+      head: [['Metric', 'Value']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [45, 153, 255] }
+    });
+
+    const recentOrdersHeader = [['Order ID', 'Status', 'Total', 'Date']];
+    const recentOrdersBody = orders.slice(0, 10).map(o => [
+      o.id.substring(0, 8),
+      o.status,
+      `RM ${(o.total / 100).toFixed(2)}`,
+      new Date(o.created_at).toLocaleDateString()
+    ]);
+
+    doc.text('Recent Orders', 14, doc.lastAutoTable.finalY + 15);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 20,
+      head: recentOrdersHeader,
+      body: recentOrdersBody,
+      theme: 'striped',
+    });
+
+    doc.save(`MunchiesKK_Report_${currentMonth.replace(' ', '_')}.pdf`);
+  };
+
   return (
     <div className="admin-page">
       <div className="admin-dashboard-layout">
@@ -366,124 +517,282 @@ export default function Admin() {
 
           {activeTab === 'overview' && (
             <div>
-              <div className="dashboard-metrics">
-                <div className="sedap-metric-card">
-                  <div className="sedap-metric-icon green"><ShoppingBag size={28} /></div>
+              {/* Top Metrics Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><Layers size={28} /></div>
                   <div className="sedap-metric-content">
-                    <span className="sedap-metric-value">{orders.length}</span>
-                    <span className="sedap-metric-title">Total Orders</span>
+                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Available Dish</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{menu.length}</div>
                   </div>
                 </div>
-                <div className="sedap-metric-card">
-                  <div className="sedap-metric-icon blue"><CheckCircle size={28} /></div>
+                
+                <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><ShoppingBag size={28} /></div>
                   <div className="sedap-metric-content">
-                    <span className="sedap-metric-value">{totalCompleted}</span>
-                    <span className="sedap-metric-title">Total Delivered</span>
+                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Total Order</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{orders.length}</div>
                   </div>
                 </div>
-                <div className="sedap-metric-card">
-                  <div className="sedap-metric-icon red"><AlertTriangle size={28} /></div>
+
+                <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }} title={`All-time revenue generated from ${orders.length} total orders`}>
+                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><TrendingUp size={28} /></div>
                   <div className="sedap-metric-content">
-                    <span className="sedap-metric-value">{pendingOrders.length + lowStockCount}</span>
-                    <span className="sedap-metric-title">Pending / Alerts</span>
+                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Total Sale</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{(orders.reduce((sum, o) => sum + o.total, 0) / 100).toFixed(2)}</div>
                   </div>
                 </div>
-                <div className="sedap-metric-card">
-                  <div className="sedap-metric-icon green"><TrendingUp size={28} /></div>
+
+                <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><AlertTriangle size={28} /></div>
                   <div className="sedap-metric-content">
-                    <span className="sedap-metric-value">RM {(todaysRevenue / 100).toFixed(2)}</span>
-                    <span className="sedap-metric-title">Today's Revenue</span>
+                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Pending / Alerts</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', display: 'flex', gap: '8px', alignItems: 'baseline' }}>
+                       <span>{pendingOrders.length} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b'}}>pending</span></span>
+                       <span style={{color: '#cbd5e1'}}>|</span>
+                       <span>{lowStockCount} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b'}}>low stock</span></span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="dashboard-bottom">
-                <div className="dashboard-charts">
-                  <div className="admin-dashboard-grid">
-                    <div className="chart-card">
-                      <div className="chart-header">
-                        <h3>Sales by Category</h3>
-                      </div>
-                      <div style={{ height: '220px' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie data={salesByCategoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                              {salesByCategoryData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <RechartsTooltip 
-                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
-                              formatter={(value) => `RM ${value.toFixed(2)}`}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                        {salesByCategoryData.map((entry, index) => (
-                          <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#a3aed1', fontWeight: 600 }}>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: entry.color }}></div>
-                            {entry.name}
-                          </div>
-                        ))}
-                      </div>
+              {/* Grid Layout for Main Widgets */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
+                
+                {/* Total Revenue Bar Chart - 8 cols */}
+                <div className="admin-card" style={{ gridColumn: 'span 8', padding: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: 0 }}>Total Revenue</h3>
+                  </div>
+                  <div style={{ height: '300px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={trendData.slice(0, 12)} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
+                        <RechartsTooltip 
+                          cursor={{ fill: '#f8fafc' }}
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          formatter={(value) => [`RM ${value.toFixed(2)}`, 'Revenue']}
+                        />
+                        <Bar dataKey="revenue" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={24} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Performance & More - 4 cols */}
+                <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div className="admin-card" style={{ padding: '1.5rem', flex: 1 }}>
+                    <h3 style={{ margin: 0, marginBottom: '1.5rem' }}>Performance</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '150px' }}>
+                       <div style={{ width: '120px', height: '60px', overflow: 'hidden', position: 'relative' }}>
+                          <svg width="120" height="60" viewBox="0 0 120 60" style={{ position: 'absolute', bottom: 0 }}>
+                            <path d="M 10 50 A 40 40 0 0 1 110 50" fill="none" stroke="#f1f5f9" strokeWidth="12" strokeLinecap="round" />
+                            <path d="M 10 50 A 40 40 0 0 1 110 50" fill="none" stroke="#10b981" strokeWidth="12" strokeLinecap="round" 
+                                  strokeDasharray="126" strokeDashoffset={126 - (126 * perfAnim / 100)} 
+                                  style={{ transition: 'stroke-dashoffset 600ms ease-out' }} />
+                          </svg>
+                       </div>
+                       <div style={{ marginTop: '0', textAlign: 'center' }}>
+                         <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>% Orders Completed</div>
+                         <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{perfAnim.toFixed(1)}%</div>
+                       </div>
                     </div>
-                    
-                    <div className="chart-card">
-                      <div className="chart-header">
-                        <h3>Chart Order</h3>
-                      </div>
-                      <div style={{ height: '260px' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ComposedChart data={trendData.slice(0, 7)} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                            <defs>
-                              <linearGradient id="colorOrdersBlue" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#2d99ff" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#2d99ff" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#a3aed1' }} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#a3aed1' }} dx={-10} />
-                            <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }} />
-                            <Area type="monotone" dataKey="ordersCount" stroke="#2d99ff" strokeWidth={3} fill="url(#colorOrdersBlue)" activeDot={{ r: 6 }} />
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </div>
+                  </div>
+                  
+                  <div className="admin-card" style={{ padding: '1.5rem', flex: 1 }}>
+                    <h3 style={{ margin: 0, marginBottom: '1rem' }}>More <span style={{fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal'}}>→</span></h3>
+                    <div style={{ display: 'flex', gap: '8px', height: '100px' }}>
+                       <div style={{ flex: 1, backgroundColor: '#ef4444', borderRadius: '8px', color: 'white', padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{todaysOrders.length}</div>
+                          <div style={{ fontSize: '0.7rem', textAlign: 'center' }}>Today's Orders</div>
+                       </div>
+                       <div style={{ flex: 1, backgroundColor: '#ea580c', borderRadius: '8px', color: 'white', padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{totalCompleted}</div>
+                          <div style={{ fontSize: '0.7rem', textAlign: 'center' }}>Completed</div>
+                       </div>
+                       <div style={{ flex: 1, backgroundColor: '#f97316', borderRadius: '8px', color: 'white', padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{pendingOrders.length}</div>
+                          <div style={{ fontSize: '0.7rem', textAlign: 'center' }}>Pending</div>
+                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="chart-card">
-                  <div className="chart-header">
-                    <h3>Most Selling Items</h3>
-                  </div>
-                  <div className="top-selling-list">
-                    {topItemsData.slice(0, 5).map((item, idx) => {
-                      const menuItem = menu.find(m => m.name === item.name);
-                      return (
-                        <div key={idx} className="top-selling-item">
-                          <div className="top-selling-img" style={{ backgroundImage: `url(${menuItem?.image || '/images/hero_burger.png'})` }}></div>
-                          <div className="top-selling-info">
-                            <div className="top-selling-name">{item.name}</div>
-                            <div className="top-selling-sales">{item.sales} Servings</div>
+                {/* Bottom Row */}
+                {/* Calendar & Reports */}
+                <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div className="admin-card" style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1rem' }}>{selectedCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                      <Calendar size={16} className="text-muted" />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem', color: '#64748b', marginBottom: '8px' }}>
+                      <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+                      {Array.from({ length: 30 }).map((_, i) => {
+                        const dateNum = i + 1;
+                        const isSelected = selectedCalendarDate.getDate() === dateNum;
+                        const hasOrders = orders.some(o => new Date(o.created_at).getDate() === dateNum && new Date(o.created_at).getMonth() === selectedCalendarDate.getMonth());
+                        return (
+                          <div 
+                            key={i} 
+                            onClick={() => {
+                              const d = new Date(selectedCalendarDate);
+                              d.setDate(dateNum);
+                              setSelectedCalendarDate(d);
+                            }}
+                            style={{ 
+                              aspectRatio: '1', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              fontSize: '0.8rem', 
+                              borderRadius: '50%',
+                              cursor: 'pointer',
+                              backgroundColor: isSelected ? '#ef4444' : hasOrders ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+                              color: isSelected ? 'white' : hasOrders ? '#ef4444' : '#1e293b',
+                              fontWeight: isSelected || hasOrders ? 'bold' : 'normal'
+                            }}
+                          >
+                            {dateNum}
                           </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="admin-card" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: 0 }}>Last Reports</h3>
+                    <span style={{ fontSize: '0.8rem', color: '#3b82f6', cursor: 'pointer' }}>See all</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
+                     <div style={{ flex: 1, border: '1px solid #fee2e2', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff5f5' }}>
+                        <div style={{ color: '#ef4444', marginBottom: '8px' }}><Archive size={32} /></div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{new Date().toLocaleString('default', { month: 'short' })} Report</div>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{new Date().getFullYear()}</div>
+                     </div>
+                     <div style={{ flex: 1, border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} className="hover-bg-slate">
+                        <div style={{ color: '#64748b', marginBottom: '8px' }}><PlusSquare size={32} /></div>
+                        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Create New</div>
+                     </div>
+                  </div>
+                  <button 
+                    onClick={handleGeneratePDF}
+                    style={{ marginTop: '1rem', width: '100%', padding: '12px', backgroundColor: '#e05943', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                  >
+                    Download PDF <ArrowDown size={18} />
+                  </button>
+                </div>
+                </div>
+
+                {/* Customer Insights - 4 cols */}
+                <div className="admin-card" style={{ gridColumn: 'span 4', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: 0 }}><Users size={18} style={{ display: 'inline', marginRight: '8px', color: '#ef4444' }}/>Customer Insights</h3>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>Pickup Only</div>
+                  </div>
+                  
+                  {/* New vs Returning */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>New: {customerInsights.newCount} ({customerInsights.newPercent.toFixed(1)}%)</span>
+                      <span style={{ fontWeight: 600, color: '#3b82f6' }}>Returning: {customerInsights.returningCount} ({customerInsights.returningPercent.toFixed(1)}%)</span>
+                    </div>
+                    <div style={{ height: '8px', borderRadius: '4px', backgroundColor: '#e2e8f0', display: 'flex', overflow: 'hidden' }}>
+                      <div style={{ width: `${customerInsights.newPercent}%`, backgroundColor: '#ef4444', transition: 'width 1s ease-in-out' }}></div>
+                      <div style={{ width: `${customerInsights.returningPercent}%`, backgroundColor: '#3b82f6', transition: 'width 1s ease-in-out' }}></div>
+                    </div>
+                  </div>
+                  
+                  {/* Order Frequency */}
+                  <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center', border: '1px solid #f1f5f9' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Avg. Order Frequency</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>
+                       {customerInsights.avgOrderFrequency > 0 
+                          ? `Every ${customerInsights.avgOrderFrequency.toFixed(1)} days`
+                          : 'Not enough data yet'
+                       }
+                    </div>
+                  </div>
+                  
+                  {/* Top Customers by Spend */}
+                  <div style={{ flex: 1, overflowY: 'auto' }}>
+                     <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top Spenders</div>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                       {customerInsights.topSpenders.map((cust, idx) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: idx < customerInsights.topSpenders.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>{cust.name}</div>
+                              <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Faves: <span style={{color:'#0f172a'}}>{cust.favoriteItem}</span></div>
+                            </div>
+                            <div style={{ fontWeight: 700, color: '#10b981', fontSize: '0.9rem' }}>
+                              RM {(cust.totalSpend / 100).toFixed(2)}
+                            </div>
+                          </div>
+                       ))}
+                       {customerInsights.topSpenders.length === 0 && (
+                         <div style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', padding: '1rem 0' }}>No customers yet</div>
+                       )}
+                     </div>
                   </div>
                 </div>
+
+                {/* Top 10 Best-Selling Items - 4 cols */}
+                <div className="admin-card" style={{ gridColumn: 'span 4', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0 }}>Top 10 Best-Selling</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, overflowY: 'auto' }}>
+                    {topItemsData.map((item, idx) => (
+                         <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: idx < topItemsData.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                               <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundImage: `url(${item.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+                               <div>
+                                 <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.name}</div>
+                                 <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{item.sales} units sold</div>
+                               </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>RM {(item.revenue / 100).toFixed(2)}</div>
+                            </div>
+                         </div>
+                       ))}
+                       {topItemsData.length === 0 && (
+                         <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>No sales data yet</div>
+                       )}
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
 
           {activeTab === 'analytics' && (
-            <div className="admin-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>Analytics Dashboard</h3>
-                
+          <div className="admin-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <h3 style={{ margin: 0 }}>Analytics Dashboard</h3>
+              
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={16} className="text-muted" />
+                  <input 
+                    type="date" 
+                    className="price-input" 
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    style={{ padding: '4px 8px', fontSize: '0.875rem' }}
+                  />
+                  {selectedDate && (
+                    <button className="btn btn-sm btn-secondary" onClick={() => setSelectedDate('')}>Clear</button>
+                  )}
+                </div>
                 {/* Period Toggle */}
                 <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '4px' }}>
-                  {['daily', 'weekly', 'monthly'].map(period => (
+                  {['daily', 'monthly', 'yearly'].map(period => (
                     <button 
                       key={period}
                       onClick={() => setAnalyticsPeriod(period)}
@@ -506,28 +815,27 @@ export default function Admin() {
                   ))}
                 </div>
               </div>
+            </div>
               
               <div className="admin-charts-grid">
                 <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0, padding: '1.5rem' }}>
-                  <h4 style={{ marginBottom: '1.5rem', color: '#475569', fontSize: '1rem', fontWeight: 600 }}>Sales & Orders Trend</h4>
+                  <h4 style={{ marginBottom: '1.5rem', color: '#475569', fontSize: '1rem', fontWeight: 600 }}>Sales Revenue</h4>
                   <div style={{ height: '350px' }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={trendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                      <BarChart data={trendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
                         <defs>
-                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2}/>
-                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                          <linearGradient id="colorRevenueBar" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0.4}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                         <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
                         
-                        {/* Primary Y Axis for Revenue */}
-                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
-                        {/* Secondary Y Axis for Orders Count */}
-                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
                         
                         <RechartsTooltip 
+                          cursor={{ fill: '#f8fafc' }}
                           contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                           formatter={(value, name) => {
                             if (name === 'Revenue') return [`RM ${value.toFixed(2)}`, name];
@@ -536,9 +844,8 @@ export default function Admin() {
                         />
                         <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
                         
-                        <Area yAxisId="left" type="monotone" dataKey="revenue" name="Revenue" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" activeDot={{ r: 6 }} />
-                        <Line yAxisId="right" type="monotone" dataKey="ordersCount" name="Orders" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-                      </ComposedChart>
+                        <Bar dataKey="revenue" name="Revenue" fill="url(#colorRevenueBar)" radius={[4, 4, 0, 0]} barSize={40} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>

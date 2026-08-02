@@ -96,10 +96,10 @@ export default function Profile() {
                 <div key={order.id} className="order-item">
                   <div className="order-header">
                     <span className="order-id">{order.id}</span>
-                    <span className="order-date">{new Date(order.date).toLocaleDateString()}</span>
+                    <span className="order-date">{new Date(order.created_at).toLocaleDateString()}</span>
                   </div>
                   <div className="order-total">
-                    RM {order.total.toFixed(2)} - <span className="text-primary">{order.status}</span>
+                    RM {(order.total / 100).toFixed(2)} - <span className="text-primary">{order.status}</span>
                     {order.paymentMethod && <div className="text-muted" style={{fontSize: '0.85rem', marginTop: '0.25rem'}}>Paid via: {order.paymentMethod}</div>}
                   </div>
                 </div>

@@ -91,6 +91,19 @@ export default function Menu() {
     return () => observer.disconnect();
   }, [categories]);
 
+  // Handle hash links from other pages (e.g., Home clicking on #BBQ)
+  useEffect(() => {
+    if (categories.length > 0 && window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      if (categories.includes(hash)) {
+        setTimeout(() => {
+          const el = document.getElementById(hash);
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 100); // small delay to ensure DOM is ready
+      }
+    }
+  }, [categories]);
+
   const scrollToCategory = (cat) => {
     setActiveCategory(cat);
     const el = document.getElementById(`category-${cat}`);
@@ -190,6 +203,7 @@ export default function Menu() {
           return (
             <div key={cat} id={`category-${cat}`} className="category-section" style={{ marginTop: '3rem' }}>
               <div 
+                id={cat}
                 className="category-header-band"
                 style={{ 
                   display: 'flex',

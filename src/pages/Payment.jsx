@@ -146,7 +146,7 @@ export default function Payment() {
 
           <button 
             className="btn btn-primary w-full pay-btn" 
-            disabled={!method || isProcessing}
+            disabled={isProcessing}
             onClick={handlePayment}
           >
             {isProcessing ? (

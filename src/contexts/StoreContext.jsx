@@ -77,6 +77,7 @@ export function StoreProvider({ children }) {
         if (payload.eventType === 'INSERT') {
           setOrders(prev => prev.some(o => o.id === payload.new.id) ? prev : [payload.new, ...prev]);
         } else if (payload.eventType === 'UPDATE') {
+          console.log(`[REALTIME LAG TEST] Realtime Event Received for ${payload.new.id} with status ${payload.new.status}: ${Date.now()}`);
           setOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
         }
       })
@@ -116,9 +117,11 @@ export function StoreProvider({ children }) {
   }, []);
 
   // Polling fallback in case Supabase Realtime is disabled on the orders table
+  // Acts as a periodic reconciliation safety net (30s) when Realtime is connected, 
+  // and a fast primary sync (5s) when Realtime is disconnected.
   useEffect(() => {
+    const pollInterval = isRealtimeConnected ? 30000 : 5000;
     const pollOrders = setInterval(async () => {
-      if (isRealtimeConnected) return; // Only poll if realtime is down
 
       const { data: latestOrdersRaw } = await supabase.from('orders')
         .select('*')
@@ -152,7 +155,7 @@ export function StoreProvider({ children }) {
           return prev;
         });
       }
-    }, 5000); // 5 second polling
+    }, pollInterval);
 
     return () => clearInterval(pollOrders);
   }, [isRealtimeConnected]);
@@ -162,6 +165,12 @@ export function StoreProvider({ children }) {
     const item = menu.find(i => i.id === id);
     if (!item) return;
     const newStatus = !item.inStock;
+    
+    // Block toggling ON if quantity is 0
+    if (newStatus && (item.stock_quantity === undefined || item.stock_quantity <= 0)) {
+      alert("Cannot mark item as available: Set a stock quantity above 0 first.");
+      return;
+    }
     
     // Optimistic UI update
     setMenu(menu.map(i => i.id === id ? { ...i, inStock: newStatus } : i));
@@ -289,36 +298,18 @@ export function StoreProvider({ children }) {
 
     // Optimistic update
     setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED', cancellation_reason: reason } : o));
-    
-    // DB update for status and reason (handle missing column gracefully)
-    let { error } = await supabase.from('orders')
-      .update({ status: 'CANCELLED', cancellation_reason: reason })
-      .eq('id', orderId);
-
-    if (error && error.message.includes("cancellation_reason")) {
-      // Fallback if the user hasn't run the SQL migration to add cancellation_reason
-      const { error: fallbackError } = await supabase.from('orders')
-        .update({ status: 'CANCELLED' })
-        .eq('id', orderId);
-      error = fallbackError;
-    }
+    // DB update using atomic RPC
+    const { error } = await supabase.rpc('cancel_order', {
+      p_order_id: orderId,
+      p_reason: reason
+    });
 
     if (error) {
-      console.error('Failed to cancel order:', error);
-      alert('Failed to cancel order: ' + error.message);
+      console.error('Failed to cancel order via RPC:', error);
+      alert('Failed to cancel order (RPC Error):\n' + JSON.stringify(error, null, 2) + '\n\nDiagnosis: This means the SQL migration containing the cancel_order function has not been run on your database.');
       // Revert optimistic update
       setOrders(orders.map(o => o.id === orderId ? order : o));
       return;
-    }
-
-    // Restore stock for each item in the cancelled order
-    if (order.items && Array.isArray(order.items)) {
-      for (const item of order.items) {
-        if (item.id && item.quantity) {
-          // Add back the quantity to stock
-          await updateStock(item.id, item.quantity);
-        }
-      }
     }
   };
 
@@ -610,7 +601,10 @@ export function StoreProvider({ children }) {
        alert("Failed to accept order: " + error.message + " (Did you run the SQL migration?)");
        // Revert optimistic update
        setOrders(prev => prev.map(o => o.id === orderId ? order : o));
+       return;
     }
+    
+    console.log(`[REALTIME LAG TEST] DB Write Succeeded for ${orderId}: ${Date.now()}`);
   };
 
   const addPoints = async (amount, description) => {

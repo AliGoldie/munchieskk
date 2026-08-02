@@ -18,6 +18,8 @@ export default function OrderStatus() {
   // Timer logic for COOKING state
   useEffect(() => {
     if (!order || order.status !== 'COOKING') return;
+    
+    console.log(`[REALTIME LAG TEST] OrderStatus.jsx received COOKING for ${order.id}: ${Date.now()}`);
 
     const ct = order.cook_time_seconds || loyaltyConfig.DEFAULT_COOK_TIME_SECONDS;
     const interval = setInterval(() => {

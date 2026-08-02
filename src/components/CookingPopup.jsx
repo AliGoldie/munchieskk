@@ -55,7 +55,7 @@ export default function CookingPopup() {
   // Detect status change → READY, play sound + flash title
   useEffect(() => {
     if (!order) return;
-    if (prevStatus.current === 'COOKING' && order.status === 'READY') {
+    if (prevStatus.current && prevStatus.current !== 'READY' && order.status === 'READY') {
       setDismissed(false); // Un-dismiss the popup so they see the READY notification
       playReadySound();
       // Flash tab title

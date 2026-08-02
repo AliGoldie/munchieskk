@@ -6,24 +6,36 @@ export function playReadySound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (ctx.state === 'suspended') ctx.resume();
-    const notes = [523.25, 659.25, 783.99, 880.00, 1046.50]; // C5, E5, G5, A5, C6
+    // A longer, triumphant "order ready" fanfare jingle
+    const notes = [
+      { f: 523.25, start: 0.00, dur: 0.15 }, // C5
+      { f: 659.25, start: 0.15, dur: 0.15 }, // E5
+      { f: 783.99, start: 0.30, dur: 0.15 }, // G5
+      { f: 1046.50, start: 0.45, dur: 0.40 }, // C6
+      { f: 783.99, start: 0.85, dur: 0.15 }, // G5
+      { f: 1046.50, start: 1.00, dur: 0.60 }, // C6
+      { f: 1318.51, start: 1.60, dur: 0.60 }, // E6
+    ];
 
-    notes.forEach((freq, i) => {
+    notes.forEach((note) => {
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
 
       oscillator.connect(gainNode);
       gainNode.connect(ctx.destination);
 
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.22);
+      // Use triangle for a slightly richer, more pleasant bell-like sound
+      oscillator.type = 'triangle';
+      
+      const startTime = ctx.currentTime + note.start;
+      oscillator.frequency.setValueAtTime(note.f, startTime);
 
-      gainNode.gain.setValueAtTime(0, ctx.currentTime + i * 0.22);
-      gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + i * 0.22 + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.22 + 0.5);
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + note.dur);
 
-      oscillator.start(ctx.currentTime + i * 0.22);
-      oscillator.stop(ctx.currentTime + i * 0.22 + 0.5);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + note.dur);
     });
   } catch (e) {
     console.warn('Sound playback not supported:', e);
