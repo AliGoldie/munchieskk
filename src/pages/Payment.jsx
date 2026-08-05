@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
-import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { formatTime12Hour, generateOperatingTimeSlots } from '../utils/timeUtils';
+import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Clock, AlertTriangle } from 'lucide-react';
 import './Payment.css';
 
 export default function Payment() {
@@ -17,9 +18,14 @@ export default function Payment() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [bank, setBank] = useState('');
 
+  // Dynamically generate pre-order time slots strictly within business hours
+  const timeSlots = useMemo(() => {
+    return generateOperatingTimeSlots(shopSettings?.openingTime || '10:00', shopSettings?.closingTime || '22:00');
+  }, [shopSettings?.openingTime, shopSettings?.closingTime]);
+
   // Order Timing Selection (Order Now vs Scheduled Pre-Order)
   const [orderMode, setOrderMode] = useState(isOpen ? 'NOW' : 'SCHEDULED');
-  const [scheduledTime, setScheduledTime] = useState('12:00');
+  const [scheduledTime, setScheduledTime] = useState(timeSlots[0]?.value || '12:00');
 
   if (!user) {
     navigate('/login');
@@ -39,9 +45,8 @@ export default function Payment() {
       return alert('The shop is currently closed or paused for instant orders. Please select "Schedule for Business Hours"!');
     }
 
-    if (orderMode === 'SCHEDULED' && !scheduledTime) {
-      return alert('Please select a time slot for your scheduled order.');
-    }
+    const selectedSlot = timeSlots.find(s => s.value === scheduledTime) || timeSlots[0];
+    const scheduledDisplayTime = selectedSlot ? selectedSlot.label : formatTime12Hour(scheduledTime);
 
     setIsProcessing(true);
 
@@ -51,7 +56,7 @@ export default function Payment() {
 
       let paymentDetail = method === 'FPX' ? `FPX (${bank})` : method;
       if (orderMode === 'SCHEDULED') {
-        paymentDetail += ` [Scheduled for ${scheduledTime}]`;
+        paymentDetail += ` [Scheduled for ${scheduledDisplayTime}]`;
       }
 
       const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null);
@@ -74,6 +79,9 @@ export default function Payment() {
     );
   }
 
+  const openingFormatted = formatTime12Hour(shopSettings?.openingTime || '10:00');
+  const closingFormatted = formatTime12Hour(shopSettings?.closingTime || '22:00');
+
   return (
     <div className="container payment-page">
 
@@ -93,10 +101,10 @@ export default function Payment() {
           <AlertTriangle size={28} color="#f59e0b" style={{ flexShrink: 0 }} />
           <div>
             <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>
-              {shopSettings?.status === 'PAUSED' ? '⏸️ Shop is Temporarily PAUSED' : '🔴 Shop is Currently CLOSED'}
+              {shopSettings?.status === 'PAUSED' ? '⏸️ SHOP IS TEMPORARILY PAUSED' : '🔴 SHOP IS CURRENTLY CLOSED'}
             </h4>
             <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
-              Business Hours: {shopSettings?.openingTime || '10:00 AM'} - {shopSettings?.closingTime || '10:00 PM'}. Instant orders are paused, but you can <strong>Schedule a Pre-Order</strong> below!
+              Business Hours: <strong>{openingFormatted} - {closingFormatted}</strong>. Instant orders are paused, but you can <strong>Schedule a Pre-Order</strong> below!
             </p>
           </div>
         </div>
@@ -112,7 +120,7 @@ export default function Payment() {
         marginBottom: '1.5rem'
       }}>
         <h3 style={{ margin: '0 0 10px', fontSize: '1.1rem', color: '#FFC72C', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Clock size={20} /> Fulfillment Timing
+          <Clock size={20} /> FULFILLMENT TIMING
         </h3>
 
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -148,7 +156,7 @@ export default function Payment() {
         {orderMode === 'SCHEDULED' && (
           <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px' }}>
-              Select Pre-Order Pickup/Delivery Time Slot:
+              Select Pre-Order Pickup/Delivery Time Slot (Operating Hours: {openingFormatted} - {closingFormatted}):
             </label>
             <select
               value={scheduledTime}
@@ -158,18 +166,11 @@ export default function Payment() {
                 background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.95rem'
               }}
             >
-              <option value="10:30">Today at 10:30 AM</option>
-              <option value="11:30">Today at 11:30 AM</option>
-              <option value="12:30">Today at 12:30 PM</option>
-              <option value="13:30">Today at 01:30 PM</option>
-              <option value="14:30">Today at 02:30 PM</option>
-              <option value="15:30">Today at 03:30 PM</option>
-              <option value="16:30">Today at 04:30 PM</option>
-              <option value="17:30">Today at 05:30 PM</option>
-              <option value="18:30">Today at 06:30 PM</option>
-              <option value="19:30">Today at 07:30 PM</option>
-              <option value="20:30">Today at 08:30 PM</option>
-              <option value="21:30">Today at 09:30 PM</option>
+              {timeSlots.map(slot => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
+                </option>
+              ))}
             </select>
           </div>
         )}

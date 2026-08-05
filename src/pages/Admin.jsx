@@ -3,6 +3,7 @@ import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { startNewOrderAlert, stopNewOrderAlert } from '../utils/soundAlert';
+import { formatTime12Hour } from '../utils/timeUtils';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
@@ -653,7 +654,9 @@ export default function Admin() {
 
                   {/* Opening Time */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>DAILY OPENING TIME</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>
+                      DAILY OPENING TIME ({formatTime12Hour(shopSettings?.openingTime || '10:00')})
+                    </label>
                     <input
                       type="time"
                       value={shopSettings?.openingTime || '10:00'}
@@ -667,7 +670,9 @@ export default function Admin() {
 
                   {/* Closing Time */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>DAILY CLOSING TIME</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>
+                      DAILY CLOSING TIME ({formatTime12Hour(shopSettings?.closingTime || '22:00')})
+                    </label>
                     <input
                       type="time"
                       value={shopSettings?.closingTime || '22:00'}
