@@ -8,7 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Admin.css';
@@ -21,6 +21,7 @@ export default function Admin() {
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice,
     isPromoActive, updatePromo,
+    categoriesList, addCategory, updateCategory, deleteCategory,
     shopSettings, updateShopSettings, isShopOpenNow
   } = useStore();
   
@@ -33,6 +34,13 @@ export default function Admin() {
   // Menu Item Detail Editing State
   const [editingMenuItem, setEditingMenuItem] = useState(null);
   const [editingMenuItemImageFile, setEditingMenuItemImageFile] = useState(null);
+
+  // Category CRM State
+  const [newCatCode, setNewCatCode] = useState('');
+  const [newCatLabel, setNewCatLabel] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('🍔');
+  const [newCatColor, setNewCatColor] = useState('#ef4444');
+  const [editingCat, setEditingCat] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'monthly', 'yearly'
   const [selectedDate, setSelectedDate] = useState(''); // YYYY-MM-DD
@@ -185,6 +193,28 @@ export default function Admin() {
     setIsUploading(false);
     setEditingMenuItem(null);
     setEditingMenuItemImageFile(null);
+  };
+
+  const handleCreateCategory = (e) => {
+    e.preventDefault();
+    if (!newCatLabel) return;
+    addCategory(newCatCode || newCatLabel, newCatLabel, newCatIcon, newCatColor);
+    setNewCatCode('');
+    setNewCatLabel('');
+    setNewCatIcon('🍔');
+    setNewCatColor('#ef4444');
+  };
+
+  const handleSaveCatEdit = (e) => {
+    e.preventDefault();
+    if (!editingCat) return;
+    updateCategory(editingCat.id, {
+      code: editingCat.code.toUpperCase().replace(/\s+/g, '_'),
+      label: editingCat.label,
+      icon: editingCat.icon,
+      color: editingCat.color
+    });
+    setEditingCat(null);
   };
 
   useEffect(() => {
@@ -679,6 +709,9 @@ export default function Admin() {
           </button>
           <button className={`sidebar-item ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => setActiveTab('inventory')}>
             <Layers size={20} /> Menu CRM
+          </button>
+          <button className={`sidebar-item ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => setActiveTab('categories')}>
+            <Bookmark size={20} /> Category CRM
           </button>
           <button className={`sidebar-item ${activeTab === 'addons' ? 'active' : ''}`} onClick={() => setActiveTab('addons')}>
             <PlusSquare size={20} /> Add-ons CRM
@@ -1512,11 +1545,9 @@ export default function Admin() {
                 <div className="form-group">
                   <label>Category</label>
                   <select className="price-input" value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})}>
-                    <option value="BBQ">BBQ</option>
-                    <option value="PREMIUM">PREMIUM</option>
-                    <option value="PLATTERS">PLATTERS</option>
-                    <option value="SIDES">SIDES</option>
-                    <option value="DRINKS">DRINKS</option>
+                    {categoriesList.map(c => (
+                      <option key={c.id} value={c.code}>{c.icon || '🏷️'} {c.label}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="form-group">
@@ -1856,6 +1887,249 @@ export default function Admin() {
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {/* Category CRM Tab */}
+        {activeTab === 'categories' && (
+          <div className="admin-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#1e293b' }}>🏷️ Category CRM</h3>
+                <p className="text-muted" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
+                  Manage storefront menu categories, icons, badge colors, and display labels.
+                </p>
+              </div>
+            </div>
+
+            {/* Create Category Form */}
+            <form onSubmit={handleCreateCategory} className="new-item-form" style={{ gridTemplateColumns: '1fr 1.5fr 100px 100px auto', alignItems: 'end', marginBottom: '2rem' }}>
+              <div className="form-group">
+                <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>CATEGORY CODE</label>
+                <input
+                  type="text"
+                  placeholder="e.g. SNACKS"
+                  value={newCatCode}
+                  onChange={e => setNewCatCode(e.target.value)}
+                  className="price-input"
+                  style={{ textTransform: 'uppercase' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>DISPLAY LABEL</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Quick Snacks & Bites"
+                  value={newCatLabel}
+                  onChange={e => setNewCatLabel(e.target.value)}
+                  className="price-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>ICON</label>
+                <select
+                  value={newCatIcon}
+                  onChange={e => setNewCatIcon(e.target.value)}
+                  className="price-input"
+                  style={{ fontWeight: 'bold', textAlign: 'center' }}
+                >
+                  <option value="🔥">🔥 BBQ</option>
+                  <option value="👑">👑 Premium</option>
+                  <option value="🍽️">🍽️ Platter</option>
+                  <option value="🥗">🥗 Sides</option>
+                  <option value="🥤">🥤 Drinks</option>
+                  <option value="🍦">🍦 Ice Cream</option>
+                  <option value="🍟">🍟 Snacks</option>
+                  <option value="🍔">🍔 Burger</option>
+                  <option value="✨">✨ Special</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>COLOR</label>
+                <input
+                  type="color"
+                  value={newCatColor}
+                  onChange={e => setNewCatColor(e.target.value)}
+                  style={{ width: '100%', height: '42px', borderRadius: '8px', border: '1px solid #cbd5e1', cursor: 'pointer', padding: '2px' }}
+                />
+              </div>
+
+              <button type="submit" className="btn btn-primary" style={{ height: '42px', padding: '0 1.25rem' }}>
+                + Add Category
+              </button>
+            </form>
+
+            {/* Categories List Table */}
+            <div className="table-responsive">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Category Code</th>
+                    <th>Color Badge</th>
+                    <th>Assigned Items</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categoriesList.map(cat => {
+                    const assignedItemsCount = menu.filter(m => m.category === cat.code || m.category === cat.label).length;
+
+                    return (
+                      <tr key={cat.id}>
+                        <td className="font-medium" style={{ fontSize: '1rem' }}>
+                          <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>{cat.icon || '🏷️'}</span>
+                          <strong>{cat.label}</strong>
+                        </td>
+                        <td>
+                          <code style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.85rem', color: '#0f172a', fontWeight: 'bold' }}>
+                            {cat.code}
+                          </code>
+                        </td>
+                        <td>
+                          <span style={{
+                            backgroundColor: cat.color || '#ef4444',
+                            color: '#fff',
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            display: 'inline-block'
+                          }}>
+                            {cat.icon} {cat.code}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ fontWeight: 'bold', color: assignedItemsCount > 0 ? '#10b981' : '#94a3b8' }}>
+                            {assignedItemsCount} items
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-secondary"
+                              onClick={() => setEditingCat({ ...cat })}
+                              style={{ background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold' }}
+                            >
+                              ✏️ Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-danger"
+                              onClick={() => {
+                                if (assignedItemsCount > 0) {
+                                  if (!window.confirm(`Warning: ${assignedItemsCount} menu items are currently in category "${cat.label}". Are you sure you want to delete this category?`)) return;
+                                }
+                                deleteCategory(cat.id);
+                              }}
+                              style={{ background: '#ef4444', color: '#fff', border: 'none', fontWeight: 'bold' }}
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Category Modal Overlay */}
+        {editingCat && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
+          }}>
+            <div style={{
+              background: '#1e293b', color: '#fff', width: '100%', maxWidth: '460px',
+              borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  ✏️ Edit Category
+                </h3>
+                <button type="button" onClick={() => setEditingCat(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+              </div>
+
+              <form onSubmit={handleSaveCatEdit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>CATEGORY CODE</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingCat.code}
+                    onChange={(e) => setEditingCat({ ...editingCat, code: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISPLAY LABEL</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingCat.label}
+                    onChange={(e) => setEditingCat({ ...editingCat, label: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>EMOJI ICON</label>
+                  <select
+                    value={editingCat.icon || '🍔'}
+                    onChange={(e) => setEditingCat({ ...editingCat, icon: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  >
+                    <option value="🔥">🔥 BBQ</option>
+                    <option value="👑">👑 Premium</option>
+                    <option value="🍽️">🍽️ Platter</option>
+                    <option value="🥗">🥗 Sides</option>
+                    <option value="🥤">🥤 Drinks</option>
+                    <option value="🍦">🍦 Ice Cream</option>
+                    <option value="🍟">🍟 Snacks</option>
+                    <option value="🍔">🍔 Burger</option>
+                    <option value="✨">✨ Special</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>BADGE COLOR</label>
+                  <input
+                    type="color"
+                    value={editingCat.color || '#ef4444'}
+                    onChange={(e) => setEditingCat({ ...editingCat, color: e.target.value })}
+                    style={{ width: '100%', height: '42px', borderRadius: '8px', border: '1px solid #cbd5e1', cursor: 'pointer', padding: '2px' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                  <button
+                    type="submit"
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#22c55e', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Save Category Changes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingCat(null)}
+                    style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: '#475569', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
@@ -2219,11 +2493,9 @@ export default function Admin() {
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, category: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 >
-                  <option value="BBQ">BBQ Burgers</option>
-                  <option value="PREMIUM">Premium Combos</option>
-                  <option value="PLATTERS">Platters</option>
-                  <option value="SIDES">Fries & Sides</option>
-                  <option value="DRINKS">Drinks & Desserts</option>
+                  {categoriesList.map(c => (
+                    <option key={c.id} value={c.code}>{c.icon || '🏷️'} {c.label}</option>
+                  ))}
                 </select>
               </div>
 

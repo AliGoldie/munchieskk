@@ -335,6 +335,51 @@ export function StoreProvider({ children }) {
       .eq('id', id);
   };
 
+  // Category CRM State
+  const [categoriesList, setCategoriesList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('munchies_categories_crm');
+      return saved ? JSON.parse(saved) : [
+        { id: 'cat-1', code: 'BBQ', label: 'BBQ Burgers', icon: '🔥', color: '#ef4444' },
+        { id: 'cat-2', code: 'PREMIUM', label: 'Premium Combos', icon: '👑', color: '#8b5cf6' },
+        { id: 'cat-3', code: 'PLATTERS', label: 'Platters', icon: '🍽️', color: '#f59e0b' },
+        { id: 'cat-4', code: 'SIDES', label: 'Fries & Sides', icon: '🥗', color: '#10b981' },
+        { id: 'cat-5', code: 'DRINKS', label: 'Drinks & Desserts', icon: '🥤', color: '#3b82f6' }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const saveCategoriesList = (newList) => {
+    setCategoriesList(newList);
+    localStorage.setItem('munchies_categories_crm', JSON.stringify(newList));
+  };
+
+  const addCategory = (code, label, icon, color) => {
+    const codeClean = (code || label).toUpperCase().replace(/\s+/g, '_');
+    const newCat = {
+      id: 'cat-' + Date.now(),
+      code: codeClean,
+      label: label || codeClean,
+      icon: icon || '🍔',
+      color: color || '#ef4444'
+    };
+    const newList = [...categoriesList, newCat];
+    saveCategoriesList(newList);
+    return newCat;
+  };
+
+  const updateCategory = (id, fields) => {
+    const updated = categoriesList.map(c => c.id === id ? { ...c, ...fields } : c);
+    saveCategoriesList(updated);
+  };
+
+  const deleteCategory = (id) => {
+    const updated = categoriesList.filter(c => c.id !== id);
+    saveCategoriesList(updated);
+  };
+
   const isPromoActive = (item) => {
     if (!item.promo_price) return false;
     const now = new Date();
@@ -769,6 +814,7 @@ export function StoreProvider({ children }) {
       addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, addPoints,
+      categoriesList, addCategory, updateCategory, deleteCategory,
       shopSettings, updateShopSettings, isShopOpenNow
     }}>
       {children}
