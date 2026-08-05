@@ -56,14 +56,18 @@ export function StoreProvider({ children }) {
   };
 
   const isShopOpenNow = () => {
+    if (shopSettings?.status === 'OPEN') {
+      return true;
+    }
     if (shopSettings?.status === 'CLOSED' || shopSettings?.status === 'PAUSED') {
       return false;
     }
+
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
 
-    const openMins = parseTimeToMinutes(shopSettings?.openingTime, '10:00');
-    const closeMins = parseTimeToMinutes(shopSettings?.closingTime, '22:00');
+    const openMins = parseTimeToMinutes(shopSettings?.openingTime, '17:00');
+    const closeMins = parseTimeToMinutes(shopSettings?.closingTime, '23:00');
 
     if (openMins <= closeMins) {
       return currentMins >= openMins && currentMins <= closeMins;

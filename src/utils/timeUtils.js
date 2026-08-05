@@ -2,21 +2,22 @@
  * Utility functions for 12-hour time formatting and dynamic operating hour slot generation
  */
 
-// Robust helper to parse time strings ("17:00", "05:00 pm", "5:00 PM") into minutes from midnight
-export function parseTimeToMinutes(timeStr, defaultStr = '10:00') {
+// Robust helper to parse time strings ("17:00", "05:00 pm", "5:00 PM", "05:00") into minutes from midnight
+export function parseTimeToMinutes(timeStr, defaultStr = '17:00') {
   const target = timeStr || defaultStr;
-  if (!target) return 600;
+  if (!target) return 1020;
 
   const str = target.toString().trim().toLowerCase();
   const isPM = str.includes('pm');
   const isAM = str.includes('am');
 
   const parts = str.replace(/[^\d:]/g, '').split(':').map(Number);
-  let h = isNaN(parts[0]) ? 10 : parts[0];
+  let h = isNaN(parts[0]) ? 17 : parts[0];
   let m = isNaN(parts[1]) ? 0 : parts[1];
 
   if (isPM && h < 12) h += 12;
-  if (isAM && h === 12) h = 0;
+  else if (!isAM && !isPM && h >= 1 && h <= 6) h += 12; // e.g. "05:00" -> 17:00 (5:00 PM)
+  else if (isAM && h === 12) h = 0;
 
   return h * 60 + m;
 }
