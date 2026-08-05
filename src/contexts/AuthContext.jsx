@@ -17,6 +17,9 @@ export function AuthProvider({ children }) {
       
       if (session?.user) {
         await fetchAndSetUser(session.user);
+        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
       } else {
         setUser(null);
       }
@@ -29,6 +32,9 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         await fetchAndSetUser(session.user);
+        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
       } else {
         setUser(null);
       }
@@ -168,8 +174,12 @@ export function AuthProvider({ children }) {
   };
 
   const loginWithProvider = async (provider) => {
+    const redirectUrl = typeof window !== 'undefined' ? window.location.origin : undefined;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: provider.toLowerCase(),
+      options: {
+        redirectTo: redirectUrl
+      }
     });
     
     if (error) {
