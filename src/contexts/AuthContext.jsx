@@ -10,6 +10,18 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const cleanAuthUrlParams = () => {
+    if (typeof window !== 'undefined') {
+      const hasHash = window.location.hash.includes('access_token');
+      const hasError = window.location.search.includes('error') || window.location.search.includes('error_code');
+      const hasCode = window.location.search.includes('code=');
+
+      if (hasHash || hasError || hasCode) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  };
+
   useEffect(() => {
     // Fetch initial session
     const initializeAuth = async () => {
@@ -17,12 +29,10 @@ export function AuthProvider({ children }) {
       
       if (session?.user) {
         await fetchAndSetUser(session.user);
-        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
-          window.history.replaceState(null, '', window.location.pathname);
-        }
       } else {
         setUser(null);
       }
+      cleanAuthUrlParams();
       setLoading(false);
     };
 
@@ -32,12 +42,10 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         await fetchAndSetUser(session.user);
-        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
-          window.history.replaceState(null, '', window.location.pathname);
-        }
       } else {
         setUser(null);
       }
+      cleanAuthUrlParams();
     });
 
     return () => {
