@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Lock, Trophy, Flame } from 'lucide-react';
+import { X, Lock, Trophy, Flame, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import MunchManRulesModal from './MunchManRulesModal';
@@ -13,8 +13,12 @@ export default function MunchManModal({ isOpen, onClose }) {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [gameWon, setGameWon] = useState(false);
+  const [gameReason, setGameReason] = useState(null); // 'time' or null
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
+  const [timerDisplay, setTimerDisplay] = useState('01:30');
+  const [isUrgent, setIsUrgent] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
 
   // Daily play state
   const [canPlay, setCanPlay] = useState(true);
@@ -29,6 +33,66 @@ export default function MunchManModal({ isOpen, onClose }) {
   const [rewardMsg, setRewardMsg] = useState(null);
 
   const gameStateRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const musicIntervalRef = useRef(null);
+
+  // Sound Utility Functions (Web Audio API)
+  const ensureAudio = () => {
+    try {
+      if (!audioCtxRef.current) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtxRef.current = new AC();
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+    } catch (err) {
+      console.warn('Audio unavailable:', err);
+    }
+  };
+
+  const tone = (freq, dur, type = 'square', vol = 0.12, delay = 0) => {
+    if (!soundOn || !audioCtxRef.current) return;
+    try {
+      const t0 = audioCtxRef.current.currentTime + delay;
+      const osc = audioCtxRef.current.createOscillator();
+      const gain = audioCtxRef.current.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(vol, t0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain);
+      gain.connect(audioCtxRef.current.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    } catch (err) {}
+  };
+
+  const sfxEat = () => tone(700, 0.05, 'square', 0.10, 0);
+  const sfxPower = () => { tone(500, 0.08, 'triangle', 0.15, 0); tone(700, 0.08, 'triangle', 0.15, 0.08); tone(900, 0.12, 'triangle', 0.15, 0.16); };
+  const sfxGhostEaten = () => { tone(600, 0.06, 'sawtooth', 0.15, 0); tone(400, 0.08, 'sawtooth', 0.15, 0.06); };
+  const sfxHit = () => tone(140, 0.3, 'sawtooth', 0.2, 0);
+  const sfxWin = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.15, i * 0.15));
+  const sfxLose = () => [392, 330, 262].forEach((f, i) => tone(f, 0.25, 'sawtooth', 0.15, i * 0.2));
+  const sfxTick = () => tone(1000, 0.08, 'square', 0.13, 0);
+
+  const startMusic = () => {
+    stopMusic();
+    let musicStep = 0;
+    const musicPattern = [220, 220, 262, 196, 220, 246, 262, 196];
+    musicIntervalRef.current = setInterval(() => {
+      if (!gameStateRef.current || !gameStateRef.current.running) return;
+      tone(musicPattern[musicStep % musicPattern.length], 0.18, 'triangle', 0.045, 0);
+      musicStep++;
+    }, 260);
+  };
+
+  const stopMusic = () => {
+    if (musicIntervalRef.current) {
+      clearInterval(musicIntervalRef.current);
+      musicIntervalRef.current = null;
+    }
+  };
 
   // Check play status on open
   useEffect(() => {
@@ -131,14 +195,15 @@ export default function MunchManModal({ isOpen, onClose }) {
     ];
 
     const SPEED_BOOST_DURATION = 300;
-    const SPEED_BOOST_MULTIPLIER = 1.6;
     const FREEZE_DURATION = 240;
     const PLAYER_SPEED = 2;
+    const PLAYER_BOOST_SPEED = 3;
     const GHOST_SPEED = 1;
     const GHOST_SCARED_SPEED = 1;
     const GHOST_CHASE_CHANCE = 0.45;
     const SCARED_DURATION = 320;
     const GRACE_PERIOD = 120;
+    const TIME_LIMIT_SECONDS = 90;
 
     function cellFree(r, c) {
       return !isWall(r, c);
@@ -171,6 +236,8 @@ export default function MunchManModal({ isOpen, onClose }) {
       speedBoostTimer: 0,
       freezeTimer: 0,
       graceTimer: GRACE_PERIOD,
+      roundStartTime: 0,
+      lastTickSecond: null,
       animFrameId: null
     };
 
@@ -236,13 +303,24 @@ export default function MunchManModal({ isOpen, onClose }) {
       state.speedBoostTimer = 0;
       state.freezeTimer = 0;
       state.graceTimer = GRACE_PERIOD;
+      state.roundStartTime = performance.now();
+      state.lastTickSecond = null;
 
       setScore(0);
       setLives(3);
+      setTimerDisplay('01:30');
+      setIsUrgent(false);
     }
 
     function aligned(x, y) {
       return x % CELL === 0 && y % CELL === 0;
+    }
+
+    function stepSpeed(entity, desiredSpeed) {
+      if (aligned(entity.x, entity.y)) {
+        entity.speed = desiredSpeed;
+      }
+      return entity.speed;
     }
 
     function tryMove(entity, wantDir, speed) {
@@ -257,6 +335,14 @@ export default function MunchManModal({ isOpen, onClose }) {
       }
       entity.x += entity.dir.dx * speed;
       entity.y += entity.dir.dy * speed;
+    }
+
+    function clampToBounds(entity) {
+      const maxX = (COLS - 1) * CELL, maxY = (ROWS - 1) * CELL;
+      if (entity.x < 0) { entity.x = 0; entity.dir = { dx: 0, dy: 0 }; }
+      if (entity.x > maxX) { entity.x = maxX; entity.dir = { dx: 0, dy: 0 }; }
+      if (entity.y < 0) { entity.y = 0; entity.dir = { dx: 0, dy: 0 }; }
+      if (entity.y > maxY) { entity.y = maxY; entity.dir = { dx: 0, dy: 0 }; }
     }
 
     function ghostChooseDir(g) {
@@ -296,12 +382,14 @@ export default function MunchManModal({ isOpen, onClose }) {
         state.score += 10;
         state.dotsEaten++;
         setScore(state.score);
+        sfxEat();
       }
       state.pellets.forEach(p => {
         if (!p.eaten && p.r === r && p.c === c) {
           p.eaten = true;
           state.score += 50;
           setScore(state.score);
+          sfxPower();
           if (p.type === 'speed') {
             state.speedBoostTimer = SPEED_BOOST_DURATION;
           } else if (p.type === 'freeze') {
@@ -336,16 +424,20 @@ export default function MunchManModal({ isOpen, onClose }) {
             g.scaredTimer = 0;
             g.dir = { dx: 0, dy: 0 };
             g.respawnFlash = 40;
+            sfxGhostEaten();
           } else {
             state.lives--;
             setLives(state.lives);
+            sfxHit();
             if (state.lives <= 0) {
-              endGame(false);
+              endGame(false, null);
             } else {
               state.player.x = PLAYER_START.c * CELL;
               state.player.y = PLAYER_START.r * CELL;
               state.player.dir = { dx: 0, dy: 0 };
               state.player.next = { dx: 0, dy: 0 };
+              state.player.speed = PLAYER_SPEED;
+              state.speedBoostTimer = 0;
               state.ghosts.forEach(gh => {
                 gh.x = gh.spawn.c * CELL;
                 gh.y = gh.spawn.r * CELL;
@@ -361,11 +453,15 @@ export default function MunchManModal({ isOpen, onClose }) {
       }
     }
 
-    async function endGame(win) {
+    async function endGame(win, reason) {
       state.running = false;
       state.won = win;
+      stopMusic();
+      if (win) { sfxWin(); } else { sfxLose(); }
+
       setGameOver(true);
       setGameWon(win);
+      setGameReason(reason);
       setGameStarted(false);
 
       if (user && user.id) {
@@ -475,6 +571,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       }
     }
 
+    const TREX_ART_FACES_LEFT = true;
     const TREX_DRAW_W = 32;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
 
@@ -484,6 +581,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       const facing = (state.player.dir.dx || state.player.dir.dy) ? Math.atan2(state.player.dir.dy, state.player.dir.dx) : 0;
       const faceRight = Math.cos(facing) >= 0;
       let flip = faceRight ? 1 : -1;
+      if (TREX_ART_FACES_LEFT) flip *= -1;
 
       const moving = (state.player.dir.dx || state.player.dir.dy);
       const bounce = moving ? Math.abs(Math.sin(Date.now() / 140)) * 2 : 0;
@@ -592,41 +690,70 @@ export default function MunchManModal({ isOpen, onClose }) {
     window.addEventListener('keydown', handleKeyDown);
 
     function loop() {
-      if (state.running) {
-        if (state.speedBoostTimer > 0) state.speedBoostTimer--;
-        const effectivePlayerSpeed = state.speedBoostTimer > 0
-          ? Math.round(state.player.speed * SPEED_BOOST_MULTIPLIER)
-          : state.player.speed;
+      try {
+        if (state.running) {
+          const desiredPlayerSpeed = state.speedBoostTimer > 0 ? PLAYER_BOOST_SPEED : PLAYER_SPEED;
+          const usedPlayerSpeed = stepSpeed(state.player, desiredPlayerSpeed);
+          tryMove(state.player, state.player.next, usedPlayerSpeed);
+          clampToBounds(state.player);
+          checkDotEat();
 
-        tryMove(state.player, state.player.next, effectivePlayerSpeed);
-        checkDotEat();
+          if (state.speedBoostTimer > 0) state.speedBoostTimer--;
+          if (state.freezeTimer > 0) state.freezeTimer--;
 
-        if (state.freezeTimer > 0) state.freezeTimer--;
-        if (state.graceTimer > 0) {
-          state.graceTimer--;
+          if (state.graceTimer > 0) {
+            state.graceTimer--;
+          } else {
+            state.ghosts.forEach(g => {
+              if (g.scared) {
+                g.scaredTimer--;
+                if (g.scaredTimer <= 0) g.scared = false;
+              }
+              if (g.respawnFlash > 0) g.respawnFlash--;
+              if (state.freezeTimer > 0) return;
+              const desiredGhostSpeed = g.scared ? GHOST_SCARED_SPEED : GHOST_SPEED;
+              const usedGhostSpeed = stepSpeed(g, desiredGhostSpeed);
+              ghostChooseDir(g);
+              tryMove(g, g.dir, usedGhostSpeed);
+              clampToBounds(g);
+            });
+            checkGhostCollision();
+          }
+
+          const elapsed = (performance.now() - state.roundStartTime) / 1000;
+          const timeLeft = Math.max(0, TIME_LIMIT_SECONDS - elapsed);
+          const urgent = timeLeft <= 10 && timeLeft > 0;
+
+          const s = Math.max(0, Math.ceil(timeLeft));
+          const m = Math.floor(s / 60);
+          const sec = s % 60;
+          const formatted = String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+          setTimerDisplay(formatted);
+          setIsUrgent(urgent);
+
+          const wholeSec = Math.ceil(timeLeft);
+          if (urgent && wholeSec !== state.lastTickSecond && wholeSec >= 1) {
+            state.lastTickSecond = wholeSec;
+            sfxTick();
+          }
+
+          if (timeLeft <= 0) {
+            endGame(false, 'time');
+          }
+
+          if (state.running && checkWin()) endGame(true, null);
+
+          drawMaze();
+          drawPlayer();
+          drawGhosts();
+          if (state.freezeTimer > 0) drawFreezeOverlay();
         } else {
-          state.ghosts.forEach(g => {
-            if (g.scared) {
-              g.scaredTimer--;
-              if (g.scaredTimer <= 0) g.scared = false;
-            }
-            if (g.respawnFlash > 0) g.respawnFlash--;
-            if (state.freezeTimer > 0) return;
-            ghostChooseDir(g);
-            tryMove(g, g.dir, g.scared ? GHOST_SCARED_SPEED : g.speed);
-          });
-          checkGhostCollision();
+          drawMaze();
+          drawPlayer();
+          drawGhosts();
         }
-
-        if (state.running && checkWin()) endGame(true);
-        drawMaze();
-        drawPlayer();
-        drawGhosts();
-        if (state.freezeTimer > 0) drawFreezeOverlay();
-      } else {
-        drawMaze();
-        drawPlayer();
-        drawGhosts();
+      } catch (err) {
+        console.error('Munch-Man frame error:', err);
       }
       state.animFrameId = requestAnimationFrame(loop);
     }
@@ -636,6 +763,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      stopMusic();
       if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
     };
   }, [isOpen]);
@@ -701,6 +829,8 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     setCanPlay(false);
     setAlreadyPlayedToday(true);
+    ensureAudio();
+    startMusic();
 
     if (gameStateRef.current) {
       const s = gameStateRef.current;
@@ -710,7 +840,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
       function isWall(r, c) {
         if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return true;
-        return (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (! (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) && r % 2 === 0 && c % 2 === 0));
+        return (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (!(r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) && r % 2 === 0 && c % 2 === 0));
       }
 
       for (let r = 0; r < ROWS; r++) {
@@ -755,6 +885,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       s.player.y = PLAYER_START.r * CELL;
       s.player.dir = { dx: 0, dy: 0 };
       s.player.next = { dx: 0, dy: 0 };
+      s.player.speed = 2;
 
       s.ghosts = GHOST_STARTS.map(g => ({
         x: g.c * CELL, y: g.r * CELL, dir: { dx: 1, dy: 0 },
@@ -769,10 +900,14 @@ export default function MunchManModal({ isOpen, onClose }) {
       s.speedBoostTimer = 0;
       s.freezeTimer = 0;
       s.graceTimer = 120;
+      s.roundStartTime = performance.now();
+      s.lastTickSecond = null;
     }
 
     setScore(0);
     setLives(3);
+    setTimerDisplay('01:30');
+    setIsUrgent(false);
     setGameStarted(true);
     setGameOver(false);
   };
@@ -780,6 +915,17 @@ export default function MunchManModal({ isOpen, onClose }) {
   const setDir = (dir) => {
     if (gameStateRef.current) {
       gameStateRef.current.player.next = dir;
+    }
+  };
+
+  const toggleSound = () => {
+    ensureAudio();
+    const nextSound = !soundOn;
+    setSoundOn(nextSound);
+    if (!nextSound) {
+      stopMusic();
+    } else if (gameStateRef.current && gameStateRef.current.running) {
+      startMusic();
     }
   };
 
@@ -796,6 +942,9 @@ export default function MunchManModal({ isOpen, onClose }) {
 
             <div className="munchman-hud">
               <span id="score">Score: {score}</span>
+              <span className={`munchman-timer ${isUrgent ? 'urgent-text' : ''}`}>
+                {timerDisplay}
+              </span>
               {streak > 0 && (
                 <span style={{ color: '#FFC72C', fontSize: 13, display: 'flex', alignItems: 'center', gap: 3 }}>
                   <Flame size={14} color="#FF9800" /> {streak}d Streak
@@ -808,7 +957,15 @@ export default function MunchManModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            <div className="munchman-canvas-wrap">
+            <div className={`munchman-canvas-wrap ${isUrgent ? 'urgent' : ''}`}>
+              <button
+                className="munchman-mute-btn"
+                onClick={toggleSound}
+                aria-label="Toggle sound"
+              >
+                {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </button>
+
               <canvas ref={canvasRef}></canvas>
 
               {(!gameStarted || gameOver) && (
@@ -829,18 +986,26 @@ export default function MunchManModal({ isOpen, onClose }) {
                   ) : !gameOver ? (
                     <>
                       <h2>Ready to Munch?</h2>
-                      <p>Gobble every mini burger before the Pickle Bunch catches your T-Rex! Grab a giant burger power-up to turn the tables.</p>
+                      <p>Gobble every mini burger before the Pickle Bunch catches your T-Rex! Grab a giant burger power-up to turn the tables. You've got 90 seconds on the clock — the last 10 get tense.</p>
                       <button className="munchman-btn" onClick={handlePlayButtonClick}>
                         Play Now
                       </button>
                     </>
                   ) : (
                     <>
-                      <h2>{gameWon ? '🎉 Victory!' : '💥 Game Over'}</h2>
+                      <h2>
+                        {gameWon
+                          ? '🎉 Victory!'
+                          : gameReason === 'time'
+                          ? "⏰ Time's up!"
+                          : '💥 Game Over'}
+                      </h2>
                       <p>
                         {gameWon
                           ? `Every burger munched! Score: ${score}. Solid run.`
-                          : `The Pickle Bunch caught your T-Rex. Score: ${score}.`}
+                          : gameReason === 'time'
+                          ? `The clock beat you this time. Score: ${score}. Try to move faster next round!`
+                          : `The Pickle Bunch caught your T-Rex. Score: ${score}. Give it another go!`}
                       </p>
 
                       {rewardMsg && (
