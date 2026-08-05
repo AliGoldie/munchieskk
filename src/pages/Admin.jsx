@@ -58,6 +58,106 @@ export default function Admin() {
   const [now, setNow] = useState(Date.now());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
 
+  // Notes & Upcoming Events State
+  const [eventsNotes, setEventsNotes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('munchies_admin_events_notes');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'evt-1',
+          date: new Date().toISOString().split('T')[0],
+          title: '🔥 CZ CHIX Promotion Starts',
+          type: 'promo',
+          description: 'Special 5,000 PTS prize vault unlock & win bonus.'
+        },
+        {
+          id: 'evt-2',
+          date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+          title: '📦 Weekly Ingredient Restock',
+          type: 'event',
+          description: 'Restock Mushy2 burger patties & Solero ice creams.'
+        }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [selectedEventDate, setSelectedEventDate] = useState(new Date().toISOString().split('T')[0]);
+  const [eventFormData, setEventFormData] = useState({
+    id: null,
+    title: '',
+    type: 'event',
+    description: ''
+  });
+
+  const activePromosFromMenu = useMemo(() => {
+    return (menu || []).filter(i => isPromoActive(i)).map(i => ({
+      id: `promo-menu-${i.id}`,
+      title: `🔥 PROMO: ${i.name}`,
+      description: `RM ${(i.price / 100).toFixed(2)} - Active Special Price!`,
+      type: 'promo',
+      isSystemPromo: true
+    }));
+  }, [menu]);
+
+  const saveEventsNotes = (newEvents) => {
+    setEventsNotes(newEvents);
+    localStorage.setItem('munchies_admin_events_notes', JSON.stringify(newEvents));
+  };
+
+  const handleOpenAddEventModal = (dateStr = null) => {
+    const targetDate = dateStr || new Date().toISOString().split('T')[0];
+    setSelectedEventDate(targetDate);
+    setEventFormData({ id: null, title: '', type: 'event', description: '' });
+    setIsEventModalOpen(true);
+  };
+
+  const handleOpenEditEventModal = (evt) => {
+    if (evt.isSystemPromo) return;
+    setSelectedEventDate(evt.date);
+    setEventFormData({
+      id: evt.id,
+      title: evt.title,
+      type: evt.type || 'event',
+      description: evt.description || ''
+    });
+    setIsEventModalOpen(true);
+  };
+
+  const handleSaveEvent = (e) => {
+    e.preventDefault();
+    if (!eventFormData.title.trim()) return;
+
+    if (eventFormData.id) {
+      const updated = eventsNotes.map(item => item.id === eventFormData.id ? {
+        ...item,
+        date: selectedEventDate,
+        title: eventFormData.title,
+        type: eventFormData.type,
+        description: eventFormData.description
+      } : item);
+      saveEventsNotes(updated);
+    } else {
+      const newEvt = {
+        id: 'evt-' + Date.now(),
+        date: selectedEventDate,
+        title: eventFormData.title,
+        type: eventFormData.type,
+        description: eventFormData.description
+      };
+      saveEventsNotes([newEvt, ...eventsNotes]);
+    }
+    setIsEventModalOpen(false);
+  };
+
+  const handleDeleteEvent = (id) => {
+    const filtered = eventsNotes.filter(item => item.id !== id);
+    saveEventsNotes(filtered);
+    setIsEventModalOpen(false);
+  };
+
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
@@ -811,7 +911,7 @@ export default function Admin() {
                 </div>
 
                 {/* Bottom Row */}
-                {/* Calendar & Reports */}
+                {/* Column 1: Calendar & Reports */}
                 <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div className="admin-card" style={{ padding: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -826,6 +926,10 @@ export default function Admin() {
                         const dateNum = i + 1;
                         const isSelected = selectedCalendarDate.getDate() === dateNum;
                         const hasOrders = orders.some(o => new Date(o.created_at).getDate() === dateNum && new Date(o.created_at).getMonth() === selectedCalendarDate.getMonth());
+                        const dayDateStr = `${selectedCalendarDate.getFullYear()}-${String(selectedCalendarDate.getMonth() + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
+                        const dayEvents = eventsNotes.filter(e => e.date === dayDateStr);
+                        const hasEvents = dayEvents.length > 0;
+
                         return (
                           <div 
                             key={i} 
@@ -833,21 +937,28 @@ export default function Admin() {
                               const d = new Date(selectedCalendarDate);
                               d.setDate(dateNum);
                               setSelectedCalendarDate(d);
+                              handleOpenAddEventModal(dayDateStr);
                             }}
+                            title={hasEvents ? dayEvents.map(e => `${e.title}: ${e.description || ''}`).join('\n') : `Click to add event/note for day ${dateNum}`}
                             style={{ 
                               aspectRatio: '1', 
                               display: 'flex', 
+                              flexDirection: 'column',
                               alignItems: 'center', 
                               justifyContent: 'center', 
                               fontSize: '0.8rem', 
                               borderRadius: '50%',
                               cursor: 'pointer',
-                              backgroundColor: isSelected ? '#ef4444' : hasOrders ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
-                              color: isSelected ? 'white' : hasOrders ? '#ef4444' : '#1e293b',
-                              fontWeight: isSelected || hasOrders ? 'bold' : 'normal'
+                              backgroundColor: isSelected ? '#ef4444' : hasEvents ? 'rgba(255, 199, 44, 0.3)' : hasOrders ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+                              color: isSelected ? 'white' : hasEvents ? '#d97706' : hasOrders ? '#ef4444' : '#1e293b',
+                              fontWeight: isSelected || hasOrders || hasEvents ? 'bold' : 'normal',
+                              position: 'relative'
                             }}
                           >
                             {dateNum}
+                            {hasEvents && !isSelected && (
+                              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#d97706', marginTop: '1px' }}></span>
+                            )}
                           </div>
                         )
                       })}
@@ -879,56 +990,146 @@ export default function Admin() {
                 </div>
                 </div>
 
-                {/* Customer Insights - 4 cols */}
-                <div className="admin-card" style={{ gridColumn: 'span 4', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h3 style={{ margin: 0 }}><Users size={18} style={{ display: 'inline', marginRight: '8px', color: '#ef4444' }}/>Customer Insights</h3>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>Pickup Only</div>
-                  </div>
-                  
-                  {/* New vs Returning */}
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 600, color: '#1e293b' }}>New: {customerInsights.newCount} ({customerInsights.newPercent.toFixed(1)}%)</span>
-                      <span style={{ fontWeight: 600, color: '#3b82f6' }}>Returning: {customerInsights.returningCount} ({customerInsights.returningPercent.toFixed(1)}%)</span>
+                {/* Column 2: NOTES & UPCOMING EVENTS + Customer Insights */}
+                <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+                  {/* NOTES & UPCOMING EVENTS Box */}
+                  <div className="admin-card" style={{
+                    background: '#1e293b',
+                    color: '#ffffff',
+                    padding: '1.5rem',
+                    borderRadius: '16px',
+                    border: '2px solid rgba(255, 199, 44, 0.4)',
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div>
+                        <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          📌 NOTES & UPCOMING EVENTS
+                        </h3>
+                        <p style={{ margin: '2px 0 0', color: '#94a3b8', fontSize: '0.78rem' }}>
+                          Store schedule & active promotions. Click calendar dates or button to edit.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddEventModal()}
+                        style={{
+                          padding: '6px 12px', borderRadius: '8px', background: '#E8491D', color: '#fff',
+                          border: 'none', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0
+                        }}
+                      >
+                        + Add Event
+                      </button>
                     </div>
-                    <div style={{ height: '8px', borderRadius: '4px', backgroundColor: '#e2e8f0', display: 'flex', overflow: 'hidden' }}>
-                      <div style={{ width: `${customerInsights.newPercent}%`, backgroundColor: '#ef4444', transition: 'width 1s ease-in-out' }}></div>
-                      <div style={{ width: `${customerInsights.returningPercent}%`, backgroundColor: '#3b82f6', transition: 'width 1s ease-in-out' }}></div>
-                    </div>
-                  </div>
-                  
-                  {/* Order Frequency */}
-                  <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center', border: '1px solid #f1f5f9' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Avg. Order Frequency</div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>
-                       {customerInsights.avgOrderFrequency > 0 
-                          ? `Every ${customerInsights.avgOrderFrequency.toFixed(1)} days`
-                          : 'Not enough data yet'
-                       }
-                    </div>
-                  </div>
-                  
-                  {/* Top Customers by Spend */}
-                  <div style={{ flex: 1, overflowY: 'auto' }}>
-                     <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top Spenders</div>
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                       {customerInsights.topSpenders.map((cust, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: idx < customerInsights.topSpenders.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                            <div>
-                              <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>{cust.name}</div>
-                              <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Faves: <span style={{color:'#0f172a'}}>{cust.favoriteItem}</span></div>
-                            </div>
-                            <div style={{ fontWeight: 700, color: '#10b981', fontSize: '0.9rem' }}>
-                              RM {(cust.totalSpend / 100).toFixed(2)}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '220px', overflowY: 'auto' }}>
+                      {/* Active Promos from Menu */}
+                      {activePromosFromMenu.map(p => (
+                        <div key={p.id} style={{
+                          background: '#451a03', borderLeft: '4px solid #f59e0b', padding: '8px 12px', borderRadius: '8px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 'bold', color: '#fef3c7', fontSize: '0.85rem' }}>{p.title}</span>
+                            <span style={{ background: '#f59e0b', color: '#000', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '8px' }}>PROMO</span>
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '2px' }}>{p.description}</div>
+                        </div>
+                      ))}
+
+                      {/* Custom Events & Notes */}
+                      {eventsNotes.map(evt => (
+                        <div
+                          key={evt.id}
+                          onClick={() => handleOpenEditEventModal(evt)}
+                          style={{
+                            background: '#0f172a',
+                            borderLeft: evt.type === 'promo' ? '4px solid #ef4444' : evt.type === 'event' ? '4px solid #3b82f6' : '4px solid #10b981',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            cursor: 'pointer'
+                          }}
+                          className="hover-bg-slate"
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 'bold', color: '#fff', fontSize: '0.85rem' }}>{evt.title}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>{evt.date}</span>
+                              <span style={{
+                                background: evt.type === 'promo' ? '#ef4444' : evt.type === 'event' ? '#0284c7' : '#10b981',
+                                color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '8px'
+                              }}>
+                                {(evt.type || 'event').toUpperCase()}
+                              </span>
                             </div>
                           </div>
-                       ))}
-                       {customerInsights.topSpenders.length === 0 && (
-                         <div style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', padding: '1rem 0' }}>No customers yet</div>
-                       )}
-                     </div>
+                          {evt.description && (
+                            <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>{evt.description}</div>
+                          )}
+                        </div>
+                      ))}
+
+                      {eventsNotes.length === 0 && activePromosFromMenu.length === 0 && (
+                        <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '0.75rem 0' }}>
+                          No notes or events listed. Click "+ Add Event" to add one!
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Customer Insights */}
+                  <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h3 style={{ margin: 0 }}><Users size={18} style={{ display: 'inline', marginRight: '8px', color: '#ef4444' }}/>Customer Insights</h3>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>Pickup Only</div>
+                    </div>
+                    
+                    {/* New vs Returning */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>New: {customerInsights.newCount} ({customerInsights.newPercent.toFixed(1)}%)</span>
+                        <span style={{ fontWeight: 600, color: '#3b82f6' }}>Returning: {customerInsights.returningCount} ({customerInsights.returningPercent.toFixed(1)}%)</span>
+                      </div>
+                      <div style={{ height: '8px', borderRadius: '4px', backgroundColor: '#e2e8f0', display: 'flex', overflow: 'hidden' }}>
+                        <div style={{ width: `${customerInsights.newPercent}%`, backgroundColor: '#ef4444', transition: 'width 1s ease-in-out' }}></div>
+                        <div style={{ width: `${customerInsights.returningPercent}%`, backgroundColor: '#3b82f6', transition: 'width 1s ease-in-out' }}></div>
+                      </div>
+                    </div>
+                    
+                    {/* Order Frequency */}
+                    <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center', border: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Avg. Order Frequency</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>
+                         {customerInsights.avgOrderFrequency > 0 
+                            ? `Every ${customerInsights.avgOrderFrequency.toFixed(1)} days`
+                            : 'Not enough data yet'
+                         }
+                      </div>
+                    </div>
+                    
+                    {/* Top Customers by Spend */}
+                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                       <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top Spenders</div>
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                         {customerInsights.topSpenders.map((cust, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: idx < customerInsights.topSpenders.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>{cust.name}</div>
+                                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Faves: <span style={{color:'#0f172a'}}>{cust.favoriteItem}</span></div>
+                              </div>
+                              <div style={{ fontWeight: 700, color: '#10b981', fontSize: '0.9rem' }}>
+                                RM {(cust.totalSpend / 100).toFixed(2)}
+                              </div>
+                            </div>
+                         ))}
+                         {customerInsights.topSpenders.length === 0 && (
+                           <div style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', padding: '1rem 0' }}>No customers yet</div>
+                         )}
+                       </div>
+                    </div>
+                  </div>
+
                 </div>
 
                 {/* Top 10 Best-Selling Items - 4 cols */}
@@ -1824,6 +2025,102 @@ export default function Admin() {
           </div>
         )}
       </main>
+
+      {/* Event & Note Modal Overlay */}
+      {isEventModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '480px',
+            borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {eventFormData.id ? '✏️ Edit Event / Note' : '📌 Add Event / Note'}
+              </h3>
+              <button type="button" onClick={() => setIsEventModalOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <form onSubmit={handleSaveEvent} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DATE</label>
+                <input
+                  type="date"
+                  required
+                  value={selectedEventDate}
+                  onChange={(e) => setSelectedEventDate(e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>CATEGORY / TYPE</label>
+                <select
+                  value={eventFormData.type}
+                  onChange={(e) => setEventFormData({ ...eventFormData, type: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                >
+                  <option value="event">🎉 Store Event</option>
+                  <option value="promo">🔥 Promotion</option>
+                  <option value="note">📝 Task / Restock Note</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>TITLE</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. CZ CHIX Promo Launch"
+                  value={eventFormData.title}
+                  onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DETAILS / DESCRIPTION</label>
+                <textarea
+                  rows="3"
+                  placeholder="Add event details, discount info, or restock notes..."
+                  value={eventFormData.description}
+                  onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button
+                  type="submit"
+                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#22c55e', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Save Event / Note
+                </button>
+                {eventFormData.id && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteEvent(eventFormData.id)}
+                    style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Delete
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsEventModalOpen(false)}
+                  style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#475569', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
     </div>
   );
