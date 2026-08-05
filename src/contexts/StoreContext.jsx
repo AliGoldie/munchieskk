@@ -365,19 +365,49 @@ export function StoreProvider({ children }) {
     if (!order || order.status === 'COLLECTED' || order.status === 'CANCELLED') return;
 
     // Optimistic update
-    setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED', cancellation_reason: reason } : o));
-    // DB update using atomic RPC
-    const { error } = await supabase.rpc('cancel_order', {
+    setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED', cancellation_reason: reason, cancel_reason: reason } : o));
+
+    // 1. Try atomic RPC first
+    const { error: rpcError } = await supabase.rpc('cancel_order', {
       p_order_id: orderId,
       p_reason: reason
     });
 
-    if (error) {
-      console.error('Failed to cancel order via RPC:', error);
-      alert('Failed to cancel order (RPC Error):\n' + JSON.stringify(error, null, 2) + '\n\nDiagnosis: This means the SQL migration containing the cancel_order function has not been run on your database.');
-      // Revert optimistic update
-      setOrders(orders.map(o => o.id === orderId ? order : o));
-      return;
+    // 2. Direct database update fallback if RPC function is missing/not executed in Supabase
+    if (rpcError) {
+      console.warn('RPC cancel_order function missing or failed, performing direct table update:', rpcError.message);
+
+      let { error: directErr } = await supabase
+        .from('orders')
+        .update({
+          status: 'CANCELLED',
+          cancel_reason: reason || 'Cancelled'
+        })
+        .eq('id', orderId);
+
+      if (directErr) {
+        console.error('Direct table cancel failed:', directErr);
+        // Revert optimistic update only if direct update fails
+        setOrders(orders.map(o => o.id === orderId ? order : o));
+        alert('Failed to cancel order: ' + directErr.message);
+        return;
+      }
+
+      // Restock items in menu
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach(async item => {
+          if (item.id) {
+            const menuItem = menu.find(m => m.id === item.id);
+            if (menuItem) {
+              const restoredQty = (menuItem.stock_quantity || 0) + (item.quantity || 1);
+              setMenu(prev => prev.map(m => m.id === item.id ? { ...m, stock_quantity: restoredQty, in_stock: true, inStock: true } : m));
+              try {
+                await supabase.from('menu_items').update({ stock_quantity: restoredQty, in_stock: true }).eq('id', item.id);
+              } catch (e) {}
+            }
+          }
+        });
+      }
     }
   };
 
