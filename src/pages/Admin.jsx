@@ -17,7 +17,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
-    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateStock, setStockQuantity,
+    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, updateStock, setStockQuantity,
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice,
     isPromoActive, updatePromo,
@@ -29,6 +29,10 @@ export default function Admin() {
   const [editingStock, setEditingStock] = useState({});
   const [editingLowStock, setEditingLowStock] = useState({});
   const [editingPromo, setEditingPromo] = useState({});
+
+  // Menu Item Detail Editing State
+  const [editingMenuItem, setEditingMenuItem] = useState(null);
+  const [editingMenuItemImageFile, setEditingMenuItemImageFile] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'monthly', 'yearly'
   const [selectedDate, setSelectedDate] = useState(''); // YYYY-MM-DD
@@ -156,6 +160,31 @@ export default function Admin() {
     const filtered = eventsNotes.filter(item => item.id !== id);
     saveEventsNotes(filtered);
     setIsEventModalOpen(false);
+  };
+
+  const handleSaveMenuItemDetails = async (e) => {
+    e.preventDefault();
+    if (!editingMenuItem) return;
+
+    setIsUploading(true);
+    let imageUrl = editingMenuItem.image;
+
+    if (editingMenuItemImageFile) {
+      const uploaded = await uploadImage(editingMenuItemImageFile);
+      if (uploaded) imageUrl = uploaded;
+    }
+
+    await updateMenuItem(editingMenuItem.id, {
+      name: editingMenuItem.name,
+      category: editingMenuItem.category,
+      price: Math.round(parseFloat(editingMenuItem.price || 0) * 100),
+      description: editingMenuItem.description || '',
+      image: imageUrl
+    });
+
+    setIsUploading(false);
+    setEditingMenuItem(null);
+    setEditingMenuItemImageFile(null);
   };
 
   useEffect(() => {
@@ -1542,6 +1571,7 @@ export default function Admin() {
                   <th>Price (RM)</th>
                   <th>Stock / Alert</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1563,7 +1593,19 @@ export default function Admin() {
 
                   return (
                     <tr key={item.id} className={!item.inStock ? 'row-inactive' : ''}>
-                      <td className="font-medium">{item.name}</td>
+                      <td className="font-medium">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {item.image && (
+                            <img src={item.image} alt={item.name} style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }} />
+                          )}
+                          <div>
+                            <div>{item.name}</div>
+                            {item.description && (
+                              <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 'normal' }}>{item.description.slice(0, 40)}{item.description.length > 40 ? '...' : ''}</div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
                       <td>
                         <span style={{
                           backgroundColor: getCategoryColor(item.category),
@@ -1672,6 +1714,23 @@ export default function Admin() {
                           {item.inStock ? 'Mark Sold Out' : 'Restock'}
                         </button>
                       </div>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => setEditingMenuItem({
+                          id: item.id,
+                          name: item.name,
+                          category: item.category,
+                          price: (item.price / 100).toFixed(2),
+                          description: item.description || '',
+                          image: item.image || ''
+                        })}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold' }}
+                      >
+                        ✏️ Edit Details
+                      </button>
                     </td>
                   </tr>
                 );
@@ -2113,6 +2172,106 @@ export default function Admin() {
                   type="button"
                   onClick={() => setIsEventModalOpen(false)}
                   style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#475569', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Menu Item Details Modal */}
+      {editingMenuItem && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '520px',
+            borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ✏️ Edit Item Details
+              </h3>
+              <button type="button" onClick={() => setEditingMenuItem(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <form onSubmit={handleSaveMenuItemDetails} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>ITEM NAME</label>
+                <input
+                  type="text"
+                  required
+                  value={editingMenuItem.name}
+                  onChange={(e) => setEditingMenuItem({ ...editingMenuItem, name: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>CATEGORY</label>
+                <select
+                  value={editingMenuItem.category}
+                  onChange={(e) => setEditingMenuItem({ ...editingMenuItem, category: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                >
+                  <option value="BBQ">BBQ Burgers</option>
+                  <option value="PREMIUM">Premium Combos</option>
+                  <option value="PLATTERS">Platters</option>
+                  <option value="SIDES">Fries & Sides</option>
+                  <option value="DRINKS">Drinks & Desserts</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>PRICE (RM)</label>
+                <input
+                  type="number"
+                  step="0.10"
+                  required
+                  value={editingMenuItem.price}
+                  onChange={(e) => setEditingMenuItem({ ...editingMenuItem, price: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DESCRIPTION</label>
+                <textarea
+                  rows="3"
+                  placeholder="Describe ingredients, options, or combo details..."
+                  value={editingMenuItem.description}
+                  onChange={(e) => setEditingMenuItem({ ...editingMenuItem, description: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>UPDATE ITEM IMAGE</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setEditingMenuItemImageFile(e.target.files[0])}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button
+                  type="submit"
+                  disabled={isUploading}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#22c55e', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  {isUploading ? 'Saving Image & Details...' : 'Save Item Changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingMenuItem(null)}
+                  style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: '#475569', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>

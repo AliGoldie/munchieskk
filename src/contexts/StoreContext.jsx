@@ -281,6 +281,22 @@ export function StoreProvider({ children }) {
     await supabase.from('menu_items').insert([newItem]);
   };
 
+  const updateMenuItem = async (id, fields) => {
+    const dbPayload = { ...fields };
+    if (fields.price !== undefined) {
+      dbPayload.price = Math.round(Number(fields.price));
+    }
+    if (fields.inStock !== undefined) {
+      dbPayload.in_stock = fields.inStock;
+    }
+
+    // Optimistic UI update
+    setMenu(prev => prev.map(item => item.id === id ? { ...item, ...fields } : item));
+
+    // DB update
+    await supabase.from('menu_items').update(dbPayload).eq('id', id);
+  };
+
   const updateStock = async (id, delta) => {
     const item = menu.find(i => i.id === id);
     if (!item) return;
@@ -747,7 +763,7 @@ export function StoreProvider({ children }) {
     <StoreContext.Provider value={{
       menu, cart, cartTotal, cartCount,
       points, tier, pointHistory, orders, addons, itemAddons, customers,
-      toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateOrderState, acceptOrder, cancelOrder,
+      toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, updateOrderState, acceptOrder, cancelOrder,
       updateStock, setStockQuantity,
       isPromoActive, updatePromo,
       addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice,
