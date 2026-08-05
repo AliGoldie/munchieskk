@@ -19,7 +19,7 @@ export function formatTime12Hour(timeStr) {
   return `${hours}:${formattedMinutes} ${ampm}`;
 }
 
-// Generates time slots strictly within the configured business hours
+// Generates time slots strictly within the configured business hours every 10 minutes
 export function generateOperatingTimeSlots(openingTime = '10:00', closingTime = '22:00') {
   const [openH, openM] = (openingTime || '10:00').split(':').map(n => parseInt(n, 10) || 0);
   const [closeH, closeM] = (closingTime || '22:00').split(':').map(n => parseInt(n, 10) || 0);
@@ -33,9 +33,9 @@ export function generateOperatingTimeSlots(openingTime = '10:00', closingTime = 
   }
 
   const slots = [];
-  // Step by 30-minute intervals starting 30 mins after opening up to 30 mins before closing
-  let current = startMins + 30;
-  while (current <= endMins - 15) {
+  // Step by 10-minute intervals starting from opening time up to closing time
+  let current = startMins;
+  while (current <= endMins) {
     const minsNormalized = current % (24 * 60);
     const h = Math.floor(minsNormalized / 60);
     const m = minsNormalized % 60;
@@ -49,7 +49,7 @@ export function generateOperatingTimeSlots(openingTime = '10:00', closingTime = 
       label: `${dayPrefix} at ${time12}`
     });
 
-    current += 30;
+    current += 10;
   }
 
   // If no slots generated, provide at least the opening slot
