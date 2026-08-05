@@ -199,8 +199,20 @@ export function StoreProvider({ children }) {
   // Acts as a periodic reconciliation safety net (30s) when Realtime is connected, 
   // and a fast primary sync (5s) when Realtime is disconnected.
   useEffect(() => {
-    const pollInterval = isRealtimeConnected ? 30000 : 5000;
+    const pollInterval = isRealtimeConnected ? 15000 : 3000;
     const pollOrders = setInterval(async () => {
+      // 0. Poll Store Settings (guarantees PAUSED/CLOSED sync across devices within 3s)
+      try {
+        const { data: settingsData } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
+        if (settingsData) {
+          setShopSettings({
+            status: settingsData.status || 'OPEN',
+            openingTime: settingsData.opening_time || '10:00',
+            closingTime: settingsData.closing_time || '22:00',
+            noticeMessage: settingsData.notice_message || ''
+          });
+        }
+      } catch (e) {}
 
       const { data: latestOrdersRaw } = await supabase.from('orders')
         .select('*')
@@ -679,7 +691,37 @@ export function StoreProvider({ children }) {
   const placeOrder = async (paymentMethod = 'Cash') => {
     if (cart.length === 0) return null;
 
-    // Guard: Prevent placing orders if shop is PAUSED or CLOSED
+    // Ground-Truth Database Status Verification (Direct DB Query before placing order)
+    try {
+      const { data: latestSettings } = await supabase
+        .from('store_settings')
+        .select('status, opening_time, closing_time')
+        .eq('id', 'main_store')
+        .maybeSingle();
+
+      if (latestSettings) {
+        setShopSettings(prev => ({
+          ...prev,
+          status: latestSettings.status || 'OPEN',
+          openingTime: latestSettings.opening_time || '10:00',
+          closingTime: latestSettings.closing_time || '22:00'
+        }));
+
+        if (latestSettings.status === 'PAUSED') {
+          alert('The shop is currently PAUSED for orders. New orders cannot be accepted at this time.');
+          return null;
+        }
+
+        if (latestSettings.status === 'CLOSED') {
+          alert('The shop is currently CLOSED. New orders cannot be accepted at this time.');
+          return null;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not verify store_settings before order placement:', e);
+    }
+
+    // Fallback in-memory status check
     if (shopSettings?.status === 'PAUSED') {
       alert('The shop is currently PAUSED for orders. New orders cannot be accepted at this time.');
       return null;
