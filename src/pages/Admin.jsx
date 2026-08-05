@@ -19,7 +19,8 @@ export default function Admin() {
     menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateStock, setStockQuantity,
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice,
-    isPromoActive, updatePromo
+    isPromoActive, updatePromo,
+    shopSettings, updateShopSettings, isShopOpenNow
   } = useStore();
   
   const [editingPrice, setEditingPrice] = useState({});
@@ -571,6 +572,115 @@ export default function Admin() {
 
           {activeTab === 'overview' && (
             <div>
+
+              {/* Shop Status & Operating Hours Control Card */}
+              <div className="card shop-status-card" style={{
+                background: '#1e293b',
+                color: '#ffffff',
+                padding: '1.5rem',
+                borderRadius: '16px',
+                border: '2px solid rgba(255, 199, 44, 0.4)',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                marginBottom: '1.5rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🏪 Store Status & Business Hours
+                    </h3>
+                    <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.85rem' }}>
+                      Control when users can order. Toggle shop status or set daily operating hours.
+                    </p>
+                  </div>
+
+                  {/* Current Live Badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>Live Status:</span>
+                    <span style={{
+                      padding: '6px 16px',
+                      borderRadius: '20px',
+                      fontWeight: '800',
+                      fontSize: '0.85rem',
+                      textTransform: 'uppercase',
+                      background: shopSettings?.status === 'OPEN' ? '#16a34a' : shopSettings?.status === 'PAUSED' ? '#ca8a04' : '#dc2626',
+                      color: '#ffffff',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                    }}>
+                      {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ PAUSED' : '🔴 CLOSED'}
+                    </span>
+                  </div>
+                </div>
+
+                <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '1rem 0' }} />
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', alignItems: 'end' }}>
+                  {/* Quick Status Buttons */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>QUICK OVERRIDE</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => updateShopSettings({ status: 'OPEN' })}
+                        style={{
+                          flex: 1, padding: '10px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer',
+                          background: shopSettings?.status === 'OPEN' ? '#22c55e' : '#334155', color: '#fff'
+                        }}
+                      >
+                        🟢 Open
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateShopSettings({ status: 'PAUSED' })}
+                        style={{
+                          flex: 1, padding: '10px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer',
+                          background: shopSettings?.status === 'PAUSED' ? '#eab308' : '#334155', color: '#fff'
+                        }}
+                      >
+                        ⏸️ Pause
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateShopSettings({ status: 'CLOSED' })}
+                        style={{
+                          flex: 1, padding: '10px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer',
+                          background: shopSettings?.status === 'CLOSED' ? '#ef4444' : '#334155', color: '#fff'
+                        }}
+                      >
+                        🔴 Close
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Opening Time */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>DAILY OPENING TIME</label>
+                    <input
+                      type="time"
+                      value={shopSettings?.openingTime || '10:00'}
+                      onChange={(e) => updateShopSettings({ openingTime: e.target.value })}
+                      style={{
+                        width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569',
+                        background: '#0f172a', color: '#fff', fontWeight: 'bold'
+                      }}
+                    />
+                  </div>
+
+                  {/* Closing Time */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>DAILY CLOSING TIME</label>
+                    <input
+                      type="time"
+                      value={shopSettings?.closingTime || '22:00'}
+                      onChange={(e) => updateShopSettings({ closingTime: e.target.value })}
+                      style={{
+                        width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569',
+                        background: '#0f172a', color: '#fff', fontWeight: 'bold'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Top Metrics Row */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 <style>

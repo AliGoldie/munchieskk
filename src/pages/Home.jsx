@@ -8,7 +8,7 @@ import { siteConfig } from '../config/siteConfig';
 import './Home.css';
 
 export default function Home() {
-  const { menu, isPromoActive, addToCart, itemAddons } = useStore();
+  const { menu, isPromoActive, addToCart, itemAddons, points } = useStore();
   const navigate = useNavigate();
   const [addonModalItem, setAddonModalItem] = useState(null);
 
@@ -38,10 +38,10 @@ export default function Home() {
           <h1>HEY,<br/>GOURMET!</h1>
         </div>
         <div style={{display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center'}}>
-          <div className="points-badge">
+          <div className="points-badge" style={{ cursor: 'pointer' }} onClick={() => navigate('/loyalty')}>
             <Award size={16} />
             <div className="points-info">
-              <span className="points-val">1,250</span>
+              <span className="points-val">{(points || 0).toLocaleString()}</span>
               <span className="points-lbl">Pts</span>
             </div>
           </div>

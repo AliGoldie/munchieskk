@@ -2,17 +2,24 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
-import { CreditCard, QrCode, Building2, CheckCircle2, Loader2 } from 'lucide-react';
+import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import './Payment.css';
 
 export default function Payment() {
-  const { cart, cartTotal, placeOrder } = useStore();
+  const { cart, cartTotal, placeOrder, shopSettings, isShopOpenNow } = useStore();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const isOpen = isShopOpenNow();
+
   const [method, setMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [bank, setBank] = useState('');
+
+  // Order Timing Selection (Order Now vs Scheduled Pre-Order)
+  const [orderMode, setOrderMode] = useState(isOpen ? 'NOW' : 'SCHEDULED');
+  const [scheduledTime, setScheduledTime] = useState('12:00');
 
   if (!user) {
     navigate('/login');
@@ -28,23 +35,33 @@ export default function Payment() {
     if (!method) return alert('Please select a payment method.');
     if (method === 'FPX' && !bank) return alert('Please select a bank.');
 
+    if (!isOpen && orderMode === 'NOW') {
+      return alert('The shop is currently closed or paused for instant orders. Please select "Schedule for Business Hours"!');
+    }
+
+    if (orderMode === 'SCHEDULED' && !scheduledTime) {
+      return alert('Please select a time slot for your scheduled order.');
+    }
+
     setIsProcessing(true);
-    
-    // Simulate payment gateway delay
+
     setTimeout(async () => {
       setIsProcessing(false);
       setIsSuccess(true);
-      
-      const paymentDetail = method === 'FPX' ? `FPX (${bank})` : method;
-      const orderId = await placeOrder(paymentDetail);
-      
-      // Save to localStorage so the global CookingPopup can pick it up
+
+      let paymentDetail = method === 'FPX' ? `FPX (${bank})` : method;
+      if (orderMode === 'SCHEDULED') {
+        paymentDetail += ` [Scheduled for ${scheduledTime}]`;
+      }
+
+      const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null);
+
       if (orderId) localStorage.setItem('munchies_active_order', orderId);
-      
+
       setTimeout(() => {
         navigate(`/order/${orderId}`);
       }, 2000);
-    }, 2500);
+    }, 2000);
   };
 
   if (isSuccess) {
@@ -59,11 +76,110 @@ export default function Payment() {
 
   return (
     <div className="container payment-page">
+
+      {/* Shop Status Banner */}
+      {!isOpen && (
+        <div style={{
+          background: '#451a03',
+          border: '2px solid #f59e0b',
+          color: '#fef3c7',
+          padding: '1rem',
+          borderRadius: '12px',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <AlertTriangle size={28} color="#f59e0b" style={{ flexShrink: 0 }} />
+          <div>
+            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>
+              {shopSettings?.status === 'PAUSED' ? '⏸️ Shop is Temporarily PAUSED' : '🔴 Shop is Currently CLOSED'}
+            </h4>
+            <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
+              Business Hours: {shopSettings?.openingTime || '10:00 AM'} - {shopSettings?.closingTime || '10:00 PM'}. Instant orders are paused, but you can <strong>Schedule a Pre-Order</strong> below!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Fulfillment Timing Card */}
+      <div className="card mb-6" style={{
+        background: '#1e293b',
+        color: '#fff',
+        padding: '1.25rem',
+        borderRadius: '12px',
+        border: '1.5px solid rgba(255, 199, 44, 0.4)',
+        marginBottom: '1.5rem'
+      }}>
+        <h3 style={{ margin: '0 0 10px', fontSize: '1.1rem', color: '#FFC72C', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Clock size={20} /> Fulfillment Timing
+        </h3>
+
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            disabled={!isOpen}
+            onClick={() => setOrderMode('NOW')}
+            style={{
+              flex: 1, minWidth: '140px', padding: '10px 14px', borderRadius: '8px',
+              border: orderMode === 'NOW' ? '2px solid #FFC72C' : '1px solid #475569',
+              background: orderMode === 'NOW' ? '#E8491D' : '#0f172a',
+              color: '#fff', fontWeight: 'bold', cursor: isOpen ? 'pointer' : 'not-allowed',
+              opacity: isOpen ? 1 : 0.4
+            }}
+          >
+            ⚡ Order Now
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setOrderMode('SCHEDULED')}
+            style={{
+              flex: 1, minWidth: '140px', padding: '10px 14px', borderRadius: '8px',
+              border: orderMode === 'SCHEDULED' ? '2px solid #FFC72C' : '1px solid #475569',
+              background: orderMode === 'SCHEDULED' ? '#0284c7' : '#0f172a',
+              color: '#fff', fontWeight: 'bold', cursor: 'pointer'
+            }}
+          >
+            📅 Schedule for Later
+          </button>
+        </div>
+
+        {orderMode === 'SCHEDULED' && (
+          <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px' }}>
+              Select Pre-Order Pickup/Delivery Time Slot:
+            </label>
+            <select
+              value={scheduledTime}
+              onChange={e => setScheduledTime(e.target.value)}
+              style={{
+                width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #38bdf8',
+                background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.95rem'
+              }}
+            >
+              <option value="10:30">Today at 10:30 AM</option>
+              <option value="11:30">Today at 11:30 AM</option>
+              <option value="12:30">Today at 12:30 PM</option>
+              <option value="13:30">Today at 01:30 PM</option>
+              <option value="14:30">Today at 02:30 PM</option>
+              <option value="15:30">Today at 03:30 PM</option>
+              <option value="16:30">Today at 04:30 PM</option>
+              <option value="17:30">Today at 05:30 PM</option>
+              <option value="18:30">Today at 06:30 PM</option>
+              <option value="19:30">Today at 07:30 PM</option>
+              <option value="20:30">Today at 08:30 PM</option>
+              <option value="21:30">Today at 09:30 PM</option>
+            </select>
+          </div>
+        )}
+      </div>
+
       <div className="payment-layout">
         <div className="payment-methods">
           <h2>Select Payment Method</h2>
-          
-          <div 
+
+          <div
             className={`method-card ${method === 'TNG' ? 'selected' : ''}`}
             onClick={() => setMethod('TNG')}
           >
@@ -74,7 +190,7 @@ export default function Payment() {
             </div>
           </div>
 
-          <div 
+          <div
             className={`method-card ${method === 'FPX' ? 'selected' : ''}`}
             onClick={() => setMethod('FPX')}
           >
@@ -98,7 +214,7 @@ export default function Payment() {
             </div>
           )}
 
-          <div 
+          <div
             className={`method-card ${method === 'QR' ? 'selected' : ''}`}
             onClick={() => setMethod('QR')}
           >
@@ -125,13 +241,13 @@ export default function Payment() {
             {cart.map(item => {
               const addonTotal = (item.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0);
               return (
-                <div key={item.cartItemId} className="summary-item" style={{display: 'flex', flexDirection: 'column'}}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', width: '100%'}}>
+                <div key={item.cartItemId} className="summary-item" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                     <span>{item.quantity}x {item.name}</span>
                     <span>RM {(((item.price + addonTotal) * item.quantity) / 100).toFixed(2)}</span>
                   </div>
                   {item.selectedAddons && item.selectedAddons.length > 0 && (
-                    <span className="text-muted text-sm" style={{alignSelf: 'flex-start', marginLeft: '20px'}}>
+                    <span className="text-muted text-sm" style={{ alignSelf: 'flex-start', marginLeft: '20px' }}>
                       + {item.selectedAddons.map(a => a.name).join(', ')}
                     </span>
                   )}
@@ -139,18 +255,21 @@ export default function Payment() {
               );
             })}
           </div>
+
           <div className="summary-total">
             <span>Total to Pay</span>
             <span className="text-primary">RM {(cartTotal / 100).toFixed(2)}</span>
           </div>
 
-          <button 
-            className="btn btn-primary w-full pay-btn" 
+          <button
+            className="btn btn-primary w-full pay-btn"
             disabled={isProcessing}
             onClick={handlePayment}
           >
             {isProcessing ? (
               <><Loader2 className="spinner" size={20} /> Processing...</>
+            ) : orderMode === 'SCHEDULED' ? (
+              `Confirm Scheduled Pre-Order (RM ${(cartTotal / 100).toFixed(2)})`
             ) : (
               `Pay RM ${(cartTotal / 100).toFixed(2)}`
             )}

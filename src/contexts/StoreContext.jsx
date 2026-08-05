@@ -23,8 +23,56 @@ export function StoreProvider({ children }) {
   const [cart, setCart] = useState(() => loadState('munchies_cart', []));
   const [pointHistory, setPointHistory] = useState(() => loadState('munchies_pointHistory', []));
 
+  // Shop Settings State (OPEN / PAUSED / CLOSED & Operating Hours)
+  const [shopSettings, setShopSettings] = useState(() => loadState('munchies_shop_settings', {
+    status: 'OPEN',
+    openingTime: '10:00',
+    closingTime: '22:00',
+    noticeMessage: ''
+  }));
+
   useEffect(() => { localStorage.setItem('munchies_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('munchies_pointHistory', JSON.stringify(pointHistory)); }, [pointHistory]);
+  useEffect(() => { localStorage.setItem('munchies_shop_settings', JSON.stringify(shopSettings)); }, [shopSettings]);
+
+  const updateShopSettings = async (newSettings) => {
+    const updated = { ...shopSettings, ...newSettings };
+    setShopSettings(updated);
+    localStorage.setItem('munchies_shop_settings', JSON.stringify(updated));
+
+    try {
+      await supabase.from('store_settings').upsert({
+        id: 'main_store',
+        status: updated.status,
+        opening_time: updated.openingTime,
+        closing_time: updated.closingTime,
+        notice_message: updated.noticeMessage,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Could not sync store_settings:', e);
+    }
+  };
+
+  const isShopOpenNow = () => {
+    if (shopSettings.status === 'CLOSED' || shopSettings.status === 'PAUSED') {
+      return false;
+    }
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
+    const [openH, openM] = (shopSettings.openingTime || '10:00').split(':').map(Number);
+    const [closeH, closeM] = (shopSettings.closingTime || '22:00').split(':').map(Number);
+
+    const openMins = openH * 60 + (openM || 0);
+    const closeMins = closeH * 60 + (closeM || 0);
+
+    if (openMins <= closeMins) {
+      return currentMins >= openMins && currentMins <= closeMins;
+    } else {
+      return currentMins >= openMins || currentMins <= closeMins;
+    }
+  };
 
   const points = user?.points || 0;
   const tier = points >= 5000 ? 'Gold' : points >= 1000 ? 'Silver' : 'Bronze';
@@ -32,6 +80,20 @@ export function StoreProvider({ children }) {
   // --- Supabase Real-time Sync ---
   useEffect(() => {
     const fetchInitialData = async () => {
+      // 0. Fetch Store Settings
+      try {
+        const { data: settingsData } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
+        if (settingsData) {
+          setShopSettings({
+            status: settingsData.status || 'OPEN',
+            openingTime: settingsData.opening_time || '10:00',
+            closingTime: settingsData.closing_time || '22:00',
+            noticeMessage: settingsData.notice_message || ''
+          });
+        }
+      } catch (e) {
+        console.warn('Store settings table not created yet, using local settings');
+      }
       // 1. Fetch Menu
       const { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*').order('created_at', { ascending: true });
       if (menuData) setMenu(menuData.map(item => ({...item, inStock: item.in_stock, low_stock_threshold: item.low_stock_threshold ?? 5})));
@@ -660,7 +722,8 @@ export function StoreProvider({ children }) {
       isPromoActive, updatePromo,
       addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
-      placeOrder, addPoints
+      placeOrder, addPoints,
+      shopSettings, updateShopSettings, isShopOpenNow
     }}>
       {children}
     </StoreContext.Provider>
