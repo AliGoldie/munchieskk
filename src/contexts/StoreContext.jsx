@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
+import { calculateOrderPoints } from '../utils/pointsCalculator';
 
 const StoreContext = createContext();
 
@@ -34,7 +35,7 @@ export function StoreProvider({ children }) {
       // 1. Fetch Menu
       const { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*').order('created_at', { ascending: true });
       if (menuData) setMenu(menuData.map(item => ({...item, inStock: item.in_stock, low_stock_threshold: item.low_stock_threshold ?? 5})));
-      else console.error('Menu fetch error:', menuErr);
+      else console.error('Menu fetch error:', menuErr?.message || 'Unknown error', menuErr);
 
       // 2. Fetch Orders
       const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
@@ -166,17 +167,18 @@ export function StoreProvider({ children }) {
     if (!item) return;
     const newStatus = !item.inStock;
     
-    // Block toggling ON if quantity is 0
-    if (newStatus && (item.stock_quantity === undefined || item.stock_quantity <= 0)) {
-      alert("Cannot mark item as available: Set a stock quantity above 0 first.");
-      return;
+    let newQty = item.stock_quantity;
+    
+    // Auto-replenish stock to 99 if toggling ON while stock is 0
+    if (newStatus && (newQty === undefined || newQty <= 0)) {
+      newQty = 99;
     }
     
     // Optimistic UI update
-    setMenu(menu.map(i => i.id === id ? { ...i, inStock: newStatus } : i));
+    setMenu(menu.map(i => i.id === id ? { ...i, inStock: newStatus, stock_quantity: newQty } : i));
     
     // DB update
-    await supabase.from('menu_items').update({ in_stock: newStatus }).eq('id', id);
+    await supabase.from('menu_items').update({ in_stock: newStatus, stock_quantity: newQty }).eq('id', id);
   };
 
   const updatePrice = async (id, newPriceFloat) => {
@@ -220,7 +222,11 @@ export function StoreProvider({ children }) {
   const updateStock = async (id, delta) => {
     const item = menu.find(i => i.id === id);
     if (!item) return;
-    const newQty = Math.max(0, (item.stock_quantity ?? 99) + delta);
+    
+    let currentQty = parseInt(item.stock_quantity, 10);
+    if (isNaN(currentQty)) currentQty = 0;
+    
+    const newQty = Math.max(0, currentQty + delta);
     const newInStock = newQty > 0;
 
     // Optimistic UI update
@@ -557,6 +563,12 @@ export function StoreProvider({ children }) {
     const completeNewOrder = { ...newOrder, id: newOrderId, created_at: new Date().toISOString() };
     setOrders(prev => [completeNewOrder, ...prev]);
 
+    // Automatically award loyalty points based on item rules (Burger: 20 pts, Drink: 15 pts, Fries: 10 pts)
+    if (user && user.id) {
+      const earnedPoints = calculateOrderPoints(cart);
+      addPoints(earnedPoints, `Earned from Order #${newOrderId.slice(0, 8)}`);
+    }
+
     clearCart();
     return newOrderId;
   };
@@ -608,22 +620,28 @@ export function StoreProvider({ children }) {
   };
 
   const addPoints = async (amount, description) => {
-    if (!user) return; // Only logged in users get points
+    if (!user || !user.id || !amount) return; // Only logged in users get points
     
-    // Call RPC to award points atomically
-    const { error } = await supabase.rpc('award_points', {
+    const currentPoints = user.points || 0;
+    const newTotal = currentPoints + amount;
+
+    // 1. Update user state locally so UI updates instantly across header, profile, arcade
+    setUser(prev => prev ? ({ ...prev, points: newTotal }) : prev);
+    try {
+      localStorage.setItem(`munchies_pts_${user.id}`, newTotal.toString());
+    } catch (e) {}
+
+    // 2. Call RPC first
+    const { error: rpcErr } = await supabase.rpc('award_points', {
       user_id_param: user.id,
       amount_param: amount
     });
     
-    if (error) {
-      console.error('Failed to award points via RPC:', error);
-      return;
+    // 3. Fallback direct update to profiles table if RPC fails or not installed
+    if (rpcErr) {
+      console.warn('RPC award_points warning, performing direct profiles update:', rpcErr.message);
+      await supabase.from('profiles').update({ points: newTotal }).eq('id', user.id);
     }
-    
-    // Update user object locally so UI updates instantly
-    const newTotal = (user.points || 0) + amount;
-    setUser(prev => ({ ...prev, points: newTotal }));
 
     setPointHistory(prev => [{
       id: `TXN-${Math.floor(Math.random() * 10000)}`,
@@ -638,6 +656,7 @@ export function StoreProvider({ children }) {
       menu, cart, cartTotal, cartCount,
       points, tier, pointHistory, orders, addons, itemAddons, customers,
       toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateOrderState, acceptOrder, cancelOrder,
+      updateStock, setStockQuantity,
       isPromoActive, updatePromo,
       addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,

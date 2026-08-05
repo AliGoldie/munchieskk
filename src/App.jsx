@@ -11,6 +11,9 @@ import Admin from './pages/Admin';
 import Loyalty from './pages/Loyalty';
 import Arcade from './pages/Arcade';
 import OrderStatus from './pages/OrderStatus';
+import AdminRoute from './components/AdminRoute';
+
+import AdminReports from './pages/AdminReports';
 
 function App() {
   return (
@@ -26,7 +29,10 @@ function App() {
         <Route path="cart" element={<Cart />} />
         <Route path="payment" element={<Payment />} />
         <Route path="order/:id" element={<OrderStatus />} />
-        <Route path="admin" element={<Admin />} />
+        <Route element={<AdminRoute />}>
+          <Route path="admin" element={<Admin />} />
+          <Route path="admin/reports" element={<AdminReports />} />
+        </Route>
       </Route>
     </Routes>
   );

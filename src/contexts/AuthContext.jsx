@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../config/supabase';
+import { calculateOrderPoints } from '../utils/pointsCalculator';
 
 const AuthContext = createContext();
 
@@ -39,30 +40,83 @@ export function AuthProvider({ children }) {
   }, []);
 
   const fetchAndSetUser = async (authUser) => {
-    // Fetch profile data (role, points, name)
-    const { data, error } = await supabase
+    // 1. Fetch profile data
+    const { data: profileData, error } = await supabase
       .from('profiles')
-      .select('name, role, points')
+      .select('*')
       .eq('id', authUser.id)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching user profile:', error);
-      // Fallback
+    // 2. Calculate points from past non-cancelled orders based on item rules (Burger: 20, Drink: 15, Fries: 10)
+    let orderPoints = 0;
+    try {
+      const { data: userOrders } = await supabase
+        .from('orders')
+        .select('total, items, status')
+        .eq('user_id', authUser.id)
+        .neq('status', 'CANCELLED');
+
+      if (userOrders && userOrders.length > 0) {
+        orderPoints = userOrders.reduce((sum, o) => {
+          let itemsList = o.items;
+          if (typeof itemsList === 'string') {
+            try { itemsList = JSON.parse(itemsList); } catch (e) { itemsList = []; }
+          }
+          let pts = 0;
+          if (Array.isArray(itemsList) && itemsList.length > 0) {
+            pts = calculateOrderPoints(itemsList);
+          } else {
+            // Fallback estimate if items list not parsed: ~18 points per RM 10
+            pts = Math.max(15, Math.floor(((o.total || 0) / 100) * 1.5));
+          }
+          return sum + pts;
+        }, 0);
+      }
+    } catch (e) {
+      console.warn('Could not calculate order points:', e);
+    }
+
+    // 3. Check local storage backup
+    const savedBackup = localStorage.getItem(`munchies_pts_${authUser.id}`);
+    const backupPts = savedBackup ? parseInt(savedBackup, 10) : 0;
+
+    // 4. Effective points is the max of DB points, Order history points, and Local backup
+    const dbPts = profileData?.points || 0;
+    const effectivePoints = Math.max(dbPts, orderPoints, backupPts);
+
+    // 5. Self-heal DB if DB had 0 or stale lower points
+    if (effectivePoints > dbPts) {
+      try {
+        await supabase.from('profiles').update({ points: effectivePoints }).eq('id', authUser.id);
+      } catch (e) {
+        console.warn('Self-heal profile update failed:', e);
+      }
+    }
+
+    // 6. Save backup locally
+    localStorage.setItem(`munchies_pts_${authUser.id}`, effectivePoints.toString());
+
+    if (error || !profileData) {
       setUser({
         id: authUser.id,
         email: authUser.email,
         name: authUser.user_metadata?.name || 'User',
+        phone: authUser.user_metadata?.phone || '',
+        address: '',
         role: 'user',
-        points: 0
+        points: effectivePoints,
+        created_at: authUser.created_at
       });
     } else {
       setUser({
         id: authUser.id,
         email: authUser.email,
-        name: data.name || authUser.user_metadata?.name || 'User',
-        role: data.role || 'user',
-        points: data.points || 0
+        name: profileData.name || authUser.user_metadata?.name || '',
+        phone: profileData.phone || authUser.user_metadata?.phone || '',
+        address: profileData.address || '',
+        role: profileData.role || 'user',
+        points: effectivePoints,
+        created_at: profileData.created_at || authUser.created_at
       });
     }
   };
@@ -80,13 +134,14 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const signup = async (email, password, name) => {
+  const signup = async (email, password, name, phone) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          name: name
+          name: name,
+          phone: phone || ''
         }
       }
     });
@@ -95,10 +150,23 @@ export function AuthProvider({ children }) {
       throw error;
     }
     
+    if (data.user) {
+      // Upsert user details into profiles table
+      try {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          name: name,
+          phone: phone || '',
+          role: 'user'
+        });
+      } catch (e) {
+        console.error('Error inserting profile row:', e);
+      }
+    }
+    
     return data;
   };
 
-  // Optional: keep loginWithProvider if they want social later
   const loginWithProvider = async (provider) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: provider.toLowerCase(),

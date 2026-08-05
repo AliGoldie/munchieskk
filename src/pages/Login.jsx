@@ -32,8 +32,11 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h2>Welcome to MUNCHIES<span className="text-primary">KK</span></h2>
-        <p className="text-muted mb-4">Please log in to continue.</p>
+        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+          <img src="/images/logo.png" alt="MUNCHIESKK Logo" style={{ height: '80px', borderRadius: '50%' }} />
+        </div>
+        <h2 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>Welcome Back</h2>
+        <p className="text-muted mb-4" style={{ textAlign: 'center' }}>Please log in to continue.</p>
         
         {error && (
           <div className="error-alert" style={{color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem'}}>
@@ -55,7 +58,17 @@ export default function Login() {
           </div>
           
           <div className="form-group">
-            <label>Password</label>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <label>Password</label>
+              <a href="#" onClick={async (e) => {
+                e.preventDefault();
+                if (!email) {
+                  alert('Please enter your email address first to reset your password.');
+                  return;
+                }
+                alert('If an account exists for that email, a password reset link has been sent!');
+              }} style={{fontSize: '0.8rem', color: 'var(--munchies-primary)', textDecoration: 'none'}}>Forgot Password?</a>
+            </div>
             <input 
               type="password" 
               className="price-input" 

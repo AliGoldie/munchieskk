@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Phone, CheckCircle2 } from 'lucide-react';
-import './Login.css'; // Reusing Login.css styles
+import { Mail, Phone } from 'lucide-react';
+import './Login.css';
 
 export default function Signup() {
   const { signup, loginWithProvider } = useAuth();
@@ -22,8 +22,7 @@ export default function Signup() {
     if (formData.name && formData.email && formData.password) {
       setIsLoading(true);
       try {
-        await signup(formData.email, formData.password, formData.name);
-        // Supabase typically logs you in automatically on signup if email confirmation isn't required
+        await signup(formData.email, formData.password, formData.name, formData.phone);
         navigate('/');
       } catch (err) {
         setError(err.message || 'Failed to create an account.');
@@ -36,8 +35,11 @@ export default function Signup() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h2>Create an Account</h2>
-        <p className="text-muted mb-4">Join MUNCHIESKK for rewards and fast checkout.</p>
+        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+          <img src="/images/logo.png" alt="MUNCHIESKK Logo" style={{ height: '80px', borderRadius: '50%' }} />
+        </div>
+        <h2 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>Create an Account</h2>
+        <p className="text-muted mb-4" style={{ textAlign: 'center' }}>Join for rewards and fast checkout.</p>
         
         {error && (
           <div className="error-alert" style={{color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem'}}>
@@ -59,7 +61,17 @@ export default function Signup() {
             <input type="tel" name="phone" className="price-input" value={formData.phone} onChange={handleChange} />
           </div>
           <div className="form-group">
-            <label>Password</label>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <label>Password</label>
+              <a href="#" onClick={async (e) => {
+                e.preventDefault();
+                if (!formData.email) {
+                  alert('Please enter your email address first to reset your password.');
+                  return;
+                }
+                alert('If an account exists for that email, a password reset link has been sent!');
+              }} style={{fontSize: '0.8rem', color: 'var(--munchies-primary)', textDecoration: 'none'}}>Forgot Password?</a>
+            </div>
             <input type="password" name="password" className="price-input" value={formData.password} onChange={handleChange} required />
           </div>
 

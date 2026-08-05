@@ -3,14 +3,29 @@ import { useStore } from '../contexts/StoreContext';
 import './Loyalty.css';
 
 export default function Loyalty() {
-  const { points } = useStore();
-  const nextRank = 3000;
-  const progress = (points / nextRank) * 100;
+  const { points, pointHistory } = useStore();
+  const nextRank = 5000;
+  const progress = Math.min(100, (points / nextRank) * 100);
 
-  const history = [
-    { id: 1, action: 'Level Up Bonus', date: 'OCT 24, 2023', pts: '+500' },
-    { id: 2, action: 'Munchie Match Win', date: 'OCT 22, 2023', pts: '+120' },
-    { id: 3, action: 'Ordered: OG Burger Box', date: 'OCT 20, 2023', pts: '+450' }
+  const prizes = [
+    {
+      id: 1,
+      name: 'Mushy2\nBurger',
+      pts: 5000,
+      img: '/images/mushy2.jpg'
+    },
+    {
+      id: 2,
+      name: 'Solero\nSplit',
+      pts: 3500,
+      img: '/images/SoleroSplit.jpg'
+    },
+    {
+      id: 3,
+      name: 'Regular\nFries',
+      pts: 500,
+      img: '/images/regular_fries.png'
+    }
   ];
 
   return (
@@ -22,11 +37,11 @@ export default function Loyalty() {
           <Award size={32} color="var(--munchies-white)" />
         </div>
         <h1>BURGER MASTER</h1>
-        <p className="rank-level">RANK LEVEL 04</p>
+        <p className="rank-level">LOYALTY REWARDS</p>
         
         <div className="points-flex">
           <span>{points.toLocaleString()} POINTS</span>
-          <span>{nextRank.toLocaleString()} NEXT RANK</span>
+          <span>{nextRank.toLocaleString()} TARGET</span>
         </div>
         <div className="progress-bar-lg">
           <div className="progress-fill-lg" style={{ width: `${progress}%` }}></div>
@@ -35,11 +50,11 @@ export default function Loyalty() {
 
       {/* Actions */}
       <div className="actions-row">
-        <div className="card action-btn action-scan">
+        <div className="card action-btn action-scan" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/cart'}>
           <QrCode size={32} />
-          <span>Scan Receipt</span>
+          <span>Order Now</span>
         </div>
-        <div className="card action-btn action-play">
+        <div className="card action-btn action-play" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/arcade'}>
           <Gamepad2 size={32} />
           <span>Play to Earn</span>
         </div>
@@ -52,23 +67,26 @@ export default function Loyalty() {
       </div>
 
       <div className="prize-list">
-        <div className="card prize-card">
-          <div className="prize-img" style={{backgroundImage: "url('/images/mushy2.jpg')"}}></div>
-          <div className="prize-info">
-            <h3>Mushy2<br/>Burger</h3>
-            <p className="pts-req text-orange">1,650 PTS</p>
+        {prizes.map(prize => (
+          <div key={prize.id} className="card prize-card">
+            <div className="prize-img" style={{ backgroundImage: `url('${prize.img}')` }}></div>
+            <div className="prize-info">
+              <h3>{prize.name.split('\n').map((line, i) => <span key={i}>{line}<br/></span>)}</h3>
+              <p className="pts-req text-orange">{prize.pts.toLocaleString()} PTS</p>
+            </div>
+            <button 
+              className={`btn ${points >= prize.pts ? 'btn-primary' : 'btn-dark'} prize-btn`}
+              disabled={points < prize.pts}
+              onClick={() => {
+                if (points >= prize.pts) {
+                  alert(`Congratulations! You've redeemed ${prize.name.replace('\n', ' ')}! Show this to the counter.`);
+                }
+              }}
+            >
+              {points >= prize.pts ? 'REDEEM' : 'LOCKED'}
+            </button>
           </div>
-          <button className="btn btn-dark prize-btn">REDEEM</button>
-        </div>
-
-        <div className="card prize-card">
-          <div className="prize-img" style={{backgroundImage: "url('/images/regular_fries.png')"}}></div>
-          <div className="prize-info">
-            <h3>Regular<br/>Fries</h3>
-            <p className="pts-req text-orange">500 PTS</p>
-          </div>
-          <button className="btn btn-dark prize-btn">REDEEM</button>
-        </div>
+        ))}
       </div>
 
       {/* Point History */}
@@ -79,17 +97,21 @@ export default function Loyalty() {
         </div>
         
         <div className="history-list">
-          {history.map(item => (
-            <div key={item.id} className="history-item">
-              <div className="history-info">
-                <p className="history-action">{item.action}</p>
-                <p className="history-date">{item.date}</p>
+          {pointHistory && pointHistory.length > 0 ? (
+            pointHistory.map(item => (
+              <div key={item.id} className="history-item">
+                <div className="history-info">
+                  <p className="history-action">{item.description || item.type}</p>
+                  <p className="history-date">{item.date}</p>
+                </div>
+                <div className="history-pts text-orange font-bold">
+                  +{item.amount || item.pts}
+                </div>
               </div>
-              <div className="history-pts">
-                {item.pts}
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-muted text-sm p-3">No transactions recorded yet. Place orders or play Munch-Man to earn points!</p>
+          )}
         </div>
       </div>
 

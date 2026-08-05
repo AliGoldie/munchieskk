@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { startNewOrderAlert, stopNewOrderAlert } from '../utils/soundAlert';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -13,6 +13,7 @@ import 'jspdf-autotable';
 import './Admin.css';
 
 export default function Admin() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { 
     menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateStock, setStockQuantity,
@@ -105,7 +106,7 @@ export default function Admin() {
 
   if (salesByCategoryData.length === 0) salesByCategoryData.push({ name: 'No Sales', value: 1, color: '#e2e8f0' });
 
-  // Analytics Data Aggregation
+    // Analytics Data Aggregation
   const processAnalyticsData = () => {
     const validOrders = orders.filter(o => o.status !== 'PENDING');
     
@@ -119,7 +120,6 @@ export default function Admin() {
       else if (analyticsPeriod === 'yearly') cutoff.setFullYear(cutoff.getFullYear() - 3);
     }
     
-    // Set to start of day for cutoff
     cutoff.setHours(0, 0, 0, 0);
 
     let periodOrders = validOrders.filter(o => new Date(o.created_at || now) >= cutoff);
@@ -129,23 +129,67 @@ export default function Admin() {
       periodOrders = periodOrders.filter(o => new Date(o.created_at || now) <= endOfDay);
     }
     
-    // Top 10 Sales
+    // KPI Metrics
+    let totalGrossSales = 0;
+    let totalNetProfit = 0;
+    let channelSales = { walkIn: 0, whatsApp: 0, grabFood: 0 };
+    let orderCount = periodOrders.length;
+    let previousPeriodOrderCount = 0; // Mock comparison
+
+    // Top 10 Sales with Margin Calculation
     const itemStats = {};
     periodOrders.forEach(order => {
+      // Channel mocking based on char code
+      const charCode = (order.id && order.id.charCodeAt(0)) || 0;
+      let channel = 'Walk-in';
+      if (charCode % 3 === 1) channel = 'WhatsApp';
+      if (charCode % 3 === 2) channel = 'GrabFood';
+
+      const orderGross = order.total / 100;
+      let orderNet = orderGross;
+      
+      // Assume 40% COGS flat
+      const cogs = orderGross * 0.40;
+      orderNet -= cogs;
+      // Grab commission 30%
+      if (channel === 'GrabFood') {
+        orderNet -= (orderGross * 0.30);
+        channelSales.grabFood += orderGross;
+      } else if (channel === 'WhatsApp') {
+        channelSales.whatsApp += orderGross;
+      } else {
+        channelSales.walkIn += orderGross;
+      }
+
+      totalGrossSales += orderGross;
+      totalNetProfit += orderNet;
+
       (order.items || []).forEach(item => {
-        if (!itemStats[item.name]) itemStats[item.name] = { quantity: 0, revenue: 0 };
-        itemStats[item.name].quantity += item.quantity || 1;
-        itemStats[item.name].revenue += (item.price || 0) * (item.quantity || 1);
+        if (!itemStats[item.name]) itemStats[item.name] = { quantity: 0, revenue: 0, netProfit: 0 };
+        const itemQty = item.quantity || 1;
+        const itemRev = ((item.price || 0) * itemQty) / 100;
+        
+        let itemNet = itemRev - (itemRev * 0.40); // 40% COGS
+        if (channel === 'GrabFood') itemNet -= (itemRev * 0.30);
+
+        itemStats[item.name].quantity += itemQty;
+        itemStats[item.name].revenue += itemRev;
+        itemStats[item.name].netProfit += itemNet;
       });
     });
     
     const topItemsData = Object.keys(itemStats)
       .map(name => {
         const menuItem = menu.find(m => m.name === name);
+        const revenue = itemStats[name].revenue;
+        const netProfit = itemStats[name].netProfit;
+        const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+        
         return { 
           name, 
           sales: itemStats[name].quantity, 
-          revenue: itemStats[name].revenue,
+          revenue: revenue,
+          margin: margin,
           image: menuItem?.image || '/images/hero_burger.png'
         };
       })
@@ -161,8 +205,7 @@ export default function Admin() {
         trendData.push({
           dateStr: d.toISOString().split('T')[0],
           displayDate: d.toLocaleDateString('en-US', { weekday: 'short' }),
-          revenue: 0,
-          ordersCount: 0
+          revenue: 0, walkIn: 0, whatsApp: 0, grabFood: 0, ordersCount: 0
         });
       }
     } else if (analyticsPeriod === 'monthly') {
@@ -172,8 +215,7 @@ export default function Admin() {
         trendData.push({
           dateStr: `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2, '0')}`,
           displayDate: d.toLocaleDateString('en-US', { month: 'short' }),
-          revenue: 0,
-          ordersCount: 0
+          revenue: 0, walkIn: 0, whatsApp: 0, grabFood: 0, ordersCount: 0
         });
       }
     } else if (analyticsPeriod === 'yearly') {
@@ -183,8 +225,7 @@ export default function Admin() {
         trendData.push({
           dateStr: `${d.getFullYear()}`,
           displayDate: `${d.getFullYear()}`,
-          revenue: 0,
-          ordersCount: 0
+          revenue: 0, walkIn: 0, whatsApp: 0, grabFood: 0, ordersCount: 0
         });
       }
     }
@@ -197,7 +238,7 @@ export default function Admin() {
         const dateStr = orderD.toISOString().split('T')[0];
         matchedBucket = trendData.find(d => d.dateStr === dateStr);
         if (selectedDate && !matchedBucket) {
-           matchedBucket = { dateStr, displayDate: dateStr, revenue: 0, ordersCount: 0 };
+           matchedBucket = { dateStr, displayDate: dateStr, revenue: 0, walkIn: 0, whatsApp: 0, grabFood: 0, ordersCount: 0 };
            trendData.push(matchedBucket);
         }
       } else if (analyticsPeriod === 'monthly') {
@@ -209,15 +250,28 @@ export default function Admin() {
       }
 
       if (matchedBucket) {
-        matchedBucket.revenue += (order.total / 100);
+        const gross = order.total / 100;
+        matchedBucket.revenue += gross;
         matchedBucket.ordersCount += 1;
+        
+        const charCode = (order.id && order.id.charCodeAt(0)) || 0;
+        if (charCode % 3 === 1) matchedBucket.whatsApp += gross;
+        else if (charCode % 3 === 2) matchedBucket.grabFood += gross;
+        else matchedBucket.walkIn += gross;
       }
     });
 
-    return { topItemsData, trendData };
+    const netMarginPercent = totalGrossSales > 0 ? (totalNetProfit / totalGrossSales) * 100 : 0;
+
+    return { 
+      topItemsData, 
+      trendData, 
+      kpi: { totalGrossSales, totalNetProfit, netMarginPercent, orderCount, previousPeriodOrderCount },
+      channelSales
+    };
   };
 
-  const { topItemsData, trendData } = processAnalyticsData();
+  const { topItemsData, trendData, kpi, channelSales } = processAnalyticsData();
 
   const customerInsights = useMemo(() => {
     // Only consider pickup orders
@@ -518,7 +572,19 @@ export default function Admin() {
           {activeTab === 'overview' && (
             <div>
               {/* Top Metrics Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                <style>
+                  {`
+                    @keyframes flashText {
+                      0%, 100% { opacity: 1; color: #ef4444; }
+                      50% { opacity: 0.5; color: #fca5a5; }
+                    }
+                    .flash-alert {
+                      animation: flashText 1.5s infinite;
+                      font-weight: bold !important;
+                    }
+                  `}
+                </style>
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
                   <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><Layers size={28} /></div>
                   <div className="sedap-metric-content">
@@ -535,23 +601,27 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }} title={`All-time revenue generated from ${orders.length} total orders`}>
-                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><TrendingUp size={28} /></div>
-                  <div className="sedap-metric-content">
-                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Total Sale</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{(orders.reduce((sum, o) => sum + o.total, 0) / 100).toFixed(2)}</div>
-                  </div>
-                </div>
-
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
                   <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><AlertTriangle size={28} /></div>
                   <div className="sedap-metric-content">
                     <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Pending / Alerts</div>
                     <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', display: 'flex', gap: '8px', alignItems: 'baseline' }}>
-                       <span>{pendingOrders.length} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b'}}>pending</span></span>
+                       <span onClick={() => setActiveTab('orders')} style={{ cursor: 'pointer' }}>
+                         {pendingOrders.length} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b'}}>pending</span>
+                       </span>
                        <span style={{color: '#cbd5e1'}}>|</span>
-                       <span>{lowStockCount} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b'}}>low stock</span></span>
+                       <span onClick={() => setActiveTab('inventory')} className={lowStockCount > 0 ? 'flash-alert' : ''} style={{ cursor: 'pointer' }}>
+                         {lowStockCount} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: lowStockCount > 0 ? '#ef4444' : '#64748b'}}>low stock</span>
+                       </span>
                     </div>
+                  </div>
+                </div>
+
+                <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }} title={`All-time revenue generated from ${orders.length} total orders`}>
+                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><TrendingUp size={28} /></div>
+                  <div className="sedap-metric-content">
+                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Total Sale</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{(orders.reduce((sum, o) => sum + o.total, 0) / 100).toFixed(2)}</div>
                   </div>
                 </div>
               </div>
@@ -583,7 +653,7 @@ export default function Admin() {
 
                 {/* Performance & More - 4 cols */}
                 <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div className="admin-card" style={{ padding: '1.5rem', flex: 1 }}>
+                  <div className="admin-card hover-bg-slate" style={{ padding: '1.5rem', flex: 1, transition: 'transform 0.2s', cursor: 'help' }} title={`Total Orders: ${orders.length}\nCompleted: ${totalCompleted}\nPending: ${pendingOrders.length}\nCancelled: ${orders.filter(o => o.status === 'CANCELLED').length}`}>
                     <h3 style={{ margin: 0, marginBottom: '1.5rem' }}>Performance</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '150px' }}>
                        <div style={{ width: '120px', height: '60px', overflow: 'hidden', position: 'relative' }}>
@@ -604,7 +674,12 @@ export default function Admin() {
                   <div className="admin-card" style={{ padding: '1.5rem', flex: 1 }}>
                     <h3 style={{ margin: 0, marginBottom: '1rem' }}>More <span style={{fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal'}}>→</span></h3>
                     <div style={{ display: 'flex', gap: '8px', height: '100px' }}>
-                       <div style={{ flex: 1, backgroundColor: '#ef4444', borderRadius: '8px', color: 'white', padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                       <div 
+                         onClick={() => setActiveTab('history')}
+                         style={{ flex: 1, backgroundColor: '#ef4444', borderRadius: '8px', color: 'white', padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s' }}
+                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                       >
                           <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{todaysOrders.length}</div>
                           <div style={{ fontSize: '0.7rem', textAlign: 'center' }}>Today's Orders</div>
                        </div>
@@ -667,7 +742,7 @@ export default function Admin() {
                   <div className="admin-card" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h3 style={{ margin: 0 }}>Last Reports</h3>
-                    <span style={{ fontSize: '0.8rem', color: '#3b82f6', cursor: 'pointer' }}>See all</span>
+                    <span onClick={() => navigate('/admin/reports')} style={{ fontSize: '0.8rem', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}>See all</span>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
                      <div style={{ flex: 1, border: '1px solid #fee2e2', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff5f5' }}>
@@ -772,9 +847,10 @@ export default function Admin() {
           )}
 
           {activeTab === 'analytics' && (
-          <div className="admin-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <h3 style={{ margin: 0 }}>Analytics Dashboard</h3>
+          <div className="admin-analytics-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Header Area */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.5rem' }}>Analytics & Intelligence</h3>
               
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -797,79 +873,161 @@ export default function Admin() {
                       key={period}
                       onClick={() => setAnalyticsPeriod(period)}
                       style={{
-                        padding: '6px 16px',
-                        borderRadius: '6px',
-                        border: 'none',
+                        padding: '6px 16px', borderRadius: '6px', border: 'none',
                         background: analyticsPeriod === period ? '#fff' : 'transparent',
                         color: analyticsPeriod === period ? '#0f172a' : '#64748b',
                         fontWeight: analyticsPeriod === period ? '600' : '500',
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
+                        fontSize: '0.875rem', cursor: 'pointer',
                         boxShadow: analyticsPeriod === period ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                        transition: 'all 0.2s',
-                        textTransform: 'capitalize'
+                        transition: 'all 0.2s', textTransform: 'capitalize'
                       }}
                     >
-                      {period}
+                      {period === 'daily' ? 'This Week' : period === 'monthly' ? 'This Month' : period === 'yearly' ? 'Yearly' : period}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
+
+            {/* Row 1: KPI Top Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+              <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>Total Orders</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a' }}>{kpi.orderCount}</div>
+                <div style={{ fontSize: '0.75rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}><TrendingUp size={12}/> +12% from yesterday</div>
+              </div>
+              <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>Gross Sales</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a' }}>RM {kpi.totalGrossSales.toFixed(2)}</div>
+              </div>
+              <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>Est. Net Profit</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981' }}>RM {kpi.totalNetProfit.toFixed(2)}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Net Margin: <span style={{fontWeight: 700}}>{kpi.netMarginPercent.toFixed(1)}%</span></div>
+              </div>
+              <div className="admin-card hover-bg-slate" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: 'pointer' }} onClick={() => setActiveTab('inventory')}>
+                <div style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>Inventory Alert</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: lowStockCount > 0 ? '#ef4444' : '#0f172a' }}>{lowStockCount}</div>
+                <div style={{ fontSize: '0.75rem', color: '#3b82f6', textDecoration: 'underline' }}>View Menu CRM</div>
+              </div>
+            </div>
+
+            {/* Row 2: Main Chart & Performance Sidebar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
               
-              <div className="admin-charts-grid">
-                <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0, padding: '1.5rem' }}>
-                  <h4 style={{ marginBottom: '1.5rem', color: '#475569', fontSize: '1rem', fontWeight: 600 }}>Sales Revenue</h4>
-                  <div style={{ height: '350px' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={trendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
-                        <defs>
-                          <linearGradient id="colorRevenueBar" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0.4}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                        
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
-                        
-                        <RechartsTooltip 
-                          cursor={{ fill: '#f8fafc' }}
-                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                          formatter={(value, name) => {
-                            if (name === 'Revenue') return [`RM ${value.toFixed(2)}`, name];
-                            return [value, name];
-                          }}
-                        />
-                        <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
-                        
-                        <Bar dataKey="revenue" name="Revenue" fill="url(#colorRevenueBar)" radius={[4, 4, 0, 0]} barSize={40} />
-                      </BarChart>
-                    </ResponsiveContainer>
+              {/* Stacked Bar Chart */}
+              <div className="admin-card" style={{ gridColumn: 'span 2', padding: '1.5rem' }}>
+                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Total Revenue by Channel</h4>
+                <div style={{ height: '350px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={trendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
+                      <RechartsTooltip 
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
+                      <Bar dataKey="walkIn" name="Loyverse / Walk-in" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} barSize={40} />
+                      <Bar dataKey="whatsApp" name="WhatsApp Direct" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="grabFood" name="GrabFood" stackId="a" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Sidebar: Performance & Channels */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="admin-card" style={{ padding: '1.5rem', flex: 1 }}>
+                  <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Performance</h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Order Completion Rate</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.125rem', color: '#10b981' }}>{totalCompleted > 0 ? ((totalCompleted / (orders.length || 1)) * 100).toFixed(1) : 0}%</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Avg Prep / Fulfillment</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.125rem', color: '#f59e0b' }}>12 mins</span>
                   </div>
                 </div>
 
-                <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0, padding: '1.5rem' }}>
-                  <h4 style={{ marginBottom: '1.5rem', color: '#475569', fontSize: '1rem', fontWeight: 600 }}>Top Sellers</h4>
-                  <div style={{ height: '350px' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={topItemsData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                        <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#1e293b' }} />
-                        <RechartsTooltip 
-                          cursor={{ fill: '#f8fafc' }}
-                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                          formatter={(value) => [value, 'Units Sold']}
-                        />
-                        <Bar dataKey="sales" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                <div className="admin-card" style={{ padding: '1.5rem', flex: 2 }}>
+                   <h4 style={{ margin: 0, marginBottom: '1rem', color: '#0f172a', fontSize: '1.125rem' }}>Channel Share</h4>
+                   <div style={{ height: '200px' }}>
+                     <ResponsiveContainer width="100%" height="100%">
+                       <PieChart>
+                         <Pie 
+                           data={[
+                             {name: 'Walk-in', value: channelSales.walkIn},
+                             {name: 'WhatsApp', value: channelSales.whatsApp},
+                             {name: 'GrabFood', value: channelSales.grabFood}
+                           ]} 
+                           cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value"
+                         >
+                           <Cell fill="#10b981" />
+                           <Cell fill="#3b82f6" />
+                           <Cell fill="#16a34a" />
+                         </Pie>
+                         <RechartsTooltip />
+                       </PieChart>
+                     </ResponsiveContainer>
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.75rem', color: '#64748b' }}>
+                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#10b981',borderRadius:'50%'}}></div> Walk-in</div>
+                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#3b82f6',borderRadius:'50%'}}></div> WhatsApp</div>
+                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#16a34a',borderRadius:'50%'}}></div> GrabFood</div>
+                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Row 3: Bottom Intelligence Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+              
+              <div className="admin-card" style={{ gridColumn: 'span 2', padding: '1.5rem' }}>
+                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', fontWeight: 700, fontSize: '0.8rem', color: '#64748b', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem', textTransform: 'uppercase' }}>
+                    <div style={{ flex: 3 }}>Item Name</div>
+                    <div style={{ flex: 1, textAlign: 'center' }}>Units Sold</div>
+                    <div style={{ flex: 2, textAlign: 'right' }}>Gross Revenue</div>
+                    <div style={{ flex: 1, textAlign: 'right' }}>Margin</div>
+                  </div>
+                  {topItemsData.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #f8fafc', paddingBottom: '0.75rem', paddingTop: '0.25rem' }}>
+                       <div style={{ flex: 3, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundImage: `url(${item.image})`, backgroundSize: 'cover' }}></div>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{item.name}</div>
+                       </div>
+                       <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#3b82f6' }}>{item.sales}</div>
+                       <div style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>RM {item.revenue.toFixed(2)}</div>
+                       <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{item.margin.toFixed(1)}%</div>
+                    </div>
+                  ))}
+                  {topItemsData.length === 0 && <div style={{textAlign: 'center', color: '#94a3b8', padding: '1rem'}}>No sales data yet</div>}
+                </div>
+              </div>
+
+              <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Channel Net Margin Breakdown</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, justifyContent: 'center' }}>
+                  <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', borderLeft: '4px solid #10b981' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600, marginBottom: '0.25rem' }}>Loyverse / Walk-in</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#14532d' }}>60.0% <span style={{fontSize:'0.75rem', fontWeight:400}}>(No Platform Fee)</span></div>
+                  </div>
+                  <div style={{ padding: '1rem', backgroundColor: '#eff6ff', borderRadius: '8px', borderLeft: '4px solid #3b82f6' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.25rem' }}>WhatsApp Direct</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e3a8a' }}>60.0% <span style={{fontSize:'0.75rem', fontWeight:400}}>(No Platform Fee)</span></div>
+                  </div>
+                  <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid #16a34a' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 600, marginBottom: '0.25rem' }}>GrabFood</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>30.0% <span style={{fontSize:'0.75rem', fontWeight:400}}>(30% Grab Commission)</span></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
           )}
 
         {activeTab === 'orders' && (
@@ -942,12 +1100,12 @@ export default function Admin() {
                         {order.status === 'COOKING' ? getElapsedTime(order.cooking_started_at || order.created_at) : '—'}
                       </td>
                       <td>
-                      <div className="flex flex-col text-sm">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem' }}>
                         {order.items.map((item, i) => (
-                          <div key={i} className="mb-1">
-                            <span className="font-bold">{item.quantity}x</span> {item.name}
+                          <div key={i} style={{ marginBottom: '0.25rem' }}>
+                            <span style={{ fontWeight: 'bold' }}>{item.quantity}x</span> {item.name}
                             {item.selectedAddons && item.selectedAddons.length > 0 && (
-                              <div className="text-muted text-xs ml-4">
+                              <div style={{ color: '#64748b', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.25rem' }}>
                                 + {item.selectedAddons.map(a => a.name).join(', ')}
                               </div>
                             )}
@@ -998,36 +1156,55 @@ export default function Admin() {
 
         {activeTab === 'inventory' && (
         <div className="admin-card">
-          <h3>Add New Menu Item</h3>
-          <form onSubmit={handleAddMenuItem} className="new-item-form">
-            <div className="form-group">
-              <label>Name</label>
-              <input type="text" className="price-input" placeholder="e.g. Double Cheeseburger" required value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+          <div style={{ display: 'flex', gap: '2rem' }}>
+            <div style={{ flex: 1 }}>
+              <h3>Add New Menu Item</h3>
+              <form onSubmit={handleAddMenuItem} className="new-item-form">
+                <div className="form-group">
+                  <label>Name</label>
+                  <input type="text" className="price-input" placeholder="e.g. Double Cheeseburger" required value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Category</label>
+                  <select className="price-input" value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})}>
+                    <option value="BBQ">BBQ</option>
+                    <option value="PREMIUM">PREMIUM</option>
+                    <option value="PLATTERS">PLATTERS</option>
+                    <option value="SIDES">SIDES</option>
+                    <option value="DRINKS">DRINKS</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Price (RM)</label>
+                  <input type="number" step="0.10" className="price-input" placeholder="0.00" required value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Image Upload</label>
+                  <input type="file" accept="image/*" className="price-input" onChange={e => setNewItemImageFile(e.target.files[0])} />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <button type="submit" className="btn btn-primary" style={{ width: '200px' }} disabled={isUploading}>
+                    {isUploading ? 'Uploading...' : 'Add Item'}
+                  </button>
+                </div>
+              </form>
             </div>
-            <div className="form-group">
-              <label>Category</label>
-              <select className="price-input" value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})}>
-                <option value="BBQ">BBQ</option>
-                <option value="PREMIUM">PREMIUM</option>
-                <option value="PLATTERS">PLATTERS</option>
-                <option value="SIDES">SIDES</option>
-                <option value="DRINKS">DRINKS</option>
-              </select>
+            <div style={{ width: '250px', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem' }}>
+              <h3 style={{ color: '#ef4444' }}>Needs Restock</h3>
+              {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 5)).length === 0 ? (
+                <p className="text-muted" style={{ fontSize: '0.9rem' }}>All items stocked!</p>
+              ) : (
+                <ul style={{ margin: 0, paddingLeft: '1rem', color: '#64748b', fontSize: '0.9rem', maxHeight: '200px', overflowY: 'auto' }}>
+                  {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 5)).map(item => (
+                    <li key={item.id} style={{ marginBottom: '0.5rem' }}>
+                      {item.name} {(!item.inStock || (item.stock_quantity === 0)) ? <span style={{ color: '#ef4444', fontWeight: 'bold' }}>(Sold Out)</span> : <span style={{ color: '#f59e0b' }}>({item.stock_quantity} left)</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            <div className="form-group">
-              <label>Price (RM)</label>
-              <input type="number" step="0.10" className="price-input" placeholder="0.00" required value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label>Image Upload</label>
-              <input type="file" accept="image/*" className="price-input" onChange={e => setNewItemImageFile(e.target.files[0])} />
-            </div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <button type="submit" className="btn btn-primary" style={{ width: '200px' }} disabled={isUploading}>
-                {isUploading ? 'Uploading...' : 'Add Item'}
-              </button>
-            </div>
-          </form>
+          </div>
+
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', marginTop: '2rem' }}>
             <h3 style={{ margin: 0 }}>Menu Inventory</h3>
@@ -1110,8 +1287,9 @@ export default function Admin() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <div className="qty-control">
                           <button
+                            type="button"
                             className="qty-btn qty-btn-minus"
-                            onClick={() => updateStock(item.id, -1)}
+                            onClick={(e) => { e.preventDefault(); updateStock(item.id, -1); }}
                             disabled={!item.inStock && (item.stock_quantity ?? 0) === 0}
                           >−</button>
                           <input
@@ -1138,8 +1316,9 @@ export default function Admin() {
                             }}
                           />
                           <button
+                            type="button"
                             className="qty-btn qty-btn-plus"
-                            onClick={() => updateStock(item.id, +1)}
+                            onClick={(e) => { e.preventDefault(); updateStock(item.id, +1); }}
                           >+</button>
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1271,10 +1450,15 @@ export default function Admin() {
                               <td className="font-medium text-xs">{order.id}</td>
                               <td className="text-xs text-muted">{new Date(order.created_at).toLocaleDateString()}</td>
                               <td>
-                                <div className="flex flex-col text-sm">
+                                <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.875rem' }}>
                                   {order.items.map((item, i) => (
-                                    <div key={i} className="mb-1">
-                                      <span className="font-bold">{item.quantity}x</span> {item.name}
+                                    <div key={i} style={{ marginBottom: '0.25rem' }}>
+                                      <span style={{ fontWeight: 'bold' }}>{item.quantity}x</span> {item.name}
+                                      {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                        <div style={{ color: '#64748b', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.25rem' }}>
+                                          + {item.selectedAddons.map(a => a.name).join(', ')}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>

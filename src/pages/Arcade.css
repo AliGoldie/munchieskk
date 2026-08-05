@@ -111,57 +111,65 @@
   margin-top: 8px;
 }
 
-/* Token Balance */
-.token-card {
-  background-color: var(--munchies-blue);
-  padding: var(--space-4);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Colorful High-Contrast Points Card */
+.arcade-page .card.points-card {
+  background-color: #1e1b4b !important; /* Deep Royal Midnight Blue */
+  color: #ffffff !important;
+  padding: 1.25rem 1.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  border: 3.5px solid #FFC72C !important; /* Gold border */
+  box-shadow: 4px 4px 0 #14141f !important;
+  border-radius: var(--radius-lg) !important;
+  margin: 0 !important;
 }
 
-.token-left h2 {
-  font-size: 1.5rem;
-  color: var(--munchies-dark);
-  margin-bottom: 4px;
+.points-card-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
 }
 
-.token-amount {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: rgba(0,0,0,0.1);
-  padding: 4px 16px 4px 4px;
-  border-radius: var(--radius-full);
+.points-card-title {
+  font-size: 1.25rem !important;
+  color: #FFC72C !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.5px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-weight: 800 !important;
+  text-shadow: 2px 2px 0 #14141f !important;
+  line-height: 1.2 !important;
+}
+
+.points-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 6px 18px 6px 6px !important;
+  border-radius: var(--radius-full) !important;
   font-family: var(--font-heading);
-  font-size: 1.25rem;
-  border: 2px solid var(--munchies-dark);
-  background: #a87b32; /* Bronze color */
-  color: var(--munchies-white);
+  font-size: 1.35rem !important;
+  font-weight: 800 !important;
+  border: 2.5px solid #14141f !important;
+  background: #E8491D !important; /* Vibrant Orange Pill Badge */
+  color: #ffffff !important;
+  box-shadow: 2px 2px 0 #14141f !important;
 }
 
-.coin {
-  width: 28px;
-  height: 28px;
-  background-color: var(--munchies-yellow);
-  border: 2px solid var(--munchies-dark);
+.points-star-circle {
+  width: 30px;
+  height: 30px;
+  background-color: #FFC72C;
+  border: 2px solid #14141f;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--munchies-dark);
-}
-
-.add-token-btn {
-  width: 48px;
-  height: 48px;
-  background-color: var(--munchies-white);
-  border: var(--border-thick);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-brutalist-sm);
 }
 
 /* Games List */
@@ -205,7 +213,6 @@
 }
 
 .game-pattern {
-  /* Placeholder for retro arcade background patterns */
   position: absolute;
   inset: 0;
   opacity: 0.3;

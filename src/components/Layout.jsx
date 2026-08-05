@@ -16,7 +16,10 @@ export default function Layout() {
     return (
       <div className="admin-layout">
         <header className="admin-header">
-          <h2>MunchiesKK Admin</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <img src="/images/logo.png" alt="MUNCHIESKK" style={{ height: '32px' }} />
+            <span style={{ fontWeight: 800, color: '#2b3674', fontSize: '1.2rem' }}>ADMIN</span>
+          </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <Link to="/" className="btn btn-secondary">Store View</Link>
             <button onClick={logout} className="btn btn-secondary"><LogOut size={16} style={{marginRight: '0.5rem'}}/>Logout</button>
@@ -38,7 +41,7 @@ export default function Layout() {
             <MenuIcon size={24} color="var(--munchies-white)" />
           </button>
           <Link to="/" className="logo">
-            <span className="logo-text">MUNCHIESKK</span>
+            <img src="/images/logo.png" alt="MUNCHIESKK" style={{ height: '48px' }} />
           </Link>
           <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
             {user?.role === 'admin' && (

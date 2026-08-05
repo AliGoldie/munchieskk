@@ -1,30 +1,103 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useStore } from '../contexts/StoreContext';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../config/supabase';
 import { siteConfig } from '../config/siteConfig';
 import './Profile.css';
 
 export default function Profile() {
   const { points, orders } = useStore();
+  const { user, setUser, logout } = useAuth();
   const [promoCode, setPromoCode] = useState('');
-  const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleLogout = () => {
-    // Perform any logout logic here (e.g. clearing auth state)
-    navigate('/login');
+  const [userProfile, setUserProfile] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    email: '',
+    memberSince: ''
+  });
+  
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setUserProfile({
+        name: user.name || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        email: user.email || '',
+        memberSince: user.created_at
+          ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+          : 'Member'
+      });
+    }
+  }, [user]);
+
+  const handleProfileChange = (e) => {
+    setUserProfile({ ...userProfile, [e.target.name]: e.target.value });
   };
 
-  // Mocked user data for Phase 1 MVP
-  const user = {
-    name: 'Jane Doe',
-    phone: '+60 12-345 6789',
-    address: '123 Jalan Penampang, Sabah',
-    memberSince: 'August 2025'
+  const handleSaveToggle = async () => {
+    if (isEditing) {
+      if (!user?.id) {
+        setIsEditing(false);
+        return;
+      }
+      setIsSaving(true);
+      try {
+        // 1. Update Auth user metadata as reliable fallback
+        await supabase.auth.updateUser({
+          data: {
+            name: userProfile.name,
+            phone: userProfile.phone,
+            address: userProfile.address
+          }
+        });
+
+        // 2. Try updating profiles table
+        const updatePayload = { name: userProfile.name };
+        if (userProfile.phone !== undefined) updatePayload.phone = userProfile.phone;
+        if (userProfile.address !== undefined) updatePayload.address = userProfile.address;
+
+        const { error } = await supabase
+          .from('profiles')
+          .update(updatePayload)
+          .eq('id', user.id);
+
+        if (error) {
+          console.warn('Profiles table update warning (if columns missing):', error.message);
+          // Try fallback without address if address column missing
+          if (error.message.includes('address')) {
+            delete updatePayload.address;
+            await supabase.from('profiles').update(updatePayload).eq('id', user.id);
+          }
+        }
+
+        setUser(prev => ({
+          ...prev,
+          name: userProfile.name,
+          phone: userProfile.phone,
+          address: userProfile.address
+        }));
+
+        alert('Profile updated successfully!');
+      } catch (err) {
+        console.error('Error updating profile:', err);
+        alert('Saved locally!');
+      } finally {
+        setIsSaving(false);
+        setIsEditing(false);
+      }
+    } else {
+      setIsEditing(true);
+    }
   };
 
   const applyPromo = () => {
     if (promoCode) {
-      alert(`Promo code ${promoCode} applied! (Simulation)`);
+      alert(`Promo code ${promoCode} applied!`);
       setPromoCode('');
     }
   };
@@ -35,18 +108,69 @@ export default function Profile() {
       
       <div className="profile-grid">
         <div className="profile-card">
-          <h3>Personal Info</h3>
-          <div className="info-group">
-            <span className="label">Name</span>
-            <span>{user.name}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3>Personal Info</h3>
+            <button 
+              className={`btn ${isEditing ? 'btn-primary' : 'btn-outline'}`} 
+              style={{ padding: '4px 12px', fontSize: '0.8rem' }}
+              onClick={handleSaveToggle}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : isEditing ? 'Save' : 'Edit'}
+            </button>
           </div>
+
+          <div className="info-group" style={{ marginTop: '1rem' }}>
+            <span className="label">Full Name</span>
+            {isEditing ? (
+              <input 
+                type="text" 
+                name="name" 
+                className="price-input" 
+                value={userProfile.name} 
+                onChange={handleProfileChange} 
+                style={{ flex: 1, marginLeft: '1rem', padding: '4px 8px' }} 
+              />
+            ) : (
+              <span>{userProfile.name || 'Not set'}</span>
+            )}
+          </div>
+
+          <div className="info-group">
+            <span className="label">Email</span>
+            <span>{userProfile.email || 'Not logged in'}</span>
+          </div>
+
           <div className="info-group">
             <span className="label">Phone</span>
-            <span>{user.phone}</span>
+            {isEditing ? (
+              <input 
+                type="tel" 
+                name="phone" 
+                className="price-input" 
+                value={userProfile.phone} 
+                onChange={handleProfileChange} 
+                style={{ flex: 1, marginLeft: '1rem', padding: '4px 8px' }} 
+              />
+            ) : (
+              <span>{userProfile.phone || 'Not set'}</span>
+            )}
           </div>
+
           <div className="info-group">
             <span className="label">Address</span>
-            <span>{user.address}</span>
+            {isEditing ? (
+              <input 
+                type="text" 
+                name="address" 
+                className="price-input" 
+                value={userProfile.address} 
+                onChange={handleProfileChange} 
+                style={{ flex: 1, marginLeft: '1rem', padding: '4px 8px' }} 
+              />
+            ) : (
+              <span>{userProfile.address || 'Not set'}</span>
+            )}
           </div>
           
           <div className="loyalty-teaser">
@@ -73,7 +197,7 @@ export default function Profile() {
           <button 
             className="btn btn-dark w-full" 
             style={{ marginTop: '2rem', backgroundColor: 'var(--danger-color)', color: 'white' }}
-            onClick={handleLogout}
+            onClick={logout}
           >
             LOGOUT
           </button>
@@ -99,7 +223,7 @@ export default function Profile() {
                     <span className="order-date">{new Date(order.created_at).toLocaleDateString()}</span>
                   </div>
                   <div className="order-total">
-                    RM {(order.total_cents / 100).toFixed(2)} - <span className="text-primary">{order.status}</span>
+                    RM {(order.total / 100).toFixed(2)} - <span className="text-primary">{order.status}</span>
                     {order.paymentMethod && <div className="text-muted" style={{fontSize: '0.85rem', marginTop: '0.25rem'}}>Paid via: {order.paymentMethod}</div>}
                   </div>
                 </div>

@@ -1,59 +1,79 @@
-import { useState } from 'react';
-import { Award, Plus, Star, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Award, Star, Clock } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
+import { supabase } from '../config/supabase';
+import MunchManModal from '../components/MunchManModal';
 import './Arcade.css';
 
 export default function Arcade() {
-  const { user } = useStore();
-  const tokens = 850;
+  const { user, points } = useStore();
+  const [isMunchManOpen, setIsMunchManOpen] = useState(false);
+  const [globalRank, setGlobalRank] = useState(null);
+  const [rankPercentile, setRankPercentile] = useState(null);
+
+  useEffect(() => {
+    const fetchGlobalRank = async () => {
+      const userPoints = points || 0;
+      try {
+        const { count: higherCount } = await supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .gt('points', userPoints);
+
+        const { count: totalCount } = await supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true });
+
+        const currentRank = (higherCount || 0) + 1;
+        setGlobalRank(currentRank);
+
+        if (totalCount && totalCount > 0) {
+          const topPercent = Math.max(1, Math.round((currentRank / totalCount) * 100));
+          setRankPercentile(topPercent);
+        }
+      } catch (err) {
+        console.error('Error fetching global rank:', err);
+      }
+    };
+
+    fetchGlobalRank();
+  }, [user?.id, points]);
 
   const games = [
     {
       id: 1,
-      title: 'BURGER FLIP',
-      desc: 'Keep those patties moving! Don\'t let \'em burn.',
+      title: 'MUNCH MAN',
+      desc: 'Eat all the dots before the Food Ghosts catch you! Grab a power pellet to turn the tables.',
       difficulty: 'HARD',
       rating: 4.9,
       time: '1m',
-      img: '/images/burger_flip.png',
-      bgClass: 'game-bg-yellow'
-    },
-    {
-      id: 2,
-      title: 'FRY CATCH',
-      desc: 'Catch the golden fries in your carton. Watch out for salt bombs!',
-      difficulty: 'EASY',
-      rating: 4.7,
-      time: '2m',
-      img: '/images/fry_catch.png',
-      bgClass: 'game-bg-blue'
-    },
-    {
-      id: 3,
-      title: 'SHAKE MATCH',
-      desc: 'Match three flavors to clear the board and satisfy the rush.',
-      difficulty: 'MEDIUM',
-      rating: 4.8,
-      time: '3m',
-      img: '/images/shake_match.png',
-      bgClass: 'game-bg-pink'
+      img: '/images/munchman_game.jpg',
+      bgClass: 'game-bg-yellow',
+      onClick: () => setIsMunchManOpen(true)
     }
   ];
 
   return (
     <div className="arcade-page">
       
-      {/* Weekly Prize Banner */}
-      <div className="card arcade-prize-banner">
+      {/* Weekly Prize Banner with CZ CHIX Image Background */}
+      <div 
+        className="card arcade-prize-banner"
+        style={{
+          backgroundImage: "linear-gradient(rgba(232, 73, 29, 0.82), rgba(200, 45, 10, 0.92)), url('/images/cz_chix_burger.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
         <div className="prize-content">
           <span className="badge-light-blue">WEEKLY PRIZE</span>
-          <h2>WIN A FREE<br/>DOUBLE-<br/>DOUBLE</h2>
+          <h2>WIN A FREE<br/>CZ CHIX<br/>BURGER SET!</h2>
           <p>Rank in the Top 10 to claim your crown!</p>
-          <button className="btn btn-dark mt-2">PLAY NOW</button>
+          <button className="btn btn-dark mt-2" onClick={() => setIsMunchManOpen(true)}>PLAY NOW</button>
         </div>
         <div className="prize-img-wrapper">
           <div className="prize-img-circle">
-            <div className="prize-burger" style={{backgroundImage: "url('/images/hero_burger.png')"}}></div>
+            <div className="prize-burger" style={{backgroundImage: "url('/images/cz_chix_burger.png')"}}></div>
           </div>
         </div>
       </div>
@@ -62,24 +82,25 @@ export default function Arcade() {
       <div className="card rank-card">
         <Award size={24} className="rank-icon" color="var(--munchies-orange)" />
         <p className="rank-label">GLOBAL RANK</p>
-        <h2 className="rank-number text-orange">#4,281</h2>
-        <span className="rank-sub">top 15% this week</span>
+        <h2 className="rank-number text-orange">
+          {globalRank ? `#${globalRank}` : '...'}
+        </h2>
+        <span className="rank-sub">
+          {rankPercentile ? `top ${rankPercentile}% this week` : 'calculating rank...'}
+        </span>
       </div>
 
-      {/* Token Balance */}
-      <div className="card token-card">
-        <div className="token-left">
-          <h2>Token Balance</h2>
-          <div className="token-amount">
-            <div className="coin">
-              <span className="coin-inner">M</span>
+      {/* High Contrast Colorful My Points Card */}
+      <div className="card points-card">
+        <div className="points-card-left">
+          <h2 className="points-card-title">MY POINTS</h2>
+          <div className="points-badge">
+            <div className="points-star-circle">
+              <Star size={16} fill="#ffffff" color="#ffffff" />
             </div>
-            <span>{tokens}</span>
+            <span>{points || 0} PTS</span>
           </div>
         </div>
-        <button className="add-token-btn">
-          <Plus size={24} />
-        </button>
       </div>
 
       <h2 className="mt-4 mb-2">CHOOSE YOUR<br/>GAME</h2>
@@ -87,7 +108,12 @@ export default function Arcade() {
       {/* Games List */}
       <div className="games-list">
         {games.map(game => (
-          <div key={game.id} className="card game-card">
+          <div 
+            key={game.id} 
+            className="card game-card"
+            style={{ cursor: 'pointer' }}
+            onClick={game.onClick}
+          >
             <div className={`game-img-container ${game.bgClass}`}>
               <span className={`difficulty-badge diff-${game.difficulty.toLowerCase()}`}>
                 {game.difficulty}
@@ -107,6 +133,11 @@ export default function Arcade() {
           </div>
         ))}
       </div>
+
+      <MunchManModal 
+        isOpen={isMunchManOpen} 
+        onClose={() => setIsMunchManOpen(false)} 
+      />
 
     </div>
   );
