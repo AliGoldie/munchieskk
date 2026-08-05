@@ -235,7 +235,7 @@ export default function Admin() {
   todayStart.setHours(0, 0, 0, 0);
   const todaysOrders = orders.filter(o => new Date(o.created_at || now) >= todayStart && o.status !== 'PENDING');
   const todaysRevenue = todaysOrders.reduce((sum, o) => sum + o.total, 0);
-  const lowStockCount = menu.filter(item => (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 5)).length;
+  const lowStockCount = menu.filter(item => (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).length;
 
   const categorySales = {};
   orders.filter(o => o.status === 'COLLECTED').forEach(order => {
@@ -1567,11 +1567,11 @@ export default function Admin() {
             </div>
             <div style={{ width: '250px', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem' }}>
               <h3 style={{ color: '#ef4444' }}>Needs Restock</h3>
-              {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 5)).length === 0 ? (
+              {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).length === 0 ? (
                 <p className="text-muted" style={{ fontSize: '0.9rem' }}>All items stocked!</p>
               ) : (
                 <ul style={{ margin: 0, paddingLeft: '1rem', color: '#64748b', fontSize: '0.9rem', maxHeight: '200px', overflowY: 'auto' }}>
-                  {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 5)).map(item => (
+                  {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).map(item => (
                     <li key={item.id} style={{ marginBottom: '0.5rem' }}>
                       {item.name} {(!item.inStock || (item.stock_quantity === 0)) ? <span style={{ color: '#ef4444', fontWeight: 'bold' }}>(Sold Out)</span> : <span style={{ color: '#f59e0b' }}>({item.stock_quantity} left)</span>}
                     </li>
@@ -1717,7 +1717,7 @@ export default function Admin() {
                             min="0"
                             className="price-input"
                             style={{ width: '50px', padding: '2px 4px', fontSize: '0.75rem' }}
-                            value={editingLowStock[item.id] !== undefined ? editingLowStock[item.id] : (item.low_stock_threshold ?? 5)}
+                            value={editingLowStock[item.id] !== undefined ? editingLowStock[item.id] : (item.low_stock_threshold ?? 10)}
                             onChange={e => setEditingLowStock({ ...editingLowStock, [item.id]: e.target.value })}
                             onBlur={e => {
                               if (editingLowStock[item.id] !== undefined) {
