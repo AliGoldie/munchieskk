@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTime12Hour, generateOperatingTimeSlots } from '../utils/timeUtils';
-import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Clock, AlertTriangle } from 'lucide-react';
+import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Clock, AlertTriangle, Zap } from 'lucide-react';
 import './Payment.css';
 
 export default function Payment() {
@@ -23,8 +23,8 @@ export default function Payment() {
     return generateOperatingTimeSlots(shopSettings?.openingTime || '10:00', shopSettings?.closingTime || '22:00');
   }, [shopSettings?.openingTime, shopSettings?.closingTime]);
 
-  // Order Timing Selection (Order Now vs Scheduled Pre-Order)
-  const [orderMode, setOrderMode] = useState(isOpen ? 'NOW' : 'SCHEDULED');
+  // Order Timing Selection: ORDER NOW is the primary default option
+  const [orderMode, setOrderMode] = useState('NOW');
   const [scheduledTime, setScheduledTime] = useState(timeSlots[0]?.value || '12:00');
 
   if (!user) {
@@ -42,7 +42,7 @@ export default function Payment() {
     if (method === 'FPX' && !bank) return alert('Please select a bank.');
 
     if (!isOpen && orderMode === 'NOW') {
-      return alert('The shop is currently closed or paused for instant orders. Please select "Schedule for Business Hours"!');
+      return alert('The shop is currently closed or paused for instant orders. Please select "Schedule for Later"!');
     }
 
     const selectedSlot = timeSlots.find(s => s.value === scheduledTime) || timeSlots[0];
@@ -85,7 +85,7 @@ export default function Payment() {
   return (
     <div className="container payment-page">
 
-      {/* Shop Status Banner */}
+      {/* Shop Status Banner when shop is Paused or Closed */}
       {!isOpen && (
         <div style={{
           background: '#451a03',
@@ -104,7 +104,7 @@ export default function Payment() {
               {shopSettings?.status === 'PAUSED' ? '⏸️ SHOP IS TEMPORARILY PAUSED' : '🔴 SHOP IS CURRENTLY CLOSED'}
             </h4>
             <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
-              Business Hours: <strong>{openingFormatted} - {closingFormatted}</strong>. Instant orders are paused, but you can <strong>Schedule a Pre-Order</strong> below!
+              Business Hours: <strong>{openingFormatted} - {closingFormatted}</strong>. Instant orders are paused, but you can choose <strong>Schedule for Later</strong>!
             </p>
           </div>
         </div>
@@ -115,38 +115,44 @@ export default function Payment() {
         background: '#1e293b',
         color: '#fff',
         padding: '1.25rem',
-        borderRadius: '12px',
-        border: '1.5px solid rgba(255, 199, 44, 0.4)',
-        marginBottom: '1.5rem'
+        borderRadius: '16px',
+        border: '2px solid rgba(255, 199, 44, 0.4)',
+        marginBottom: '1.5rem',
+        boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
       }}>
-        <h3 style={{ margin: '0 0 10px', fontSize: '1.1rem', color: '#FFC72C', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: '1.1rem', color: '#FFC72C', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Clock size={20} /> FULFILLMENT TIMING
         </h3>
 
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {/* Main Primary Option: ORDER NOW */}
           <button
             type="button"
-            disabled={!isOpen}
             onClick={() => setOrderMode('NOW')}
             style={{
-              flex: 1, minWidth: '140px', padding: '10px 14px', borderRadius: '8px',
-              border: orderMode === 'NOW' ? '2px solid #FFC72C' : '1px solid #475569',
+              flex: 1.2, minWidth: '160px', padding: '14px 18px', borderRadius: '10px',
+              border: orderMode === 'NOW' ? '3px solid #FFC72C' : '1px solid #475569',
               background: orderMode === 'NOW' ? '#E8491D' : '#0f172a',
-              color: '#fff', fontWeight: 'bold', cursor: isOpen ? 'pointer' : 'not-allowed',
-              opacity: isOpen ? 1 : 0.4
+              color: '#fff', fontWeight: '800', cursor: 'pointer', fontSize: '1rem',
+              boxShadow: orderMode === 'NOW' ? '0 4px 15px rgba(232, 73, 29, 0.45)' : 'none',
+              transition: 'all 0.2s ease',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
             }}
           >
-            ⚡ Order Now
+            <Zap size={18} fill="#ffffff" /> ORDER NOW (ASAP)
           </button>
 
+          {/* Secondary Option: Schedule for Later */}
           <button
             type="button"
             onClick={() => setOrderMode('SCHEDULED')}
             style={{
-              flex: 1, minWidth: '140px', padding: '10px 14px', borderRadius: '8px',
-              border: orderMode === 'SCHEDULED' ? '2px solid #FFC72C' : '1px solid #475569',
+              flex: 1, minWidth: '140px', padding: '14px 18px', borderRadius: '10px',
+              border: orderMode === 'SCHEDULED' ? '3px solid #FFC72C' : '1px solid #475569',
               background: orderMode === 'SCHEDULED' ? '#0284c7' : '#0f172a',
-              color: '#fff', fontWeight: 'bold', cursor: 'pointer'
+              color: '#fff', fontWeight: '800', cursor: 'pointer', fontSize: '0.95rem',
+              boxShadow: orderMode === 'SCHEDULED' ? '0 4px 15px rgba(2, 132, 199, 0.45)' : 'none',
+              transition: 'all 0.2s ease'
             }}
           >
             📅 Schedule for Later
@@ -162,7 +168,7 @@ export default function Payment() {
               value={scheduledTime}
               onChange={e => setScheduledTime(e.target.value)}
               style={{
-                width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #38bdf8',
+                width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #38bdf8',
                 background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.95rem'
               }}
             >
