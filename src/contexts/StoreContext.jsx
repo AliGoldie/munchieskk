@@ -469,8 +469,7 @@ export function StoreProvider({ children }) {
       let { error: directErr } = await supabase
         .from('orders')
         .update({
-          status: 'CANCELLED',
-          cancel_reason: reason || 'Cancelled'
+          status: 'CANCELLED'
         })
         .eq('id', orderId);
 
