@@ -679,6 +679,16 @@ export function StoreProvider({ children }) {
   const placeOrder = async (paymentMethod = 'Cash') => {
     if (cart.length === 0) return null;
 
+    // Guard: Prevent placing orders if shop is PAUSED or CLOSED
+    if (shopSettings?.status === 'PAUSED') {
+      alert('The shop is currently PAUSED for orders. New orders cannot be accepted at this time.');
+      return null;
+    }
+    if (shopSettings?.status === 'CLOSED') {
+      alert('The shop is currently CLOSED. New orders cannot be accepted at this time.');
+      return null;
+    }
+
     // Calculate deductions as a hash map first
     const stockMap = {};
     cart.forEach(cartItem => {

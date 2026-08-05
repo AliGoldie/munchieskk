@@ -41,6 +41,14 @@ export default function Payment() {
     if (!method) return alert('Please select a payment method.');
     if (method === 'FPX' && !bank) return alert('Please select a bank.');
 
+    if (shopSettings?.status === 'PAUSED') {
+      return alert('The shop is currently PAUSED by the store admin. Orders cannot be placed at this time.');
+    }
+
+    if (shopSettings?.status === 'CLOSED') {
+      return alert('The shop is currently CLOSED. Orders cannot be placed at this time.');
+    }
+
     if (!isOpen && orderMode === 'NOW') {
       return alert('The shop is currently closed or paused for instant orders. Please select "Schedule for Later"!');
     }
@@ -51,8 +59,10 @@ export default function Payment() {
     setIsProcessing(true);
 
     setTimeout(async () => {
-      setIsProcessing(false);
-      setIsSuccess(true);
+      if (shopSettings?.status === 'PAUSED' || shopSettings?.status === 'CLOSED') {
+        setIsProcessing(false);
+        return alert('The shop status changed to PAUSED/CLOSED. Order could not be placed.');
+      }
 
       let paymentDetail = method === 'FPX' ? `FPX (${bank})` : method;
       if (orderMode === 'SCHEDULED') {
@@ -61,7 +71,13 @@ export default function Payment() {
 
       const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null);
 
-      if (orderId) localStorage.setItem('munchies_active_order', orderId);
+      if (!orderId) {
+        setIsProcessing(false);
+        return;
+      }
+
+      setIsSuccess(true);
+      localStorage.setItem('munchies_active_order', orderId);
 
       setTimeout(() => {
         navigate(`/order/${orderId}`);
