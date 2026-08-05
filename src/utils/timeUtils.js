@@ -2,14 +2,31 @@
  * Utility functions for 12-hour time formatting and dynamic operating hour slot generation
  */
 
-// Converts 24h string ("17:00") to 12h AM/PM string ("5:00 PM")
+// Robust helper to parse time strings ("17:00", "05:00 pm", "5:00 PM") into minutes from midnight
+export function parseTimeToMinutes(timeStr, defaultStr = '10:00') {
+  const target = timeStr || defaultStr;
+  if (!target) return 600;
+
+  const str = target.toString().trim().toLowerCase();
+  const isPM = str.includes('pm');
+  const isAM = str.includes('am');
+
+  const parts = str.replace(/[^\d:]/g, '').split(':').map(Number);
+  let h = isNaN(parts[0]) ? 10 : parts[0];
+  let m = isNaN(parts[1]) ? 0 : parts[1];
+
+  if (isPM && h < 12) h += 12;
+  if (isAM && h === 12) h = 0;
+
+  return h * 60 + m;
+}
+
+// Converts time string ("17:00" or "05:00 pm") to 12h AM/PM string ("5:00 PM")
 export function formatTime12Hour(timeStr) {
   if (!timeStr) return '';
-  const [hStr, mStr] = timeStr.split(':');
-  let hours = parseInt(hStr, 10);
-  const minutes = parseInt(mStr || '0', 10);
-
-  if (isNaN(hours)) return timeStr;
+  const totalMins = parseTimeToMinutes(timeStr);
+  let hours = Math.floor(totalMins / 60);
+  const minutes = totalMins % 60;
 
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12;
@@ -21,11 +38,8 @@ export function formatTime12Hour(timeStr) {
 
 // Generates time slots strictly within the configured business hours every 10 minutes
 export function generateOperatingTimeSlots(openingTime = '10:00', closingTime = '22:00') {
-  const [openH, openM] = (openingTime || '10:00').split(':').map(n => parseInt(n, 10) || 0);
-  const [closeH, closeM] = (closingTime || '22:00').split(':').map(n => parseInt(n, 10) || 0);
-
-  const startMins = openH * 60 + openM;
-  let endMins = closeH * 60 + closeM;
+  const startMins = parseTimeToMinutes(openingTime, '10:00');
+  let endMins = parseTimeToMinutes(closingTime, '22:00');
 
   // Handle overnight hours (e.g. 5:00 PM to 2:00 AM)
   if (endMins <= startMins) {

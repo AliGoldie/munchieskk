@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
 import { calculateOrderPoints } from '../utils/pointsCalculator';
+import { parseTimeToMinutes } from '../utils/timeUtils';
 
 const StoreContext = createContext();
 
@@ -23,7 +24,7 @@ export function StoreProvider({ children }) {
   const [cart, setCart] = useState(() => loadState('munchies_cart', []));
   const [pointHistory, setPointHistory] = useState(() => loadState('munchies_pointHistory', []));
 
-  // Shop Settings State (OPEN / PAUSED / CLOSED & Operating Hours)
+  // Shop Settings State (Status: 'OPEN', 'PAUSED', 'CLOSED')
   const [shopSettings, setShopSettings] = useState(() => loadState('munchies_shop_settings', {
     status: 'OPEN',
     openingTime: '10:00',
@@ -55,17 +56,14 @@ export function StoreProvider({ children }) {
   };
 
   const isShopOpenNow = () => {
-    if (shopSettings.status === 'CLOSED' || shopSettings.status === 'PAUSED') {
+    if (shopSettings?.status === 'CLOSED' || shopSettings?.status === 'PAUSED') {
       return false;
     }
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
 
-    const [openH, openM] = (shopSettings.openingTime || '10:00').split(':').map(Number);
-    const [closeH, closeM] = (shopSettings.closingTime || '22:00').split(':').map(Number);
-
-    const openMins = openH * 60 + (openM || 0);
-    const closeMins = closeH * 60 + (closeM || 0);
+    const openMins = parseTimeToMinutes(shopSettings?.openingTime, '10:00');
+    const closeMins = parseTimeToMinutes(shopSettings?.closingTime, '22:00');
 
     if (openMins <= closeMins) {
       return currentMins >= openMins && currentMins <= closeMins;
@@ -129,6 +127,20 @@ export function StoreProvider({ children }) {
 
     // Set up Realtime subscriptions (with duplicate prevention for optimistic updates)
     const channel = supabase.channel('schema-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, payload => {
+        if (payload.new) {
+          const updated = {
+            status: payload.new.status || 'OPEN',
+            openingTime: payload.new.opening_time || '10:00',
+            closingTime: payload.new.closing_time || '22:00',
+            noticeMessage: payload.new.notice_message || ''
+          };
+          setShopSettings(updated);
+          try {
+            localStorage.setItem('munchies_shop_settings', JSON.stringify(updated));
+          } catch (e) {}
+        }
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, payload => {
         if (payload.eventType === 'INSERT') {
           setMenu(prev => prev.some(i => i.id === payload.new.id) ? prev : [...prev, { ...payload.new, inStock: payload.new.in_stock, low_stock_threshold: payload.new.low_stock_threshold ?? 10 }]);
