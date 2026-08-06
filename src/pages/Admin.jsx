@@ -293,18 +293,15 @@ export default function Admin() {
     // KPI Metrics
     let totalGrossSales = 0;
     let totalNetProfit = 0;
-    let channelSales = { walkIn: 0, whatsApp: 0, grabFood: 0 };
+    let channelSales = { web: 0, loyverse: 0 };
     let orderCount = periodOrders.length;
     let previousPeriodOrderCount = 0; // Mock comparison
 
     // Top 10 Sales with Margin Calculation
     const itemStats = {};
     periodOrders.forEach(order => {
-      // Channel mocking based on char code
-      const charCode = (order.id && order.id.charCodeAt(0)) || 0;
-      let channel = 'Walk-in';
-      if (charCode % 3 === 1) channel = 'WhatsApp';
-      if (charCode % 3 === 2) channel = 'GrabFood';
+      const rawChannel = (order.channel || 'web').toLowerCase();
+      const isLoyverse = rawChannel === 'loyverse' || rawChannel === 'pos' || rawChannel === 'walkin' || rawChannel === 'walk-in';
 
       const orderGross = order.total / 100;
       let orderNet = orderGross;
@@ -312,14 +309,11 @@ export default function Admin() {
       // Assume 40% COGS flat
       const cogs = orderGross * 0.40;
       orderNet -= cogs;
-      // Grab commission 30%
-      if (channel === 'GrabFood') {
-        orderNet -= (orderGross * 0.30);
-        channelSales.grabFood += orderGross;
-      } else if (channel === 'WhatsApp') {
-        channelSales.whatsApp += orderGross;
+
+      if (isLoyverse) {
+        channelSales.loyverse += orderGross;
       } else {
-        channelSales.walkIn += orderGross;
+        channelSales.web += orderGross;
       }
 
       totalGrossSales += orderGross;
@@ -331,7 +325,6 @@ export default function Admin() {
         const itemRev = ((item.price || 0) * itemQty) / 100;
         
         let itemNet = itemRev - (itemRev * 0.40); // 40% COGS
-        if (channel === 'GrabFood') itemNet -= (itemRev * 0.30);
 
         itemStats[item.name].quantity += itemQty;
         itemStats[item.name].revenue += itemRev;
@@ -366,7 +359,7 @@ export default function Admin() {
         trendData.push({
           dateStr: d.toISOString().split('T')[0],
           displayDate: d.toLocaleDateString('en-US', { weekday: 'short' }),
-          revenue: 0, walkIn: 0, whatsApp: 0, grabFood: 0, ordersCount: 0
+          revenue: 0, web: 0, loyverse: 0, ordersCount: 0
         });
       }
     } else if (analyticsPeriod === 'monthly') {
@@ -376,7 +369,7 @@ export default function Admin() {
         trendData.push({
           dateStr: `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2, '0')}`,
           displayDate: d.toLocaleDateString('en-US', { month: 'short' }),
-          revenue: 0, walkIn: 0, whatsApp: 0, grabFood: 0, ordersCount: 0
+          revenue: 0, web: 0, loyverse: 0, ordersCount: 0
         });
       }
     } else if (analyticsPeriod === 'yearly') {
@@ -386,7 +379,7 @@ export default function Admin() {
         trendData.push({
           dateStr: `${d.getFullYear()}`,
           displayDate: `${d.getFullYear()}`,
-          revenue: 0, walkIn: 0, whatsApp: 0, grabFood: 0, ordersCount: 0
+          revenue: 0, web: 0, loyverse: 0, ordersCount: 0
         });
       }
     }
@@ -399,7 +392,7 @@ export default function Admin() {
         const dateStr = orderD.toISOString().split('T')[0];
         matchedBucket = trendData.find(d => d.dateStr === dateStr);
         if (selectedDate && !matchedBucket) {
-           matchedBucket = { dateStr, displayDate: dateStr, revenue: 0, walkIn: 0, whatsApp: 0, grabFood: 0, ordersCount: 0 };
+           matchedBucket = { dateStr, displayDate: dateStr, revenue: 0, web: 0, loyverse: 0, ordersCount: 0 };
            trendData.push(matchedBucket);
         }
       } else if (analyticsPeriod === 'monthly') {
@@ -415,10 +408,10 @@ export default function Admin() {
         matchedBucket.revenue += gross;
         matchedBucket.ordersCount += 1;
         
-        const charCode = (order.id && order.id.charCodeAt(0)) || 0;
-        if (charCode % 3 === 1) matchedBucket.whatsApp += gross;
-        else if (charCode % 3 === 2) matchedBucket.grabFood += gross;
-        else matchedBucket.walkIn += gross;
+        const rawChannel = (order.channel || 'web').toLowerCase();
+        const isLoyverse = rawChannel === 'loyverse' || rawChannel === 'pos' || rawChannel === 'walkin' || rawChannel === 'walk-in';
+        if (isLoyverse) matchedBucket.loyverse += gross;
+        else matchedBucket.web += gross;
       }
     });
 
@@ -1307,9 +1300,8 @@ export default function Admin() {
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
                       <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
-                      <Bar dataKey="walkIn" name="Loyverse / Walk-in" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} barSize={40} />
-                      <Bar dataKey="whatsApp" name="WhatsApp Direct" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="grabFood" name="GrabFood" stackId="a" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="web" name="Web App Direct" stackId="a" fill="#E8491D" radius={[0, 0, 0, 0]} barSize={40} />
+                      <Bar dataKey="loyverse" name="Loyverse POS (Walk-in)" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1336,24 +1328,21 @@ export default function Admin() {
                        <PieChart>
                          <Pie 
                            data={[
-                             {name: 'Walk-in', value: channelSales.walkIn},
-                             {name: 'WhatsApp', value: channelSales.whatsApp},
-                             {name: 'GrabFood', value: channelSales.grabFood}
+                             {name: 'Web App Direct', value: channelSales.web},
+                             {name: 'Loyverse POS', value: channelSales.loyverse}
                            ]} 
                            cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value"
                          >
+                           <Cell fill="#E8491D" />
                            <Cell fill="#10b981" />
-                           <Cell fill="#3b82f6" />
-                           <Cell fill="#16a34a" />
                          </Pie>
                          <RechartsTooltip />
                        </PieChart>
                      </ResponsiveContainer>
                    </div>
                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.75rem', color: '#64748b' }}>
-                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#10b981',borderRadius:'50%'}}></div> Walk-in</div>
-                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#3b82f6',borderRadius:'50%'}}></div> WhatsApp</div>
-                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#16a34a',borderRadius:'50%'}}></div> GrabFood</div>
+                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#E8491D',borderRadius:'50%'}}></div> Web App</div>
+                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#10b981',borderRadius:'50%'}}></div> Loyverse POS</div>
                    </div>
                 </div>
               </div>
