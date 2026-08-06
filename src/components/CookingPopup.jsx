@@ -70,7 +70,7 @@ export default function CookingPopup() {
         document.title = originalTitle.current;
       }, 10000);
     }
-    if (order.status === 'COLLECTED') {
+    if (order.status === 'COLLECTED' || order.status === 'CANCELLED') {
       localStorage.removeItem('munchies_active_order');
       setOrderId(null);
       clearInterval(titleFlashRef.current);
@@ -85,7 +85,7 @@ export default function CookingPopup() {
     document.title = originalTitle.current;
   }, []);
 
-  if (!order || dismissed || order.status === 'COLLECTED') return null;
+  if (!order || dismissed || order.status === 'COLLECTED' || order.status === 'CANCELLED') return null;
 
   const cookTime = order.cook_time_seconds || loyaltyConfig.DEFAULT_COOK_TIME_SECONDS;
   const progressPercent = Math.min(100, (timeElapsed / cookTime) * 100);

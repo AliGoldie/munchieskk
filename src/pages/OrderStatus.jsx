@@ -80,6 +80,7 @@ export default function OrderStatus() {
               style={{ background: 'transparent', border: '2px solid #ff5b5b', color: '#ff5b5b', fontWeight: '800', borderRadius: '12px' }}
               onClick={() => {
                 cancelOrder(order.id, "Cancelled by Customer");
+                localStorage.removeItem('munchies_active_order');
                 alert('Your order has been cancelled.');
               }}
             >
@@ -95,7 +96,7 @@ export default function OrderStatus() {
             <h2 style={{color: '#ff5b5b'}}>ORDER CANCELLED</h2>
             <p className="order-id">Order ID: #{order.id.split('-')[0].toUpperCase()}</p>
             <p className="text-muted mt-3">This order has been cancelled.</p>
-            <Link to="/" className="btn btn-dark w-100 mt-4">RETURN TO MENU</Link>
+            <Link to="/" className="btn btn-dark w-100 mt-4" onClick={() => localStorage.removeItem('munchies_active_order')}>RETURN TO MENU</Link>
           </div>
         )}
 
