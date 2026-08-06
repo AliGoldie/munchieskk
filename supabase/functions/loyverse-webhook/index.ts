@@ -7,10 +7,16 @@ const corsHeaders = {
 };
 
 async function verifyLoyverseSignature(rawBody: string, signatureHeader: string | null, secret: string | null): Promise<boolean> {
-  if (!signatureHeader || !secret) {
-    // If no signature header sent or secret not configured, pass through with warning
-    return true;
+  if (!secret) {
+    console.error('[LOYVERSE WEBHOOK ERROR] Secret (LOYVERSE_WEBHOOK_SECRET / LOYVERSE_API_TOKEN) is not configured in environment variables.');
+    return false;
   }
+
+  if (!signatureHeader) {
+    console.error('[LOYVERSE WEBHOOK ERROR] Missing X-Loyverse-Signature header. Rejecting unverified request.');
+    return false;
+  }
+
   try {
     const encoder = new TextEncoder();
     const cleanHeader = signatureHeader.trim();
@@ -41,9 +47,12 @@ async function verifyLoyverseSignature(rawBody: string, signatureHeader: string 
     const hexSha1 = Array.from(new Uint8Array(sigSha1Buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     const base64Sha1 = btoa(String.fromCharCode(...new Uint8Array(sigSha1Buffer)));
 
-    return cleanHeader === hexSha1 || cleanHeader === base64Sha1;
+    if (cleanHeader === hexSha1 || cleanHeader === base64Sha1) return true;
+
+    console.error('[LOYVERSE WEBHOOK ERROR] Signature mismatch. Computed hashes did not match header.');
+    return false;
   } catch (err) {
-    console.error('[LOYVERSE WEBHOOK] Signature error:', err);
+    console.error('[LOYVERSE WEBHOOK ERROR] Signature calculation error:', err);
     return false;
   }
 }
@@ -71,11 +80,10 @@ serve(async (req: Request) => {
     const signatureHeader = req.headers.get('x-loyverse-signature') || req.headers.get('X-Loyverse-Signature');
     const secret = Deno.env.get('LOYVERSE_WEBHOOK_SECRET') || Deno.env.get('LOYVERSE_API_TOKEN') || null;
 
-    // Verify Loyverse webhook signature
+    // Strict Loyverse webhook signature verification (no bypass)
     const isValid = await verifyLoyverseSignature(rawBody, signatureHeader, secret);
     if (!isValid) {
-      console.error('[LOYVERSE WEBHOOK] Invalid signature header received.');
-      return new Response(JSON.stringify({ error: 'Invalid Loyverse signature' }), {
+      return new Response(JSON.stringify({ error: 'Unauthorized: Invalid or missing Loyverse signature' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
