@@ -42,6 +42,7 @@ export default function Admin() {
   const [newCatColor, setNewCatColor] = useState('#ef4444');
   const [editingCat, setEditingCat] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'monthly', 'yearly'
   const [selectedDate, setSelectedDate] = useState(''); // YYYY-MM-DD
   const [menuSearchQuery, setMenuSearchQuery] = useState('');
@@ -728,201 +729,195 @@ export default function Admin() {
 
           {activeTab === 'overview' && (
             <div>
+              {/* Schedule Manager Modal */}
+              {scheduleModalOpen && (
+                <div style={{
+                  position: 'fixed', inset: 0, zIndex: 1000,
+                  background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+                  display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+                  overflowY: 'auto', padding: '2rem 1rem'
+                }} onClick={e => { if (e.target === e.currentTarget) setScheduleModalOpen(false); }}>
+                  <div style={{
+                    background: '#1e293b', borderRadius: '20px', width: '100%', maxWidth: '680px',
+                    border: '2px solid rgba(255,199,44,0.35)', boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+                    overflow: 'hidden', margin: 'auto'
+                  }}>
+                    {/* Modal Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div>
+                        <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>📅 Schedule Manager</h3>
+                        <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: '0.8rem' }}>Set weekly operating hours and block special closure dates</p>
+                      </div>
+                      <button onClick={() => setScheduleModalOpen(false)}
+                        style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: '#94a3b8', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    </div>
 
-              {/* Shop Status & Operating Hours Control Card */}
+                    {/* Modal Body */}
+                    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+
+                      {/* Override Buttons inside Modal */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>⚡ Quick Override</label>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          {[['OPEN','🟢 Open Now','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close Now','#ef4444'],['SCHEDULE','📅 Use Schedule','#6366f1']].map(([s,label,col]) => (
+                            <button key={s} type="button" onClick={() => updateShopSettings({ status: s })}
+                              style={{ flex: 1, minWidth: '110px', padding: '9px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem',
+                                background: shopSettings?.status === s ? col : '#334155', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
+                          ))}
+                        </div>
+                        <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '6px 0 0' }}>
+                          {shopSettings?.status === 'SCHEDULE'
+                            ? '✅ Following weekly schedule — auto open/close by day & time'
+                            : `⚠️ Manual override active (${shopSettings?.status}). Click "Use Schedule" to follow the weekly timetable.`}
+                        </p>
+                      </div>
+
+                      {/* Weekly Schedule Grid */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🗓️ Weekly Schedule</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                            const dayFull = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
+                            const sched = shopSettings?.weeklySchedule?.[day] || { enabled: true, open: '17:00', close: '23:00' };
+                            const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+                            const isToday = day === today;
+                            return (
+                              <div key={day} style={{
+                                display: 'flex', alignItems: 'center', gap: '12px',
+                                background: isToday ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)',
+                                border: isToday ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.07)',
+                                borderRadius: '10px', padding: '10px 14px'
+                              }}>
+                                <div onClick={() => updateShopSettings({ weeklySchedule: { ...shopSettings.weeklySchedule, [day]: { ...sched, enabled: !sched.enabled } } })}
+                                  style={{ width: '40px', height: '22px', borderRadius: '11px', cursor: 'pointer', flexShrink: 0,
+                                    background: sched.enabled ? '#22c55e' : '#475569', position: 'relative', transition: 'background 0.2s' }}>
+                                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
+                                    position: 'absolute', top: '3px', transition: 'left 0.2s', left: sched.enabled ? '21px' : '3px' }} />
+                                </div>
+                                <span style={{ width: '82px', fontWeight: isToday ? '800' : '600', fontSize: '0.875rem', color: isToday ? '#a5b4fc' : '#e2e8f0', flexShrink: 0 }}>
+                                  {dayFull[day]}{isToday ? ' 👈' : ''}
+                                </span>
+                                {sched.enabled ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
+                                    <input type="time" value={sched.open}
+                                      onChange={e => updateShopSettings({ weeklySchedule: { ...shopSettings.weeklySchedule, [day]: { ...sched, open: e.target.value } } })}
+                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
+                                    <span style={{ color: '#64748b', fontSize: '0.8rem' }}>to</span>
+                                    <input type="time" value={sched.close}
+                                      onChange={e => updateShopSettings({ weeklySchedule: { ...shopSettings.weeklySchedule, [day]: { ...sched, close: e.target.value } } })}
+                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
+                                    <span style={{ fontSize: '0.73rem', color: '#64748b' }}>({formatTime12Hour(sched.open)} – {formatTime12Hour(sched.close)})</span>
+                                  </div>
+                                ) : (
+                                  <span style={{ background: '#ef444420', color: '#fca5a5', padding: '3px 10px', borderRadius: '12px', fontSize: '0.73rem', fontWeight: '700' }}>🚫 CLOSED</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Special Closures */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🚨 Special Closures & Holidays</label>
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                          <input type="date" id="closure-date-input" min={new Date().toISOString().split('T')[0]}
+                            style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.875rem' }} />
+                          <input type="text" id="closure-reason-input" placeholder="Reason (e.g. Public Holiday)"
+                            style={{ flex: 1, minWidth: '160px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontSize: '0.875rem' }} />
+                          <button type="button"
+                            onClick={() => {
+                              const dateInput = document.getElementById('closure-date-input');
+                              const reasonInput = document.getElementById('closure-reason-input');
+                              const date = dateInput?.value; const reason = reasonInput?.value?.trim() || 'Closed';
+                              if (!date) return;
+                              const existing = shopSettings?.specialClosures || [];
+                              if (existing.some(c => c.date === date)) return;
+                              updateShopSettings({ specialClosures: [...existing, { date, reason }] });
+                              if (dateInput) dateInput.value = ''; if (reasonInput) reasonInput.value = '';
+                            }}
+                            style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Add</button>
+                        </div>
+                        {(shopSettings?.specialClosures || []).length === 0 ? (
+                          <p style={{ fontSize: '0.8rem', color: '#475569', margin: 0 }}>No special closures scheduled.</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {[...(shopSettings?.specialClosures || [])].sort((a,b) => a.date.localeCompare(b.date)).map((closure, idx) => {
+                              const isPast = closure.date < new Date().toISOString().split('T')[0];
+                              const isToday = closure.date === new Date().toISOString().split('T')[0];
+                              return (
+                                <div key={idx} style={{
+                                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+                                  background: isToday ? 'rgba(239,68,68,0.15)' : isPast ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.08)',
+                                  border: isToday ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.07)',
+                                  borderRadius: '8px', padding: '8px 14px', opacity: isPast ? 0.5 : 1
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span>{isToday ? '🔴' : isPast ? '✅' : '📅'}</span>
+                                    <div>
+                                      <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#f1f5f9' }}>
+                                        {new Date(closure.date + 'T12:00:00').toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
+                                        {isToday && <span style={{ marginLeft: '8px', background: '#ef4444', color: '#fff', fontSize: '0.6rem', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>TODAY</span>}
+                                      </div>
+                                      <div style={{ fontSize: '0.73rem', color: '#94a3b8' }}>{closure.reason}</div>
+                                    </div>
+                                  </div>
+                                  <button type="button"
+                                    onClick={() => updateShopSettings({ specialClosures: (shopSettings?.specialClosures || []).filter(c => c.date !== closure.date) })}
+                                    style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 'bold' }}>✕</button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Shop Status Card — Compact Dashboard Version */}
               <div className="card shop-status-card" style={{
-                background: '#1e293b',
-                color: '#ffffff',
-                padding: '1.5rem',
-                borderRadius: '16px',
-                border: '2px solid rgba(255, 199, 44, 0.4)',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                marginBottom: '1.5rem'
+                background: '#1e293b', color: '#ffffff', padding: '1.25rem 1.5rem',
+                borderRadius: '16px', border: '2px solid rgba(255, 199, 44, 0.4)',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.3)', marginBottom: '1.5rem'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      🏪 Store Status & Business Hours
-                    </h3>
-                    <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.85rem' }}>
-                      Control when users can order. Toggle shop status or set daily operating hours.
+                    <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>🏪 Store Status</h3>
+                    <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: '0.8rem' }}>
+                      {(() => {
+                        const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+                        const sched = shopSettings?.weeklySchedule?.[today];
+                        if (!sched || !sched.enabled) return 'Closed today per weekly schedule';
+                        return `Today: ${formatTime12Hour(sched.open)} – ${formatTime12Hour(sched.close)}`;
+                      })()}
                     </p>
                   </div>
-
-                  {/* Current Live Badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>Live Status:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{
-                      padding: '6px 16px',
-                      borderRadius: '20px',
-                      fontWeight: '800',
-                      fontSize: '0.85rem',
-                      textTransform: 'uppercase',
-                      background: shopSettings?.status === 'OPEN' ? '#16a34a' : shopSettings?.status === 'PAUSED' ? '#ca8a04' : '#dc2626',
-                      color: '#ffffff',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                      padding: '6px 16px', borderRadius: '20px', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase',
+                      background: shopSettings?.status === 'OPEN' ? '#16a34a' : shopSettings?.status === 'PAUSED' ? '#ca8a04' : shopSettings?.status === 'SCHEDULE' ? '#4f46e5' : '#dc2626',
+                      color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                     }}>
-                      {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ PAUSED' : '🔴 CLOSED'}
+                      {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ PAUSED' : shopSettings?.status === 'SCHEDULE' ? '📅 SCHEDULE' : '🔴 CLOSED'}
                     </span>
+                    <button onClick={() => setScheduleModalOpen(true)}
+                      style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: '#FFC72C', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      ⚙️ Manage Schedule
+                    </button>
                   </div>
                 </div>
-
-                <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '1rem 0' }} />
-
+                <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '0 0 1rem' }} />
                 {/* Quick Override Buttons */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>⚡ Quick Override</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button type="button" onClick={() => updateShopSettings({ status: 'OPEN' })}
-                      style={{ flex: 1, padding: '10px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', background: shopSettings?.status === 'OPEN' ? '#22c55e' : '#334155', color: '#fff', transition: 'background 0.2s' }}>
-                      🟢 Open Now
-                    </button>
-                    <button type="button" onClick={() => updateShopSettings({ status: 'PAUSED' })}
-                      style={{ flex: 1, padding: '10px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', background: shopSettings?.status === 'PAUSED' ? '#eab308' : '#334155', color: '#fff', transition: 'background 0.2s' }}>
-                      ⏸️ Pause
-                    </button>
-                    <button type="button" onClick={() => updateShopSettings({ status: 'CLOSED' })}
-                      style={{ flex: 1, padding: '10px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', background: shopSettings?.status === 'CLOSED' ? '#ef4444' : '#334155', color: '#fff', transition: 'background 0.2s' }}>
-                      🔴 Close Now
-                    </button>
-                    <button type="button" onClick={() => updateShopSettings({ status: 'SCHEDULE' })}
-                      style={{ flex: 1, padding: '10px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', background: shopSettings?.status === 'SCHEDULE' ? '#6366f1' : '#334155', color: '#fff', transition: 'background 0.2s' }}>
-                      📅 Use Schedule
-                    </button>
-                  </div>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '6px 0 0' }}>
-                    {shopSettings?.status === 'SCHEDULE'
-                      ? '✅ Following weekly schedule below — auto open/close by day & time'
-                      : `⚠️ Manual override active (${shopSettings?.status}). Click "Use Schedule" to follow the weekly schedule.`}
-                  </p>
-                </div>
-
-                {/* Weekly Schedule Grid */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📅 Weekly Schedule</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
-                      const dayFull = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
-                      const sched = shopSettings?.weeklySchedule?.[day] || { enabled: true, open: '17:00', close: '23:00' };
-                      const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
-                      const isToday = day === today;
-                      return (
-                        <div key={day} style={{
-                          display: 'flex', alignItems: 'center', gap: '12px',
-                          background: isToday ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)',
-                          border: isToday ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.07)',
-                          borderRadius: '10px', padding: '10px 14px'
-                        }}>
-                          {/* Toggle */}
-                          <div
-                            onClick={() => {
-                              const updated = { ...shopSettings.weeklySchedule, [day]: { ...sched, enabled: !sched.enabled } };
-                              updateShopSettings({ weeklySchedule: updated });
-                            }}
-                            style={{
-                              width: '40px', height: '22px', borderRadius: '11px', cursor: 'pointer', flexShrink: 0,
-                              background: sched.enabled ? '#22c55e' : '#475569', position: 'relative', transition: 'background 0.2s'
-                            }}
-                          >
-                            <div style={{
-                              width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
-                              position: 'absolute', top: '3px', transition: 'left 0.2s',
-                              left: sched.enabled ? '21px' : '3px'
-                            }} />
-                          </div>
-                          {/* Day label */}
-                          <span style={{ width: '80px', fontWeight: isToday ? '800' : '600', fontSize: '0.875rem', color: isToday ? '#a5b4fc' : '#e2e8f0', flexShrink: 0 }}>
-                            {dayFull[day]} {isToday ? '(Today)' : ''}
-                          </span>
-                          {/* Time pickers or Closed badge */}
-                          {sched.enabled ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                              <input type="time" value={sched.open}
-                                onChange={e => updateShopSettings({ weeklySchedule: { ...shopSettings.weeklySchedule, [day]: { ...sched, open: e.target.value } } })}
-                                style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
-                              <span style={{ color: '#64748b', fontSize: '0.8rem' }}>to</span>
-                              <input type="time" value={sched.close}
-                                onChange={e => updateShopSettings({ weeklySchedule: { ...shopSettings.weeklySchedule, [day]: { ...sched, close: e.target.value } } })}
-                                style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
-                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                ({formatTime12Hour(sched.open)} – {formatTime12Hour(sched.close)})
-                              </span>
-                            </div>
-                          ) : (
-                            <span style={{ background: '#ef444422', color: '#fca5a5', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700' }}>
-                              🚫 CLOSED
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Special Closures / Holiday Manager */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🚨 Special Closures & Holidays</label>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                    <input type="date" id="closure-date-input"
-                      min={new Date().toISOString().split('T')[0]}
-                      style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.875rem' }} />
-                    <input type="text" id="closure-reason-input" placeholder="Reason (e.g. Public Holiday, Emergency)"
-                      style={{ flex: 1, minWidth: '180px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontSize: '0.875rem' }} />
-                    <button type="button"
-                      onClick={() => {
-                        const dateInput = document.getElementById('closure-date-input');
-                        const reasonInput = document.getElementById('closure-reason-input');
-                        const date = dateInput?.value;
-                        const reason = reasonInput?.value?.trim() || 'Closed';
-                        if (!date) return;
-                        const existing = shopSettings?.specialClosures || [];
-                        if (existing.some(c => c.date === date)) return;
-                        updateShopSettings({ specialClosures: [...existing, { date, reason }] });
-                        if (dateInput) dateInput.value = '';
-                        if (reasonInput) reasonInput.value = '';
-                      }}
-                      style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                      + Add Closure
-                    </button>
-                  </div>
-                  {/* Closure List */}
-                  {(shopSettings?.specialClosures || []).length === 0 ? (
-                    <p style={{ fontSize: '0.8rem', color: '#475569', margin: 0 }}>No special closures scheduled.</p>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {[...(shopSettings?.specialClosures || [])].sort((a, b) => a.date.localeCompare(b.date)).map((closure, idx) => {
-                        const isPast = closure.date < new Date().toISOString().split('T')[0];
-                        const isToday = closure.date === new Date().toISOString().split('T')[0];
-                        return (
-                          <div key={idx} style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                            background: isToday ? 'rgba(239,68,68,0.15)' : isPast ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.08)',
-                            border: isToday ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.07)',
-                            borderRadius: '8px', padding: '8px 14px', opacity: isPast ? 0.5 : 1
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <span style={{ fontSize: '1.1rem' }}>{isToday ? '🔴' : isPast ? '✅' : '📅'}</span>
-                              <div>
-                                <div style={{ fontWeight: '700', fontSize: '0.875rem', color: '#f1f5f9' }}>
-                                  {new Date(closure.date + 'T12:00:00').toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
-                                  {isToday && <span style={{ marginLeft: '8px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>TODAY</span>}
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{closure.reason}</div>
-                              </div>
-                            </div>
-                            <button type="button"
-                              onClick={() => updateShopSettings({ specialClosures: (shopSettings?.specialClosures || []).filter(c => c.date !== closure.date) })}
-                              style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                              ✕ Remove
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[['OPEN','🟢 Open','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close','#ef4444'],['SCHEDULE','📅 Schedule','#6366f1']].map(([s,label,col]) => (
+                    <button key={s} type="button" onClick={() => updateShopSettings({ status: s })}
+                      style={{ flex: 1, padding: '9px 4px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.78rem',
+                        background: shopSettings?.status === s ? col : '#334155', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
+                  ))}
                 </div>
               </div>
-
 
               {/* Top Metrics Row */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
