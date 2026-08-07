@@ -1087,13 +1087,21 @@ export default function Admin() {
                           const hasEvents = dayEvents.length > 0 || isClosed;
 
                           // Tooltip description
-                          let tooltipText = `Click to add event/note for day ${dateNum}`;
+                          const tooltipParts = [];
                           if (isClosed) {
-                            tooltipText = `🚨 CLOSED: ${closure.reason}`;
+                            tooltipParts.push(`🚨 CLOSED: ${closure.reason}`);
                           }
                           if (dayEvents.length > 0) {
-                            tooltipText = dayEvents.map(e => `${e.title}: ${e.description || ''}`).join('\n') + (isClosed ? `\n🚨 CLOSED: ${closure.reason}` : '');
+                            dayEvents.forEach(e => {
+                              tooltipParts.push(`📌 ${e.title}${e.description ? `: ${e.description}` : ''}`);
+                            });
                           }
+                          if (hasOrders) {
+                            tooltipParts.push(`🛒 Orders placed on this day`);
+                          }
+                          const tooltipText = tooltipParts.length > 0 
+                            ? tooltipParts.join('\n') 
+                            : `Click to add event/note for day ${dateNum}`;
 
                           // Background & text color styling
                           let bgColor = 'transparent';
