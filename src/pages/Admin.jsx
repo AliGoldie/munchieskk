@@ -788,7 +788,7 @@ export default function Admin() {
                                 border: isToday ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.07)',
                                 borderRadius: '10px', padding: '10px 14px'
                               }}>
-                                <div onClick={() => updateShopSettings({ weeklySchedule: { ...shopSettings.weeklySchedule, [day]: { ...sched, enabled: !sched.enabled } } })}
+                                <div onClick={() => updateShopSettings(prev => ({ weeklySchedule: { ...prev.weeklySchedule, [day]: { ...(prev.weeklySchedule?.[day] || sched), enabled: !(prev.weeklySchedule?.[day]?.enabled ?? sched.enabled) } } }))}
                                   style={{ width: '40px', height: '22px', borderRadius: '11px', cursor: 'pointer', flexShrink: 0,
                                     background: sched.enabled ? '#22c55e' : '#475569', position: 'relative', transition: 'background 0.2s' }}>
                                   <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
@@ -800,11 +800,11 @@ export default function Admin() {
                                 {sched.enabled ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
                                     <input type="time" value={sched.open}
-                                      onChange={e => updateShopSettings({ weeklySchedule: { ...shopSettings.weeklySchedule, [day]: { ...sched, open: e.target.value } } })}
+                                      onChange={e => { const val = e.target.value; updateShopSettings(prev => ({ weeklySchedule: { ...prev.weeklySchedule, [day]: { ...(prev.weeklySchedule?.[day] || sched), open: val } } })); }}
                                       style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
                                     <span style={{ color: '#64748b', fontSize: '0.8rem' }}>to</span>
                                     <input type="time" value={sched.close}
-                                      onChange={e => updateShopSettings({ weeklySchedule: { ...shopSettings.weeklySchedule, [day]: { ...sched, close: e.target.value } } })}
+                                      onChange={e => { const val = e.target.value; updateShopSettings(prev => ({ weeklySchedule: { ...prev.weeklySchedule, [day]: { ...(prev.weeklySchedule?.[day] || sched), close: val } } })); }}
                                       style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
                                     <span style={{ fontSize: '0.73rem', color: '#64748b' }}>({formatTime12Hour(sched.open)} – {formatTime12Hour(sched.close)})</span>
                                   </div>
@@ -831,9 +831,11 @@ export default function Admin() {
                               const reasonInput = document.getElementById('closure-reason-input');
                               const date = dateInput?.value; const reason = reasonInput?.value?.trim() || 'Closed';
                               if (!date) return;
-                              const existing = shopSettings?.specialClosures || [];
-                              if (existing.some(c => c.date === date)) return;
-                              updateShopSettings({ specialClosures: [...existing, { date, reason }] });
+                              updateShopSettings(prev => {
+                                const existing = prev.specialClosures || [];
+                                if (existing.some(c => c.date === date)) return {};
+                                return { specialClosures: [...existing, { date, reason }] };
+                              });
                               if (dateInput) dateInput.value = ''; if (reasonInput) reasonInput.value = '';
                             }}
                             style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Add</button>
@@ -863,7 +865,7 @@ export default function Admin() {
                                     </div>
                                   </div>
                                   <button type="button"
-                                    onClick={() => updateShopSettings({ specialClosures: (shopSettings?.specialClosures || []).filter(c => c.date !== closure.date) })}
+                                    onClick={() => updateShopSettings(prev => ({ specialClosures: (prev.specialClosures || []).filter(c => c.date !== closure.date) }))}
                                     style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 'bold' }}>✕</button>
                                 </div>
                               );
