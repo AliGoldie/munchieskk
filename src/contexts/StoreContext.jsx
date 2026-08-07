@@ -50,23 +50,35 @@ export function StoreProvider({ children }) {
   useEffect(() => { localStorage.setItem('munchies_shop_settings', JSON.stringify(shopSettings)); }, [shopSettings]);
 
   const updateShopSettings = async (newSettings) => {
-    const updated = { ...shopSettings, ...newSettings };
-    setShopSettings(updated);
-    localStorage.setItem('munchies_shop_settings', JSON.stringify(updated));
+    // Use functional updater so we always merge with the LATEST state,
+    // not a stale closure value (which was overwriting DB with old localStorage data)
+    let fullUpdated;
+    setShopSettings(prev => {
+      fullUpdated = { ...prev, ...newSettings };
+      // Always ensure weeklySchedule has all 7 days (fill missing days from defaults)
+      if (fullUpdated.weeklySchedule) {
+        fullUpdated.weeklySchedule = { ...defaultWeeklySchedule, ...fullUpdated.weeklySchedule };
+      }
+      return fullUpdated;
+    });
 
+    // Persist to localStorage
+    try { localStorage.setItem('munchies_shop_settings', JSON.stringify(fullUpdated)); } catch (e) {}
+
+    // Sync to Supabase
     try {
       await supabase.from('store_settings').upsert({
         id: 'main_store',
-        status: updated.status,
-        opening_time: updated.openingTime,
-        closing_time: updated.closingTime,
-        notice_message: updated.noticeMessage,
-        weekly_schedule: updated.weeklySchedule,
-        special_closures: updated.specialClosures,
+        status: fullUpdated.status,
+        opening_time: fullUpdated.openingTime,
+        closing_time: fullUpdated.closingTime,
+        notice_message: fullUpdated.noticeMessage,
+        weekly_schedule: fullUpdated.weeklySchedule,
+        special_closures: fullUpdated.specialClosures,
         updated_at: new Date().toISOString()
       });
     } catch (e) {
-      console.warn('Could not sync store_settings:', e);
+      console.warn('[StoreContext] Could not sync store_settings:', e);
     }
   };
 
