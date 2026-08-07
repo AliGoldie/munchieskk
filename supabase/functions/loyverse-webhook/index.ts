@@ -8,7 +8,7 @@ const corsHeaders = {
 
 async function verifyLoyverseSignature(rawBody: string, signatureHeader: string | null, secret: string | null): Promise<boolean> {
   if (!secret) {
-    console.error('[LOYVERSE WEBHOOK ERROR] Secret (LOYVERSE_WEBHOOK_SECRET / LOYVERSE_API_TOKEN) is not configured in environment variables.');
+    console.error('[LOYVERSE WEBHOOK ERROR] Secret (LOYVERSE_CLIENT_SECRET / LOYVERSE_WEBHOOK_SECRET) is not configured in environment variables.');
     return false;
   }
 
@@ -35,7 +35,7 @@ async function verifyLoyverseSignature(rawBody: string, signatureHeader: string 
 
     if (cleanHeader === hex256 || cleanHeader === base64256) return true;
 
-    // 2. Try HMAC-SHA1 (Loyverse legacy webhook signature)
+    // 2. Try HMAC-SHA1 (Loyverse webhook signature format)
     const keySha1 = await crypto.subtle.importKey(
       'raw',
       encoder.encode(secret),
@@ -49,7 +49,7 @@ async function verifyLoyverseSignature(rawBody: string, signatureHeader: string 
 
     if (cleanHeader === hexSha1 || cleanHeader === base64Sha1) return true;
 
-    console.error('[LOYVERSE WEBHOOK ERROR] Signature mismatch. Computed hashes did not match header.');
+    console.error('[LOYVERSE WEBHOOK ERROR] Signature mismatch. Header did not match computed hashes.');
     return false;
   } catch (err) {
     console.error('[LOYVERSE WEBHOOK ERROR] Signature calculation error:', err);
@@ -78,12 +78,12 @@ serve(async (req: Request) => {
   try {
     const rawBody = await req.text();
     const signatureHeader = req.headers.get('x-loyverse-signature') || req.headers.get('X-Loyverse-Signature');
-    const secret = Deno.env.get('LOYVERSE_WEBHOOK_SECRET') || Deno.env.get('LOYVERSE_API_TOKEN') || null;
+    const secret = Deno.env.get('LOYVERSE_CLIENT_SECRET') || Deno.env.get('LOYVERSE_WEBHOOK_SECRET') || Deno.env.get('LOYVERSE_API_TOKEN') || null;
 
-    // Strict Loyverse webhook signature verification (no bypass)
+    // Strict Loyverse OAuth signature verification (rejects unverified requests)
     const isValid = await verifyLoyverseSignature(rawBody, signatureHeader, secret);
     if (!isValid) {
-      return new Response(JSON.stringify({ error: 'Unauthorized: Invalid or missing Loyverse signature' }), {
+      return new Response(JSON.stringify({ error: 'Unauthorized: Invalid or missing X-Loyverse-Signature header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
