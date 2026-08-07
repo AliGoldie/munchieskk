@@ -1055,46 +1055,104 @@ export default function Admin() {
                       <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-                      {Array.from({ length: 30 }).map((_, i) => {
-                        const dateNum = i + 1;
-                        const isSelected = selectedCalendarDate.getDate() === dateNum;
-                        const hasOrders = orders.some(o => new Date(o.created_at).getDate() === dateNum && new Date(o.created_at).getMonth() === selectedCalendarDate.getMonth());
-                        const dayDateStr = `${selectedCalendarDate.getFullYear()}-${String(selectedCalendarDate.getMonth() + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
-                        const dayEvents = eventsNotes.filter(e => e.date === dayDateStr);
-                        const hasEvents = dayEvents.length > 0;
+                      {(() => {
+                        const year = selectedCalendarDate.getFullYear();
+                        const month = selectedCalendarDate.getMonth();
+                        const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun, 1 = Mon, ...
+                        const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-                        return (
-                          <div 
-                            key={i} 
-                            onClick={() => {
-                              const d = new Date(selectedCalendarDate);
-                              d.setDate(dateNum);
-                              setSelectedCalendarDate(d);
-                              handleOpenAddEventModal(dayDateStr);
-                            }}
-                            title={hasEvents ? dayEvents.map(e => `${e.title}: ${e.description || ''}`).join('\n') : `Click to add event/note for day ${dateNum}`}
-                            style={{ 
-                              aspectRatio: '1', 
-                              display: 'flex', 
-                              flexDirection: 'column',
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              fontSize: '0.8rem', 
-                              borderRadius: '50%',
-                              cursor: 'pointer',
-                              backgroundColor: isSelected ? '#ef4444' : hasEvents ? 'rgba(255, 199, 44, 0.3)' : hasOrders ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
-                              color: isSelected ? 'white' : hasEvents ? '#d97706' : hasOrders ? '#ef4444' : '#1e293b',
-                              fontWeight: isSelected || hasOrders || hasEvents ? 'bold' : 'normal',
-                              position: 'relative'
-                            }}
-                          >
-                            {dateNum}
-                            {hasEvents && !isSelected && (
-                              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#d97706', marginTop: '1px' }}></span>
-                            )}
-                          </div>
-                        )
-                      })}
+                        const emptyCells = Array.from({ length: firstDayIndex }).map((_, idx) => (
+                          <div key={`empty-${idx}`} />
+                        ));
+
+                        const dayCells = Array.from({ length: daysInMonth }).map((_, i) => {
+                          const dateNum = i + 1;
+                          const isSelected = selectedCalendarDate.getDate() === dateNum;
+                          const dayDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
+                          
+                          // Check for orders
+                          const hasOrders = orders.some(o => {
+                            const oDate = new Date(o.created_at);
+                            return oDate.getDate() === dateNum && 
+                                   oDate.getMonth() === month && 
+                                   oDate.getFullYear() === year;
+                          });
+
+                          // Check for events
+                          const dayEvents = eventsNotes.filter(e => e.date === dayDateStr);
+                          
+                          // Check for special closures / holidays
+                          const closure = (shopSettings?.specialClosures || []).find(c => c.date === dayDateStr);
+                          const isClosed = !!closure;
+                          const hasEvents = dayEvents.length > 0 || isClosed;
+
+                          // Tooltip description
+                          let tooltipText = `Click to add event/note for day ${dateNum}`;
+                          if (isClosed) {
+                            tooltipText = `🚨 CLOSED: ${closure.reason}`;
+                          }
+                          if (dayEvents.length > 0) {
+                            tooltipText = dayEvents.map(e => `${e.title}: ${e.description || ''}`).join('\n') + (isClosed ? `\n🚨 CLOSED: ${closure.reason}` : '');
+                          }
+
+                          // Background & text color styling
+                          let bgColor = 'transparent';
+                          let textColor = '#1e293b';
+                          if (isSelected) {
+                            bgColor = '#ef4444';
+                            textColor = 'white';
+                          } else if (isClosed) {
+                            bgColor = 'rgba(239, 68, 68, 0.2)';
+                            textColor = '#dc2626';
+                          } else if (hasEvents) {
+                            bgColor = 'rgba(255, 199, 44, 0.3)';
+                            textColor = '#d97706';
+                          } else if (hasOrders) {
+                            bgColor = 'rgba(239, 68, 68, 0.1)';
+                            textColor = '#ef4444';
+                          }
+
+                          return (
+                            <div 
+                              key={i} 
+                              onClick={() => {
+                                const d = new Date(selectedCalendarDate);
+                                d.setDate(dateNum);
+                                setSelectedCalendarDate(d);
+                                handleOpenAddEventModal(dayDateStr);
+                              }}
+                              title={tooltipText}
+                              style={{ 
+                                aspectRatio: '1', 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                fontSize: '0.8rem', 
+                                borderRadius: '50%',
+                                cursor: 'pointer',
+                                backgroundColor: bgColor,
+                                color: textColor,
+                                fontWeight: isSelected || hasOrders || hasEvents ? 'bold' : 'normal',
+                                position: 'relative'
+                              }}
+                            >
+                              {dateNum}
+                              {hasEvents && !isSelected && (
+                                <span style={{ 
+                                  width: '4px', 
+                                  height: '4px', 
+                                  borderRadius: '50%', 
+                                  background: isClosed ? '#ef4444' : '#d97706', 
+                                  marginTop: '1px' 
+                                }}></span>
+                              )}
+                            </div>
+                          );
+                        });
+
+                        return [...emptyCells, ...dayCells];
+                      })()}
                     </div>
                   </div>
 
@@ -1171,6 +1229,32 @@ export default function Admin() {
                         </div>
                       ))}
 
+                      {/* Special Closures / Holidays */}
+                      {(shopSettings?.specialClosures || []).map(closure => (
+                        <div
+                          key={`closure-${closure.date}`}
+                          style={{
+                            background: '#450a0a',
+                            borderLeft: '4px solid #dc2626',
+                            padding: '8px 12px',
+                            borderRadius: '8px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 'bold', color: '#fca5a5', fontSize: '0.85rem' }}>🚨 CLOSED: {closure.reason}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 600 }}>{closure.date}</span>
+                              <span style={{
+                                background: '#dc2626',
+                                color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '8px'
+                              }}>
+                                HOLIDAY
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
                       {/* Custom Events & Notes */}
                       {eventsNotes.map(evt => (
                         <div
@@ -1203,7 +1287,7 @@ export default function Admin() {
                         </div>
                       ))}
 
-                      {eventsNotes.length === 0 && activePromosFromMenu.length === 0 && (
+                      {eventsNotes.length === 0 && activePromosFromMenu.length === 0 && (shopSettings?.specialClosures || []).length === 0 && (
                         <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '0.75rem 0' }}>
                           No notes or events listed. Click "+ Add Event" to add one!
                         </div>
