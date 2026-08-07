@@ -120,19 +120,24 @@ export function StoreProvider({ children }) {
     const fetchInitialData = async () => {
       // 0. Fetch Store Settings
       try {
-        const { data: settingsData } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
-        if (settingsData) {
+        const { data: settingsData, error: settingsErr } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
+        if (settingsErr) {
+          console.warn('[StoreContext] Failed to fetch store_settings:', settingsErr.message);
+        } else if (settingsData) {
+          console.log('[StoreContext] Loaded store_settings from DB:', settingsData.status, 'closures:', settingsData.special_closures?.length || 0);
           setShopSettings(prev => ({
             status: settingsData.status || 'OPEN',
             openingTime: settingsData.opening_time || '17:00',
             closingTime: settingsData.closing_time || '23:00',
             noticeMessage: settingsData.notice_message || '',
-            weeklySchedule: settingsData.weekly_schedule || prev.weeklySchedule || defaultWeeklySchedule,
+            weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
             specialClosures: settingsData.special_closures || []
           }));
+        } else {
+          console.warn('[StoreContext] No store_settings row found for main_store');
         }
       } catch (e) {
-        console.warn('Store settings table not created yet, using local settings');
+        console.warn('[StoreContext] store_settings fetch exception:', e);
       }
       // 1. Fetch Menu
       const { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*').order('created_at', { ascending: true });
@@ -177,7 +182,7 @@ export function StoreProvider({ children }) {
               openingTime: payload.new.opening_time || '17:00',
               closingTime: payload.new.closing_time || '23:00',
               noticeMessage: payload.new.notice_message || '',
-              weeklySchedule: payload.new.weekly_schedule || prev.weeklySchedule || defaultWeeklySchedule,
+              weeklySchedule: { ...defaultWeeklySchedule, ...(payload.new.weekly_schedule || {}) },
               specialClosures: payload.new.special_closures || []
             };
             try { localStorage.setItem('munchies_shop_settings', JSON.stringify(updated)); } catch (e) {}
