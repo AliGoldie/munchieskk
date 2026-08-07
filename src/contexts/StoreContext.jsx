@@ -24,12 +24,25 @@ export function StoreProvider({ children }) {
   const [cart, setCart] = useState(() => loadState('munchies_cart', []));
   const [pointHistory, setPointHistory] = useState(() => loadState('munchies_pointHistory', []));
 
+  // Default weekly schedule
+  const defaultWeeklySchedule = {
+    Mon: { enabled: true, open: '17:00', close: '23:00' },
+    Tue: { enabled: true, open: '17:00', close: '23:00' },
+    Wed: { enabled: true, open: '17:00', close: '23:00' },
+    Thu: { enabled: true, open: '17:00', close: '23:00' },
+    Fri: { enabled: true, open: '17:00', close: '23:00' },
+    Sat: { enabled: true, open: '17:00', close: '23:00' },
+    Sun: { enabled: false, open: '17:00', close: '23:00' },
+  };
+
   // Shop Settings State (Status: 'OPEN', 'PAUSED', 'CLOSED')
   const [shopSettings, setShopSettings] = useState(() => loadState('munchies_shop_settings', {
     status: 'OPEN',
-    openingTime: '10:00',
-    closingTime: '22:00',
-    noticeMessage: ''
+    openingTime: '17:00',
+    closingTime: '23:00',
+    noticeMessage: '',
+    weeklySchedule: defaultWeeklySchedule,
+    specialClosures: []
   }));
 
   useEffect(() => { localStorage.setItem('munchies_cart', JSON.stringify(cart)); }, [cart]);
@@ -48,6 +61,8 @@ export function StoreProvider({ children }) {
         opening_time: updated.openingTime,
         closing_time: updated.closingTime,
         notice_message: updated.noticeMessage,
+        weekly_schedule: updated.weeklySchedule,
+        special_closures: updated.specialClosures,
         updated_at: new Date().toISOString()
       });
     } catch (e) {
@@ -56,19 +71,40 @@ export function StoreProvider({ children }) {
   };
 
   const isShopOpenNow = () => {
-    if (shopSettings?.status === 'OPEN') {
-      return true;
-    }
-    if (shopSettings?.status === 'CLOSED' || shopSettings?.status === 'PAUSED') {
-      return false;
-    }
+    // 1. Manual override always wins
+    if (shopSettings?.status === 'OPEN') return true;
+    if (shopSettings?.status === 'CLOSED' || shopSettings?.status === 'PAUSED') return false;
+    // 'SCHEDULE' or any other value → fall through to schedule logic
 
     const now = new Date();
-    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const todayStr = now.toISOString().split('T')[0]; // 'YYYY-MM-DD'
 
+    // 2. Check special closures (holidays/emergency)
+    const specialClosures = shopSettings?.specialClosures || [];
+    if (specialClosures.some(c => c.date === todayStr)) return false;
+
+    // 3. Check weekly schedule for today's day
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const todayKey = dayNames[now.getDay()];
+    const weeklySchedule = shopSettings?.weeklySchedule || {};
+    const todaySchedule = weeklySchedule[todayKey];
+
+    if (todaySchedule) {
+      if (!todaySchedule.enabled) return false;
+      const currentMins = now.getHours() * 60 + now.getMinutes();
+      const openMins = parseTimeToMinutes(todaySchedule.open, '17:00');
+      const closeMins = parseTimeToMinutes(todaySchedule.close, '23:00');
+      if (openMins <= closeMins) {
+        return currentMins >= openMins && currentMins <= closeMins;
+      } else {
+        return currentMins >= openMins || currentMins <= closeMins;
+      }
+    }
+
+    // 4. Fallback to global opening/closing time
+    const currentMins = now.getHours() * 60 + now.getMinutes();
     const openMins = parseTimeToMinutes(shopSettings?.openingTime, '17:00');
     const closeMins = parseTimeToMinutes(shopSettings?.closingTime, '23:00');
-
     if (openMins <= closeMins) {
       return currentMins >= openMins && currentMins <= closeMins;
     } else {
@@ -86,12 +122,14 @@ export function StoreProvider({ children }) {
       try {
         const { data: settingsData } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
         if (settingsData) {
-          setShopSettings({
+          setShopSettings(prev => ({
             status: settingsData.status || 'OPEN',
-            openingTime: settingsData.opening_time || '10:00',
-            closingTime: settingsData.closing_time || '22:00',
-            noticeMessage: settingsData.notice_message || ''
-          });
+            openingTime: settingsData.opening_time || '17:00',
+            closingTime: settingsData.closing_time || '23:00',
+            noticeMessage: settingsData.notice_message || '',
+            weeklySchedule: settingsData.weekly_schedule || prev.weeklySchedule || defaultWeeklySchedule,
+            specialClosures: settingsData.special_closures || []
+          }));
         }
       } catch (e) {
         console.warn('Store settings table not created yet, using local settings');
@@ -133,16 +171,18 @@ export function StoreProvider({ children }) {
     const channel = supabase.channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, payload => {
         if (payload.new) {
-          const updated = {
-            status: payload.new.status || 'OPEN',
-            openingTime: payload.new.opening_time || '10:00',
-            closingTime: payload.new.closing_time || '22:00',
-            noticeMessage: payload.new.notice_message || ''
-          };
-          setShopSettings(updated);
-          try {
-            localStorage.setItem('munchies_shop_settings', JSON.stringify(updated));
-          } catch (e) {}
+          setShopSettings(prev => {
+            const updated = {
+              status: payload.new.status || 'OPEN',
+              openingTime: payload.new.opening_time || '17:00',
+              closingTime: payload.new.closing_time || '23:00',
+              noticeMessage: payload.new.notice_message || '',
+              weeklySchedule: payload.new.weekly_schedule || prev.weeklySchedule || defaultWeeklySchedule,
+              specialClosures: payload.new.special_closures || []
+            };
+            try { localStorage.setItem('munchies_shop_settings', JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, payload => {
