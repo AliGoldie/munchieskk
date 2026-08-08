@@ -54,17 +54,26 @@ export default function Admin() {
     const ws = shopSettings?.weeklySchedule || {};
     Object.keys(ws).forEach(d => { merged[d] = { ...merged[d], ...ws[d] }; });
     setLocalSchedule(merged);
+    localScheduleRef.current = merged;
     setLocalClosures([...(shopSettings?.specialClosures || [])]);
     setScheduleModalOpen(true);
   };
 
+  // Ref for localSchedule so saveScheduleDay can read it synchronously
+  const localScheduleRef = React.useRef(null);
+
   const saveScheduleDay = (day, patch) => {
-    setLocalSchedule(prev => {
-      const updated = { ...prev, [day]: { ...prev[day], ...patch } };
-      // Save this day's change to DB immediately
-      updateShopSettings({ weeklySchedule: updated });
-      return updated;
-    });
+    // Compute new state from latest localScheduleRef (always current, never stale)
+    const current = localScheduleRef.current || {};
+    const dayUpdated = { ...current[day], ...patch };
+    const updated = { ...current, [day]: dayUpdated };
+    localScheduleRef.current = updated;
+    // Update local display state (pure, no side effects inside updater)
+    setLocalSchedule(updated);
+    // Write ONLY this day's change to DB (updateShopSettings reads shopSettingsRef.current, always fresh)
+    updateShopSettings(prev => ({
+      weeklySchedule: { ...(prev.weeklySchedule || {}), [day]: dayUpdated }
+    }));
   };
 
   const saveClosures = (newClosures) => {

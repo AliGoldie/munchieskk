@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
 import { calculateOrderPoints } from '../utils/pointsCalculator';
@@ -45,27 +45,46 @@ export function StoreProvider({ children }) {
     specialClosures: []
   }));
 
+  // Ref always holds the CURRENT value of shopSettings synchronously.
+  // This prevents stale closures: reading shopSettingsRef.current is always up-to-date
+  // even before React re-renders, unlike reading shopSettings from a closure.
+  const shopSettingsRef = useRef(null);
+  useEffect(() => { shopSettingsRef.current = shopSettings; }, [shopSettings]);
+  // Also seed it immediately so it's valid before first render cycle
+  if (shopSettingsRef.current === null) shopSettingsRef.current = loadState('munchies_shop_settings', {
+    status: 'OPEN', openingTime: '17:00', closingTime: '23:00',
+    noticeMessage: '', weeklySchedule: defaultWeeklySchedule, specialClosures: []
+  });
+
   useEffect(() => { localStorage.setItem('munchies_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('munchies_pointHistory', JSON.stringify(pointHistory)); }, [pointHistory]);
   useEffect(() => { localStorage.setItem('munchies_shop_settings', JSON.stringify(shopSettings)); }, [shopSettings]);
 
-  const updateShopSettings = async (newSettings) => {
-    // Use functional updater so we always merge with the LATEST state,
-    // not a stale closure value (which was overwriting DB with old localStorage data)
-    let fullUpdated;
-    setShopSettings(prev => {
-      fullUpdated = { ...prev, ...newSettings };
-      // Always ensure weeklySchedule has all 7 days (fill missing days from defaults)
-      if (fullUpdated.weeklySchedule) {
-        fullUpdated.weeklySchedule = { ...defaultWeeklySchedule, ...fullUpdated.weeklySchedule };
-      }
-      return fullUpdated;
-    });
+  const updateShopSettings = async (newSettingsOrFn) => {
+    // Read CURRENT state synchronously from ref (never stale, even if called rapidly)
+    const current = shopSettingsRef.current;
+    const newSettings = typeof newSettingsOrFn === 'function' ? newSettingsOrFn(current) : newSettingsOrFn;
 
-    // Persist to localStorage
+    // Guard: if updater returned empty (e.g. duplicate-closure guard), skip
+    if (!newSettings || Object.keys(newSettings).length === 0) return;
+
+    // Compute fullUpdated synchronously BEFORE any async or setState call
+    const fullUpdated = { ...current, ...newSettings };
+    if (fullUpdated.weeklySchedule) {
+      // Always ensure all 7 days present (fill missing from defaults)
+      fullUpdated.weeklySchedule = { ...defaultWeeklySchedule, ...fullUpdated.weeklySchedule };
+    }
+
+    // Update ref immediately so rapid consecutive calls always see latest value
+    shopSettingsRef.current = fullUpdated;
+
+    // Update React state (triggers re-render)
+    setShopSettings(fullUpdated);
+
+    // Persist to localStorage synchronously
     try { localStorage.setItem('munchies_shop_settings', JSON.stringify(fullUpdated)); } catch (e) {}
 
-    // Sync to Supabase
+    // Sync to Supabase (fullUpdated is always defined here — no async race)
     try {
       await supabase.from('store_settings').upsert({
         id: 'main_store',
@@ -137,14 +156,16 @@ export function StoreProvider({ children }) {
           console.warn('[StoreContext] Failed to fetch store_settings:', settingsErr.message);
         } else if (settingsData) {
           console.log('[StoreContext] Loaded store_settings from DB:', settingsData.status, 'closures:', settingsData.special_closures?.length || 0);
-          setShopSettings(prev => ({
+          const loaded = {
             status: settingsData.status || 'OPEN',
             openingTime: settingsData.opening_time || '17:00',
             closingTime: settingsData.closing_time || '23:00',
             noticeMessage: settingsData.notice_message || '',
             weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
             specialClosures: settingsData.special_closures || []
-          }));
+          };
+          shopSettingsRef.current = loaded;
+          setShopSettings(loaded);
         } else {
           console.warn('[StoreContext] No store_settings row found for main_store');
         }
@@ -188,18 +209,17 @@ export function StoreProvider({ children }) {
     const channel = supabase.channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, payload => {
         if (payload.new) {
-          setShopSettings(prev => {
-            const updated = {
-              status: payload.new.status || 'OPEN',
-              openingTime: payload.new.opening_time || '17:00',
-              closingTime: payload.new.closing_time || '23:00',
-              noticeMessage: payload.new.notice_message || '',
-              weeklySchedule: { ...defaultWeeklySchedule, ...(payload.new.weekly_schedule || {}) },
-              specialClosures: payload.new.special_closures || []
-            };
-            try { localStorage.setItem('munchies_shop_settings', JSON.stringify(updated)); } catch (e) {}
-            return updated;
-          });
+          const updated = {
+            status: payload.new.status || 'OPEN',
+            openingTime: payload.new.opening_time || '17:00',
+            closingTime: payload.new.closing_time || '23:00',
+            noticeMessage: payload.new.notice_message || '',
+            weeklySchedule: { ...defaultWeeklySchedule, ...(payload.new.weekly_schedule || {}) },
+            specialClosures: payload.new.special_closures || []
+          };
+          try { localStorage.setItem('munchies_shop_settings', JSON.stringify(updated)); } catch (e) {}
+          shopSettingsRef.current = updated;
+          setShopSettings(updated);
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, payload => {
