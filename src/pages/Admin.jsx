@@ -837,7 +837,7 @@ export default function Admin() {
                                     position: 'absolute', top: '3px', transition: 'left 0.2s', left: sched.enabled ? '21px' : '3px' }} />
                                 </div>
                                 <span style={{ width: '82px', fontWeight: isToday ? '800' : '600', fontSize: '0.875rem', color: isToday ? '#a5b4fc' : '#e2e8f0', flexShrink: 0 }}>
-                                  {dayFull[day]}{isToday ? ' 👈' : ''}
+                                  {dayFull[day]}
                                 </span>
                                 {sched.enabled ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
