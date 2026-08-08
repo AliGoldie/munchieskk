@@ -47,6 +47,10 @@ export default function Admin() {
   const [localSchedule, setLocalSchedule] = useState(null);
   const [localClosures, setLocalClosures] = useState(null);
 
+  // Ref for localSchedule so saveScheduleDay can read it synchronously
+  // MUST be declared before openScheduleModal which references it
+  const localScheduleRef = React.useRef(null);
+
   const openScheduleModal = () => {
     // Deep-copy current shopSettings into local draft when opening modal
     const defaultDays = { Mon: { enabled: true, open: '17:00', close: '23:00' }, Tue: { enabled: true, open: '17:00', close: '23:00' }, Wed: { enabled: true, open: '17:00', close: '23:00' }, Thu: { enabled: true, open: '17:00', close: '23:00' }, Fri: { enabled: true, open: '17:00', close: '23:00' }, Sat: { enabled: true, open: '17:00', close: '23:00' }, Sun: { enabled: true, open: '17:00', close: '23:00' } };
@@ -59,8 +63,6 @@ export default function Admin() {
     setScheduleModalOpen(true);
   };
 
-  // Ref for localSchedule so saveScheduleDay can read it synchronously
-  const localScheduleRef = React.useRef(null);
 
   const saveScheduleDay = (day, patch) => {
     // Compute new state from latest localScheduleRef (always current, never stale)
@@ -98,13 +100,6 @@ export default function Admin() {
   
   const [isUploading, setIsUploading] = useState(false);
 
-  if (!user || user.role !== 'admin') {
-    return <Navigate to="/login" replace />;
-  }
-
-  const pendingOrders = orders.filter(o => o.status === 'PENDING');
-  const activeOrders = orders.filter(o => o.status !== 'COLLECTED' && o.status !== 'CANCELLED');
-  
   const [now, setNow] = useState(Date.now());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
 
@@ -151,6 +146,15 @@ export default function Admin() {
       isSystemPromo: true
     }));
   }, [menu]);
+
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/login" replace />;
+  }
+
+  const pendingOrders = orders.filter(o => o.status === 'PENDING');
+  const activeOrders = orders.filter(o => o.status !== 'COLLECTED' && o.status !== 'CANCELLED');
+  
+
 
   const saveEventsNotes = (newEvents) => {
     setEventsNotes(newEvents);
