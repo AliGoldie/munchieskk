@@ -49,7 +49,7 @@ export default function Admin() {
 
   // Ref for localSchedule so saveScheduleDay can read it synchronously
   // MUST be declared before openScheduleModal which references it
-  const localScheduleRef = React.useRef(null);
+  const localScheduleRef = useRef(null);
 
   const openScheduleModal = () => {
     // Deep-copy current shopSettings into local draft when opening modal
