@@ -43,6 +43,34 @@ export default function Admin() {
   const [editingCat, setEditingCat] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  // Local draft state for the schedule modal — avoids stale closure bugs
+  const [localSchedule, setLocalSchedule] = useState(null);
+  const [localClosures, setLocalClosures] = useState(null);
+
+  const openScheduleModal = () => {
+    // Deep-copy current shopSettings into local draft when opening modal
+    const defaultDays = { Mon: { enabled: true, open: '17:00', close: '23:00' }, Tue: { enabled: true, open: '17:00', close: '23:00' }, Wed: { enabled: true, open: '17:00', close: '23:00' }, Thu: { enabled: true, open: '17:00', close: '23:00' }, Fri: { enabled: true, open: '17:00', close: '23:00' }, Sat: { enabled: true, open: '17:00', close: '23:00' }, Sun: { enabled: true, open: '17:00', close: '23:00' } };
+    const merged = { ...defaultDays };
+    const ws = shopSettings?.weeklySchedule || {};
+    Object.keys(ws).forEach(d => { merged[d] = { ...merged[d], ...ws[d] }; });
+    setLocalSchedule(merged);
+    setLocalClosures([...(shopSettings?.specialClosures || [])]);
+    setScheduleModalOpen(true);
+  };
+
+  const saveScheduleDay = (day, patch) => {
+    setLocalSchedule(prev => {
+      const updated = { ...prev, [day]: { ...prev[day], ...patch } };
+      // Save this day's change to DB immediately
+      updateShopSettings({ weeklySchedule: updated });
+      return updated;
+    });
+  };
+
+  const saveClosures = (newClosures) => {
+    setLocalClosures(newClosures);
+    updateShopSettings({ specialClosures: newClosures });
+  };
   const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'monthly', 'yearly'
   const [selectedDate, setSelectedDate] = useState(''); // YYYY-MM-DD
   const [menuSearchQuery, setMenuSearchQuery] = useState('');
@@ -730,7 +758,7 @@ export default function Admin() {
           {activeTab === 'overview' && (
             <div>
               {/* Schedule Manager Modal */}
-              {scheduleModalOpen && (
+              {scheduleModalOpen && localSchedule && (
                 <div style={{
                   position: 'fixed', inset: 0, zIndex: 1000,
                   background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
@@ -778,7 +806,8 @@ export default function Admin() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
                             const dayFull = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
-                            const sched = shopSettings?.weeklySchedule?.[day] || { enabled: true, open: '17:00', close: '23:00' };
+                            // Use LOCAL draft state — fully isolated per day, no stale closures
+                            const sched = localSchedule[day] || { enabled: true, open: '17:00', close: '23:00' };
                             const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
                             const isToday = day === today;
                             return (
@@ -788,7 +817,7 @@ export default function Admin() {
                                 border: isToday ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.07)',
                                 borderRadius: '10px', padding: '10px 14px'
                               }}>
-                                <div onClick={() => updateShopSettings(prev => ({ weeklySchedule: { ...prev.weeklySchedule, [day]: { ...(prev.weeklySchedule?.[day] || sched), enabled: !(prev.weeklySchedule?.[day]?.enabled ?? sched.enabled) } } }))}
+                                <div onClick={() => saveScheduleDay(day, { enabled: !sched.enabled })}
                                   style={{ width: '40px', height: '22px', borderRadius: '11px', cursor: 'pointer', flexShrink: 0,
                                     background: sched.enabled ? '#22c55e' : '#475569', position: 'relative', transition: 'background 0.2s' }}>
                                   <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
@@ -800,11 +829,11 @@ export default function Admin() {
                                 {sched.enabled ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
                                     <input type="time" value={sched.open}
-                                      onChange={e => { const val = e.target.value; updateShopSettings(prev => ({ weeklySchedule: { ...prev.weeklySchedule, [day]: { ...(prev.weeklySchedule?.[day] || sched), open: val } } })); }}
+                                      onChange={e => saveScheduleDay(day, { open: e.target.value })}
                                       style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
                                     <span style={{ color: '#64748b', fontSize: '0.8rem' }}>to</span>
                                     <input type="time" value={sched.close}
-                                      onChange={e => { const val = e.target.value; updateShopSettings(prev => ({ weeklySchedule: { ...prev.weeklySchedule, [day]: { ...(prev.weeklySchedule?.[day] || sched), close: val } } })); }}
+                                      onChange={e => saveScheduleDay(day, { close: e.target.value })}
                                       style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
                                     <span style={{ fontSize: '0.73rem', color: '#64748b' }}>({formatTime12Hour(sched.open)} – {formatTime12Hour(sched.close)})</span>
                                   </div>
@@ -831,24 +860,23 @@ export default function Admin() {
                               const reasonInput = document.getElementById('closure-reason-input');
                               const date = dateInput?.value; const reason = reasonInput?.value?.trim() || 'Closed';
                               if (!date) return;
-                              updateShopSettings(prev => {
-                                const existing = prev.specialClosures || [];
-                                if (existing.some(c => c.date === date)) return {};
-                                return { specialClosures: [...existing, { date, reason }] };
-                              });
+                              const existing = localClosures || [];
+                              if (existing.some(c => c.date === date)) return;
+                              saveClosures([...existing, { date, reason }]);
                               if (dateInput) dateInput.value = ''; if (reasonInput) reasonInput.value = '';
                             }}
                             style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Add</button>
                         </div>
-                        {(shopSettings?.specialClosures || []).length === 0 ? (
+                        {(localClosures || []).length === 0 ? (
                           <p style={{ fontSize: '0.8rem', color: '#475569', margin: 0 }}>No special closures scheduled.</p>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            {[...(shopSettings?.specialClosures || [])].sort((a,b) => a.date.localeCompare(b.date)).map((closure, idx) => {
-                              const isPast = closure.date < new Date().toISOString().split('T')[0];
-                              const isToday = closure.date === new Date().toISOString().split('T')[0];
+                            {[...(localClosures || [])].sort((a,b) => a.date.localeCompare(b.date)).map((closure, idx) => {
+                              const todayStr = new Date().toISOString().split('T')[0];
+                              const isPast = closure.date < todayStr;
+                              const isToday = closure.date === todayStr;
                               return (
-                                <div key={idx} style={{
+                                <div key={closure.date} style={{
                                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
                                   background: isToday ? 'rgba(239,68,68,0.15)' : isPast ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.08)',
                                   border: isToday ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.07)',
@@ -865,7 +893,7 @@ export default function Admin() {
                                     </div>
                                   </div>
                                   <button type="button"
-                                    onClick={() => updateShopSettings(prev => ({ specialClosures: (prev.specialClosures || []).filter(c => c.date !== closure.date) }))}
+                                    onClick={() => saveClosures((localClosures || []).filter(c => c.date !== closure.date))}
                                     style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 'bold' }}>✕</button>
                                 </div>
                               );
@@ -904,7 +932,7 @@ export default function Admin() {
                     }}>
                       {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ PAUSED' : shopSettings?.status === 'SCHEDULE' ? '📅 SCHEDULE' : '🔴 CLOSED'}
                     </span>
-                    <button onClick={() => setScheduleModalOpen(true)}
+                    <button onClick={() => openScheduleModal()}
                       style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: '#FFC72C', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                       ⚙️ Manage Schedule
                     </button>
