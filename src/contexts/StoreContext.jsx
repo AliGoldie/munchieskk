@@ -282,12 +282,17 @@ export function StoreProvider({ children }) {
       try {
         const { data: settingsData } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
         if (settingsData) {
-          setShopSettings({
+          const merged = {
+            ...shopSettingsRef.current,
             status: settingsData.status || 'OPEN',
             openingTime: settingsData.opening_time || '10:00',
             closingTime: settingsData.closing_time || '22:00',
-            noticeMessage: settingsData.notice_message || ''
-          });
+            noticeMessage: settingsData.notice_message || '',
+            weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
+            specialClosures: settingsData.special_closures || []
+          };
+          shopSettingsRef.current = merged;
+          setShopSettings(merged);
         }
       } catch (e) {}
 
