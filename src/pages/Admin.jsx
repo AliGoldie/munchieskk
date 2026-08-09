@@ -83,7 +83,7 @@ export default function Admin() {
     updateShopSettings({ specialClosures: newClosures });
   };
   const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'monthly', 'yearly'
-  const [selectedDate, setSelectedDate] = useState(''); // YYYY-MM-DD
+  const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
   const [menuSearchQuery, setMenuSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   
@@ -102,6 +102,10 @@ export default function Admin() {
 
   const [now, setNow] = useState(Date.now());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
+  
+  // Analytics State Additions
+  const [grabFoodShiftPercent, setGrabFoodShiftPercent] = useState(0);
+  const [topItemsChannelFilter, setTopItemsChannelFilter] = useState('all'); // 'all', 'web', 'loyverse'
 
   // Notes & Upcoming Events State
   const [eventsNotes, setEventsNotes] = useState(() => {
@@ -277,7 +281,8 @@ export default function Admin() {
   todayStart.setHours(0, 0, 0, 0);
   const todaysOrders = orders.filter(o => new Date(o.created_at || now) >= todayStart && o.status !== 'PENDING');
   const todaysRevenue = todaysOrders.reduce((sum, o) => sum + o.total, 0);
-  const lowStockCount = menu.filter(item => (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).length;
+  const lowStockItems = menu.filter(item => (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10));
+  const lowStockCount = lowStockItems.length;
 
   const categorySales = {};
   orders.filter(o => o.status === 'COLLECTED').forEach(order => {
@@ -315,8 +320,8 @@ export default function Admin() {
     
     const nowD = new Date(now);
     let cutoff = new Date(nowD);
-    if (selectedDate) {
-      cutoff = new Date(selectedDate);
+    if (selectedDateRange.start && selectedDateRange.end) {
+      cutoff = new Date(selectedDateRange.start);
     } else {
       if (analyticsPeriod === 'daily') cutoff.setDate(cutoff.getDate() - 7);
       else if (analyticsPeriod === 'monthly') cutoff.setMonth(cutoff.getMonth() - 6);
@@ -326,8 +331,8 @@ export default function Admin() {
     cutoff.setHours(0, 0, 0, 0);
 
     let periodOrders = validOrders.filter(o => new Date(o.created_at || now) >= cutoff);
-    if (selectedDate) {
-      const endOfDay = new Date(cutoff);
+    if (selectedDateRange.start && selectedDateRange.end) {
+      const endOfDay = new Date(selectedDateRange.end);
       endOfDay.setHours(23, 59, 59, 999);
       periodOrders = periodOrders.filter(o => new Date(o.created_at || now) <= endOfDay);
     }
@@ -335,43 +340,54 @@ export default function Admin() {
     // KPI Metrics
     let totalGrossSales = 0;
     let totalNetProfit = 0;
-    let channelSales = { web: 0, loyverse: 0 };
+    let channelSales = { web: 0, loyverse: 0, grabfood: 0 };
     let orderCount = periodOrders.length;
     let previousPeriodOrderCount = 0; // Mock comparison
+
+    // Channel Fees Config
+    const CHANNEL_FEES = { web: 0, loyverse: 0, grabfood: 0.30 };
+    let channelStats = {
+      web: { gross: 0, net: 0, name: 'Web App Direct', color: '#E8491D' },
+      loyverse: { gross: 0, net: 0, name: 'Loyverse / Walk-in', color: '#10b981' },
+      grabfood: { gross: 0, net: 0, name: 'GrabFood', color: '#16a34a' }
+    };
 
     // Top 10 Sales with Margin Calculation
     const itemStats = {};
     periodOrders.forEach(order => {
       const rawChannel = (order.channel || 'web').toLowerCase();
       const isLoyverse = rawChannel === 'loyverse' || rawChannel === 'pos' || rawChannel === 'walkin' || rawChannel === 'walk-in';
+      const isGrab = rawChannel === 'grab' || rawChannel === 'grabfood';
+      const channelKey = isLoyverse ? 'loyverse' : isGrab ? 'grabfood' : 'web';
 
       const orderGross = order.total / 100;
-      let orderNet = orderGross;
       
-      // Assume 40% COGS flat
+      // Assume 40% COGS flat + Platform Fee
       const cogs = orderGross * 0.40;
-      orderNet -= cogs;
+      const platformFee = orderGross * (CHANNEL_FEES[channelKey] || 0);
+      const orderNet = orderGross - cogs - platformFee;
 
-      if (isLoyverse) {
-        channelSales.loyverse += orderGross;
-      } else {
-        channelSales.web += orderGross;
-      }
+      channelStats[channelKey].gross += orderGross;
+      channelStats[channelKey].net += orderNet;
+      channelSales[channelKey] += orderGross;
 
       totalGrossSales += orderGross;
       totalNetProfit += orderNet;
 
-      (order.items || []).forEach(item => {
-        if (!itemStats[item.name]) itemStats[item.name] = { quantity: 0, revenue: 0, netProfit: 0 };
-        const itemQty = item.quantity || 1;
-        const itemRev = ((item.price || 0) * itemQty) / 100;
-        
-        let itemNet = itemRev - (itemRev * 0.40); // 40% COGS
+      // Filter for top items by channel
+      if (topItemsChannelFilter === 'all' || topItemsChannelFilter === channelKey) {
+        (order.items || []).forEach(item => {
+          if (!itemStats[item.name]) itemStats[item.name] = { quantity: 0, revenue: 0, netProfit: 0 };
+          const itemQty = item.quantity || 1;
+          const itemRev = ((item.price || 0) * itemQty) / 100;
+          
+          let itemNet = itemRev - (itemRev * 0.40) - (itemRev * (CHANNEL_FEES[channelKey] || 0));
 
-        itemStats[item.name].quantity += itemQty;
-        itemStats[item.name].revenue += itemRev;
-        itemStats[item.name].netProfit += itemNet;
-      });
+          itemStats[item.name].quantity += itemQty;
+          itemStats[item.name].revenue += itemRev;
+          itemStats[item.name].netProfit += itemNet;
+        });
+      }
     });
     
     const topItemsData = Object.keys(itemStats)
@@ -394,7 +410,19 @@ export default function Admin() {
       
     // Trend Data
     const trendData = [];
-    if (analyticsPeriod === 'daily') {
+    if (selectedDateRange.start && selectedDateRange.end) {
+      const start = new Date(selectedDateRange.start);
+      const end = new Date(selectedDateRange.end);
+      let curr = new Date(start);
+      while (curr <= end) {
+        trendData.push({
+          dateStr: curr.toISOString().split('T')[0],
+          displayDate: curr.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          revenue: 0, web: 0, loyverse: 0, ordersCount: 0
+        });
+        curr.setDate(curr.getDate() + 1);
+      }
+    } else if (analyticsPeriod === 'daily') {
       for (let i = 6; i >= 0; i--) {
         const d = new Date(nowD);
         d.setDate(d.getDate() - i);
@@ -426,14 +454,23 @@ export default function Admin() {
       }
     }
     
+    const hourlyTrendData = Array.from({ length: 24 }, (_, i) => ({
+      hour: i,
+      displayHour: i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`,
+      ordersCount: 0,
+      web: 0,
+      loyverse: 0,
+      grabfood: 0
+    }));
+
     periodOrders.forEach(order => {
       const orderD = new Date(order.created_at || now);
       let matchedBucket = null;
 
-      if (analyticsPeriod === 'daily' || selectedDate) {
+      if ((selectedDateRange.start && selectedDateRange.end) || analyticsPeriod === 'daily') {
         const dateStr = orderD.toISOString().split('T')[0];
         matchedBucket = trendData.find(d => d.dateStr === dateStr);
-        if (selectedDate && !matchedBucket) {
+        if ((selectedDateRange.start && selectedDateRange.end) && !matchedBucket) {
            matchedBucket = { dateStr, displayDate: dateStr, revenue: 0, web: 0, loyverse: 0, ordersCount: 0 };
            trendData.push(matchedBucket);
         }
@@ -452,9 +489,24 @@ export default function Admin() {
         
         const rawChannel = (order.channel || 'web').toLowerCase();
         const isLoyverse = rawChannel === 'loyverse' || rawChannel === 'pos' || rawChannel === 'walkin' || rawChannel === 'walk-in';
+        const isGrab = rawChannel === 'grab' || rawChannel === 'grabfood';
+        
         if (isLoyverse) matchedBucket.loyverse += gross;
+        else if (isGrab) matchedBucket.grabfood = (matchedBucket.grabfood || 0) + gross;
         else matchedBucket.web += gross;
       }
+
+      // Populate hourly trend
+      const hour = orderD.getHours();
+      hourlyTrendData[hour].ordersCount += 1;
+      const gross = order.total / 100;
+      const rawChannel = (order.channel || 'web').toLowerCase();
+      const isLoyverse = rawChannel === 'loyverse' || rawChannel === 'pos' || rawChannel === 'walkin' || rawChannel === 'walk-in';
+      const isGrab = rawChannel === 'grab' || rawChannel === 'grabfood';
+      
+      if (isLoyverse) hourlyTrendData[hour].loyverse += gross;
+      else if (isGrab) hourlyTrendData[hour].grabfood += gross;
+      else hourlyTrendData[hour].web += gross;
     });
 
     const netMarginPercent = totalGrossSales > 0 ? (totalNetProfit / totalGrossSales) * 100 : 0;
@@ -462,12 +514,15 @@ export default function Admin() {
     return { 
       topItemsData, 
       trendData, 
+      hourlyTrendData, 
       kpi: { totalGrossSales, totalNetProfit, netMarginPercent, orderCount, previousPeriodOrderCount },
-      channelSales
+      channelSales,
+      channelStats,
+      CHANNEL_FEES
     };
   };
 
-  const { topItemsData, trendData, kpi, channelSales } = processAnalyticsData();
+  const { topItemsData, trendData, hourlyTrendData, kpi, channelSales, channelStats, CHANNEL_FEES } = processAnalyticsData();
 
   const customerInsights = useMemo(() => {
     // Only consider pickup orders
@@ -1437,17 +1492,31 @@ export default function Admin() {
               <h3 style={{ margin: 0, fontSize: '1.5rem' }}>Analytics & Intelligence</h3>
               
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar size={16} className="text-muted" />
+                {/* Custom Date Range Picker */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+                  <Calendar size={16} className="text-muted" style={{ marginLeft: '4px' }} />
                   <input 
                     type="date" 
                     className="price-input" 
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    style={{ padding: '4px 8px', fontSize: '0.875rem' }}
+                    value={selectedDateRange.start}
+                    onChange={(e) => setSelectedDateRange(prev => ({ ...prev, start: e.target.value }))}
+                    style={{ padding: '4px 8px', fontSize: '0.75rem', border: 'none', background: 'transparent' }}
                   />
-                  {selectedDate && (
-                    <button className="btn btn-sm btn-secondary" onClick={() => setSelectedDate('')}>Clear</button>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem' }}>to</span>
+                  <input 
+                    type="date" 
+                    className="price-input" 
+                    value={selectedDateRange.end}
+                    onChange={(e) => setSelectedDateRange(prev => ({ ...prev, end: e.target.value }))}
+                    style={{ padding: '4px 8px', fontSize: '0.75rem', border: 'none', background: 'transparent' }}
+                  />
+                  {(selectedDateRange.start || selectedDateRange.end) && (
+                    <button 
+                      onClick={() => setSelectedDateRange({ start: '', end: '' })}
+                      style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', background: '#e2e8f0', color: '#64748b', fontSize: '0.75rem', cursor: 'pointer' }}
+                    >
+                      Clear
+                    </button>
                   )}
                 </div>
                 {/* Period Toggle */}
@@ -1455,14 +1524,17 @@ export default function Admin() {
                   {['daily', 'monthly', 'yearly'].map(period => (
                     <button 
                       key={period}
-                      onClick={() => setAnalyticsPeriod(period)}
+                      onClick={() => {
+                        setAnalyticsPeriod(period);
+                        setSelectedDateRange({ start: '', end: '' }); // Clear range when using quick toggles
+                      }}
                       style={{
                         padding: '6px 16px', borderRadius: '6px', border: 'none',
-                        background: analyticsPeriod === period ? '#fff' : 'transparent',
-                        color: analyticsPeriod === period ? '#0f172a' : '#64748b',
-                        fontWeight: analyticsPeriod === period ? '600' : '500',
+                        background: analyticsPeriod === period && !selectedDateRange.start ? '#fff' : 'transparent',
+                        color: analyticsPeriod === period && !selectedDateRange.start ? '#0f172a' : '#64748b',
+                        fontWeight: analyticsPeriod === period && !selectedDateRange.start ? '600' : '500',
                         fontSize: '0.875rem', cursor: 'pointer',
-                        boxShadow: analyticsPeriod === period ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        boxShadow: analyticsPeriod === period && !selectedDateRange.start ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                         transition: 'all 0.2s', textTransform: 'capitalize'
                       }}
                     >
@@ -1489,10 +1561,25 @@ export default function Admin() {
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981' }}>RM {kpi.totalNetProfit.toFixed(2)}</div>
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Net Margin: <span style={{fontWeight: 700}}>{kpi.netMarginPercent.toFixed(1)}%</span></div>
               </div>
-              <div className="admin-card hover-bg-slate" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: 'pointer' }} onClick={() => setActiveTab('inventory')}>
+              <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>Inventory Alert</div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, color: lowStockCount > 0 ? '#ef4444' : '#0f172a' }}>{lowStockCount}</div>
-                <div style={{ fontSize: '0.75rem', color: '#3b82f6', textDecoration: 'underline' }}>View Menu CRM</div>
+                
+                {lowStockCount > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                    {lowStockItems.slice(0, 3).map(item => (
+                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>{item.name}</span>
+                        <span style={{ fontWeight: 600, color: '#ef4444' }}>{item.stock_quantity} left</span>
+                      </div>
+                    ))}
+                    {lowStockCount > 3 && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>+{lowStockCount - 3} more...</div>}
+                  </div>
+                )}
+                
+                <div style={{ fontSize: '0.75rem', color: '#3b82f6', textDecoration: 'underline', marginTop: 'auto', cursor: 'pointer' }} onClick={() => setActiveTab('inventory')}>
+                  Manage Inventory
+                </div>
               </div>
             </div>
 
@@ -1561,11 +1648,55 @@ export default function Admin() {
               </div>
             </div>
 
+            {/* Row 2.5: Peak Hours Breakdown */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '1.5rem', marginTop: '1.5rem' }}>
+              <div className="admin-card" style={{ padding: '1.5rem' }}>
+                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Peak Hours Breakdown</h4>
+                <div style={{ height: '300px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={hourlyTrendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="displayHour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
+                      <RechartsTooltip 
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
+                      <Bar dataKey="web" name="Web App Direct" stackId="a" fill="#E8491D" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="grabfood" name="GrabFood" stackId="a" fill="#16a34a" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="loyverse" name="Loyverse / Walk-in" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
             {/* Row 3: Bottom Intelligence Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
               
               <div className="admin-card" style={{ gridColumn: 'span 2', padding: '1.5rem' }}>
-                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
+                  <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '3px' }}>
+                    {['all', 'web', 'loyverse'].map(filter => (
+                      <button 
+                        key={filter}
+                        onClick={() => setTopItemsChannelFilter(filter)}
+                        style={{
+                          padding: '4px 12px', borderRadius: '4px', border: 'none',
+                          background: topItemsChannelFilter === filter ? '#fff' : 'transparent',
+                          color: topItemsChannelFilter === filter ? '#0f172a' : '#64748b',
+                          fontWeight: topItemsChannelFilter === filter ? '600' : '500',
+                          fontSize: '0.75rem', cursor: 'pointer', textTransform: 'capitalize',
+                          boxShadow: topItemsChannelFilter === filter ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                        }}
+                      >
+                        {filter}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', fontWeight: 700, fontSize: '0.8rem', color: '#64748b', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem', textTransform: 'uppercase' }}>
                     <div style={{ flex: 3 }}>Item Name</div>
@@ -1591,18 +1722,68 @@ export default function Admin() {
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                 <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Channel Net Margin Breakdown</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, justifyContent: 'center' }}>
-                  <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', borderLeft: '4px solid #10b981' }}>
-                    <div style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600, marginBottom: '0.25rem' }}>Loyverse / Walk-in</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#14532d' }}>60.0% <span style={{fontSize:'0.75rem', fontWeight:400}}>(No Platform Fee)</span></div>
+                  {Object.entries(channelStats).map(([key, stat]) => {
+                    if (stat.gross === 0) return null; // Don't show fabricated data for empty channels
+                    const computedMargin = stat.gross > 0 ? ((stat.net / stat.gross) * 100).toFixed(1) : 0;
+                    const feePercent = (CHANNEL_FEES[key] * 100).toFixed(0);
+                    return (
+                      <div key={key} style={{ padding: '1rem', backgroundColor: `${stat.color}10`, borderRadius: '8px', borderLeft: `4px solid ${stat.color}` }}>
+                        <div style={{ fontSize: '0.85rem', color: stat.color, fontWeight: 600, marginBottom: '0.25rem' }}>{stat.name}</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+                          {computedMargin}% 
+                          <span style={{fontSize:'0.75rem', fontWeight:400, marginLeft: '6px', color: '#64748b'}}>
+                            ({feePercent}% Platform Fee)
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {Object.values(channelStats).every(stat => stat.gross === 0) && (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>No channel data yet</div>
+                  )}
+                </div>
+              </div>
+
+              {/* What-If GrabFood Projection */}
+              <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', background: 'linear-gradient(to bottom right, #f0fdf4, #ffffff)', border: '1px solid #bbf7d0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                  <h4 style={{ margin: 0, color: '#166534', fontSize: '1.125rem' }}>GrabFood Projection 📊</h4>
+                  <span style={{ fontSize: '0.65rem', backgroundColor: '#dcfce3', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>ESTIMATE</span>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>Shift {grabFoodShiftPercent}% Volume to Grab</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="100" 
+                      step="5"
+                      value={grabFoodShiftPercent}
+                      onChange={(e) => setGrabFoodShiftPercent(Number(e.target.value))}
+                      style={{ width: '100%', cursor: 'pointer', accentColor: '#16a34a' }}
+                    />
                   </div>
-                  <div style={{ padding: '1rem', backgroundColor: '#eff6ff', borderRadius: '8px', borderLeft: '4px solid #3b82f6' }}>
-                    <div style={{ fontSize: '0.85rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.25rem' }}>WhatsApp Direct</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e3a8a' }}>60.0% <span style={{fontSize:'0.75rem', fontWeight:400}}>(No Platform Fee)</span></div>
-                  </div>
-                  <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid #16a34a' }}>
-                    <div style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 600, marginBottom: '0.25rem' }}>GrabFood</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>30.0% <span style={{fontSize:'0.75rem', fontWeight:400}}>(30% Grab Commission)</span></div>
-                  </div>
+                  
+                  {(() => {
+                    const shiftAmount = kpi.totalGrossSales * (grabFoodShiftPercent / 100);
+                    const originalNet = shiftAmount - (shiftAmount * 0.40); // 40% COGS
+                    const grabNet = shiftAmount - (shiftAmount * 0.40) - (shiftAmount * CHANNEL_FEES.grabfood);
+                    const profitDifference = grabNet - originalNet;
+                    
+                    return (
+                      <div style={{ padding: '1rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px dashed #bbf7d0' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '4px' }}>Projected Net Profit Change</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: profitDifference < 0 ? '#ef4444' : (profitDifference > 0 ? '#10b981' : '#0f172a') }}>
+                          {profitDifference < 0 ? '-' : '+'}RM {Math.abs(profitDifference).toFixed(2)}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
+                          Assuming {grabFoodShiftPercent}% (RM {shiftAmount.toFixed(2)}) is shifted from Walk-in/Web to GrabFood ({(CHANNEL_FEES.grabfood * 100).toFixed(0)}% fee).
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
