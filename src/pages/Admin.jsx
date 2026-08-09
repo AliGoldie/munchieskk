@@ -1648,32 +1648,9 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Row 2.5: Peak Hours Breakdown */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '1.5rem', marginTop: '1.5rem' }}>
-              <div className="admin-card" style={{ padding: '1.5rem' }}>
-                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Peak Hours Breakdown</h4>
-                <div style={{ height: '300px' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={hourlyTrendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="displayHour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
-                      <RechartsTooltip 
-                        cursor={{ fill: '#f8fafc' }}
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      />
-                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
-                      <Bar dataKey="web" name="Web App Direct" stackId="a" fill="#E8491D" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="grabfood" name="GrabFood" stackId="a" fill="#16a34a" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="loyverse" name="Loyverse / Walk-in" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
 
             {/* Row 3: Bottom Intelligence Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
               
               <div className="admin-card" style={{ gridColumn: 'span 2', padding: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -1719,20 +1696,20 @@ export default function Admin() {
                 </div>
               </div>
 
-              <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Channel Net Margin Breakdown</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, justifyContent: 'center' }}>
+              <div className="admin-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column' }}>
+                <h4 style={{ margin: 0, marginBottom: '1rem', color: '#0f172a', fontSize: '1.125rem' }}>Channel Net Margin Breakdown</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, justifyContent: 'center' }}>
                   {Object.entries(channelStats).map(([key, stat]) => {
                     if (stat.gross === 0) return null; // Don't show fabricated data for empty channels
                     const computedMargin = stat.gross > 0 ? ((stat.net / stat.gross) * 100).toFixed(1) : 0;
                     const feePercent = (CHANNEL_FEES[key] * 100).toFixed(0);
                     return (
-                      <div key={key} style={{ padding: '1rem', backgroundColor: `${stat.color}10`, borderRadius: '8px', borderLeft: `4px solid ${stat.color}` }}>
+                      <div key={key} style={{ padding: '0.75rem', backgroundColor: `${stat.color}10`, borderRadius: '8px', borderLeft: `4px solid ${stat.color}` }}>
                         <div style={{ fontSize: '0.85rem', color: stat.color, fontWeight: 600, marginBottom: '0.25rem' }}>{stat.name}</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
                           {computedMargin}% 
-                          <span style={{fontSize:'0.75rem', fontWeight:400, marginLeft: '6px', color: '#64748b'}}>
-                            ({feePercent}% Platform Fee)
+                          <span style={{fontSize:'0.7rem', fontWeight:400, marginLeft: '6px', color: '#64748b'}}>
+                            ({feePercent}% Fee)
                           </span>
                         </div>
                       </div>
@@ -1745,13 +1722,13 @@ export default function Admin() {
               </div>
 
               {/* What-If GrabFood Projection */}
-              <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', background: 'linear-gradient(to bottom right, #f0fdf4, #ffffff)', border: '1px solid #bbf7d0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+              <div className="admin-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', background: 'linear-gradient(to bottom right, #f0fdf4, #ffffff)', border: '1px solid #bbf7d0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                   <h4 style={{ margin: 0, color: '#166534', fontSize: '1.125rem' }}>GrabFood Projection 📊</h4>
                   <span style={{ fontSize: '0.65rem', backgroundColor: '#dcfce3', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>ESTIMATE</span>
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <span style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>Shift {grabFoodShiftPercent}% Volume to Grab</span>
                     </div>
@@ -1759,7 +1736,7 @@ export default function Admin() {
                       type="range" 
                       min="0" 
                       max="100" 
-                      step="5"
+                      step="1"
                       value={grabFoodShiftPercent}
                       onChange={(e) => setGrabFoodShiftPercent(Number(e.target.value))}
                       style={{ width: '100%', cursor: 'pointer', accentColor: '#16a34a' }}
@@ -1773,9 +1750,9 @@ export default function Admin() {
                     const profitDifference = grabNet - originalNet;
                     
                     return (
-                      <div style={{ padding: '1rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px dashed #bbf7d0' }}>
+                      <div style={{ padding: '0.75rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px dashed #bbf7d0' }}>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '4px' }}>Projected Net Profit Change</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: profitDifference < 0 ? '#ef4444' : (profitDifference > 0 ? '#10b981' : '#0f172a') }}>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: profitDifference < 0 ? '#ef4444' : (profitDifference > 0 ? '#10b981' : '#0f172a') }}>
                           {profitDifference < 0 ? '-' : '+'}RM {Math.abs(profitDifference).toFixed(2)}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
@@ -1787,6 +1764,30 @@ export default function Admin() {
                 </div>
               </div>
 
+            </div>
+            
+            {/* Row 4: Peak Hours Breakdown */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '1.5rem', marginTop: '1.5rem' }}>
+              <div className="admin-card" style={{ padding: '1.5rem' }}>
+                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Peak Hours Breakdown</h4>
+                <div style={{ height: '300px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={hourlyTrendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="displayHour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
+                      <RechartsTooltip 
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
+                      <Bar dataKey="web" name="Web App Direct" stackId="a" fill="#E8491D" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="grabfood" name="GrabFood" stackId="a" fill="#16a34a" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="loyverse" name="Loyverse / Walk-in" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
           </div>
           )}
