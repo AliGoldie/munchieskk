@@ -102,22 +102,25 @@ export function StoreProvider({ children }) {
   };
 
   const isShopOpenNow = () => {
+    // ALWAYS read from ref to avoid stale closures in components that consume this function
+    const settings = shopSettingsRef.current || shopSettings;
+
     // 1. Manual override always wins
-    if (shopSettings?.status === 'OPEN') return true;
-    if (shopSettings?.status === 'CLOSED' || shopSettings?.status === 'PAUSED') return false;
+    if (settings?.status === 'OPEN') return true;
+    if (settings?.status === 'CLOSED' || settings?.status === 'PAUSED') return false;
     // 'SCHEDULE' or any other value → fall through to schedule logic
 
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0]; // 'YYYY-MM-DD'
 
     // 2. Check special closures (holidays/emergency)
-    const specialClosures = shopSettings?.specialClosures || [];
+    const specialClosures = settings?.specialClosures || [];
     if (specialClosures.some(c => c.date === todayStr)) return false;
 
     // 3. Check weekly schedule for today's day
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const todayKey = dayNames[now.getDay()];
-    const weeklySchedule = shopSettings?.weeklySchedule || {};
+    const weeklySchedule = settings?.weeklySchedule || {};
     const todaySchedule = weeklySchedule[todayKey];
 
     if (todaySchedule) {
@@ -134,8 +137,8 @@ export function StoreProvider({ children }) {
 
     // 4. Fallback to global opening/closing time
     const currentMins = now.getHours() * 60 + now.getMinutes();
-    const openMins = parseTimeToMinutes(shopSettings?.openingTime, '17:00');
-    const closeMins = parseTimeToMinutes(shopSettings?.closingTime, '23:00');
+    const openMins = parseTimeToMinutes(settings?.openingTime, '17:00');
+    const closeMins = parseTimeToMinutes(settings?.closingTime, '23:00');
     if (openMins <= closeMins) {
       return currentMins >= openMins && currentMins <= closeMins;
     } else {
