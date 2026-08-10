@@ -21,12 +21,7 @@ export function StoreProvider({ children }) {
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : defaultVal;
   };
-  const [cart, setCart] = useState(() => {
-    const saved = loadState('munchies_cart', []);
-    // Filter out old mock items (like id: "2") that are not valid UUIDs
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return saved.filter(item => typeof item.id === 'string' && uuidRegex.test(item.id));
-  });
+  const [cart, setCart] = useState(() => loadState('munchies_cart', []));
   const [pointHistory, setPointHistory] = useState(() => loadState('munchies_pointHistory', []));
 
   // Default weekly schedule
