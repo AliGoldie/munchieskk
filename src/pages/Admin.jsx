@@ -267,6 +267,12 @@ export default function Admin() {
     fetchMarketingData();
   };
 
+  const deletePromoCode = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this promo code? This cannot be undone.')) return;
+    await supabase.from('promo_codes').delete().eq('id', id);
+    fetchMarketingData();
+  };
+
   const saveEventsNotes = (newEvents) => {
     setEventsNotes(newEvents);
     localStorage.setItem('munchies_admin_events_notes', JSON.stringify(newEvents));
@@ -2861,13 +2867,22 @@ export default function Admin() {
                             <div className="text-sm" style={{ color: '#ef4444' }}>Saved: RM {((promo.totalDiscountGiven || 0) / 100).toFixed(2)}</div>
                           </td>
                           <td>
-                            <button 
-                              className={`btn btn-sm ${promo.active ? 'btn-secondary' : 'btn-outline'}`} 
-                              onClick={() => togglePromoCodeActive(promo.id, promo.active)}
-                              style={{ width: '80px', padding: '4px', fontSize: '0.75rem' }}
-                            >
-                              {promo.active ? 'Active' : 'Inactive'}
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button 
+                                className={`btn btn-sm ${promo.active ? 'btn-secondary' : 'btn-outline'}`} 
+                                onClick={() => togglePromoCodeActive(promo.id, promo.active)}
+                                style={{ width: '80px', padding: '4px', fontSize: '0.75rem' }}
+                              >
+                                {promo.active ? 'Active' : 'Inactive'}
+                              </button>
+                              <button 
+                                onClick={() => deletePromoCode(promo.id)}
+                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '4px', color: '#ef4444' }}
+                                title="Delete Promo Code"
+                              >
+                                🗑️
+                              </button>
+                            </div>
                           </td>
                           <td className="text-muted text-xs">
                             {new Date(promo.created_at).toLocaleDateString()}
