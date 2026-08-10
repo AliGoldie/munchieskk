@@ -1471,7 +1471,7 @@ export default function Admin() {
                                </div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>RM {(item.revenue / 100).toFixed(2)}</div>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>RM {item.revenue.toFixed(2)}</div>
                             </div>
                          </div>
                        ))}
