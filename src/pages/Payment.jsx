@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTime12Hour, generateOperatingTimeSlots } from '../utils/timeUtils';
-import { validateAndApplyPromo } from '../utils/promoUtils';
+import { supabase } from '../config/supabase';
 import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Clock, AlertTriangle, Zap, Tag } from 'lucide-react';
 import './Payment.css';
 
@@ -23,6 +23,8 @@ export default function Payment() {
   const [promoStatus, setPromoStatus] = useState({ state: 'idle', message: '' }); // idle | checking | valid | invalid
   const [appliedPromoCode, setAppliedPromoCode] = useState(null);
   const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoFreeItemName, setPromoFreeItemName] = useState(null);
+  const [promoFreeItemId, setPromoFreeItemId] = useState(null);
 
   const finalTotal = Math.max(0, cartTotal - promoDiscount);
 
@@ -77,7 +79,7 @@ export default function Payment() {
         paymentDetail += ` [Scheduled for ${scheduledDisplayTime}]`;
       }
 
-      const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null, appliedPromoCode, promoDiscount);
+      const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null, appliedPromoCode, promoDiscount, promoFreeItemId, promoFreeItemName);
 
       if (!orderId) {
         setIsProcessing(false);
@@ -308,15 +310,35 @@ export default function Payment() {
                 onClick={async () => {
                   if (!promoCodeInput) return;
                   setPromoStatus({ state: 'checking', message: '' });
-                  const result = await validateAndApplyPromo(promoCodeInput, cartTotal);
-                  if (result.valid) {
-                    setPromoStatus({ state: 'valid', message: result.message });
-                    setAppliedPromoCode(result.code);
-                    setPromoDiscount(result.discountCents);
-                  } else {
-                    setPromoStatus({ state: 'invalid', message: result.message });
+                  
+                  const { data, error } = await supabase.rpc('validate_and_apply_promo', {
+                    p_code: promoCodeInput,
+                    p_order_total: cartTotal,
+                    p_user_id: user?.id || null,
+                    p_cart_items: cart
+                  });
+                  
+                  if (error || !data) {
+                    setPromoStatus({ state: 'invalid', message: error?.message || 'Error checking promo code.' });
                     setAppliedPromoCode(null);
                     setPromoDiscount(0);
+                    setPromoFreeItemName(null);
+                    setPromoFreeItemId(null);
+                    return;
+                  }
+
+                  if (data.valid) {
+                    setPromoStatus({ state: 'valid', message: data.message });
+                    setAppliedPromoCode(promoCodeInput.trim().toUpperCase());
+                    setPromoDiscount(data.discount_cents || 0);
+                    setPromoFreeItemName(data.free_item_name || null);
+                    setPromoFreeItemId(data.free_item_id || null);
+                  } else {
+                    setPromoStatus({ state: 'invalid', message: data.message });
+                    setAppliedPromoCode(null);
+                    setPromoDiscount(0);
+                    setPromoFreeItemName(null);
+                    setPromoFreeItemId(null);
                   }
                 }}
               >
@@ -337,6 +359,8 @@ export default function Payment() {
                   setPromoCodeInput('');
                   setAppliedPromoCode(null);
                   setPromoDiscount(0);
+                  setPromoFreeItemName(null);
+                  setPromoFreeItemId(null);
                   setPromoStatus({ state: 'idle', message: '' });
                 }}
               >
@@ -354,6 +378,13 @@ export default function Payment() {
              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 600, marginBottom: '8px' }}>
                 <span>Discount ({appliedPromoCode})</span>
                 <span>-RM {(promoDiscount / 100).toFixed(2)}</span>
+             </div>
+          )}
+          
+          {promoFreeItemName && (
+             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 600, marginBottom: '8px' }}>
+                <span>Free Item ({appliedPromoCode})</span>
+                <span>{promoFreeItemName}</span>
              </div>
           )}
 

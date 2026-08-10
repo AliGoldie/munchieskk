@@ -772,8 +772,20 @@ export function StoreProvider({ children }) {
 
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
 
-  const placeOrder = async (paymentMethod = 'Cash', scheduledTime = null, appliedPromoCode = null, discountAmount = 0) => {
+  const placeOrder = async (paymentMethod = 'Cash', scheduledTime = null, appliedPromoCode = null, discountAmount = 0, freeItemId = null, freeItemName = null) => {
     if (cart.length === 0) return null;
+
+    let finalCart = [...cart];
+    if (freeItemId && freeItemName) {
+      finalCart.push({
+        id: freeItemId,
+        cartItemId: crypto.randomUUID(),
+        name: freeItemName + ' (FREE)',
+        price: 0,
+        quantity: 1,
+        selectedAddons: []
+      });
+    }
 
     // Ground-Truth Database Status Verification (Direct DB Query before placing order)
     try {
@@ -817,7 +829,7 @@ export function StoreProvider({ children }) {
 
     // Calculate deductions as a hash map first
     const stockMap = {};
-    cart.forEach(cartItem => {
+    finalCart.forEach(cartItem => {
       stockMap[cartItem.id] = (stockMap[cartItem.id] || 0) + cartItem.quantity;
     });
 
@@ -830,7 +842,7 @@ export function StoreProvider({ children }) {
     const finalTotal = Math.max(0, cartTotal - discountAmount);
     const newOrder = {
       id: crypto.randomUUID(),
-      items: cart,
+      items: finalCart,
       total: finalTotal,
       status: 'PENDING',
       payment_method: paymentMethod,
@@ -844,7 +856,9 @@ export function StoreProvider({ children }) {
     // Use atomic RPC for race-condition-free stock deduction + order creation
     const { data, error } = await supabase.rpc('place_order', { 
       deductions, 
-      payload: newOrder 
+      payload: newOrder,
+      p_promo_code: appliedPromoCode,
+      p_user_id: user ? user.id : null
     });
 
     if (error) {
@@ -873,25 +887,8 @@ export function StoreProvider({ children }) {
 
     // Automatically award loyalty points based on item rules (Burger: 20 pts, Drink: 15 pts, Fries: 10 pts)
     if (user && user.id) {
-      const earnedPoints = calculateOrderPoints(cart);
+      const earnedPoints = calculateOrderPoints(finalCart);
       addPoints(earnedPoints, `Earned from Order #${newOrderId.slice(0, 8)}`);
-    }
-
-    // Handle Promo Code increment
-    if (appliedPromoCode) {
-      try {
-        await supabase.rpc('increment_promo_usage', { p_code: appliedPromoCode });
-      } catch (err) {
-        // Fallback if RPC doesn't exist
-        try {
-          const { data: promo } = await supabase.from('promo_codes').select('usage_count').eq('code', appliedPromoCode).single();
-          if (promo) {
-            await supabase.from('promo_codes').update({ usage_count: promo.usage_count + 1 }).eq('code', appliedPromoCode);
-          }
-        } catch (e) {
-          console.error('Failed to increment promo usage:', e);
-        }
-      }
     }
 
     // Handle Referral Conversion (if this is their first non-PENDING order, we check orders length locally)

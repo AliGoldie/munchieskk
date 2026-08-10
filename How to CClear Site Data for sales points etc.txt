@@ -1,0 +1,22 @@
+Run this in Supabase → SQL Editor, all at once:
+
+
+
+-- 1. Clear order history (order_items first, due to foreign key)
+DELETE FROM order_items;
+DELETE FROM orders;
+
+-- 2. Reset stock levels back to "fresh" and mark everything in-stock
+-- (adjust the 50 below if you want a different default starting quantity)
+UPDATE menu_items SET stock_quantity = 50, in_stock = true;
+
+-- 3. Reset customer points and loyalty tier back to zero
+UPDATE profiles SET points = 0, tier = 'bronze', benefits_used_this_month = 0;
+
+
+
+
+
+One more thing worth doing after running this: log out and back in on the actual site (or hard-refresh), since some of this data (cart, a local points display) may be cached in your browser's local storage and could show stale numbers until it re-syncs with the now-cleared database.
+
+Run it, then check Admin → Analytics — Total Orders should show 0, and Best-Selling Items should be empty, confirming it worked.

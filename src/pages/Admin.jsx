@@ -113,7 +113,9 @@ export default function Admin() {
   const [activePromoSubTab, setActivePromoSubTab] = useState('codes'); // 'codes', 'referrals', 'items'
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [promoFormData, setPromoFormData] = useState({
-    code: '', discount_type: 'percent', discount_value: '', max_uses: ''
+    code: '', name: '', type: 'percent_off', value: '', 
+    applies_to_item_id: '', min_spend: '', free_item_id: '', 
+    max_total_uses: '', max_uses_per_user: '', starts_at: '', ends_at: '', stackable_with_item_promos: false
   });
 
   // Notes & Upcoming Events State
@@ -177,7 +179,22 @@ export default function Admin() {
     try {
       // 1. Fetch promo codes
       const { data: promos } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false });
-      if (promos) setPromoCodes(promos);
+      const { data: redemptions } = await supabase.from('promo_redemptions').select('promo_code_id, discount_amount, orders(total)');
+      
+      if (promos) {
+        const promosWithInsights = promos.map(promo => {
+          const promoRedemptions = (redemptions || []).filter(r => r.promo_code_id === promo.id);
+          const totalDiscountGiven = promoRedemptions.reduce((sum, r) => sum + (r.discount_amount || 0), 0);
+          const totalRevenue = promoRedemptions.reduce((sum, r) => sum + (r.orders?.total || 0), 0);
+          return {
+            ...promo,
+            timesRedeemed: promoRedemptions.length,
+            totalDiscountGiven,
+            totalRevenue
+          };
+        });
+        setPromoCodes(promosWithInsights);
+      }
 
       // 2. Fetch referral stats from profiles
       const { data: profiles } = await supabase.from('profiles').select('id, name, referred_by, referral_converted_at');
@@ -215,9 +232,17 @@ export default function Admin() {
     try {
       const payload = {
         code: promoFormData.code.trim().toUpperCase(),
-        discount_type: promoFormData.discount_type,
-        discount_value: parseInt(promoFormData.discount_value, 10),
-        max_uses: promoFormData.max_uses ? parseInt(promoFormData.max_uses, 10) : null
+        name: promoFormData.name.trim() || null,
+        type: promoFormData.type,
+        value: promoFormData.value ? parseInt(promoFormData.value, 10) : 0,
+        applies_to_item_id: promoFormData.applies_to_item_id || null,
+        min_spend: promoFormData.min_spend ? parseInt(promoFormData.min_spend, 10) : null,
+        free_item_id: promoFormData.free_item_id || null,
+        max_total_uses: promoFormData.max_total_uses ? parseInt(promoFormData.max_total_uses, 10) : null,
+        max_uses_per_user: promoFormData.max_uses_per_user ? parseInt(promoFormData.max_uses_per_user, 10) : null,
+        starts_at: promoFormData.starts_at || null,
+        ends_at: promoFormData.ends_at || null,
+        stackable_with_item_promos: promoFormData.stackable_with_item_promos
       };
       const { error } = await supabase.from('promo_codes').insert([payload]);
       if (error) {
@@ -225,7 +250,11 @@ export default function Admin() {
         return;
       }
       setIsPromoModalOpen(false);
-      setPromoFormData({ code: '', discount_type: 'percent', discount_value: '', max_uses: '' });
+      setPromoFormData({
+        code: '', name: '', type: 'percent_off', value: '', 
+        applies_to_item_id: '', min_spend: '', free_item_id: '', 
+        max_total_uses: '', max_uses_per_user: '', starts_at: '', ends_at: '', stackable_with_item_promos: false
+      });
       fetchMarketingData();
     } catch (e) {
       alert('Error creating promo code');
@@ -2756,8 +2785,9 @@ export default function Admin() {
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Discount</th>
+                        <th>Type / Value</th>
                         <th>Usage</th>
+                        <th>Insights</th>
                         <th>Status</th>
                         <th>Created</th>
                       </tr>
@@ -2765,14 +2795,24 @@ export default function Admin() {
                     <tbody>
                       {promoCodes.map(promo => (
                         <tr key={promo.id}>
-                          <td className="font-bold text-primary">{promo.code}</td>
+                          <td className="font-bold text-primary">
+                            {promo.code}
+                            {promo.name && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{promo.name}</div>}
+                          </td>
                           <td>
-                            {promo.discount_type === 'percent' ? `${promo.discount_value}% OFF` : `RM ${(promo.discount_value / 100).toFixed(2)} OFF`}
+                            {promo.type === 'percent_off' && `${promo.value}% OFF`}
+                            {promo.type === 'flat_off' && `RM ${(promo.value / 100).toFixed(2)} OFF`}
+                            {promo.type === 'bogo' && 'BOGO'}
+                            {promo.type === 'spend_threshold_free_item' && `Free Item (Min RM ${(promo.min_spend / 100).toFixed(2)})`}
                           </td>
                           <td>
                             <div className="text-sm">
-                              {promo.usage_count} / {promo.max_uses === null ? '∞' : promo.max_uses}
+                              {promo.timesRedeemed || 0} / {promo.max_total_uses === null ? '∞' : promo.max_total_uses}
                             </div>
+                          </td>
+                          <td>
+                            <div className="text-sm" style={{ color: '#10b981' }}>Rev: RM {((promo.totalRevenue || 0) / 100).toFixed(2)}</div>
+                            <div className="text-sm" style={{ color: '#ef4444' }}>Saved: RM {((promo.totalDiscountGiven || 0) / 100).toFixed(2)}</div>
                           </td>
                           <td>
                             <button 
@@ -2789,7 +2829,7 @@ export default function Admin() {
                         </tr>
                       ))}
                       {promoCodes.length === 0 && (
-                        <tr><td colSpan="5" className="text-center text-muted" style={{ padding: '2rem' }}>No promo codes created yet.</td></tr>
+                        <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No promo codes created yet.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -2942,9 +2982,10 @@ export default function Admin() {
           zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
         }}>
           <div style={{
-            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '400px',
+            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '500px',
             borderRadius: '16px', padding: '1.5rem', border: '1px solid #334155',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+            maxHeight: '90vh', overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2954,55 +2995,162 @@ export default function Admin() {
             </div>
 
             <form onSubmit={handleSavePromoCode} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>PROMO CODE</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. SUMMER20"
-                  value={promoFormData.code}
-                  onChange={(e) => setPromoFormData({ ...promoFormData, code: e.target.value.toUpperCase() })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase' }}
-                />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>PROMO CODE *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. SUMMER20"
+                    value={promoFormData.code}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, code: e.target.value.toUpperCase() })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISPLAY NAME (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Summer Sale"
+                    value={promoFormData.name}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, name: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISCOUNT TYPE</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>PROMO TYPE</label>
                 <select
-                  value={promoFormData.discount_type}
-                  onChange={(e) => setPromoFormData({ ...promoFormData, discount_type: e.target.value })}
+                  value={promoFormData.type}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, type: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 >
-                  <option value="percent">Percent Off (%)</option>
-                  <option value="fixed">Fixed Amount Off (RM)</option>
+                  <option value="percent_off">Percent Off (%)</option>
+                  <option value="flat_off">Flat Amount Off (RM)</option>
+                  <option value="bogo">Buy One Get One (BOGO)</option>
+                  <option value="spend_threshold_free_item">Free Item on Min Spend</option>
                 </select>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISCOUNT VALUE</label>
-                <input
-                  type="number"
-                  required
-                  placeholder={promoFormData.discount_type === 'percent' ? "e.g. 20 (for 20%)" : "e.g. 500 (for RM 5.00)"}
-                  value={promoFormData.discount_value}
-                  onChange={(e) => setPromoFormData({ ...promoFormData, discount_value: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
-                />
-                <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
-                  {promoFormData.discount_type === 'fixed' ? 'Enter in cents (e.g. 500 = RM 5.00)' : 'Enter whole percentage (e.g. 15 = 15%)'}
-                </small>
+              {(promoFormData.type === 'percent_off' || promoFormData.type === 'flat_off') && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISCOUNT VALUE *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder={promoFormData.type === 'percent_off' ? "e.g. 20 (for 20%)" : "e.g. 500 (for RM 5.00)"}
+                    value={promoFormData.value}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, value: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                  <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                    {promoFormData.type === 'flat_off' ? 'Enter in cents (e.g. 500 = RM 5.00)' : 'Enter whole percentage (e.g. 15 = 15%)'}
+                  </small>
+                </div>
+              )}
+
+              {promoFormData.type === 'bogo' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>REQUIRED ITEM *</label>
+                  <select
+                    required
+                    value={promoFormData.applies_to_item_id}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, applies_to_item_id: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  >
+                    <option value="">Select an Item...</option>
+                    {menu.map(item => (
+                      <option key={item.id} value={item.id}>{item.name} - RM {(item.price/100).toFixed(2)}</option>
+                    ))}
+                  </select>
+                  <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>User must have this item in cart to get the discount (value of 1 unit).</small>
+                </div>
+              )}
+
+              {promoFormData.type === 'spend_threshold_free_item' && (
+                <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>MINIMUM SPEND *</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="e.g. 5000 (for RM 50.00)"
+                      value={promoFormData.min_spend}
+                      onChange={(e) => setPromoFormData({ ...promoFormData, min_spend: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    />
+                    <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Enter in cents (e.g. 5000 = RM 50.00)</small>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>FREE ITEM *</label>
+                    <select
+                      required
+                      value={promoFormData.free_item_id}
+                      onChange={(e) => setPromoFormData({ ...promoFormData, free_item_id: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    >
+                      <option value="">Select an Item...</option>
+                      {menu.map(item => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>MAX TOTAL USES</label>
+                  <input
+                    type="number"
+                    placeholder="∞"
+                    value={promoFormData.max_total_uses}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, max_total_uses: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>MAX PER USER</label>
+                  <input
+                    type="number"
+                    placeholder="∞"
+                    value={promoFormData.max_uses_per_user}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, max_uses_per_user: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>MAX USES (Optional)</label>
-                <input
-                  type="number"
-                  placeholder="Leave blank for unlimited"
-                  value={promoFormData.max_uses}
-                  onChange={(e) => setPromoFormData({ ...promoFormData, max_uses: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
-                />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>STARTS AT</label>
+                  <input
+                    type="datetime-local"
+                    value={promoFormData.starts_at}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, starts_at: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>ENDS AT</label>
+                  <input
+                    type="datetime-local"
+                    value={promoFormData.ends_at}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, ends_at: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                </div>
               </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e2e8f0', fontSize: '0.85rem' }}>
+                <input 
+                  type="checkbox" 
+                  checked={promoFormData.stackable_with_item_promos}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, stackable_with_item_promos: e.target.checked })}
+                />
+                Stackable with individual item promotions?
+              </label>
 
               <button
                 type="submit"
