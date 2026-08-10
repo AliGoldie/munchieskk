@@ -1141,7 +1141,7 @@ export default function Admin() {
               </div>
 
               {/* Top Metrics Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div className="admin-grid-4" style={{ marginBottom: '1.5rem' }}>
                 <style>
                   {`
                     @keyframes flashText {
@@ -1196,10 +1196,10 @@ export default function Admin() {
               </div>
 
               {/* Grid Layout for Main Widgets */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
+              <div className="admin-grid-12">
                 
                 {/* Total Revenue Bar Chart - 8 cols */}
-                <div className="admin-card" style={{ gridColumn: 'span 8', padding: '1.5rem' }}>
+                <div className="admin-card col-span-8" style={{ padding: '1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h3 style={{ margin: 0 }}>Total Revenue</h3>
                   </div>
@@ -1221,7 +1221,7 @@ export default function Admin() {
                 </div>
 
                 {/* Performance & More - 4 cols */}
-                <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div className="admin-card hover-bg-slate" style={{ padding: '1.5rem', flex: 1, transition: 'transform 0.2s', cursor: 'help' }} title={`Total Orders: ${orders.length}\nCompleted: ${totalCompleted}\nPending: ${pendingOrders.length}\nCancelled: ${orders.filter(o => o.status === 'CANCELLED').length}`}>
                     <h3 style={{ margin: 0, marginBottom: '1.5rem' }}>Performance</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '150px' }}>
@@ -1266,7 +1266,7 @@ export default function Admin() {
 
                 {/* Bottom Row */}
                 {/* Column 1: Calendar & Reports */}
-                <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div className="admin-card" style={{ padding: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <h3 style={{ margin: 0, fontSize: '1rem' }}>{selectedCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
@@ -1411,7 +1411,7 @@ export default function Admin() {
                 </div>
 
                 {/* Column 2: NOTES & UPCOMING EVENTS + Customer Insights */}
-                <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
                   {/* NOTES & UPCOMING EVENTS Box */}
                   <div className="admin-card" style={{
@@ -1579,7 +1579,7 @@ export default function Admin() {
                 </div>
 
                 {/* Top 10 Best-Selling Items - 4 cols */}
-                <div className="admin-card" style={{ gridColumn: 'span 4', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                <div className="admin-card col-span-4" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0 }}>Top 10 Best-Selling</h3>
                   </div>
@@ -1707,10 +1707,10 @@ export default function Admin() {
             </div>
 
             {/* Row 2: Main Chart & Performance Sidebar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+            <div className="admin-grid-3">
               
               {/* Stacked Bar Chart */}
-              <div className="admin-card" style={{ gridColumn: 'span 2', padding: '1.5rem' }}>
+              <div className="admin-card col-span-2" style={{ padding: '1.5rem' }}>
                 <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Total Revenue by Channel</h4>
                 <div style={{ height: '350px' }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -1773,9 +1773,9 @@ export default function Admin() {
 
 
             {/* Row 3: Bottom Intelligence Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
+            <div className="admin-grid-4" style={{ alignItems: 'start' }}>
               
-              <div className="admin-card" style={{ gridColumn: 'span 2', padding: '1.5rem' }}>
+              <div className="admin-card col-span-2" style={{ padding: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
                   <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '3px' }}>
@@ -2364,7 +2364,7 @@ export default function Admin() {
                   <button className="btn btn-sm btn-secondary" style={{ marginBottom: '1.5rem' }} onClick={() => setSelectedCustomerId(null)}>
                     ← Back to Customers
                   </button>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                  <div className="admin-grid-auto-200" style={{ marginBottom: '2rem' }}>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
                       <h4 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Customer Name</h4>
                       <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>{customer.name || customer.email || 'Unnamed'}</p>
