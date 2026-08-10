@@ -107,6 +107,15 @@ export default function Admin() {
   const [grabFoodShiftPercent, setGrabFoodShiftPercent] = useState(0);
   const [topItemsChannelFilter, setTopItemsChannelFilter] = useState('all'); // 'all', 'web', 'loyverse'
 
+  // Promos & Referrals State
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [referralStats, setReferralStats] = useState([]);
+  const [activePromoSubTab, setActivePromoSubTab] = useState('codes'); // 'codes', 'referrals', 'items'
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
+  const [promoFormData, setPromoFormData] = useState({
+    code: '', discount_type: 'percent', discount_value: '', max_uses: ''
+  });
+
   // Notes & Upcoming Events State
   const [eventsNotes, setEventsNotes] = useState(() => {
     try {
@@ -158,7 +167,75 @@ export default function Admin() {
   const pendingOrders = orders.filter(o => o.status === 'PENDING');
   const activeOrders = orders.filter(o => o.status !== 'COLLECTED' && o.status !== 'CANCELLED');
   
+  useEffect(() => {
+    if (activeTab === 'promotions') {
+      fetchMarketingData();
+    }
+  }, [activeTab]);
 
+  const fetchMarketingData = async () => {
+    try {
+      // 1. Fetch promo codes
+      const { data: promos } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false });
+      if (promos) setPromoCodes(promos);
+
+      // 2. Fetch referral stats from profiles
+      const { data: profiles } = await supabase.from('profiles').select('id, name, referred_by, referral_converted_at');
+      if (profiles) {
+        const statsMap = {}; // key: referrer id
+        profiles.forEach(p => {
+          if (p.referred_by) {
+            if (!statsMap[p.referred_by]) {
+              statsMap[p.referred_by] = { id: p.referred_by, totalInvited: 0, totalConverted: 0, name: 'Unknown' };
+            }
+            statsMap[p.referred_by].totalInvited += 1;
+            if (p.referral_converted_at) {
+              statsMap[p.referred_by].totalConverted += 1;
+            }
+          }
+        });
+        
+        // Map names to referrers
+        Object.keys(statsMap).forEach(referrerId => {
+          const referrerProfile = profiles.find(p => p.id === referrerId);
+          if (referrerProfile) {
+            statsMap[referrerId].name = referrerProfile.name || 'User';
+          }
+        });
+        
+        setReferralStats(Object.values(statsMap).sort((a, b) => b.totalConverted - a.totalConverted));
+      }
+    } catch (e) {
+      console.error('Failed to fetch marketing data', e);
+    }
+  };
+
+  const handleSavePromoCode = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        code: promoFormData.code.trim().toUpperCase(),
+        discount_type: promoFormData.discount_type,
+        discount_value: parseInt(promoFormData.discount_value, 10),
+        max_uses: promoFormData.max_uses ? parseInt(promoFormData.max_uses, 10) : null
+      };
+      const { error } = await supabase.from('promo_codes').insert([payload]);
+      if (error) {
+        alert(error.message);
+        return;
+      }
+      setIsPromoModalOpen(false);
+      setPromoFormData({ code: '', discount_type: 'percent', discount_value: '', max_uses: '' });
+      fetchMarketingData();
+    } catch (e) {
+      alert('Error creating promo code');
+    }
+  };
+
+  const togglePromoCodeActive = async (id, currentStatus) => {
+    await supabase.from('promo_codes').update({ active: !currentStatus }).eq('id', id);
+    fetchMarketingData();
+  };
 
   const saveEventsNotes = (newEvents) => {
     setEventsNotes(newEvents);
@@ -2645,21 +2722,133 @@ export default function Admin() {
 
         {activeTab === 'promotions' && (
           <div className="admin-card">
-            <h3 style={{ marginBottom: '1.5rem' }}>Promotions Calendar</h3>
-            <div className="table-responsive">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Standard Price</th>
-                    <th>Promo Price</th>
-                    <th>Start Date & Time</th>
-                    <th>End Date & Time</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {menu.map(item => {
+            <h3 style={{ marginBottom: '1.5rem' }}>Marketing & Promotions</h3>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+              <button 
+                className={`btn ${activePromoSubTab === 'codes' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setActivePromoSubTab('codes')}
+              >
+                🎟️ Promo Codes
+              </button>
+              <button 
+                className={`btn ${activePromoSubTab === 'referrals' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setActivePromoSubTab('referrals')}
+              >
+                👥 Referral Leaderboard
+              </button>
+              <button 
+                className={`btn ${activePromoSubTab === 'items' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setActivePromoSubTab('items')}
+              >
+                🍔 Item-Level Promos
+              </button>
+            </div>
+
+            {activePromoSubTab === 'codes' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h4 style={{ margin: 0 }}>Active Cart Promo Codes</h4>
+                  <button className="btn btn-primary btn-sm" onClick={() => setIsPromoModalOpen(true)}>+ New Promo Code</button>
+                </div>
+                <div className="table-responsive">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>Discount</th>
+                        <th>Usage</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {promoCodes.map(promo => (
+                        <tr key={promo.id}>
+                          <td className="font-bold text-primary">{promo.code}</td>
+                          <td>
+                            {promo.discount_type === 'percent' ? `${promo.discount_value}% OFF` : `RM ${(promo.discount_value / 100).toFixed(2)} OFF`}
+                          </td>
+                          <td>
+                            <div className="text-sm">
+                              {promo.usage_count} / {promo.max_uses === null ? '∞' : promo.max_uses}
+                            </div>
+                          </td>
+                          <td>
+                            <button 
+                              className={`btn btn-sm ${promo.active ? 'btn-secondary' : 'btn-outline'}`} 
+                              onClick={() => togglePromoCodeActive(promo.id, promo.active)}
+                              style={{ width: '80px', padding: '4px', fontSize: '0.75rem' }}
+                            >
+                              {promo.active ? 'Active' : 'Inactive'}
+                            </button>
+                          </td>
+                          <td className="text-muted text-xs">
+                            {new Date(promo.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                      {promoCodes.length === 0 && (
+                        <tr><td colSpan="5" className="text-center text-muted" style={{ padding: '2rem' }}>No promo codes created yet.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activePromoSubTab === 'referrals' && (
+              <div>
+                <h4 style={{ marginBottom: '1rem' }}>Top Advocates (Referrals)</h4>
+                <div className="table-responsive">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Advocate (Referrer)</th>
+                        <th>Friends Invited</th>
+                        <th>Friends Converted (Paid Order)</th>
+                        <th>Conversion Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {referralStats.map(stat => (
+                        <tr key={stat.id}>
+                          <td className="font-bold">{stat.name}</td>
+                          <td>{stat.totalInvited}</td>
+                          <td className="font-bold text-primary">{stat.totalConverted}</td>
+                          <td>
+                            <span className="status-badge in-stock" style={{ backgroundColor: 'rgba(0,176,116,0.1)' }}>
+                              {stat.totalInvited > 0 ? Math.round((stat.totalConverted / stat.totalInvited) * 100) : 0}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                      {referralStats.length === 0 && (
+                        <tr><td colSpan="4" className="text-center text-muted" style={{ padding: '2rem' }}>No referrals tracked yet.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activePromoSubTab === 'items' && (
+              <div>
+                <h4 style={{ marginBottom: '1rem' }}>Menu Item Promos</h4>
+                <div className="table-responsive">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Standard Price</th>
+                        <th>Promo Price</th>
+                        <th>Start Date & Time</th>
+                        <th>End Date & Time</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {menu.map(item => {
                     const isEditing = editingPromo[item.id] !== undefined;
                     const promoData = isEditing ? editingPromo[item.id] : {
                       promoPrice: item.promo_price ? (item.promo_price / 100).toFixed(2) : '',
@@ -2736,12 +2925,95 @@ export default function Admin() {
                       </tr>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
+
+      {/* Promo Code Modal Overlay */}
+      {isPromoModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '400px',
+            borderRadius: '16px', padding: '1.5rem', border: '1px solid #334155',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🎟️ Create Promo Code
+              </h3>
+              <button type="button" onClick={() => setIsPromoModalOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <form onSubmit={handleSavePromoCode} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>PROMO CODE</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. SUMMER20"
+                  value={promoFormData.code}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, code: e.target.value.toUpperCase() })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISCOUNT TYPE</label>
+                <select
+                  value={promoFormData.discount_type}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, discount_type: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                >
+                  <option value="percent">Percent Off (%)</option>
+                  <option value="fixed">Fixed Amount Off (RM)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISCOUNT VALUE</label>
+                <input
+                  type="number"
+                  required
+                  placeholder={promoFormData.discount_type === 'percent' ? "e.g. 20 (for 20%)" : "e.g. 500 (for RM 5.00)"}
+                  value={promoFormData.discount_value}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, discount_value: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+                <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                  {promoFormData.discount_type === 'fixed' ? 'Enter in cents (e.g. 500 = RM 5.00)' : 'Enter whole percentage (e.g. 15 = 15%)'}
+                </small>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>MAX USES (Optional)</label>
+                <input
+                  type="number"
+                  placeholder="Leave blank for unlimited"
+                  value={promoFormData.max_uses}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, max_uses: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}
+              >
+                Create Promo Code
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Event & Note Modal Overlay */}
       {isEventModalOpen && (
