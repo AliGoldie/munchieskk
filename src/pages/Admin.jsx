@@ -3198,6 +3198,7 @@ export default function Admin() {
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>STARTS AT</label>
                   <input
                     type="datetime-local"
+                    className="dark-datetime-input"
                     value={promoFormData.starts_at}
                     onChange={(e) => setPromoFormData({ ...promoFormData, starts_at: e.target.value })}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
@@ -3207,6 +3208,7 @@ export default function Admin() {
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>ENDS AT</label>
                   <input
                     type="datetime-local"
+                    className="dark-datetime-input"
                     value={promoFormData.ends_at}
                     onChange={(e) => setPromoFormData({ ...promoFormData, ends_at: e.target.value })}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}

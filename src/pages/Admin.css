@@ -534,3 +534,8 @@
   border-color: #00b074;
   box-shadow: 0 0 0 3px rgba(0, 176, 116, 0.1);
 }
+
+.dark-datetime-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
