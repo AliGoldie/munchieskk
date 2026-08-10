@@ -765,6 +765,16 @@ export default function Admin() {
     }
   };
 
+  const saveMenuItemDetails = async (id) => {
+    if (!editingMenuItem || editingMenuItem.id !== id) return;
+    try {
+      await updateMenuItem(id, { name: editingMenuItem.name, description: editingMenuItem.description });
+      setEditingMenuItem(null);
+    } catch (e) {
+      alert('Failed to update item details');
+    }
+  };
+
   const handlePromoEdit = (id, field, value) => {
     setEditingPromo({
       ...editingPromo,
@@ -2118,12 +2128,47 @@ export default function Admin() {
                       <td className="font-medium">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           {item.image && (
-                            <img src={item.image} alt={item.name} style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }} />
+                            <img src={item.image} alt={item.name} style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
                           )}
-                          <div>
-                            <div>{item.name}</div>
-                            {item.description && (
-                              <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 'normal' }}>{item.description.slice(0, 40)}{item.description.length > 40 ? '...' : ''}</div>
+                          <div style={{ flex: 1, minWidth: '150px' }}>
+                            {editingMenuItem && editingMenuItem.id === item.id ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '4px', paddingBottom: '4px' }}>
+                                <input 
+                                  type="text" 
+                                  className="price-input" 
+                                  value={editingMenuItem.name} 
+                                  onChange={e => setEditingMenuItem({...editingMenuItem, name: e.target.value})}
+                                  placeholder="Item Name"
+                                  style={{ padding: '4px', fontSize: '0.85rem', width: '100%' }}
+                                />
+                                <textarea 
+                                  className="price-input" 
+                                  value={editingMenuItem.description} 
+                                  onChange={e => setEditingMenuItem({...editingMenuItem, description: e.target.value})}
+                                  placeholder="Description"
+                                  style={{ padding: '4px', fontSize: '0.75rem', width: '100%', resize: 'vertical', minHeight: '40px' }}
+                                />
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                  <button className="btn btn-sm btn-primary" style={{ flex: 1 }} onClick={() => saveMenuItemDetails(item.id)}>Save</button>
+                                  <button className="btn btn-sm btn-secondary" style={{ flex: 1 }} onClick={() => setEditingMenuItem(null)}>Cancel</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                <div>
+                                  <div style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{item.name}</div>
+                                  {item.description && (
+                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 'normal', whiteSpace: 'normal' }}>{item.description.slice(0, 40)}{item.description.length > 40 ? '...' : ''}</div>
+                                  )}
+                                </div>
+                                <button 
+                                  className="btn btn-sm btn-outline" 
+                                  style={{ padding: '2px 6px', fontSize: '0.65rem' }} 
+                                  onClick={() => setEditingMenuItem({ id: item.id, name: item.name, description: item.description || '' })}
+                                >
+                                  Edit
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
