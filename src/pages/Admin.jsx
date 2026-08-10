@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { startNewOrderAlert, stopNewOrderAlert } from '../utils/soundAlert';
 import { formatTime12Hour } from '../utils/timeUtils';
+import { supabase } from '../config/supabase';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
