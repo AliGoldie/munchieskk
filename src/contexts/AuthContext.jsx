@@ -148,7 +148,7 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const signup = async (email, password, name, phone) => {
+  const signup = async (email, password, name, phone, referredBy = null) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -167,12 +167,18 @@ export function AuthProvider({ children }) {
     if (data.user) {
       // Upsert user details into profiles table
       try {
-        await supabase.from('profiles').upsert({
+        const profilePayload = {
           id: data.user.id,
           name: name,
           phone: phone || '',
           role: 'user'
-        });
+        };
+        
+        if (referredBy) {
+          profilePayload.referred_by = referredBy;
+        }
+
+        await supabase.from('profiles').upsert(profilePayload);
       } catch (e) {
         console.error('Error inserting profile row:', e);
       }

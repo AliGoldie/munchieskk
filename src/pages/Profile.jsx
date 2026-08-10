@@ -8,7 +8,6 @@ import './Profile.css';
 export default function Profile() {
   const { points, orders } = useStore();
   const { user, setUser, logout } = useAuth();
-  const [promoCode, setPromoCode] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const [userProfile, setUserProfile] = useState({
@@ -95,12 +94,6 @@ export default function Profile() {
     }
   };
 
-  const applyPromo = () => {
-    if (promoCode) {
-      alert(`Promo code ${promoCode} applied!`);
-      setPromoCode('');
-    }
-  };
 
   return (
     <div className="container profile-page">
@@ -180,17 +173,25 @@ export default function Profile() {
           </div>
 
           <div className="promo-section" style={{marginTop: '2rem'}}>
-            <h3>Promo Codes</h3>
-            <div className="referral-box" style={{marginTop: '0.5rem'}}>
+            <h3>Share Referral Link</h3>
+            <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '8px' }}>Invite friends and get rewarded when they order!</p>
+            <div className="referral-box" style={{marginTop: '0.5rem', display: 'flex', gap: '8px'}}>
               <input 
                 type="text" 
-                placeholder="Enter code" 
+                readOnly
                 className="price-input" 
-                style={{flex: 1, padding: '0.5rem'}}
-                value={promoCode}
-                onChange={e => setPromoCode(e.target.value)}
+                style={{flex: 1, padding: '0.5rem', backgroundColor: '#f8fafc', color: '#64748b'}}
+                value={`${window.location.origin}/signup?ref=${user?.id || ''}`}
               />
-              <button className="btn btn-secondary" onClick={applyPromo}>Apply</button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/signup?ref=${user?.id || ''}`);
+                  alert('Referral link copied to clipboard!');
+                }}
+              >
+                Copy
+              </button>
             </div>
           </div>
           

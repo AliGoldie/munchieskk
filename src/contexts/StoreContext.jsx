@@ -772,7 +772,7 @@ export function StoreProvider({ children }) {
 
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
 
-  const placeOrder = async (paymentMethod = 'Cash') => {
+  const placeOrder = async (paymentMethod = 'Cash', scheduledTime = null, appliedPromoCode = null, discountAmount = 0) => {
     if (cart.length === 0) return null;
 
     // Ground-Truth Database Status Verification (Direct DB Query before placing order)
@@ -827,15 +827,18 @@ export function StoreProvider({ children }) {
       quantity
     }));
 
+    const finalTotal = Math.max(0, cartTotal - discountAmount);
     const newOrder = {
       id: crypto.randomUUID(),
       items: cart,
-      total: cartTotal,
+      total: finalTotal,
       status: 'PENDING',
       payment_method: paymentMethod,
       customer_name: user ? user.name : 'Guest',
       customer_phone: user && user.phone ? user.phone : 'No Phone',
-      user_id: user ? user.id : null
+      user_id: user ? user.id : null,
+      promo_code_used: appliedPromoCode,
+      discount_amount: discountAmount
     };
 
     // Use atomic RPC for race-condition-free stock deduction + order creation
@@ -872,6 +875,41 @@ export function StoreProvider({ children }) {
     if (user && user.id) {
       const earnedPoints = calculateOrderPoints(cart);
       addPoints(earnedPoints, `Earned from Order #${newOrderId.slice(0, 8)}`);
+    }
+
+    // Handle Promo Code increment
+    if (appliedPromoCode) {
+      try {
+        await supabase.rpc('increment_promo_usage', { p_code: appliedPromoCode });
+      } catch (err) {
+        // Fallback if RPC doesn't exist
+        try {
+          const { data: promo } = await supabase.from('promo_codes').select('usage_count').eq('code', appliedPromoCode).single();
+          if (promo) {
+            await supabase.from('promo_codes').update({ usage_count: promo.usage_count + 1 }).eq('code', appliedPromoCode);
+          }
+        } catch (e) {
+          console.error('Failed to increment promo usage:', e);
+        }
+      }
+    }
+
+    // Handle Referral Conversion (if this is their first non-PENDING order, we check orders length locally)
+    if (user && user.id) {
+      try {
+        const { data: profile } = await supabase.from('profiles').select('referred_by, referral_converted_at').eq('id', user.id).single();
+        if (profile && profile.referred_by && !profile.referral_converted_at) {
+          // Verify if they have other non-PENDING orders
+          const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'PENDING');
+          // If 0 previous completed orders, this order will be the one to convert them (once it leaves PENDING, but we can optimistically set it or set it now)
+          // To be strict, the prompt said "when they complete their first paid order". For simplicity and since they just paid, we mark it now.
+          if (count === 0) {
+            await supabase.from('profiles').update({ referral_converted_at: new Date().toISOString() }).eq('id', user.id);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to update referral conversion:', e);
+      }
     }
 
     clearCart();

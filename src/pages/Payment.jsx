@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTime12Hour, generateOperatingTimeSlots } from '../utils/timeUtils';
-import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Clock, AlertTriangle, Zap } from 'lucide-react';
+import { validateAndApplyPromo } from '../utils/promoUtils';
+import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Clock, AlertTriangle, Zap, Tag } from 'lucide-react';
 import './Payment.css';
 
 export default function Payment() {
@@ -17,6 +18,13 @@ export default function Payment() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [bank, setBank] = useState('');
+
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [promoStatus, setPromoStatus] = useState({ state: 'idle', message: '' }); // idle | checking | valid | invalid
+  const [appliedPromoCode, setAppliedPromoCode] = useState(null);
+  const [promoDiscount, setPromoDiscount] = useState(0);
+
+  const finalTotal = Math.max(0, cartTotal - promoDiscount);
 
   // Dynamically generate pre-order time slots strictly within business hours
   const timeSlots = useMemo(() => {
@@ -69,7 +77,7 @@ export default function Payment() {
         paymentDetail += ` [Scheduled for ${scheduledDisplayTime}]`;
       }
 
-      const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null);
+      const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null, appliedPromoCode, promoDiscount);
 
       if (!orderId) {
         setIsProcessing(false);
@@ -252,7 +260,7 @@ export default function Payment() {
             <div className="qr-display">
               <div className="qr-placeholder">
                 <QrCode size={100} className="text-muted" />
-                <p>Scan this code to pay RM {(cartTotal / 100).toFixed(2)}</p>
+                <p>Scan this code to pay RM {(finalTotal / 100).toFixed(2)}</p>
               </div>
             </div>
           )}
@@ -279,9 +287,79 @@ export default function Payment() {
             })}
           </div>
 
-          <div className="summary-total">
+          <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <input
+                type="text"
+                placeholder="Promo Code"
+                className="price-input"
+                style={{ flex: 1, padding: '10px 12px', textTransform: 'uppercase' }}
+                value={promoCodeInput}
+                onChange={(e) => {
+                  setPromoCodeInput(e.target.value.toUpperCase());
+                  setPromoStatus({ state: 'idle', message: '' });
+                }}
+                disabled={promoStatus.state === 'checking'}
+              />
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                disabled={!promoCodeInput || promoStatus.state === 'checking' || promoStatus.state === 'valid'}
+                onClick={async () => {
+                  if (!promoCodeInput) return;
+                  setPromoStatus({ state: 'checking', message: '' });
+                  const result = await validateAndApplyPromo(promoCodeInput, cartTotal);
+                  if (result.valid) {
+                    setPromoStatus({ state: 'valid', message: result.message });
+                    setAppliedPromoCode(result.code);
+                    setPromoDiscount(result.discountCents);
+                  } else {
+                    setPromoStatus({ state: 'invalid', message: result.message });
+                    setAppliedPromoCode(null);
+                    setPromoDiscount(0);
+                  }
+                }}
+              >
+                {promoStatus.state === 'checking' ? <Loader2 size={16} className="spinner" /> : <Tag size={16} />}
+                Apply
+              </button>
+            </div>
+            {promoStatus.message && (
+              <div style={{ fontSize: '0.85rem', marginTop: '4px', color: promoStatus.state === 'valid' ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                {promoStatus.message}
+              </div>
+            )}
+            
+            {promoStatus.state === 'valid' && (
+              <button
+                style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.8rem', textDecoration: 'underline', cursor: 'pointer', marginTop: '4px', padding: 0 }}
+                onClick={() => {
+                  setPromoCodeInput('');
+                  setAppliedPromoCode(null);
+                  setPromoDiscount(0);
+                  setPromoStatus({ state: 'idle', message: '' });
+                }}
+              >
+                Remove Promo Code
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', marginBottom: '8px' }}>
+             <span>Subtotal</span>
+             <span>RM {(cartTotal / 100).toFixed(2)}</span>
+          </div>
+          
+          {promoDiscount > 0 && (
+             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 600, marginBottom: '8px' }}>
+                <span>Discount ({appliedPromoCode})</span>
+                <span>-RM {(promoDiscount / 100).toFixed(2)}</span>
+             </div>
+          )}
+
+          <div className="summary-total" style={{ borderTop: '2px solid #f1f5f9', paddingTop: '12px', marginTop: '4px' }}>
             <span>Total to Pay</span>
-            <span className="text-primary">RM {(cartTotal / 100).toFixed(2)}</span>
+            <span className="text-primary">RM {(finalTotal / 100).toFixed(2)}</span>
           </div>
 
           <button
@@ -292,9 +370,9 @@ export default function Payment() {
             {isProcessing ? (
               <><Loader2 className="spinner" size={20} /> Processing...</>
             ) : orderMode === 'SCHEDULED' ? (
-              `Confirm Scheduled Pre-Order (RM ${(cartTotal / 100).toFixed(2)})`
+              `Confirm Scheduled Pre-Order (RM ${(finalTotal / 100).toFixed(2)})`
             ) : (
-              `Pay RM ${(cartTotal / 100).toFixed(2)}`
+              `Pay RM ${(finalTotal / 100).toFixed(2)}`
             )}
           </button>
         </div>

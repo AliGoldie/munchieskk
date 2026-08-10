@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Mail, Phone } from 'lucide-react';
 import './Login.css';
@@ -10,6 +10,8 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referredBy = searchParams.get('ref');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,7 +24,7 @@ export default function Signup() {
     if (formData.name && formData.email && formData.password) {
       setIsLoading(true);
       try {
-        await signup(formData.email, formData.password, formData.name, formData.phone);
+        await signup(formData.email, formData.password, formData.name, formData.phone, referredBy);
         navigate('/');
       } catch (err) {
         setError(err.message || 'Failed to create an account.');
