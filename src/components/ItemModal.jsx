@@ -76,8 +76,8 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
         <div className="modal-image-container" style={{ backgroundImage: `url('${item.image}')` }}></div>
         <div className="modal-body">
           {/* Base Price Row */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.5rem' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 900, margin: 0, color: '#1e293b', lineHeight: '1.2' }}>
               {item.name}
             </h2>
             <div style={{ textAlign: 'right' }}>
