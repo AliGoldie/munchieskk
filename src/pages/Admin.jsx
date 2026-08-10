@@ -2869,11 +2869,21 @@ export default function Admin() {
                           <td>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <button 
-                                className={`btn btn-sm ${promo.active ? 'btn-secondary' : 'btn-outline'}`} 
+                                className="btn btn-sm" 
                                 onClick={() => togglePromoCodeActive(promo.id, promo.active)}
-                                style={{ width: '80px', padding: '4px', fontSize: '0.75rem' }}
+                                style={{ 
+                                  width: '85px', 
+                                  padding: '6px', 
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  backgroundColor: promo.active ? '#10b981' : '#f1f5f9',
+                                  color: promo.active ? '#ffffff' : '#64748b',
+                                  border: promo.active ? 'none' : '1px solid #cbd5e1',
+                                  boxShadow: promo.active ? '0 2px 4px rgba(16, 185, 129, 0.3)' : 'none',
+                                  transition: 'all 0.2s ease'
+                                }}
                               >
-                                {promo.active ? 'Active' : 'Inactive'}
+                                {promo.active ? 'ACTIVE' : 'INACTIVE'}
                               </button>
                               <button 
                                 onClick={() => deletePromoCode(promo.id)}
