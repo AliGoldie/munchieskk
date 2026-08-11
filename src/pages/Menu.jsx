@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, Flame, Award } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import ItemModal from '../components/ItemModal';
+import { getItemPoints } from '../utils/pointsCalculator';
 import './Menu.css';
 
 // Category color config — each category gets a unique color identity
@@ -166,7 +167,7 @@ export default function Menu() {
             {isPromoActive(heroItem) ? (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div className="price-row mt-2" style={{ alignItems: 'baseline', gap: '8px' }}>
-                  <span className="pts-badge">+250 PTS</span>
+                  <span className="pts-badge">+{getItemPoints(heroItem)} PTS</span>
                   <span className="price-large text-danger font-black">RM {(heroItem.promo_price / 100).toFixed(2)}</span>
                   <span className="text-muted" style={{ textDecoration: 'line-through', fontSize: '1.2rem', fontWeight: 600 }}>RM {(heroItem.price / 100).toFixed(2)}</span>
                 </div>
@@ -174,7 +175,7 @@ export default function Menu() {
               </div>
             ) : (
               <div className="price-row mt-2">
-                <span className="pts-badge">+250 PTS</span>
+                <span className="pts-badge">+{getItemPoints(heroItem)} PTS</span>
                 <span className="price-large">RM {(heroItem.price / 100).toFixed(2)}</span>
               </div>
             )}
@@ -263,7 +264,7 @@ export default function Menu() {
                           <span className="price-large">RM {(item.price / 100).toFixed(2)}</span>
                         )}
                         <div className="flex items-center gap-2">
-                          <span className="pts-badge-dark">+300 PTS</span>
+                          <span className="pts-badge-dark">+{getItemPoints(item)} PTS</span>
                           <button 
                             className={`add-btn ${!item.inStock ? 'add-btn-disabled' : ''}`}
                             disabled={!item.inStock}
