@@ -1692,7 +1692,7 @@ export default function Admin() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                     {lowStockItems.slice(0, 3).map(item => (
                       <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
-                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>{item.name}</span>
+                        <span style={{ wordBreak: 'break-word', paddingRight: '8px' }}>{item.name}</span>
                         <span style={{ fontWeight: 600, color: '#ef4444' }}>{item.stock_quantity} left</span>
                       </div>
                     ))}
