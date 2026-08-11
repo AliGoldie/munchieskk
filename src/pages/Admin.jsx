@@ -1802,7 +1802,7 @@ export default function Admin() {
                     <div style={{ flex: 3 }}>Item Name</div>
                     <div style={{ flex: 1, textAlign: 'center' }}>Units Sold</div>
                     <div style={{ flex: 2, textAlign: 'right' }}>Gross Revenue</div>
-                    <div style={{ flex: 1, textAlign: 'right' }}>Margin</div>
+                    <div style={{ flex: 1, textAlign: 'right', marginLeft: '10px' }}>Margin</div>
                   </div>
                   {topItemsData.map((item, idx) => (
                     <div key={idx} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #f8fafc', paddingBottom: '0.75rem', paddingTop: '0.25rem' }}>
@@ -1812,7 +1812,7 @@ export default function Admin() {
                        </div>
                        <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#3b82f6' }}>{item.sales}</div>
                        <div style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#0f172a', fontSize: '0.8rem' }}>RM {item.revenue.toFixed(2)}</div>
-                       <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem' }}>{item.margin.toFixed(1)}%</div>
+                       <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem', marginLeft: '10px' }}>{item.margin.toFixed(1)}%</div>
                     </div>
                   ))}
                   {topItemsData.length === 0 && <div style={{textAlign: 'center', color: '#94a3b8', padding: '1rem'}}>No sales data yet</div>}
