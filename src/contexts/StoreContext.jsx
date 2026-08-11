@@ -867,7 +867,13 @@ export function StoreProvider({ children }) {
       return null;
     }
 
-    const newOrderId = data || newOrder.id; // rpc might return the ID
+    let newOrderId = newOrder.id;
+    if (data) {
+      if (typeof data === 'string') newOrderId = data;
+      else if (typeof data === 'object' && data.id) newOrderId = data.id;
+      else if (typeof data === 'number') newOrderId = String(data);
+      else if (typeof data === 'object') newOrderId = newOrder.id; // fallback if no id field
+    }
 
     // Optimistically update stock in the UI
     deductions.forEach(({ item_id, quantity }) => {
