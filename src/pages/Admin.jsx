@@ -1811,8 +1811,8 @@ export default function Admin() {
                           <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{item.name}</div>
                        </div>
                        <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#3b82f6' }}>{item.sales}</div>
-                       <div style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>RM {item.revenue.toFixed(2)}</div>
-                       <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{item.margin.toFixed(1)}%</div>
+                       <div style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#0f172a', fontSize: '0.8rem' }}>RM {item.revenue.toFixed(2)}</div>
+                       <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem' }}>{item.margin.toFixed(1)}%</div>
                     </div>
                   ))}
                   {topItemsData.length === 0 && <div style={{textAlign: 'center', color: '#94a3b8', padding: '1rem'}}>No sales data yet</div>}
