@@ -558,36 +558,41 @@
     flex-direction: column;
     gap: 1rem;
     padding: 0;
-    padding-bottom: 80px; /* Space for bottom nav */
+    padding-bottom: 90px; /* Space for bottom nav */
+    display: flex;
   }
 
   /* Fixed Bottom Nav Sidebar */
   .admin-sidebar {
     position: fixed;
+    top: auto !important; /* Override desktop sticky top */
     bottom: 0;
     left: 0;
     width: 100%;
+    height: auto !important;
     z-index: 9999;
     flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 0.5rem 1rem;
-    margin-bottom: 0;
+    padding: 0.5rem;
+    margin: 0;
     gap: 0.5rem;
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
     -webkit-overflow-scrolling: touch;
+    background: white;
   }
 
   .sidebar-item {
-    padding: 0.6rem 1rem;
-    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
     white-space: nowrap;
     flex: 0 0 auto;
     border-radius: 8px;
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    display: flex;
   }
 
   .admin-content {
@@ -615,15 +620,20 @@
   .admin-grid-3,
   .admin-grid-4,
   .admin-grid-12,
+  .admin-grid-auto-200,
   .new-item-form {
-    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
   }
 
+  .col-span-1,
+  .col-span-2,
   .col-span-3,
   .col-span-4,
   .col-span-8,
   .col-span-12 {
-    grid-column: span 1 !important;
+    width: 100% !important;
   }
 
   /* Ensure cards flow naturally and don't overflow */
