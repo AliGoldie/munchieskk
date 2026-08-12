@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, Gift, Plus, Minus } from 'lucide-react';
-import { getPointsForItem } from '../config/loyaltyConfig';
+import { getItemPoints } from '../utils/pointsCalculator';
 import { useStore } from '../contexts/StoreContext';
 import './ItemModal.css';
 
@@ -31,7 +31,7 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
 
   if (!item) return null;
 
-  const pointsEarned = getPointsForItem(item.category);
+  const pointsEarned = getItemPoints(item);
 
   const toggleAddon = (addonId) => {
     setSelectedAddonIds(prev =>
