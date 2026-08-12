@@ -72,14 +72,16 @@ export default function Menu() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            setActiveCategory(entry.target.id.replace('category-', ''));
-          }
-        });
+        // Pick the topmost intersecting section
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible.length > 0) {
+          setActiveCategory(visible[0].target.id.replace('category-', ''));
+        }
       },
       {
-        rootMargin: '-120px 0px -65% 0px',
+        rootMargin: '-100px 0px -50% 0px',
         threshold: 0
       }
     );

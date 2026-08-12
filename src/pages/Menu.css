@@ -12,19 +12,18 @@
 /* Filters */
 .category-bar {
   display: flex;
-  gap: 10px;
+  gap: 6px;
   overflow-x: auto;
-  padding: 14px;
+  padding: 10px 12px;
   background: #FFF6E0;
   border-radius: 20px;
   position: sticky;
   top: 60px;
   z-index: 99;
   margin: 0 -1rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
   box-shadow: 0 4px 6px -4px rgba(0,0,0,0.1);
-  /* hide scrollbar */
   scrollbar-width: none;
 }
 .category-bar::-webkit-scrollbar { display: none; }
@@ -32,16 +31,18 @@
 .category-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  padding: 12px 22px;
+  gap: 5px;
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  padding: 8px 10px;
   border-radius: 999px;
   border: 2px solid #1A1A2E;
   background: #FFFFFF;
   color: #1A1A2E;
   font-weight: 800;
-  font-size: 15px;
-  letter-spacing: 0.3px;
+  font-size: 12px;
+  letter-spacing: 0.2px;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
   box-shadow: 0 2px 0 rgba(26, 26, 46, 0.15);
@@ -66,7 +67,7 @@
 }
 
 .category-btn .icon {
-  font-size: 17px;
+  font-size: 14px;
   line-height: 1;
 }
 
