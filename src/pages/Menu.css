@@ -14,8 +14,8 @@
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding: 10px 12px;
-  background: #FFF6E0;
+  padding: 12px;
+  background: #1A1D24; /* Dark background from design */
   border-radius: 20px;
   position: sticky;
   top: 60px;
@@ -23,7 +23,7 @@
   margin: 0 -1rem;
   padding-left: 0.75rem;
   padding-right: 0.75rem;
-  box-shadow: 0 4px 6px -4px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
   scrollbar-width: none;
 }
 .category-bar::-webkit-scrollbar { display: none; }
@@ -35,35 +35,35 @@
   flex: 1 1 0;
   min-width: 0;
   justify-content: center;
-  padding: 8px 10px;
+  padding: 10px 8px;
   border-radius: 999px;
-  border: 2px solid #1A1A2E;
-  background: #FFFFFF;
-  color: #1A1A2E;
+  border: none;
+  background: #2A2F3A; /* Inactive: dark grey pill */
+  color: #FFFFFF;
   font-weight: 800;
   font-size: 12px;
   letter-spacing: 0.2px;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-  box-shadow: 0 2px 0 rgba(26, 26, 46, 0.15);
+  transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .category-btn:hover {
+  background: #363C49;
   transform: translateY(-2px);
-  box-shadow: 0 4px 0 rgba(26, 26, 46, 0.2);
 }
 
 .category-btn:active {
   transform: translateY(0);
-  box-shadow: 0 1px 0 rgba(26, 26, 46, 0.15);
 }
 
 .category-btn.active {
-  background: linear-gradient(135deg, #E8491D, #C73B0F);
-  color: #FFFFFF;
-  border-color: #1A1A2E;
-  box-shadow: 0 3px 0 #8f2a0a, 0 4px 10px rgba(232, 73, 29, 0.35);
+  background-color: #FFC400; /* Active: bold yellow from design */
+  background-image: url('/images/trex_pattern.png');
+  background-size: 150px;
+  background-blend-mode: overlay; /* Softly blends the pattern into the yellow */
+  color: #1A1A2E; /* Dark text for high contrast */
+  box-shadow: 0 4px 12px rgba(255, 196, 0, 0.3);
 }
 
 .category-btn .icon {
