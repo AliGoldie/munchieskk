@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Flame, Award } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import ItemModal from '../components/ItemModal';
@@ -53,6 +53,7 @@ export default function Menu() {
   };
   const [selectedItem, setSelectedItem] = useState(null);
   const [activeCategory, setActiveCategory] = useState('');
+  const isClickScrolling = useRef(false);
 
   // Fixed category order
   const CATEGORY_ORDER = ['BBQ', 'PREMIUM', 'PLATTERS', 'SIDES', 'DRINKS'];
@@ -72,6 +73,7 @@ export default function Menu() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        if (isClickScrolling.current) return;
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             setActiveCategory(entry.target.id.replace('category-', ''));
@@ -106,10 +108,17 @@ export default function Menu() {
   }, [categories]);
 
   const scrollToCategory = (cat) => {
+    isClickScrolling.current = true;
     setActiveCategory(cat);
     const el = document.getElementById(`category-${cat}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
+      // Re-enable observer after smooth scroll completes (approx 800ms max)
+      setTimeout(() => {
+        isClickScrolling.current = false;
+      }, 800);
+    } else {
+      isClickScrolling.current = false;
     }
   };
 
