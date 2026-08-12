@@ -117,33 +117,19 @@ export default function Menu() {
 
   return (
     <div className="menu-page">
-      {/* Sticky Categories Navigation — color changes with active category */}
-      <div 
-        className="filters-row" 
-        style={{ 
-          backgroundColor: activeColors.bg,
-          transition: 'background-color 230ms ease'
-        }}
-      >
+      {/* Sticky Categories Navigation */}
+      <div className="category-bar">
         {categories.map(cat => {
           const colors = CATEGORY_COLORS[cat] || DEFAULT_COLOR;
           const isActive = activeCategory === cat;
           return (
-            <button 
-              key={cat} 
-              className={`filter-btn ${isActive ? 'active' : ''}`}
+            <button
+              key={cat}
+              className={`category-btn${isActive ? ' active' : ''}`}
               onClick={() => scrollToCategory(cat)}
-              style={isActive ? {
-                backgroundColor: colors.accent,
-                color: '#fff',
-                borderColor: colors.text,
-                boxShadow: `2px 2px 0px 0px ${colors.text}`,
-                transition: 'all 230ms ease'
-              } : {
-                transition: 'all 230ms ease'
-              }}
             >
-              {colors.icon} {cat}
+              <span className="icon">{colors.icon}</span>
+              {cat}
             </button>
           );
         })}

@@ -10,52 +10,68 @@
 }
 
 /* Filters */
-.filters-row {
+.category-bar {
   display: flex;
-  gap: var(--space-3);
+  gap: 10px;
   overflow-x: auto;
-  padding: 10px 0 14px 0; /* extra padding for shadow */
+  padding: 14px;
+  background: #FFF6E0;
+  border-radius: 20px;
   position: sticky;
-  top: 60px; /* Accounts for the 60px top header */
-  z-index: 99; /* slightly below top header's 100 */
-  background-color: var(--munchies-light); /* match page bg so items don't bleed through */
-  margin: 0 -1rem; /* stretch to edge of container */
+  top: 60px;
+  z-index: 99;
+  margin: 0 -1rem;
   padding-left: 1rem;
   padding-right: 1rem;
   box-shadow: 0 4px 6px -4px rgba(0,0,0,0.1);
+  /* hide scrollbar */
+  scrollbar-width: none;
+}
+.category-bar::-webkit-scrollbar { display: none; }
+
+.category-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 2px solid #1A1A2E;
+  background: #FFFFFF;
+  color: #1A1A2E;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-shadow: 0 2px 0 rgba(26, 26, 46, 0.15);
+  white-space: nowrap;
+}
+
+.category-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 0 rgba(26, 26, 46, 0.2);
+}
+
+.category-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 0 rgba(26, 26, 46, 0.15);
+}
+
+.category-btn.active {
+  background: linear-gradient(135deg, #E8491D, #C73B0F);
+  color: #FFFFFF;
+  border-color: #1A1A2E;
+  box-shadow: 0 3px 0 #8f2a0a, 0 4px 10px rgba(232, 73, 29, 0.35);
+}
+
+.category-btn .icon {
+  font-size: 17px;
+  line-height: 1;
 }
 
 .category-section {
-  scroll-margin-top: 130px; /* Offset for both headers */
-}
-
-.filter-btn {
-  background-color: var(--munchies-white);
-  border: var(--border-thick);
-  border-radius: var(--radius-full);
-  padding: 6px 16px;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: var(--shadow-brutalist-sm);
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.15s ease,
-              background-color 0.15s ease;
-}
-
-.filter-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 3px 3px 0px 0px var(--munchies-dark);
-}
-
-.filter-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 0px 0px 0px 0px var(--munchies-dark);
-}
-
-.filter-btn.active {
-  background-color: var(--munchies-orange);
-  color: var(--munchies-white);
+  scroll-margin-top: 130px; /* Offset for sticky headers */
 }
 
 /* Hero Menu Card */
