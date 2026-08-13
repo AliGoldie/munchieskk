@@ -703,14 +703,18 @@ export function StoreProvider({ children }) {
     const addonKey = selectedAddons.map(a => a.id).sort().join('_');
     const cartItemId = addonKey ? `${item.id}_${addonKey}` : item.id;
 
+    // ✅ Always look up the live menu item for stock — never trust the frozen prop snapshot
+    // The 'item' passed in may be stale if the modal was opened before a realtime update arrived
+    const liveItem = menu.find(m => m.id === item.id) || item;
+
     // ✅ Check stock OUTSIDE setCart using current cart state
     const totalInCart = cart
       .filter(i => i.id === item.id)
       .reduce((sum, i) => sum + i.quantity, 0);
 
-    const stock = item.stock_quantity ?? null;
+    const stock = liveItem.stock_quantity ?? null;
     if (stock !== null && totalInCart >= stock) {
-      alert(`Sorry! Only ${stock} left in stock for ${item.name}.`);
+      alert(`Sorry! Only ${stock} left in stock for ${liveItem.name}.`);
       return; // abort — do NOT call setCart
     }
 
