@@ -7,7 +7,7 @@ import './OrderStatus.css';
 
 export default function OrderStatus() {
   const { id } = useParams();
-  const { orders, updateOrderState, addPoints, cancelOrder } = useStore();
+  const { orders, updateOrderState, addPoints, claimShareBonus, cancelOrder } = useStore();
   const order = orders.find(o => o.id === id);
 
   const cookTime = order?.cook_time_seconds || loyaltyConfig.DEFAULT_COOK_TIME_SECONDS;
@@ -44,11 +44,15 @@ export default function OrderStatus() {
     setShowReviewPrompt(true);
   };
 
-  const handleSocialShare = (platform) => {
+  const handleSocialShare = async (platform) => {
     if (claimedReview) return;
-    setClaimedReview(true);
-    addPoints(loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
-    alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
+    try {
+      await claimShareBonus(loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
+      setClaimedReview(true);
+      alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
+    } catch (err) {
+      alert(err.message || 'Unable to claim bonus at this time.');
+    }
   };
 
   const formatTime = (seconds) => {

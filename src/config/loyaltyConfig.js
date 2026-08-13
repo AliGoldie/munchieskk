@@ -13,8 +13,8 @@ export const loyaltyConfig = {
 
   // Order Flow Configs
   DEFAULT_COOK_TIME_SECONDS: 600, // 10 minutes
-  COLLECTION_BONUS_PTS: 50,
-  REVIEW_BONUS_PTS: 100,
+  COLLECTION_BONUS_PTS: 10,
+  REVIEW_BONUS_PTS: 30,
   
   // Cooldown for claiming the weekly/fortnightly bonus (in days)
   BONUS_CLAIM_COOLDOWN_DAYS: 7,

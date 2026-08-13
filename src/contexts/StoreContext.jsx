@@ -997,6 +997,36 @@ export function StoreProvider({ children }) {
     }, ...prev]);
   };
 
+  const claimShareBonus = async (amount, description) => {
+    if (!user || !user.id || !amount) return;
+
+    // Call RPC to atomically check limit and award points
+    const { error: rpcErr } = await supabase.rpc('claim_share_bonus', {
+      user_id_param: user.id,
+      amount_param: amount
+    });
+
+    if (rpcErr) {
+      throw rpcErr; // Throw to be caught and alerted in the UI
+    }
+
+    // On success, update local state
+    const currentPoints = user.points || 0;
+    const newTotal = currentPoints + amount;
+
+    setUser(prev => prev ? ({ ...prev, points: newTotal }) : prev);
+    try {
+      localStorage.setItem(`munchies_pts_${user.id}`, newTotal.toString());
+    } catch (e) {}
+
+    setPointHistory(prev => [{
+      id: `TXN-${Math.floor(Math.random() * 10000)}`,
+      date: new Date().toISOString().split('T')[0],
+      type: 'Bonus',
+      amount, description
+    }, ...prev]);
+  };
+
   return (
     <StoreContext.Provider value={{
       menu, cart, cartTotal, cartCount,
@@ -1006,7 +1036,7 @@ export function StoreProvider({ children }) {
       isPromoActive, updatePromo,
       addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
-      placeOrder, addPoints,
+      placeOrder, addPoints, claimShareBonus,
       categoriesList, addCategory, updateCategory, deleteCategory,
       shopSettings, updateShopSettings, isShopOpenNow
     }}>
