@@ -428,7 +428,7 @@ export function StoreProvider({ children }) {
 
     // DB update
     await supabase.from('menu_items')
-      .update({ stock_quantity: newQty, in_stock: newInStock })
+      .update({ stock_quantity: newQty, in_stock: newInStock, manual_override: true })
       .eq('id', id);
   };
 
@@ -444,7 +444,17 @@ export function StoreProvider({ children }) {
 
     // DB update
     await supabase.from('menu_items')
-      .update({ stock_quantity: newQty, in_stock: newInStock })
+      .update({ stock_quantity: newQty, in_stock: newInStock, manual_override: true })
+      .eq('id', id);
+  };
+
+  const clearManualOverride = async (id) => {
+    // Optimistic UI update
+    setMenu(prev => prev.map(i => i.id === id ? { ...i, manual_override: false } : i));
+    
+    // DB update
+    await supabase.from('menu_items')
+      .update({ manual_override: false })
       .eq('id', id);
   };
 
@@ -1032,7 +1042,7 @@ export function StoreProvider({ children }) {
       menu, cart, cartTotal, cartCount,
       points, tier, pointHistory, orders, addons, itemAddons, customers,
       toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, updateOrderState, acceptOrder, cancelOrder,
-      updateStock, setStockQuantity,
+      updateStock, setStockQuantity, clearManualOverride,
       isPromoActive, updatePromo,
       addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
