@@ -578,7 +578,8 @@ const clearManualOverride = async (id) => {
     // 1. Try atomic RPC first
     const { error: rpcError } = await supabase.rpc('cancel_order', {
       p_order_id: orderId,
-      p_reason: reason
+      p_reason: reason,
+      p_waste_action: wasteAction // 'restore' or 'waste'
     });
 
     // 2. Direct database update fallback
