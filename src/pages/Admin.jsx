@@ -3062,7 +3062,88 @@ export default function Admin() {
             )}
           </div>
         )}
-      </main>
+      
+{/* Loyalty CRM Tab */}
+        {activeTab === 'loyalty_crm' && (
+          <div className="admin-card">
+            <h3>Loyalty Prizes CRM</h3>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Manage prizes that customers can redeem with their loyalty points.</p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              await addLoyaltyPrize({
+                name: fd.get('name'),
+                description: fd.get('description') || null,
+                points_cost: parseInt(fd.get('points_cost')),
+                image_url: fd.get('image_url') || null,
+                menu_item_id: fd.get('menu_item_id') || null,
+                deduct_stock: fd.get('deduct_stock') === 'true'
+              });
+              e.target.reset();
+            }} className="new-item-form" style={{ gridTemplateColumns: '1fr 1fr 1fr auto', alignItems: 'end', marginBottom: '2rem' }}>
+              <div className="form-group"><label>Prize Name</label><input type="text" name="name" placeholder="e.g. Free Burger" required className="price-input" /></div>
+              <div className="form-group"><label>Points Cost</label><input type="number" name="points_cost" placeholder="e.g. 500" required className="price-input" min="1" /></div>
+              <div className="form-group"><label>Image URL</label><input type="text" name="image_url" placeholder="/images/prize.jpg" className="price-input" /></div>
+              <div className="form-group"><label>Linked Menu Item</label>
+                <select name="menu_item_id" className="price-input" style={{ width: '100%', height: '42px' }}>
+                  <option value="">-- None --</option>
+                  {menu.map(m => <option key={m.id} value={m.id}>{m.name} (Stock: {m.stock_quantity})</option>)}
+                </select>
+              </div>
+              <div className="form-group" style={{ gridColumn: '1 / span 3' }}><label>Description</label><input type="text" name="description" placeholder="Short description..." className="price-input" /></div>
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '42px' }}>
+                <input type="checkbox" name="deduct_stock" value="true" id="deduct_stock_check" />
+                <label htmlFor="deduct_stock_check" style={{ margin: 0, cursor: 'pointer' }}>Deduct stock on fulfillment</label>
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ height: '42px' }}>Add Prize</button>
+            </form>
+            <div className="table-responsive"><table className="admin-table">
+              <thead><tr><th>Prize</th><th>Cost</th><th>Stock Link</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{loyaltyPrizes.map(prize => {
+                const linked = menu.find(m => String(m.id) === String(prize.menu_item_id));
+                return (<tr key={prize.id}>
+                  <td><strong>{prize.name}</strong>{prize.description && <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{prize.description}</div>}</td>
+                  <td className="text-orange font-bold">{prize.points_cost} PTS</td>
+                  <td>{linked ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>{linked.name} (Stock: {linked.stock_quantity})</span> : <span className="text-muted">-</span>}</td>
+                  <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: prize.is_active ? '#166534' : '#475569', color: '#fff' }}>{prize.is_active ? 'Active' : 'Inactive'}</span></td>
+                  <td><div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-sm" style={{ background: prize.is_active ? '#f59e0b' : '#22c55e', color: '#fff' }} onClick={() => updateLoyaltyPrize(prize.id, { is_active: !prize.is_active })}>{prize.is_active ? 'Disable' : 'Enable'}</button>
+                    <button className="btn btn-sm btn-outline text-red" onClick={() => { if(window.confirm('Delete?')) deleteLoyaltyPrize(prize.id); }}>Delete</button>
+                  </div></td>
+                </tr>);
+              })}</tbody>
+            </table></div>
+          </div>
+        )}
+
+        {/* Redemptions Tab */}
+        {activeTab === 'redemptions' && (
+          <div className="admin-card">
+            <h3>Pending & Fulfilled Redemptions</h3>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>When customers redeem points, their requests appear here. Click "Fulfill" when you hand over the prize.</p>
+            <div className="table-responsive"><table className="admin-table">
+              <thead><tr><th>Code</th><th>Customer</th><th>Prize</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                {redemptions.length === 0 ? (
+                  <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions found.</td></tr>
+                ) : redemptions.map(r => (
+                  <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: '#FFC72C' }}>{r.redemption_code}</td>
+                    <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{r.profiles?.phone || ''}</div></td>
+                    <td><strong>{r.prize_name}</strong><div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>{r.points_spent} pts</div></td>
+                    <td style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
+                    <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : '#166534', color: '#fff' }}>{r.status}</span></td>
+                    <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
+                    {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Done</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          </div>
+        )}
+
+      
+</main>
 
       {/* Promo Code Modal Overlay */}
       {isPromoModalOpen && (
@@ -3449,86 +3530,7 @@ export default function Admin() {
         </div>
       )}
 
-        {/* Loyalty CRM Tab */}
-        {activeTab === 'loyalty_crm' && (
-          <div className="admin-card">
-            <h3>Loyalty Prizes CRM</h3>
-            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Manage prizes that customers can redeem with their loyalty points.</p>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              const fd = new FormData(e.target);
-              await addLoyaltyPrize({
-                name: fd.get('name'),
-                description: fd.get('description') || null,
-                points_cost: parseInt(fd.get('points_cost')),
-                image_url: fd.get('image_url') || null,
-                menu_item_id: fd.get('menu_item_id') || null,
-                deduct_stock: fd.get('deduct_stock') === 'true'
-              });
-              e.target.reset();
-            }} className="new-item-form" style={{ gridTemplateColumns: '1fr 1fr 1fr auto', alignItems: 'end', marginBottom: '2rem' }}>
-              <div className="form-group"><label>Prize Name</label><input type="text" name="name" placeholder="e.g. Free Burger" required className="price-input" /></div>
-              <div className="form-group"><label>Points Cost</label><input type="number" name="points_cost" placeholder="e.g. 500" required className="price-input" min="1" /></div>
-              <div className="form-group"><label>Image URL</label><input type="text" name="image_url" placeholder="/images/prize.jpg" className="price-input" /></div>
-              <div className="form-group"><label>Linked Menu Item</label>
-                <select name="menu_item_id" className="price-input" style={{ width: '100%', height: '42px' }}>
-                  <option value="">-- None --</option>
-                  {menu.map(m => <option key={m.id} value={m.id}>{m.name} (Stock: {m.stock_quantity})</option>)}
-                </select>
-              </div>
-              <div className="form-group" style={{ gridColumn: '1 / span 3' }}><label>Description</label><input type="text" name="description" placeholder="Short description..." className="price-input" /></div>
-              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '42px' }}>
-                <input type="checkbox" name="deduct_stock" value="true" id="deduct_stock_check" />
-                <label htmlFor="deduct_stock_check" style={{ margin: 0, cursor: 'pointer' }}>Deduct stock on fulfillment</label>
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ height: '42px' }}>Add Prize</button>
-            </form>
-            <div className="table-responsive"><table className="admin-table">
-              <thead><tr><th>Prize</th><th>Cost</th><th>Stock Link</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody>{loyaltyPrizes.map(prize => {
-                const linked = menu.find(m => String(m.id) === String(prize.menu_item_id));
-                return (<tr key={prize.id}>
-                  <td><strong>{prize.name}</strong>{prize.description && <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{prize.description}</div>}</td>
-                  <td className="text-orange font-bold">{prize.points_cost} PTS</td>
-                  <td>{linked ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>{linked.name} (Stock: {linked.stock_quantity})</span> : <span className="text-muted">-</span>}</td>
-                  <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: prize.is_active ? '#166534' : '#475569', color: '#fff' }}>{prize.is_active ? 'Active' : 'Inactive'}</span></td>
-                  <td><div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn btn-sm" style={{ background: prize.is_active ? '#f59e0b' : '#22c55e', color: '#fff' }} onClick={() => updateLoyaltyPrize(prize.id, { is_active: !prize.is_active })}>{prize.is_active ? 'Disable' : 'Enable'}</button>
-                    <button className="btn btn-sm btn-outline text-red" onClick={() => { if(window.confirm('Delete?')) deleteLoyaltyPrize(prize.id); }}>Delete</button>
-                  </div></td>
-                </tr>);
-              })}</tbody>
-            </table></div>
-          </div>
-        )}
-
-        {/* Redemptions Tab */}
-        {activeTab === 'redemptions' && (
-          <div className="admin-card">
-            <h3>Pending & Fulfilled Redemptions</h3>
-            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>When customers redeem points, their requests appear here. Click "Fulfill" when you hand over the prize.</p>
-            <div className="table-responsive"><table className="admin-table">
-              <thead><tr><th>Code</th><th>Customer</th><th>Prize</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
-              <tbody>
-                {redemptions.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions found.</td></tr>
-                ) : redemptions.map(r => (
-                  <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: '#FFC72C' }}>{r.redemption_code}</td>
-                    <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{r.profiles?.phone || ''}</div></td>
-                    <td><strong>{r.prize_name}</strong><div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>{r.points_spent} pts</div></td>
-                    <td style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
-                    <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : '#166534', color: '#fff' }}>{r.status}</span></td>
-                    <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
-                    {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Done</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-          </div>
-        )}
-
-      {/* Cancellation Modal */}
+        {/* Cancellation Modal */}
       {cancellingOrder && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
