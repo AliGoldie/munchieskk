@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Admin.css';
@@ -18,9 +18,10 @@ export default function Admin() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
-    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, updateStock, setStockQuantity, clearManualOverride,
+    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateStock, setStockQuantity, clearManualOverride,
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice,
+    loyaltyPrizes, redemptions, fetchAdminRedemptions, fulfillRedemption, addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
     isPromoActive, updatePromo,
     categoriesList, addCategory, updateCategory, deleteCategory,
     shopSettings, updateShopSettings, isShopOpenNow
@@ -34,6 +35,7 @@ export default function Admin() {
 
   // Menu Item Detail Editing State
   const [editingMenuItem, setEditingMenuItem] = useState(null);
+  const [cancellingOrder, setCancellingOrder] = useState(null);
   const [editingMenuItemImageFile, setEditingMenuItemImageFile] = useState(null);
 
   // Category CRM State
@@ -934,6 +936,13 @@ export default function Admin() {
           </button>
           <button className={`sidebar-item ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
             <Archive size={20} /> Order History
+          </button>
+        
+          <button className={`sidebar-item ${activeTab === 'loyalty_crm' ? 'active' : ''}`} onClick={() => setActiveTab('loyalty_crm')}>
+            <Gift size={20} /> Prizes CRM
+          </button>
+          <button className={`sidebar-item ${activeTab === 'redemptions' ? 'active' : ''}`} onClick={() => setActiveTab('redemptions')}>
+            <Ticket size={20} /> Redemptions
           </button>
         </aside>
 
@@ -3436,6 +3445,111 @@ export default function Admin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+        {/* Loyalty CRM Tab */}
+        {activeTab === 'loyalty_crm' && (
+          <div className="admin-card">
+            <h3>Loyalty Prizes CRM</h3>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Manage prizes that customers can redeem with their loyalty points.</p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              await addLoyaltyPrize({
+                name: fd.get('name'),
+                description: fd.get('description') || null,
+                points_cost: parseInt(fd.get('points_cost')),
+                image_url: fd.get('image_url') || null,
+                menu_item_id: fd.get('menu_item_id') || null,
+                deduct_stock: fd.get('deduct_stock') === 'true'
+              });
+              e.target.reset();
+            }} className="new-item-form" style={{ gridTemplateColumns: '1fr 1fr 1fr auto', alignItems: 'end', marginBottom: '2rem' }}>
+              <div className="form-group"><label>Prize Name</label><input type="text" name="name" placeholder="e.g. Free Burger" required className="price-input" /></div>
+              <div className="form-group"><label>Points Cost</label><input type="number" name="points_cost" placeholder="e.g. 500" required className="price-input" min="1" /></div>
+              <div className="form-group"><label>Image URL</label><input type="text" name="image_url" placeholder="/images/prize.jpg" className="price-input" /></div>
+              <div className="form-group"><label>Linked Menu Item</label>
+                <select name="menu_item_id" className="price-input" style={{ width: '100%', height: '42px' }}>
+                  <option value="">-- None --</option>
+                  {menu.map(m => <option key={m.id} value={m.id}>{m.name} (Stock: {m.stock_quantity})</option>)}
+                </select>
+              </div>
+              <div className="form-group" style={{ gridColumn: '1 / span 3' }}><label>Description</label><input type="text" name="description" placeholder="Short description..." className="price-input" /></div>
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '42px' }}>
+                <input type="checkbox" name="deduct_stock" value="true" id="deduct_stock_check" />
+                <label htmlFor="deduct_stock_check" style={{ margin: 0, cursor: 'pointer' }}>Deduct stock on fulfillment</label>
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ height: '42px' }}>Add Prize</button>
+            </form>
+            <div className="table-responsive"><table className="admin-table">
+              <thead><tr><th>Prize</th><th>Cost</th><th>Stock Link</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{loyaltyPrizes.map(prize => {
+                const linked = menu.find(m => String(m.id) === String(prize.menu_item_id));
+                return (<tr key={prize.id}>
+                  <td><strong>{prize.name}</strong>{prize.description && <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{prize.description}</div>}</td>
+                  <td className="text-orange font-bold">{prize.points_cost} PTS</td>
+                  <td>{linked ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>{linked.name} (Stock: {linked.stock_quantity})</span> : <span className="text-muted">-</span>}</td>
+                  <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: prize.is_active ? '#166534' : '#475569', color: '#fff' }}>{prize.is_active ? 'Active' : 'Inactive'}</span></td>
+                  <td><div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-sm" style={{ background: prize.is_active ? '#f59e0b' : '#22c55e', color: '#fff' }} onClick={() => updateLoyaltyPrize(prize.id, { is_active: !prize.is_active })}>{prize.is_active ? 'Disable' : 'Enable'}</button>
+                    <button className="btn btn-sm btn-outline text-red" onClick={() => { if(window.confirm('Delete?')) deleteLoyaltyPrize(prize.id); }}>Delete</button>
+                  </div></td>
+                </tr>);
+              })}</tbody>
+            </table></div>
+          </div>
+        )}
+
+        {/* Redemptions Tab */}
+        {activeTab === 'redemptions' && (
+          <div className="admin-card">
+            <h3>Pending & Fulfilled Redemptions</h3>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>When customers redeem points, their requests appear here. Click "Fulfill" when you hand over the prize.</p>
+            <div className="table-responsive"><table className="admin-table">
+              <thead><tr><th>Code</th><th>Customer</th><th>Prize</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                {redemptions.length === 0 ? (
+                  <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions found.</td></tr>
+                ) : redemptions.map(r => (
+                  <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: '#FFC72C' }}>{r.redemption_code}</td>
+                    <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{r.profiles?.phone || ''}</div></td>
+                    <td><strong>{r.prize_name}</strong><div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>{r.points_spent} pts</div></td>
+                    <td style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
+                    <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : '#166534', color: '#fff' }}>{r.status}</span></td>
+                    <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
+                    {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Done</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          </div>
+        )}
+
+      {/* Cancellation Modal */}
+      {cancellingOrder && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
+            <h3 style={{ margin: '0 0 1rem 0', color: '#FFC72C', fontSize: '1.2rem' }}>Cancel Order</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+              <div><label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>REASON</label>
+              <input type="text" value={cancellingOrder.reason} onChange={e => setCancellingOrder({...cancellingOrder, reason: e.target.value})} placeholder="e.g. Customer no-show" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>STOCK ACTION</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'restore' ? '#1e3a8a' : '#0f172a', border: '1px solid #475569', borderRadius: '8px', cursor: 'pointer', marginBottom: '8px' }}>
+                <input type="radio" checked={cancellingOrder.wasteAction === 'restore'} onChange={() => setCancellingOrder({...cancellingOrder, wasteAction: 'restore'})} />
+                <div><div style={{ color: '#fff', fontWeight: 'bold' }}>Restore to stock</div><div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Item not prepared, still available.</div></div>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'waste' ? '#450a0a' : '#0f172a', border: '1px solid #475569', borderRadius: '8px', cursor: 'pointer' }}>
+                <input type="radio" checked={cancellingOrder.wasteAction === 'waste'} onChange={() => setCancellingOrder({...cancellingOrder, wasteAction: 'waste'})} />
+                <div><div style={{ color: '#fca5a5', fontWeight: 'bold' }}>Mark as waste</div><div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Item prepped, cannot be resold.</div></div>
+              </label></div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => { if (!cancellingOrder.reason.trim()) { alert("Reason required."); return; } cancelOrder(cancellingOrder.id, cancellingOrder.reason.trim(), cancellingOrder.wasteAction); setCancellingOrder(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Confirm Cancel</button>
+                <button onClick={() => setCancellingOrder(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: '#475569', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Abort</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
