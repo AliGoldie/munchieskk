@@ -14,6 +14,8 @@ export function StoreProvider({ children }) {
   const [itemAddons, setItemAddons] = useState({});
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [loyaltyPrizes, setLoyaltyPrizes] = useState([]);
+  const [redemptions, setRedemptions] = useState([]);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
 
   // Local-only state for Cart & Point History
@@ -152,7 +154,13 @@ export function StoreProvider({ children }) {
   // --- Supabase Real-time Sync ---
   useEffect(() => {
     const fetchInitialData = async () => {
-      // 0. Fetch Store Settings
+      // 0a. Fetch Loyalty Prizes
+      try {
+        const { data: prizesData } = await supabase.from('loyalty_prizes').select('*').eq('is_active', true).order('points_cost', { ascending: true });
+        if (prizesData) setLoyaltyPrizes(prizesData);
+      } catch (e) { console.warn('loyalty_prizes fetch failed:', e); }
+
+            // 0. Fetch Store Settings
       try {
         const { data: settingsData, error: settingsErr } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
         if (settingsErr) {
@@ -448,7 +456,23 @@ export function StoreProvider({ children }) {
       .eq('id', id);
   };
 
-  const clearManualOverride = async (id) => {
+  
+  const deleteMenuItem = async (id) => {
+    try {
+      const { error } = await supabase.from('menu_items').delete().eq('id', id);
+      if (error) {
+        console.error('Failed to delete menu item:', error);
+        alert('Error deleting item: ' + error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Exception deleting menu item:', err);
+      return false;
+    }
+  };
+
+const clearManualOverride = async (id) => {
     // Optimistic UI update
     setMenu(prev => prev.map(i => i.id === id ? { ...i, manual_override: false } : i));
     
@@ -544,7 +568,7 @@ export function StoreProvider({ children }) {
     }
   };
 
-  const cancelOrder = async (orderId, reason) => {
+  const cancelOrder = async (orderId, reason, wasteAction = 'restore') => {
     const order = orders.find(o => o.id === orderId);
     if (!order || order.status === 'COLLECTED' || order.status === 'CANCELLED') return;
 
@@ -557,7 +581,7 @@ export function StoreProvider({ children }) {
       p_reason: reason
     });
 
-    // 2. Direct database update fallback if RPC function is missing/not executed in Supabase
+    // 2. Direct database update fallback
     if (rpcError) {
       console.warn('RPC cancel_order function missing or failed, performing direct table update:', rpcError.message);
 
@@ -576,20 +600,41 @@ export function StoreProvider({ children }) {
         return;
       }
 
-      // Restock items in menu
-      if (order.items && Array.isArray(order.items)) {
-        order.items.forEach(async item => {
-          if (item.id) {
-            const menuItem = menu.find(m => m.id === item.id);
-            if (menuItem) {
-              const restoredQty = (menuItem.stock_quantity || 0) + (item.quantity || 1);
-              setMenu(prev => prev.map(m => m.id === item.id ? { ...m, stock_quantity: restoredQty, in_stock: true, inStock: true } : m));
-              try {
-                await supabase.from('menu_items').update({ stock_quantity: restoredQty, in_stock: true }).eq('id', item.id);
-              } catch (e) {}
+      if (wasteAction === 'restore') {
+        // Restock items in menu
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach(async item => {
+            if (item.id) {
+              const menuItem = menu.find(m => m.id === item.id);
+              if (menuItem) {
+                const restoredQty = (menuItem.stock_quantity || 0) + (item.quantity || 1);
+                setMenu(prev => prev.map(m => m.id === item.id ? { ...m, stock_quantity: restoredQty, in_stock: true, inStock: true } : m));
+                try {
+                  await supabase.from('menu_items').update({ stock_quantity: restoredQty, in_stock: true }).eq('id', item.id);
+                } catch (e) {}
+              }
+            }
+          });
+        }
+      } else if (wasteAction === 'waste') {
+        // Log to waste_log without restoring stock
+        if (order.items && Array.isArray(order.items)) {
+          const wasteEntries = order.items.filter(item => item.id).map(item => ({
+            item_id: item.id,
+            order_id: orderId,
+            quantity: item.quantity || 1,
+            reason: reason
+          }));
+          
+          if (wasteEntries.length > 0) {
+            const { error: wasteErr } = await supabase.from('waste_log').insert(wasteEntries);
+            if (wasteErr) {
+              console.error('Failed to log waste:', wasteErr.message);
+            } else {
+              console.log('Successfully logged waste entries for order:', orderId);
             }
           }
-        });
+        }
       }
     }
   };
@@ -841,11 +886,30 @@ export function StoreProvider({ children }) {
       return null;
     }
 
-    // Calculate deductions as a hash map first
+    // Validate items exist and calculate deductions
     const stockMap = {};
+    const validCart = [];
+    let hasDeadItems = false;
+
     finalCart.forEach(cartItem => {
-      stockMap[cartItem.id] = (stockMap[cartItem.id] || 0) + cartItem.quantity;
+      if (cartItem.price === 0 && cartItem.name.includes('(FREE)')) {
+        validCart.push(cartItem);
+        return;
+      }
+      const existsInMenu = menu.some(m => String(m.id) === String(cartItem.id));
+      if (existsInMenu) {
+        stockMap[cartItem.id] = (stockMap[cartItem.id] || 0) + cartItem.quantity;
+        validCart.push(cartItem);
+      } else {
+        hasDeadItems = true;
+      }
     });
+
+    if (hasDeadItems) {
+      alert("Some items in your cart are no longer available on our menu. We've removed them from your cart. Please review your order.");
+      setCart(validCart.filter(item => !(item.price === 0 && item.name.includes('(FREE)'))));
+      return null;
+    }
 
     // Convert map to array of objects for the RPC function
     const deductions = Object.entries(stockMap).map(([item_id, quantity]) => ({
@@ -1011,7 +1075,73 @@ export function StoreProvider({ children }) {
     }, ...prev]);
   };
 
-  const claimShareBonus = async (amount, description) => {
+  const redeemPrize = async (prizeId) => {
+    if (!user || !user.id) {
+      alert('You must be logged in to redeem prizes.');
+      return null;
+    }
+    const { data, error } = await supabase.rpc('redeem_prize', {
+      p_user_id: user.id,
+      p_prize_id: prizeId
+    });
+    if (error) {
+      alert('Redemption failed: ' + error.message);
+      return null;
+    }
+    if (!data.success) {
+      alert('Redemption failed: ' + data.error);
+      return null;
+    }
+    // Deduct points locally
+    const spent = data.points_spent;
+    setUser(prev => prev ? ({ ...prev, points: (prev.points || 0) - spent }) : prev);
+    try { localStorage.setItem('munchies_pts_' + user.id, ((user.points || 0) - spent).toString()); } catch(e) {}
+    return data;
+  };
+
+  const fetchAdminRedemptions = async () => {
+    const { data, error } = await supabase.from('redemptions').select('*, profiles:user_id(name, phone)').order('redeemed_at', { ascending: false }).limit(100);
+    if (!error && data) setRedemptions(data);
+  };
+
+  const fulfillRedemption = async (redemptionId, adminId) => {
+    const { data, error } = await supabase.rpc('fulfill_redemption', {
+      p_redemption_id: redemptionId,
+      p_admin_id: adminId
+    });
+    if (error || !data?.success) {
+      alert('Failed to fulfill: ' + (error?.message || data?.error));
+      return false;
+    }
+    setRedemptions(prev => prev.map(r => r.id === redemptionId ? { ...r, status: 'FULFILLED', fulfilled_at: new Date().toISOString() } : r));
+    // Refresh menu stock locally
+    const { data: freshMenu } = await supabase.from('menu_items').select('*');
+    if (freshMenu) setMenu(freshMenu.map(item => ({ ...item, inStock: item.in_stock, price: item.price })));
+    return true;
+  };
+
+  const addLoyaltyPrize = async (prizeData) => {
+    const { data, error } = await supabase.from('loyalty_prizes').insert([prizeData]).select().single();
+    if (error) { alert('Failed to create prize: ' + error.message); return null; }
+    setLoyaltyPrizes(prev => [...prev, data]);
+    return data;
+  };
+
+  const updateLoyaltyPrize = async (id, fields) => {
+    const { error } = await supabase.from('loyalty_prizes').update(fields).eq('id', id);
+    if (error) { alert('Failed to update prize: ' + error.message); return false; }
+    setLoyaltyPrizes(prev => prev.map(p => p.id === id ? { ...p, ...fields } : p));
+    return true;
+  };
+
+  const deleteLoyaltyPrize = async (id) => {
+    const { error } = await supabase.from('loyalty_prizes').update({ is_active: false }).eq('id', id);
+    if (error) { alert('Failed to delete prize: ' + error.message); return false; }
+    setLoyaltyPrizes(prev => prev.filter(p => p.id !== id));
+    return true;
+  };
+
+    const claimShareBonus = async (amount, description) => {
     if (!user || !user.id || !amount) return;
 
     // Call RPC to atomically check limit and award points
@@ -1045,12 +1175,14 @@ export function StoreProvider({ children }) {
     <StoreContext.Provider value={{
       menu, cart, cartTotal, cartCount,
       points, tier, pointHistory, orders, addons, itemAddons, customers,
-      toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, updateOrderState, acceptOrder, cancelOrder,
+      toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateOrderState, acceptOrder, cancelOrder,
       updateStock, setStockQuantity, clearManualOverride,
       isPromoActive, updatePromo,
       addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, addPoints, claimShareBonus,
+      loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
+      addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
       categoriesList, addCategory, updateCategory, deleteCategory,
       shopSettings, updateShopSettings, isShopOpenNow
     }}>
