@@ -582,61 +582,12 @@ const clearManualOverride = async (id) => {
       p_waste_action: wasteAction // 'restore' or 'waste'
     });
 
-    // 2. Direct database update fallback
+    // 2. Fallback removed. We strictly rely on the atomic cancel_order RPC above.
     if (rpcError) {
-      console.warn('RPC cancel_order function missing or failed, performing direct table update:', rpcError.message);
-
-      let { error: directErr } = await supabase
-        .from('orders')
-        .update({
-          status: 'CANCELLED'
-        })
-        .eq('id', orderId);
-
-      if (directErr) {
-        console.error('Direct table cancel failed:', directErr);
-        // Revert optimistic update only if direct update fails
-        setOrders(orders.map(o => o.id === orderId ? order : o));
-        alert('Failed to cancel order: ' + directErr.message);
-        return;
-      }
-
-      if (wasteAction === 'restore') {
-        // Restock items in menu
-        if (order.items && Array.isArray(order.items)) {
-          order.items.forEach(async item => {
-            if (item.id) {
-              const menuItem = menu.find(m => m.id === item.id);
-              if (menuItem) {
-                const restoredQty = (menuItem.stock_quantity || 0) + (item.quantity || 1);
-                setMenu(prev => prev.map(m => m.id === item.id ? { ...m, stock_quantity: restoredQty, in_stock: true, inStock: true } : m));
-                try {
-                  await supabase.from('menu_items').update({ stock_quantity: restoredQty, in_stock: true }).eq('id', item.id);
-                } catch (e) {}
-              }
-            }
-          });
-        }
-      } else if (wasteAction === 'waste') {
-        // Log to waste_log without restoring stock
-        if (order.items && Array.isArray(order.items)) {
-          const wasteEntries = order.items.filter(item => item.id).map(item => ({
-            item_id: item.id,
-            order_id: orderId,
-            quantity: item.quantity || 1,
-            reason: reason
-          }));
-          
-          if (wasteEntries.length > 0) {
-            const { error: wasteErr } = await supabase.from('waste_log').insert(wasteEntries);
-            if (wasteErr) {
-              console.error('Failed to log waste:', wasteErr.message);
-            } else {
-              console.log('Successfully logged waste entries for order:', orderId);
-            }
-          }
-        }
-      }
+      console.error('RPC cancel_order failed:', rpcError.message);
+      alert('Failed to cancel order: ' + rpcError.message);
+      // Revert optimistic update
+      setOrders(orders.map(o => o.id === orderId ? order : o));
     }
   };
 
