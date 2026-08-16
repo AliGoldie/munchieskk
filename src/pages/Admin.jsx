@@ -2237,7 +2237,7 @@ export default function Admin() {
                             type="number"
                             min="0"
                             className="qty-input"
-                            value={editingStock[item.id] !== undefined ? editingStock[item.id] : (item.stock_quantity ?? 99)}
+                            value={editingStock[item.id] !== undefined ? editingStock[item.id] : ((menu.find(m => m.id === item.id) || item).stock_quantity ?? 99)}
                             onChange={e => setEditingStock({ ...editingStock, [item.id]: e.target.value })}
                             onBlur={e => {
                               if (editingStock[item.id] !== undefined) {
@@ -2247,13 +2247,13 @@ export default function Admin() {
                             }}
                             onKeyDown={e => {
                               if (e.key === 'Enter') {
-                                setStockQuantity(item.id, editingStock[item.id] ?? item.stock_quantity);
+                                setStockQuantity(item.id, editingStock[item.id] ?? (menu.find(m => m.id === item.id) || item).stock_quantity);
                                 setEditingStock({ ...editingStock, [item.id]: undefined });
                                 e.target.blur();
                               }
                             }}
                             style={{
-                              color: (editingStock[item.id] !== undefined ? Number(editingStock[item.id]) : (item.stock_quantity ?? 99)) === 0 ? '#ef4444' : '#1e293b'
+                              color: (editingStock[item.id] !== undefined ? Number(editingStock[item.id]) : ((menu.find(m => m.id === item.id) || item).stock_quantity ?? 99)) === 0 ? '#ef4444' : '#1e293b'
                             }}
                           />
                           <button
