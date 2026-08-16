@@ -2262,16 +2262,7 @@ export default function Admin() {
                             onClick={(e) => { e.preventDefault(); updateStock(item.id, +1); }}
                           >+</button>
                         </div>
-                        {item.manual_override && (
-                          <button 
-                            className="btn btn-sm btn-secondary" 
-                            style={{ fontSize: '0.7rem', padding: '2px 6px', color: '#6366f1', borderColor: '#6366f1' }}
-                            onClick={() => clearManualOverride(item.id)}
-                            title="Clear manual override to resume automated Loyverse sync"
-                          >
-                            Sync with Loyverse
-                          </button>
-                        )}
+                        
                         <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           Alert at: 
                           <input 
