@@ -1951,16 +1951,24 @@ export default function Admin() {
                     ))}
                   </div>
                 </div>
-                <button
-                  className="pending-accept-btn"
-                  onClick={() => handleAccept(order.id)}
-                >
-                  ✓ Accept<br/>
-                  <span style={{fontSize:'0.65rem', opacity:0.85}}>
-                    {order.total >= 10000 ? '20 min' : '15 min'} timer
-                  </span>
-                </button>
-              </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center' }}>
+                  <button
+                    className="pending-accept-btn"
+                    onClick={() => handleAccept(order.id)}
+                    style={{ width: '100%', padding: '0.5rem 1rem' }}
+                  >
+                    ? Accept<br/>
+                    <span style={{fontSize:'0.65rem', opacity:0.85}}>
+                      {order.total >= 10000 ? '20 min' : '15 min'} timer
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setCancellingOrder({ id: order.id, reason: '', wasteAction: 'restore' })}
+                    style={{ width: '100%', padding: '0.5rem 1rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    ? Cancel
+                  </button>
+                </div>
             </div>
           ))}
 
@@ -2026,14 +2034,7 @@ export default function Admin() {
                         <button 
                           className="btn btn-sm btn-secondary" 
                           style={{marginLeft: '0.5rem'}}
-                          onClick={() => {
-                            const reason = window.prompt("Enter cancellation reason:");
-                            if (reason && reason.trim()) {
-                              cancelOrder(order.id, reason.trim());
-                            } else {
-                              alert("Cancellation reason is required.");
-                            }
-                          }}
+                          onClick={() => setCancellingOrder({ id: order.id, reason: '', wasteAction: 'restore' })}
                         >
                           Cancel
                         </button>
