@@ -974,10 +974,10 @@ export default function Admin() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                       <div>
                         <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>📅 Schedule Manager</h3>
-                        <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: '0.8rem' }}>Set weekly operating hours and block special closure dates</p>
+                        <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Set weekly operating hours and block special closure dates</p>
                       </div>
                       <button onClick={() => setScheduleModalOpen(false)}
-                        style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: '#94a3b8', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                        style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: 'var(--text-muted)', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                     </div>
 
                     {/* Modal Body */}
@@ -985,7 +985,7 @@ export default function Admin() {
 
                       {/* Override Buttons inside Modal */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>⚡ Quick Override</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>⚡ Quick Override</label>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {[['OPEN','🟢 Open Now','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close Now','#ef4444'],['SCHEDULE','📅 Use Schedule','#6366f1']].map(([s,label,col]) => (
                             <button key={s} type="button" onClick={() => updateShopSettings({ status: s })}
@@ -993,7 +993,7 @@ export default function Admin() {
                                 background: shopSettings?.status === s ? col : '#334155', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
                           ))}
                         </div>
-                        <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '6px 0 0' }}>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: '6px 0 0' }}>
                           {shopSettings?.status === 'SCHEDULE'
                             ? '✅ Following weekly schedule — auto open/close by day & time'
                             : `⚠️ Manual override active (${shopSettings?.status}). Click "Use Schedule" to follow the weekly timetable.`}
@@ -1002,7 +1002,7 @@ export default function Admin() {
 
                       {/* Weekly Schedule Grid */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🗓️ Weekly Schedule</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🗓️ Weekly Schedule</label>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
                             const dayFull = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
@@ -1019,7 +1019,7 @@ export default function Admin() {
                               }}>
                                 <div onClick={() => saveScheduleDay(day, { enabled: !sched.enabled })}
                                   style={{ width: '40px', height: '22px', borderRadius: '11px', cursor: 'pointer', flexShrink: 0,
-                                    background: sched.enabled ? '#22c55e' : '#475569', position: 'relative', transition: 'background 0.2s' }}>
+                                    background: sched.enabled ? '#22c55e' : 'var(--text-secondary)', position: 'relative', transition: 'background 0.2s' }}>
                                   <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
                                     position: 'absolute', top: '3px', transition: 'left 0.2s', left: sched.enabled ? '21px' : '3px' }} />
                                 </div>
@@ -1030,12 +1030,12 @@ export default function Admin() {
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
                                     <input type="time" value={sched.open}
                                       onChange={e => saveScheduleDay(day, { open: e.target.value })}
-                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
-                                    <span style={{ color: '#64748b', fontSize: '0.8rem' }}>to</span>
+                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
+                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>to</span>
                                     <input type="time" value={sched.close}
                                       onChange={e => saveScheduleDay(day, { close: e.target.value })}
-                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
-                                    <span style={{ fontSize: '0.73rem', color: '#64748b' }}>({formatTime12Hour(sched.open)} – {formatTime12Hour(sched.close)})</span>
+                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
+                                    <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)' }}>({formatTime12Hour(sched.open)} – {formatTime12Hour(sched.close)})</span>
                                   </div>
                                 ) : (
                                   <span style={{ background: '#ef444420', color: '#fca5a5', padding: '3px 10px', borderRadius: '12px', fontSize: '0.73rem', fontWeight: '700' }}>🚫 CLOSED</span>
@@ -1048,12 +1048,12 @@ export default function Admin() {
 
                       {/* Special Closures */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🚨 Special Closures & Holidays</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🚨 Special Closures & Holidays</label>
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
                           <input type="date" id="closure-date-input" min={new Date().toISOString().split('T')[0]}
-                            style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.875rem' }} />
+                            style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.875rem' }} />
                           <input type="text" id="closure-reason-input" placeholder="Reason (e.g. Public Holiday)"
-                            style={{ flex: 1, minWidth: '160px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontSize: '0.875rem' }} />
+                            style={{ flex: 1, minWidth: '160px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontSize: '0.875rem' }} />
                           <button type="button"
                             onClick={() => {
                               const dateInput = document.getElementById('closure-date-input');
@@ -1068,7 +1068,7 @@ export default function Admin() {
                             style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Add</button>
                         </div>
                         {(localClosures || []).length === 0 ? (
-                          <p style={{ fontSize: '0.8rem', color: '#475569', margin: 0 }}>No special closures scheduled.</p>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>No special closures scheduled.</p>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {[...(localClosures || [])].sort((a,b) => a.date.localeCompare(b.date)).map((closure, idx) => {
@@ -1089,7 +1089,7 @@ export default function Admin() {
                                         {new Date(closure.date + 'T12:00:00').toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
                                         {isToday && <span style={{ marginLeft: '8px', background: '#ef4444', color: '#fff', fontSize: '0.6rem', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>TODAY</span>}
                                       </div>
-                                      <div style={{ fontSize: '0.73rem', color: '#94a3b8' }}>{closure.reason}</div>
+                                      <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>{closure.reason}</div>
                                     </div>
                                   </div>
                                   <button type="button"
@@ -1115,7 +1115,7 @@ export default function Admin() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
                     <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>🏪 Store Status</h3>
-                    <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: '0.8rem' }}>
+                    <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                       {(() => {
                         const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
                         const sched = shopSettings?.weeklySchedule?.[today];
@@ -1166,7 +1166,7 @@ export default function Admin() {
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
                   <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><Layers size={28} /></div>
                   <div className="sedap-metric-content">
-                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Available Dish</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Available Dish</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{menu.length}</div>
                   </div>
                 </div>
@@ -1174,7 +1174,7 @@ export default function Admin() {
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
                   <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><ShoppingBag size={28} /></div>
                   <div className="sedap-metric-content">
-                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Total Order</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Total Order</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{orders.length}</div>
                   </div>
                 </div>
@@ -1182,14 +1182,14 @@ export default function Admin() {
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
                   <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><AlertTriangle size={28} /></div>
                   <div className="sedap-metric-content">
-                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Pending / Alerts</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Pending / Alerts</div>
                     <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', display: 'flex', gap: '8px', alignItems: 'baseline' }}>
                        <span onClick={() => setActiveTab('orders')} style={{ cursor: 'pointer' }}>
-                         {pendingOrders.length} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b'}}>pending</span>
+                         {pendingOrders.length} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-secondary)'}}>pending</span>
                        </span>
                        <span style={{color: '#cbd5e1'}}>|</span>
                        <span onClick={() => setActiveTab('inventory')} className={lowStockCount > 0 ? 'flash-alert' : ''} style={{ cursor: 'pointer' }}>
-                         {lowStockCount} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: lowStockCount > 0 ? '#ef4444' : '#64748b'}}>low stock</span>
+                         {lowStockCount} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: lowStockCount > 0 ? '#ef4444' : 'var(--text-secondary)'}}>low stock</span>
                        </span>
                     </div>
                   </div>
@@ -1198,7 +1198,7 @@ export default function Admin() {
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }} title={`All-time revenue generated from ${orders.length} total orders`}>
                   <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><TrendingUp size={28} /></div>
                   <div className="sedap-metric-content">
-                    <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>Total Sale</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Total Sale</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{(orders.reduce((sum, o) => sum + o.total, 0) / 100).toFixed(2)}</div>
                   </div>
                 </div>
@@ -1216,8 +1216,8 @@ export default function Admin() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={trendData.slice(0, 12)} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
+                        <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dx={-10} />
                         <RechartsTooltip 
                           cursor={{ fill: '#f8fafc' }}
                           contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
@@ -1243,14 +1243,14 @@ export default function Admin() {
                           </svg>
                        </div>
                        <div style={{ marginTop: '0', textAlign: 'center' }}>
-                         <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>% Orders Completed</div>
+                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>% Orders Completed</div>
                          <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{perfAnim.toFixed(1)}%</div>
                        </div>
                     </div>
                   </div>
                   
                   <div className="admin-card" style={{ padding: '1.5rem', flex: 1 }}>
-                    <h3 style={{ margin: 0, marginBottom: '1rem' }}>More <span style={{fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal'}}>→</span></h3>
+                    <h3 style={{ margin: 0, marginBottom: '1rem' }}>More <span style={{fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 'normal'}}>→</span></h3>
                     <div style={{ display: 'flex', gap: '8px', height: '100px' }}>
                        <div 
                          onClick={() => setActiveTab('history')}
@@ -1281,7 +1281,7 @@ export default function Admin() {
                       <h3 style={{ margin: 0, fontSize: '1rem' }}>{selectedCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
                       <Calendar size={16} className="text-muted" />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem', color: '#64748b', marginBottom: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                       <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
@@ -1403,11 +1403,11 @@ export default function Admin() {
                      <div style={{ flex: 1, border: '1px solid #fee2e2', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff5f5' }}>
                         <div style={{ color: '#ef4444', marginBottom: '8px' }}><Archive size={32} /></div>
                         <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{new Date().toLocaleString('default', { month: 'short' })} Report</div>
-                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{new Date().getFullYear()}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date().getFullYear()}</div>
                      </div>
                      <div style={{ flex: 1, border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} className="hover-bg-slate">
-                        <div style={{ color: '#64748b', marginBottom: '8px' }}><PlusSquare size={32} /></div>
-                        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Create New</div>
+                        <div style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}><PlusSquare size={32} /></div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Create New</div>
                      </div>
                   </div>
                   <button 
@@ -1436,7 +1436,7 @@ export default function Admin() {
                         <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           📌 NOTES & UPCOMING EVENTS
                         </h3>
-                        <p style={{ margin: '2px 0 0', color: '#94a3b8', fontSize: '0.78rem' }}>
+                        <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                           Store schedule & active promotions. Click calendar dates or button to edit.
                         </p>
                       </div>
@@ -1510,7 +1510,7 @@ export default function Admin() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 'bold', color: '#fff', fontSize: '0.85rem' }}>{evt.title}</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>{evt.date}</span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{evt.date}</span>
                               <span style={{
                                 background: evt.type === 'promo' ? '#ef4444' : evt.type === 'event' ? '#0284c7' : '#10b981',
                                 color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '8px'
@@ -1520,13 +1520,13 @@ export default function Admin() {
                             </div>
                           </div>
                           {evt.description && (
-                            <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>{evt.description}</div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>{evt.description}</div>
                           )}
                         </div>
                       ))}
 
                       {eventsNotes.length === 0 && activePromosFromMenu.length === 0 && (shopSettings?.specialClosures || []).length === 0 && (
-                        <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '0.75rem 0' }}>
+                        <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '0.75rem 0' }}>
                           No notes or events listed. Click "+ Add Event" to add one!
                         </div>
                       )}
@@ -1537,7 +1537,7 @@ export default function Admin() {
                   <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                       <h3 style={{ margin: 0 }}><Users size={18} style={{ display: 'inline', marginRight: '8px', color: '#ef4444' }}/>Customer Insights</h3>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>Pickup Only</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>Pickup Only</div>
                     </div>
                     
                     {/* New vs Returning */}
@@ -1554,7 +1554,7 @@ export default function Admin() {
                     
                     {/* Order Frequency */}
                     <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center', border: '1px solid #f1f5f9' }}>
-                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Avg. Order Frequency</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Avg. Order Frequency</div>
                       <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>
                          {customerInsights.avgOrderFrequency > 0 
                             ? `Every ${customerInsights.avgOrderFrequency.toFixed(1)} days`
@@ -1565,13 +1565,13 @@ export default function Admin() {
                     
                     {/* Top Customers by Spend */}
                     <div style={{ flex: 1, overflowY: 'auto' }}>
-                       <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top Spenders</div>
+                       <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top Spenders</div>
                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                          {customerInsights.topSpenders.map((cust, idx) => (
                             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: idx < customerInsights.topSpenders.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                               <div>
                                 <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>{cust.name}</div>
-                                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Faves: <span style={{color:'#0f172a'}}>{cust.favoriteItem}</span></div>
+                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Faves: <span style={{color:'#0f172a'}}>{cust.favoriteItem}</span></div>
                               </div>
                               <div style={{ fontWeight: 700, color: '#10b981', fontSize: '0.9rem' }}>
                                 RM {(cust.totalSpend / 100).toFixed(2)}
@@ -1579,7 +1579,7 @@ export default function Admin() {
                             </div>
                          ))}
                          {customerInsights.topSpenders.length === 0 && (
-                           <div style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', padding: '1rem 0' }}>No customers yet -- customers will appear here once orders are placed.</div>
+                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem 0' }}>No customers yet -- customers will appear here once orders are placed.</div>
                          )}
                        </div>
                     </div>
@@ -1599,7 +1599,7 @@ export default function Admin() {
                                <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundImage: `url(${item.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
                                <div>
                                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.name}</div>
-                                 <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{item.sales} units sold</div>
+                                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{item.sales} units sold</div>
                                </div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
@@ -1608,7 +1608,7 @@ export default function Admin() {
                          </div>
                        ))}
                        {topItemsData.length === 0 && (
-                         <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>No sales data yet -- sales data will appear here once orders are placed.</div>
+                         <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem' }}>No sales data yet -- sales data will appear here once orders are placed.</div>
                        )}
                   </div>
                 </div>
@@ -1634,7 +1634,7 @@ export default function Admin() {
                     onChange={(e) => setSelectedDateRange(prev => ({ ...prev, start: e.target.value }))}
                     style={{ padding: '4px 8px', fontSize: '0.75rem', border: 'none', background: 'transparent' }}
                   />
-                  <span style={{ color: '#64748b', fontSize: '0.75rem' }}>to</span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>to</span>
                   <input 
                     type="date" 
                     className="price-input" 
@@ -1645,7 +1645,7 @@ export default function Admin() {
                   {(selectedDateRange.start || selectedDateRange.end) && (
                     <button 
                       onClick={() => setSelectedDateRange({ start: '', end: '' })}
-                      style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', background: '#e2e8f0', color: '#64748b', fontSize: '0.75rem', cursor: 'pointer' }}
+                      style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', background: '#e2e8f0', color: 'var(--text-secondary)', fontSize: '0.75rem', cursor: 'pointer' }}
                     >
                       Clear
                     </button>
@@ -1663,7 +1663,7 @@ export default function Admin() {
                       style={{
                         padding: '6px 16px', borderRadius: '6px', border: 'none',
                         background: analyticsPeriod === period && !selectedDateRange.start ? '#fff' : 'transparent',
-                        color: analyticsPeriod === period && !selectedDateRange.start ? '#0f172a' : '#64748b',
+                        color: analyticsPeriod === period && !selectedDateRange.start ? '#0f172a' : 'var(--text-secondary)',
                         fontWeight: analyticsPeriod === period && !selectedDateRange.start ? '600' : '500',
                         fontSize: '0.875rem', cursor: 'pointer',
                         boxShadow: analyticsPeriod === period && !selectedDateRange.start ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
@@ -1680,32 +1680,32 @@ export default function Admin() {
             {/* Row 1: KPI Top Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>Total Orders</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Total Orders</div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a' }}>{kpi.orderCount}</div>
                 <div style={{ fontSize: '0.75rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}><TrendingUp size={12}/> +12% from yesterday</div>
               </div>
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>Gross Sales</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Gross Sales</div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a' }}>RM {kpi.totalGrossSales.toFixed(2)}</div>
               </div>
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>Est. Net Profit</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Est. Net Profit</div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981' }}>RM {kpi.totalNetProfit.toFixed(2)}</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Net Margin: <span style={{fontWeight: 700}}>{kpi.netMarginPercent.toFixed(1)}%</span></div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Net Margin: <span style={{fontWeight: 700}}>{kpi.netMarginPercent.toFixed(1)}%</span></div>
               </div>
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>Inventory Alert</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Inventory Alert</div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, color: lowStockCount > 0 ? '#ef4444' : '#0f172a' }}>{lowStockCount}</div>
                 
                 {lowStockCount > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                     {lowStockItems.slice(0, 3).map(item => (
-                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
+                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                         <span style={{ wordBreak: 'break-word', paddingRight: '8px' }}>{item.name}</span>
                         <span style={{ fontWeight: 600, color: '#ef4444' }}>{item.stock_quantity} left</span>
                       </div>
                     ))}
-                    {lowStockCount > 3 && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>+{lowStockCount - 3} more...</div>}
+                    {lowStockCount > 3 && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>+{lowStockCount - 3} more...</div>}
                   </div>
                 )}
                 
@@ -1725,13 +1725,13 @@ export default function Admin() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={trendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
+                      <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dx={-10} />
                       <RechartsTooltip 
                         cursor={{ fill: '#f8fafc' }}
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
-                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
+                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)' }}/>
                       <Bar dataKey="web" name="Web App Direct" stackId="a" fill="#E8491D" radius={[0, 0, 0, 0]} barSize={40} />
                       <Bar dataKey="loyverse" name="Loyverse POS (Walk-in)" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -1744,11 +1744,11 @@ export default function Admin() {
                 <div className="admin-card" style={{ padding: '1.5rem', flex: 1 }}>
                   <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Performance</h4>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Order Completion Rate</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Order Completion Rate</span>
                     <span style={{ fontWeight: 800, fontSize: '1.125rem', color: '#10b981' }}>{totalCompleted > 0 ? ((totalCompleted / (orders.length || 1)) * 100).toFixed(1) : 0}%</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Avg Prep / Fulfillment</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Avg Prep / Fulfillment</span>
                     <span style={{ fontWeight: 800, fontSize: '1.125rem', color: '#f59e0b' }}>12 mins</span>
                   </div>
                 </div>
@@ -1772,7 +1772,7 @@ export default function Admin() {
                        </PieChart>
                      </ResponsiveContainer>
                    </div>
-                   <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.75rem', color: '#64748b' }}>
+                   <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                      <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#E8491D',borderRadius:'50%'}}></div> Web App</div>
                      <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#10b981',borderRadius:'50%'}}></div> Loyverse POS</div>
                    </div>
@@ -1795,7 +1795,7 @@ export default function Admin() {
                         style={{
                           padding: '4px 12px', borderRadius: '4px', border: 'none',
                           background: topItemsChannelFilter === filter ? '#fff' : 'transparent',
-                          color: topItemsChannelFilter === filter ? '#0f172a' : '#64748b',
+                          color: topItemsChannelFilter === filter ? '#0f172a' : 'var(--text-secondary)',
                           fontWeight: topItemsChannelFilter === filter ? '600' : '500',
                           fontSize: '0.75rem', cursor: 'pointer', textTransform: 'capitalize',
                           boxShadow: topItemsChannelFilter === filter ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
@@ -1807,7 +1807,7 @@ export default function Admin() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', fontWeight: 700, fontSize: '0.8rem', color: '#64748b', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem', textTransform: 'uppercase' }}>
+                  <div style={{ display: 'flex', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-secondary)', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem', textTransform: 'uppercase' }}>
                     <div style={{ flex: 3 }}>Item Name</div>
                     <div style={{ flex: 1, textAlign: 'center' }}>Units Sold</div>
                     <div style={{ flex: 2, textAlign: 'right' }}>Gross Revenue</div>
@@ -1824,7 +1824,7 @@ export default function Admin() {
                        <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem', marginLeft: '10px' }}>{item.margin.toFixed(1)}%</div>
                     </div>
                   ))}
-                  {topItemsData.length === 0 && <div style={{textAlign: 'center', color: '#94a3b8', padding: '1rem'}}>No sales data yet -- sales data will appear here once orders are placed.</div>}
+                  {topItemsData.length === 0 && <div style={{textAlign: 'center', color: 'var(--text-muted)', padding: '1rem'}}>No sales data yet -- sales data will appear here once orders are placed.</div>}
                 </div>
               </div>
 
@@ -1840,7 +1840,7 @@ export default function Admin() {
                         <div style={{ fontSize: '0.85rem', color: stat.color, fontWeight: 600, marginBottom: '0.25rem' }}>{stat.name}</div>
                         <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
                           {computedMargin}% 
-                          <span style={{fontSize:'0.7rem', fontWeight:400, marginLeft: '6px', color: '#64748b'}}>
+                          <span style={{fontSize:'0.7rem', fontWeight:400, marginLeft: '6px', color: 'var(--text-secondary)'}}>
                             ({feePercent}% Fee)
                           </span>
                         </div>
@@ -1848,7 +1848,7 @@ export default function Admin() {
                     );
                   })}
                   {Object.values(channelStats).every(stat => stat.gross === 0) && (
-                    <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>No channel data yet -- channel data will appear here once orders are placed.</div>
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1rem' }}>No channel data yet -- channel data will appear here once orders are placed.</div>
                   )}
                 </div>
               </div>
@@ -1883,11 +1883,11 @@ export default function Admin() {
                     
                     return (
                       <div style={{ padding: '0.75rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px dashed #bbf7d0' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '4px' }}>Projected Net Profit Change</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Projected Net Profit Change</div>
                         <div style={{ fontSize: '1.25rem', fontWeight: 800, color: profitDifference < 0 ? '#ef4444' : (profitDifference > 0 ? '#10b981' : '#0f172a') }}>
                           {profitDifference < 0 ? '-' : '+'}RM {Math.abs(profitDifference).toFixed(2)}
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                           Assuming {grabFoodShiftPercent}% (RM {shiftAmount.toFixed(2)}) is shifted from Walk-in/Web to GrabFood ({(CHANNEL_FEES.grabfood * 100).toFixed(0)}% fee).
                         </div>
                       </div>
@@ -1906,13 +1906,13 @@ export default function Admin() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={hourlyTrendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="displayHour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
+                      <XAxis dataKey="displayHour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dx={-10} />
                       <RechartsTooltip 
                         cursor={{ fill: '#f8fafc' }}
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
-                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
+                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)' }}/>
                       <Bar dataKey="web" name="Web App Direct" stackId="a" fill="#E8491D" radius={[0, 0, 0, 0]} />
                       <Bar dataKey="grabfood" name="GrabFood" stackId="a" fill="#16a34a" radius={[0, 0, 0, 0]} />
                       <Bar dataKey="loyverse" name="Loyverse / Walk-in" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -2008,7 +2008,7 @@ export default function Admin() {
                           <div key={i} style={{ marginBottom: '0.25rem' }}>
                             <span style={{ fontWeight: 'bold' }}>{item.quantity}x</span> {item.name}
                             {item.selectedAddons && item.selectedAddons.length > 0 && (
-                              <div style={{ color: '#64748b', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.25rem' }}>
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.25rem' }}>
                                 + {item.selectedAddons.map(a => a.name).join(', ')}
                               </div>
                             )}
@@ -2088,7 +2088,7 @@ export default function Admin() {
               {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).length === 0 ? (
                 <p className="text-muted" style={{ fontSize: '0.9rem' }}>All items stocked!</p>
               ) : (
-                <ul style={{ margin: 0, paddingLeft: '1rem', color: '#64748b', fontSize: '0.9rem', maxHeight: '200px', overflowY: 'auto' }}>
+                <ul style={{ margin: 0, paddingLeft: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem', maxHeight: '200px', overflowY: 'auto' }}>
                   {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).map(item => (
                     <li key={item.id} style={{ marginBottom: '0.5rem' }}>
                       {item.name} {(!item.inStock || (item.stock_quantity === 0)) ? <span style={{ color: '#ef4444', fontWeight: 'bold' }}>(Sold Out)</span> : <span style={{ color: '#f59e0b' }}>({item.stock_quantity} left)</span>}
@@ -2137,7 +2137,7 @@ export default function Admin() {
                       SIDES: '#10b981',   // Green
                       DRINKS: '#3b82f6'   // Blue
                     };
-                    return colors[cat] || '#64748b'; // Default slate
+                    return colors[cat] || 'var(--text-secondary)'; // Default slate
                   };
 
                   return (
@@ -2175,7 +2175,7 @@ export default function Admin() {
                                 <div>
                                   <div style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{item.name}</div>
                                   {item.description && (
-                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 'normal', whiteSpace: 'normal' }}>{item.description.slice(0, 40)}{item.description.length > 40 ? '...' : ''}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal', whiteSpace: 'normal' }}>{item.description.slice(0, 40)}{item.description.length > 40 ? '...' : ''}</div>
                                   )}
                                 </div>
                                 <button 
@@ -2264,7 +2264,7 @@ export default function Admin() {
                           >+</button>
                         </div>
                         
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           Alert at: 
                           <input 
                             type="number"
@@ -2378,15 +2378,15 @@ export default function Admin() {
                   </button>
                   <div className="admin-grid-auto-200" style={{ marginBottom: '2rem' }}>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
-                      <h4 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Customer Name</h4>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Customer Name</h4>
                       <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>{customer.name || customer.email || 'Unnamed'}</p>
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
-                      <h4 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Lifetime Spend</h4>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Lifetime Spend</h4>
                       <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>RM {(totalSpendCents / 100).toFixed(2)}</p>
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
-                      <h4 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Points</h4>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Points</h4>
                       <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#2563eb' }}>{customer.points || 0}</p>
                     </div>
                   </div>
@@ -2415,7 +2415,7 @@ export default function Admin() {
                                     <div key={i} style={{ marginBottom: '0.25rem' }}>
                                       <span style={{ fontWeight: 'bold' }}>{item.quantity}x</span> {item.name}
                                       {item.selectedAddons && item.selectedAddons.length > 0 && (
-                                        <div style={{ color: '#64748b', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.25rem' }}>
+                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.25rem' }}>
                                           + {item.selectedAddons.map(a => a.name).join(', ')}
                                         </div>
                                       )}
@@ -2558,7 +2558,7 @@ export default function Admin() {
                           </span>
                         </td>
                         <td>
-                          <span style={{ fontWeight: 'bold', color: assignedItemsCount > 0 ? '#10b981' : '#94a3b8' }}>
+                          <span style={{ fontWeight: 'bold', color: assignedItemsCount > 0 ? '#10b981' : 'var(--text-muted)' }}>
                             {assignedItemsCount} items
                           </span>
                         </td>
@@ -2612,38 +2612,38 @@ export default function Admin() {
                 <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   ✏️ Edit Category
                 </h3>
-                <button type="button" onClick={() => setEditingCat(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+                <button type="button" onClick={() => setEditingCat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
               </div>
 
               <form onSubmit={handleSaveCatEdit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>CATEGORY CODE</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>CATEGORY CODE</label>
                   <input
                     type="text"
                     required
                     value={editingCat.code}
                     onChange={(e) => setEditingCat({ ...editingCat, code: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISPLAY LABEL</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>DISPLAY LABEL</label>
                   <input
                     type="text"
                     required
                     value={editingCat.label}
                     onChange={(e) => setEditingCat({ ...editingCat, label: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>EMOJI ICON</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>EMOJI ICON</label>
                   <select
                     value={editingCat.icon || '🍔'}
                     onChange={(e) => setEditingCat({ ...editingCat, icon: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   >
                     <option value="🔥">🔥 BBQ</option>
                     <option value="👑">👑 Premium</option>
@@ -2658,7 +2658,7 @@ export default function Admin() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>BADGE COLOR</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>BADGE COLOR</label>
                   <input
                     type="color"
                     value={editingCat.color || '#ef4444'}
@@ -2677,7 +2677,7 @@ export default function Admin() {
                   <button
                     type="button"
                     onClick={() => setEditingCat(null)}
-                    style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: '#475569', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                    style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
                   >
                     Cancel
                   </button>
@@ -2861,7 +2861,7 @@ export default function Admin() {
                         <tr key={promo.id}>
                           <td className="font-bold text-primary">
                             {promo.code}
-                            {promo.name && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{promo.name}</div>}
+                            {promo.name && <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{promo.name}</div>}
                           </td>
                           <td>
                             {promo.type === 'percent_off' && `${promo.value}% OFF`}
@@ -2889,7 +2889,7 @@ export default function Admin() {
                                   fontSize: '0.75rem',
                                   fontWeight: 'bold',
                                   backgroundColor: promo.active ? '#10b981' : '#f1f5f9',
-                                  color: promo.active ? '#ffffff' : '#64748b',
+                                  color: promo.active ? '#ffffff' : 'var(--text-secondary)',
                                   border: promo.active ? 'none' : '1px solid #cbd5e1',
                                   boxShadow: promo.active ? '0 2px 4px rgba(16, 185, 129, 0.3)' : 'none',
                                   transition: 'all 0.2s ease'
@@ -3095,10 +3095,10 @@ export default function Admin() {
               <tbody>{loyaltyPrizes.map(prize => {
                 const linked = menu.find(m => String(m.id) === String(prize.menu_item_id));
                 return (<tr key={prize.id}>
-                  <td><strong>{prize.name}</strong>{prize.description && <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{prize.description}</div>}</td>
+                  <td><strong>{prize.name}</strong>{prize.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{prize.description}</div>}</td>
                   <td className="text-orange font-bold">{prize.points_cost} PTS</td>
                   <td>{linked ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>{linked.name} (Stock: {linked.stock_quantity})</span> : <span className="text-muted">-</span>}</td>
-                  <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: prize.is_active ? '#166534' : '#475569', color: '#fff' }}>{prize.is_active ? 'Active' : 'Inactive'}</span></td>
+                  <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: prize.is_active ? '#166534' : 'var(--text-secondary)', color: '#fff' }}>{prize.is_active ? 'Active' : 'Inactive'}</span></td>
                   <td><div style={{ display: 'flex', gap: '8px' }}>
                     <button className="btn btn-sm" style={{ background: prize.is_active ? '#f59e0b' : '#22c55e', color: '#fff' }} onClick={() => updateLoyaltyPrize(prize.id, { is_active: !prize.is_active })}>{prize.is_active ? 'Disable' : 'Enable'}</button>
                     <button className="btn btn-sm btn-outline text-red" onClick={() => { if(window.confirm("Delete this prize? This can't be undone.")) deleteLoyaltyPrize(prize.id); }}>Delete</button>
@@ -3122,12 +3122,12 @@ export default function Admin() {
                 ) : redemptions.map(r => (
                   <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
                     <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: '#FFC72C' }}>{r.redemption_code}</td>
-                    <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{r.profiles?.phone || ''}</div></td>
+                    <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.profiles?.phone || ''}</div></td>
                     <td><strong>{r.prize_name}</strong><div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>{r.points_spent} pts</div></td>
-                    <td style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
+                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
                     <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : '#166534', color: '#fff' }}>{r.status}</span></td>
                     <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
-                    {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Done</span>}</td>
+                    {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Done</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -3155,40 +3155,40 @@ export default function Admin() {
               <h3 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 🎟️ Create Promo Code
               </h3>
-              <button type="button" onClick={() => setIsPromoModalOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+              <button type="button" onClick={() => setIsPromoModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
 
             <form onSubmit={handleSavePromoCode} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>PROMO CODE *</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>PROMO CODE *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. SUMMER20"
                     value={promoFormData.code}
                     onChange={(e) => setPromoFormData({ ...promoFormData, code: e.target.value.toUpperCase() })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISPLAY NAME (Optional)</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>DISPLAY NAME (Optional)</label>
                   <input
                     type="text"
                     placeholder="e.g. Summer Sale"
                     value={promoFormData.name}
                     onChange={(e) => setPromoFormData({ ...promoFormData, name: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>PROMO TYPE</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>PROMO TYPE</label>
                 <select
                   value={promoFormData.type}
                   onChange={(e) => setPromoFormData({ ...promoFormData, type: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 >
                   <option value="percent_off">Percent Off (%)</option>
                   <option value="flat_off">Flat Amount Off (RM)</option>
@@ -3199,16 +3199,16 @@ export default function Admin() {
 
               {(promoFormData.type === 'percent_off' || promoFormData.type === 'flat_off') && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DISCOUNT VALUE *</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>DISCOUNT VALUE *</label>
                   <input
                     type="number"
                     required
                     placeholder={promoFormData.type === 'percent_off' ? "e.g. 20 (for 20%)" : "e.g. 500 (for RM 5.00)"}
                     value={promoFormData.value}
                     onChange={(e) => setPromoFormData({ ...promoFormData, value: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   />
-                  <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
                     {promoFormData.type === 'flat_off' ? 'Enter in cents (e.g. 500 = RM 5.00)' : 'Enter whole percentage (e.g. 15 = 15%)'}
                   </small>
                 </div>
@@ -3216,43 +3216,43 @@ export default function Admin() {
 
               {promoFormData.type === 'bogo' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>REQUIRED ITEM *</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>REQUIRED ITEM *</label>
                   <select
                     required
                     value={promoFormData.applies_to_item_id}
                     onChange={(e) => setPromoFormData({ ...promoFormData, applies_to_item_id: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   >
                     <option value="">Select an Item...</option>
                     {menu.map(item => (
                       <option key={item.id} value={item.id}>{item.name} - RM {(item.price/100).toFixed(2)}</option>
                     ))}
                   </select>
-                  <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>User must have this item in cart to get the discount (value of 1 unit).</small>
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>User must have this item in cart to get the discount (value of 1 unit).</small>
                 </div>
               )}
 
               {promoFormData.type === 'spend_threshold_free_item' && (
                 <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>MINIMUM SPEND *</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>MINIMUM SPEND *</label>
                     <input
                       type="number"
                       required
                       placeholder="e.g. 5000 (for RM 50.00)"
                       value={promoFormData.min_spend}
                       onChange={(e) => setPromoFormData({ ...promoFormData, min_spend: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                     />
-                    <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Enter in cents (e.g. 5000 = RM 50.00)</small>
+                    <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Enter in cents (e.g. 5000 = RM 50.00)</small>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>FREE ITEM *</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>FREE ITEM *</label>
                     <select
                       required
                       value={promoFormData.free_item_id}
                       onChange={(e) => setPromoFormData({ ...promoFormData, free_item_id: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                     >
                       <option value="">Select an Item...</option>
                       {menu.map(item => (
@@ -3265,46 +3265,46 @@ export default function Admin() {
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>MAX TOTAL USES</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>MAX TOTAL USES</label>
                   <input
                     type="number"
                     placeholder="∞"
                     value={promoFormData.max_total_uses}
                     onChange={(e) => setPromoFormData({ ...promoFormData, max_total_uses: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>MAX PER USER</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>MAX PER USER</label>
                   <input
                     type="number"
                     placeholder="∞"
                     value={promoFormData.max_uses_per_user}
                     onChange={(e) => setPromoFormData({ ...promoFormData, max_uses_per_user: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>STARTS AT</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>STARTS AT</label>
                   <input
                     type="datetime-local"
                     className="dark-datetime-input"
                     value={promoFormData.starts_at}
                     onChange={(e) => setPromoFormData({ ...promoFormData, starts_at: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>ENDS AT</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>ENDS AT</label>
                   <input
                     type="datetime-local"
                     className="dark-datetime-input"
                     value={promoFormData.ends_at}
                     onChange={(e) => setPromoFormData({ ...promoFormData, ends_at: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
               </div>
@@ -3345,27 +3345,27 @@ export default function Admin() {
               <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {eventFormData.id ? '✏️ Edit Event / Note' : '📌 Add Event / Note'}
               </h3>
-              <button type="button" onClick={() => setIsEventModalOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+              <button type="button" onClick={() => setIsEventModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
 
             <form onSubmit={handleSaveEvent} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DATE</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>DATE</label>
                 <input
                   type="date"
                   required
                   value={selectedEventDate}
                   onChange={(e) => setSelectedEventDate(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>CATEGORY / TYPE</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>CATEGORY / TYPE</label>
                 <select
                   value={eventFormData.type}
                   onChange={(e) => setEventFormData({ ...eventFormData, type: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 >
                   <option value="event">🎉 Store Event</option>
                   <option value="promo">🔥 Promotion</option>
@@ -3374,25 +3374,25 @@ export default function Admin() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>TITLE</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>TITLE</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. CZ CHIX Promo Launch"
                   value={eventFormData.title}
                   onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DETAILS / DESCRIPTION</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>DETAILS / DESCRIPTION</label>
                 <textarea
                   rows="3"
                   placeholder="Add event details, discount info, or restock notes..."
                   value={eventFormData.description}
                   onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff' }}
                 />
               </div>
 
@@ -3415,7 +3415,7 @@ export default function Admin() {
                 <button
                   type="button"
                   onClick={() => setIsEventModalOpen(false)}
-                  style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#475569', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                  style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -3441,27 +3441,27 @@ export default function Admin() {
               <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 ✏️ Edit Item Details
               </h3>
-              <button type="button" onClick={() => setEditingMenuItem(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+              <button type="button" onClick={() => setEditingMenuItem(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
 
             <form onSubmit={handleSaveMenuItemDetails} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>ITEM NAME</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>ITEM NAME</label>
                 <input
                   type="text"
                   required
                   value={editingMenuItem.name}
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, name: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>CATEGORY</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>CATEGORY</label>
                 <select
                   value={editingMenuItem.category}
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, category: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 >
                   {categoriesList.map(c => (
                     <option key={c.id} value={c.code}>{c.icon || '🏷️'} {c.label}</option>
@@ -3470,35 +3470,35 @@ export default function Admin() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>PRICE (RM)</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>PRICE (RM)</label>
                 <input
                   type="number"
                   step="0.10"
                   required
                   value={editingMenuItem.price}
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, price: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>DESCRIPTION</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>DESCRIPTION</label>
                 <textarea
                   rows="3"
                   placeholder="Describe ingredients, options, or combo details..."
                   value={editingMenuItem.description}
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, description: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}>UPDATE ITEM IMAGE</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>UPDATE ITEM IMAGE</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setEditingMenuItemImageFile(e.target.files[0])}
-                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff', fontSize: '0.85rem' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontSize: '0.85rem' }}
                 />
               </div>
 
@@ -3513,7 +3513,7 @@ export default function Admin() {
                 <button
                   type="button"
                   onClick={() => setEditingMenuItem(null)}
-                  style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: '#475569', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                  style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -3529,20 +3529,20 @@ export default function Admin() {
           <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
             <h3 style={{ margin: '0 0 1rem 0', color: '#FFC72C', fontSize: '1.2rem' }}>Cancel Order</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-              <div><label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>REASON</label>
-              <input type="text" value={cancellingOrder.reason} onChange={e => setCancellingOrder({...cancellingOrder, reason: e.target.value})} placeholder="e.g. Customer no-show" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#fff' }} /></div>
-              <div><label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>STOCK ACTION</label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'restore' ? '#1e3a8a' : '#0f172a', border: '1px solid #475569', borderRadius: '8px', cursor: 'pointer', marginBottom: '8px' }}>
+              <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 'bold' }}>REASON</label>
+              <input type="text" value={cancellingOrder.reason} onChange={e => setCancellingOrder({...cancellingOrder, reason: e.target.value})} placeholder="e.g. Customer no-show" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold' }}>STOCK ACTION</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'restore' ? '#1e3a8a' : '#0f172a', border: '1px solid var(--text-secondary)', borderRadius: '8px', cursor: 'pointer', marginBottom: '8px' }}>
                 <input type="radio" checked={cancellingOrder.wasteAction === 'restore'} onChange={() => setCancellingOrder({...cancellingOrder, wasteAction: 'restore'})} />
-                <div><div style={{ color: '#fff', fontWeight: 'bold' }}>Restore to stock</div><div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Item not prepared, still available.</div></div>
+                <div><div style={{ color: '#fff', fontWeight: 'bold' }}>Restore to stock</div><div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Item not prepared, still available.</div></div>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'waste' ? '#450a0a' : '#0f172a', border: '1px solid #475569', borderRadius: '8px', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'waste' ? '#450a0a' : '#0f172a', border: '1px solid var(--text-secondary)', borderRadius: '8px', cursor: 'pointer' }}>
                 <input type="radio" checked={cancellingOrder.wasteAction === 'waste'} onChange={() => setCancellingOrder({...cancellingOrder, wasteAction: 'waste'})} />
-                <div><div style={{ color: '#fca5a5', fontWeight: 'bold' }}>Mark as waste</div><div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Item prepped, cannot be resold.</div></div>
+                <div><div style={{ color: '#fca5a5', fontWeight: 'bold' }}>Mark as waste</div><div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Item prepped, cannot be resold.</div></div>
               </label></div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={() => { if (!cancellingOrder.reason.trim()) { alert("Reason required."); return; } cancelOrder(cancellingOrder.id, cancellingOrder.reason.trim(), cancellingOrder.wasteAction); setCancellingOrder(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Confirm Cancel</button>
-                <button onClick={() => setCancellingOrder(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: '#475569', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Abort</button>
+                <button onClick={() => setCancellingOrder(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Abort</button>
               </div>
             </div>
           </div>
