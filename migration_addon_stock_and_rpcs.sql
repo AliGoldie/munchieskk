@@ -1,5 +1,5 @@
 -- =========================================================================
--- COMPLETE MIGRATION: ADD-ON STOCK TRACKING, ATOMIC RPCS, AND REALTIME
+-- COMPLETE MIGRATION: ADD-ON STOCK TRACKING, PROMO VALIDATION & ATOMIC RPCS
 -- =========================================================================
 
 -- 1. Add stock_quantity, low_stock_threshold, and in_stock to addons table
@@ -7,7 +7,6 @@ ALTER TABLE public.addons ADD COLUMN IF NOT EXISTS stock_quantity integer DEFAUL
 ALTER TABLE public.addons ADD COLUMN IF NOT EXISTS low_stock_threshold integer DEFAULT 10;
 ALTER TABLE public.addons ADD COLUMN IF NOT EXISTS in_stock boolean DEFAULT true;
 
--- Update existing addons to have 99 stock if null
 UPDATE public.addons SET stock_quantity = 99 WHERE stock_quantity IS NULL;
 UPDATE public.addons SET low_stock_threshold = 10 WHERE low_stock_threshold IS NULL;
 UPDATE public.addons SET in_stock = true WHERE in_stock IS NULL;
@@ -32,7 +31,14 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
 
--- 4. Update place_order RPC to support atomic deduction for addons
+-- 4. Drop older overloaded signatures of place_order
+DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, text, jsonb);
+DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, text);
+DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, uuid);
+DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, uuid, jsonb);
+DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb);
+
+-- 5. Create place_order RPC with Atomic Base Item + Add-on Stock Deduction AND Server-Side Promo Validation
 CREATE OR REPLACE FUNCTION public.place_order(
   deductions jsonb,
   payload jsonb,
@@ -46,37 +52,49 @@ DECLARE
   current_stock integer;
   current_addon_stock integer;
   order_id text;
+  v_original_total integer;
+  v_final_discount integer := 0;
+  v_promo_result jsonb;
+  v_promo_code_id uuid := NULL;
+  v_user_uuid uuid := NULL;
 BEGIN
-  -- Validate and deduct main items stock atomically
-  FOR d IN SELECT * FROM jsonb_to_recordset(deductions) AS x(item_id text, quantity integer)
-  LOOP
-    SELECT stock_quantity INTO current_stock
-    FROM public.menu_items
-    WHERE id = d.item_id
-    FOR UPDATE;
+  -- Cast user ID to uuid if provided
+  IF p_user_id IS NOT NULL AND p_user_id <> '' THEN
+    v_user_uuid := p_user_id::uuid;
+  END IF;
 
-    IF current_stock IS NULL THEN
-      RAISE EXCEPTION 'Item % not found', d.item_id;
-    END IF;
+  -- 1. Deduct Base Menu Items Stock (Atomic with FOR UPDATE locks)
+  IF deductions IS NOT NULL AND jsonb_array_length(deductions) > 0 THEN
+    FOR d IN SELECT * FROM jsonb_to_recordset(deductions) AS x(item_id text, quantity integer)
+    LOOP
+      SELECT stock_quantity INTO current_stock 
+      FROM public.menu_items 
+      WHERE id = d.item_id 
+      FOR UPDATE;
 
-    IF current_stock < d.quantity THEN
-      RAISE EXCEPTION 'Insufficient stock for item %', d.item_id;
-    END IF;
+      IF current_stock IS NULL THEN
+        RAISE EXCEPTION 'Item % not found', d.item_id;
+      END IF;
 
-    UPDATE public.menu_items
-    SET 
-      stock_quantity = current_stock - d.quantity,
-      in_stock = (current_stock - d.quantity > 0)
-    WHERE id = d.item_id;
-  END LOOP;
+      IF current_stock < d.quantity THEN
+        RAISE EXCEPTION 'Insufficient stock for item %', d.item_id;
+      END IF;
 
-  -- Validate and deduct addons stock atomically
+      UPDATE public.menu_items
+      SET 
+        stock_quantity = current_stock - d.quantity,
+        in_stock = (current_stock - d.quantity > 0)
+      WHERE id = d.item_id;
+    END LOOP;
+  END IF;
+
+  -- 2. Deduct Add-ons Stock (Atomic with FOR UPDATE locks)
   IF addon_deductions IS NOT NULL AND jsonb_array_length(addon_deductions) > 0 THEN
     FOR ad IN SELECT * FROM jsonb_to_recordset(addon_deductions) AS y(addon_id text, quantity integer)
     LOOP
-      SELECT stock_quantity INTO current_addon_stock
-      FROM public.addons
-      WHERE id = ad.addon_id
+      SELECT stock_quantity INTO current_addon_stock 
+      FROM public.addons 
+      WHERE id = ad.addon_id 
       FOR UPDATE;
 
       IF current_addon_stock IS NOT NULL THEN
@@ -93,20 +111,34 @@ BEGIN
     END LOOP;
   END IF;
 
-  -- If promo code was applied, record usage
-  IF p_promo_code IS NOT NULL AND p_promo_code <> '' THEN
-    UPDATE public.promotions
-    SET current_uses = COALESCE(current_uses, 0) + 1
-    WHERE UPPER(code) = UPPER(p_promo_code);
+  -- 3. Server-Side Promo Code Validation & Application
+  v_original_total := (payload->>'total')::integer;
 
-    IF p_user_id IS NOT NULL THEN
-      INSERT INTO public.user_promo_usages (user_id, promo_code, used_at)
-      VALUES (p_user_id, UPPER(p_promo_code), NOW());
+  IF p_promo_code IS NOT NULL AND p_promo_code <> '' THEN
+    v_promo_result := validate_and_apply_promo(
+      p_promo_code,
+      v_original_total,
+      v_user_uuid,
+      payload->'items'
+    );
+
+    IF (v_promo_result->>'valid')::boolean = true THEN
+      v_final_discount := (v_promo_result->>'discount_cents')::integer;
+      v_promo_code_id := (v_promo_result->>'promo_code_id')::uuid;
+
+      -- Update promo code usage count atomically
+      UPDATE public.promo_codes 
+      SET usage_count = COALESCE(usage_count, 0) + 1 
+      WHERE id = v_promo_code_id;
+    ELSE
+      -- Reject and roll back whole transaction if invalid/expired promo code supplied at checkout
+      RAISE EXCEPTION 'Promo validation failed: %', (v_promo_result->>'message');
     END IF;
   END IF;
 
-  -- Insert order
+  -- 4. Calculate Final Total and Insert Order
   order_id := payload->>'id';
+  
   INSERT INTO public.orders (
     id,
     items,
@@ -122,22 +154,42 @@ BEGIN
   ) VALUES (
     order_id,
     payload->'items',
-    (payload->>'total')::integer,
+    GREATEST(0, v_original_total - v_final_discount),
     payload->>'status',
     payload->>'payment_method',
     payload->>'customer_name',
     payload->>'customer_phone',
-    payload->>'user_id',
-    payload->>'promo_code_used',
-    COALESCE((payload->>'discount_amount')::integer, 0),
+    v_user_uuid,
+    p_promo_code,
+    v_final_discount,
     NOW()
   );
+
+  -- 5. Insert Promo Redemption Audit Record
+  IF v_promo_code_id IS NOT NULL THEN
+    INSERT INTO public.promo_redemptions (
+      promo_code_id,
+      order_id,
+      user_id,
+      discount_amount,
+      redeemed_at
+    ) VALUES (
+      v_promo_code_id,
+      order_id,
+      v_user_uuid,
+      v_final_discount,
+      NOW()
+    );
+  END IF;
 
   RETURN order_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 5. Update cancel_order RPC to restore / waste-log both main items AND addons
+-- 6. Drop and recreate cancel_order RPC with Add-on Stock Restoration & Waste Logging
+DROP FUNCTION IF EXISTS public.cancel_order(text, text, text);
+DROP FUNCTION IF EXISTS public.cancel_order(text, text);
+
 CREATE OR REPLACE FUNCTION public.cancel_order(
   p_order_id text,
   p_reason text,
@@ -149,10 +201,11 @@ DECLARE
   v_order_status text;
   v_order_items jsonb;
 BEGIN
-  -- 1. Get current order status and items
+  -- 1. Get current order status and items with row lock
   SELECT status, items INTO v_order_status, v_order_items 
   FROM public.orders 
-  WHERE id = p_order_id FOR UPDATE;
+  WHERE id = p_order_id 
+  FOR UPDATE;
 
   -- 2. Validate order exists and can be cancelled
   IF v_order_status IS NULL THEN
@@ -163,14 +216,14 @@ BEGIN
     RAISE EXCEPTION 'Cannot cancel an order that is already collected or cancelled';
   END IF;
 
-  -- 3. Mark order as cancelled and set reason
+  -- 3. Mark order as cancelled and record reason
   UPDATE public.orders
   SET 
     status = 'CANCELLED',
     cancel_reason = p_reason
   WHERE id = p_order_id;
 
-  -- 4. Process main items and addons inventory
+  -- 4. Process main items and selected add-ons inventory
   FOR v_order_item IN 
     SELECT 
       (elem->>'id') AS menu_item_id,
@@ -181,7 +234,7 @@ BEGIN
       WHERE v_order_items IS NOT NULL
     ) sub
   LOOP
-    -- Restore/waste main item
+    -- Restore / Waste base menu item
     IF v_order_item.menu_item_id IS NOT NULL THEN
       IF p_waste_action = 'restore' THEN
         UPDATE public.menu_items
@@ -201,7 +254,7 @@ BEGIN
       END IF;
     END IF;
 
-    -- Restore/waste addons for this item (multiplied by item quantity)
+    -- Restore / Waste each add-on (multiplied by parent item quantity)
     IF v_order_item.selected_addons IS NOT NULL AND jsonb_array_length(v_order_item.selected_addons) > 0 THEN
       FOR v_addon_item IN
         SELECT (add_elem->>'id') AS addon_id
