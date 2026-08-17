@@ -11,19 +11,7 @@ UPDATE public.addons SET stock_quantity = 99 WHERE stock_quantity IS NULL;
 UPDATE public.addons SET low_stock_threshold = 10 WHERE low_stock_threshold IS NULL;
 UPDATE public.addons SET in_stock = true WHERE in_stock IS NULL;
 
--- 2. Ensure RLS policies on addons
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'addons' AND policyname = 'Allow public update addons'
-  ) THEN
-    CREATE POLICY "Allow public update addons" ON public.addons
-      FOR UPDATE USING (true) WITH CHECK (true);
-  END IF;
-END $$;
-
--- 3. Ensure addons table is in supabase_realtime
+-- 2. Ensure addons table is in supabase_realtime
 DO $$
 BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.addons;
@@ -31,14 +19,14 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
 
--- 4. Drop older overloaded signatures of place_order
+-- 3. Drop older overloaded signatures of place_order
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, text, jsonb);
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, text);
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, uuid);
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, uuid, jsonb);
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb);
 
--- 5. Create place_order RPC with Atomic Base Item + Add-on Stock Deduction AND Server-Side Promo Validation
+-- 4. Atomic place_order RPC (Menu Items + Add-ons + Promo Validation + Redemptions)
 CREATE OR REPLACE FUNCTION public.place_order(
   deductions jsonb,
   payload jsonb,
@@ -131,7 +119,7 @@ BEGIN
       SET usage_count = COALESCE(usage_count, 0) + 1 
       WHERE id = v_promo_code_id;
     ELSE
-      -- Reject and roll back whole transaction if invalid/expired promo code supplied at checkout
+      -- Reject and roll back entire transaction if promo validation fails
       RAISE EXCEPTION 'Promo validation failed: %', (v_promo_result->>'message');
     END IF;
   END IF;
@@ -186,7 +174,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 6. Drop and recreate cancel_order RPC with Add-on Stock Restoration & Waste Logging
+-- 5. Drop and recreate cancel_order RPC with Add-on Stock Restoration & Waste Logging
 DROP FUNCTION IF EXISTS public.cancel_order(text, text, text);
 DROP FUNCTION IF EXISTS public.cancel_order(text, text);
 
