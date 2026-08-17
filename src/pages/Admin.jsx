@@ -20,7 +20,7 @@ export default function Admin() {
   const { 
     menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateStock, setStockQuantity, clearManualOverride,
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
-    addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice,
+    addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
     loyaltyPrizes, redemptions, fetchAdminRedemptions, fulfillRedemption, addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
     isPromoActive, updatePromo,
     categoriesList, addCategory, updateCategory, deleteCategory,
