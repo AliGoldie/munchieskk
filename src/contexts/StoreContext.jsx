@@ -484,11 +484,26 @@ export function StoreProvider({ children }) {
       dbPayload.in_stock = fields.inStock;
     }
 
+    const previousMenu = [...menu];
     // Optimistic UI update
-    setMenu(prev => prev.map(item => item.id === id ? { ...item, ...fields } : item));
+    setMenu(prev => prev.map(item => String(item.id) === String(id) ? { ...item, ...fields } : item));
 
-    // DB update
-    await supabase.from('menu_items').update(dbPayload).eq('id', id);
+    // DB update with verification
+    const { data, error } = await supabase.from('menu_items').update(dbPayload).eq('id', id).select();
+    if (error || !data || data.length === 0) {
+      const errMsg = error ? error.message : 'Database returned 0 updated rows';
+      console.error('[UPDATE ITEM FAILED]', errMsg);
+      alert('Failed to update item in database: ' + errMsg);
+      setMenu(previousMenu);
+      return;
+    }
+
+    // Push price change to Loyverse if price was modified
+    const targetItem = data[0];
+    if (targetItem?.loyverse_item_id && dbPayload.price !== undefined) {
+      console.log('[LOYVERSE PRICE SYNC] updateMenuItem pushing to Loyverse:', targetItem.name, 'Price:', dbPayload.price);
+      await pushPriceToLoyverse(targetItem.loyverse_item_id, targetItem.name, dbPayload.price, targetItem.category);
+    }
   };
 
   const updateStock = async (id, delta) => {
