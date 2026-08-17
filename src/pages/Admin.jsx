@@ -2734,56 +2734,116 @@ export default function Admin() {
                 <tr>
                   <th>Addon</th>
                   <th>Price</th>
+                  <th>Stock / Alert</th>
+                  <th>Status</th>
                   <th>Assign to Items</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {addons.map(addon => (
-                  <tr key={addon.id}>
-                    <td className="font-medium">{addon.name}</td>
-                    <td>
-                      <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {editingAddonPrice[addon.id] !== undefined ? (
-                          <>
-                            <input 
-                              type="number" step="0.10"
-                              placeholder="TBD"
-                              value={editingAddonPrice[addon.id]}
-                              onChange={(e) => handleAddonPriceChange(addon.id, e.target.value)}
-                              className="price-input"
-                              style={{ width: '80px', padding: '4px' }}
+                {addons.map(addon => {
+                  const currentStock = addon.stock_quantity ?? 99;
+                  const lowStockThresh = addon.low_stock_threshold ?? 10;
+                  const isOutOfStock = currentStock <= 0;
+                  const isLowStock = currentStock <= lowStockThresh && currentStock > 0;
+                  return (
+                    <tr key={addon.id}>
+                      <td className="font-medium">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {addon.image && <img src={addon.image} alt={addon.name} style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover' }} />}
+                          <div>
+                            <div>{addon.name}</div>
+                            {isLowStock && <span style={{ color: '#f59e0b', fontSize: '0.75rem', fontWeight: 'bold' }}>Low Stock</span>}
+                            {isOutOfStock && <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>Sold Out</span>}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          {editingAddonPrice[addon.id] !== undefined ? (
+                            <>
+                              <input 
+                                type="number" step="0.10"
+                                placeholder="TBD"
+                                value={editingAddonPrice[addon.id]}
+                                onChange={(e) => handleAddonPriceChange(addon.id, e.target.value)}
+                                className="price-input"
+                                style={{ width: '80px', padding: '4px' }}
+                              />
+                              <button className="btn btn-sm btn-primary" onClick={() => saveAddonPrice(addon.id)}>Save</button>
+                              <button className="btn btn-sm btn-secondary" onClick={() => setEditingAddonPrice({ ...editingAddonPrice, [addon.id]: undefined })}>Cancel</button>
+                            </>
+                          ) : (
+                            <>
+                              <span>{addon.price === null ? 'TBD' : `RM ${(addon.price / 100).toFixed(2)}`}</span>
+                              <button className="btn btn-sm btn-secondary" onClick={() => handleAddonPriceChange(addon.id, addon.price === null ? '' : (addon.price / 100).toFixed(2))}>Edit</button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <div className="qty-control">
+                            <button
+                              type="button"
+                              className="qty-btn qty-btn-minus"
+                              onClick={(e) => { e.preventDefault(); updateAddonStock(addon.id, -1); }}
+                              disabled={currentStock <= 0}
+                            >-</button>
+                            <input
+                              type="number"
+                              min="0"
+                              className="qty-input"
+                              value={editingAddonStock[addon.id] !== undefined ? editingAddonStock[addon.id] : currentStock}
+                              onChange={e => handleAddonStockChange(addon.id, e.target.value)}
+                              onBlur={() => saveAddonStock(addon.id)}
+                              onKeyDown={e => e.key === 'Enter' && saveAddonStock(addon.id)}
                             />
-                            <button className="btn btn-sm btn-primary" onClick={() => saveAddonPrice(addon.id)}>Save</button>
-                            <button className="btn btn-sm btn-secondary" onClick={() => setEditingAddonPrice({ ...editingAddonPrice, [addon.id]: undefined })}>Cancel</button>
-                          </>
-                        ) : (
-                          <>
-                            <span>{addon.price === null ? 'TBD' : `RM ${(addon.price / 100).toFixed(2)}`}</span>
-                            <button className="btn btn-sm btn-secondary" onClick={() => handleAddonPriceChange(addon.id, addon.price === null ? '' : (addon.price / 100).toFixed(2))}>Edit</button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxWidth: '400px'}}>
-                        {menu.map(m => (
-                          <label key={m.id} style={{fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px'}}>
-                            <input 
-                              type="checkbox" 
-                              checked={itemAddons[m.id]?.includes(addon.id) || false}
-                              onChange={() => toggleItemAddon(m.id, addon.id)}
+                            <button
+                              type="button"
+                              className="qty-btn qty-btn-plus"
+                              onClick={(e) => { e.preventDefault(); updateAddonStock(addon.id, 1); }}
+                            >+</button>
+                          </div>
+                          <div className="low-stock-input-wrapper">
+                            <span className="low-stock-label">Alert at:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              className="low-stock-input"
+                              value={editingAddonLowStock[addon.id] !== undefined ? editingAddonLowStock[addon.id] : lowStockThresh}
+                              onChange={e => handleAddonLowStockChange(addon.id, e.target.value)}
+                              onBlur={() => saveAddonLowStock(addon.id)}
+                              onKeyDown={e => e.key === 'Enter' && saveAddonLowStock(addon.id)}
                             />
-                            {m.name}
-                          </label>
-                        ))}
-                      </div>
-                    </td>
-                    <td>
-                      <button className="btn btn-sm btn-danger" onClick={() => deleteAddon(addon.id)}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${!isOutOfStock ? 'in-stock' : 'out-stock'}`}>
+                          {!isOutOfStock ? 'In Stock' : 'Sold Out'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxWidth: '400px'}}>
+                          {menu.map(m => (
+                            <label key={m.id} style={{fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px'}}>
+                              <input 
+                                type="checkbox" 
+                                checked={itemAddons[m.id]?.includes(addon.id) || false}
+                                onChange={() => toggleItemAddon(m.id, addon.id)}
+                              />
+                              {m.name}
+                            </label>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteAddon(addon.id)}>Delete</button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
