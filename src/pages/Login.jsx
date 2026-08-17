@@ -5,7 +5,8 @@ import { Mail, Phone } from 'lucide-react';
 import './Login.css';
 
 export default function Login() {
-  const { login, loginWithProvider } = useAuth();
+  const { login, loginWithProvider, loginAsMockAdmin } = useAuth();
+  const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -103,6 +104,32 @@ export default function Login() {
         <p className="signup-prompt">
           Don't have an account? <Link to="/signup" className="text-primary">Sign up</Link>
         </p>
+
+        {isLocalhost && (
+          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed #cbd5e1' }}>
+            <button
+              type="button"
+              onClick={loginAsMockAdmin}
+              className="btn w-full"
+              style={{
+                background: '#1e293b',
+                color: '#38bdf8',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                padding: '10px',
+                borderRadius: '8px',
+                border: '1px solid #334155',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              ? Quick Dev Admin Login (Localhost Only)
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

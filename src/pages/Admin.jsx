@@ -1579,7 +1579,7 @@ export default function Admin() {
                             </div>
                          ))}
                          {customerInsights.topSpenders.length === 0 && (
-                           <div style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', padding: '1rem 0' }}>No customers yet</div>
+                           <div style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', padding: '1rem 0' }}>No customers yet -- customers will appear here once orders are placed.</div>
                          )}
                        </div>
                     </div>
@@ -1608,7 +1608,7 @@ export default function Admin() {
                          </div>
                        ))}
                        {topItemsData.length === 0 && (
-                         <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>No sales data yet</div>
+                         <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>No sales data yet -- sales data will appear here once orders are placed.</div>
                        )}
                   </div>
                 </div>
@@ -1824,7 +1824,7 @@ export default function Admin() {
                        <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem', marginLeft: '10px' }}>{item.margin.toFixed(1)}%</div>
                     </div>
                   ))}
-                  {topItemsData.length === 0 && <div style={{textAlign: 'center', color: '#94a3b8', padding: '1rem'}}>No sales data yet</div>}
+                  {topItemsData.length === 0 && <div style={{textAlign: 'center', color: '#94a3b8', padding: '1rem'}}>No sales data yet -- sales data will appear here once orders are placed.</div>}
                 </div>
               </div>
 
@@ -1848,7 +1848,7 @@ export default function Admin() {
                     );
                   })}
                   {Object.values(channelStats).every(stat => stat.gross === 0) && (
-                    <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>No channel data yet</div>
+                    <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>No channel data yet -- channel data will appear here once orders are placed.</div>
                   )}
                 </div>
               </div>
@@ -1951,6 +1951,7 @@ export default function Admin() {
                     ))}
                   </div>
                 </div>
+              </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center' }}>
                   <button
                     className="pending-accept-btn"
@@ -2435,7 +2436,7 @@ export default function Admin() {
                       </table>
                     </div>
                   ) : (
-                    <p className="text-muted">No completed orders found.</p>
+                    <p className="text-muted">No completed orders yet -- completed orders will appear here once orders are fulfilled.</p>
                   )}
                 </div>
               );
@@ -2803,7 +2804,7 @@ export default function Admin() {
                   ))}
                   {orders.filter(o => o.status === 'COLLECTED' || o.status === 'CANCELLED').length === 0 && (
                     <tr>
-                      <td colSpan="5" className="text-center text-muted" style={{ padding: '2rem' }}>No past orders found.</td>
+                      <td colSpan="5" className="text-center text-muted" style={{ padding: '2rem' }}>No past orders yet -- past orders will appear here once orders are placed.</td>
                     </tr>
                   )}
                 </tbody>
@@ -2911,7 +2912,7 @@ export default function Admin() {
                         </tr>
                       ))}
                       {promoCodes.length === 0 && (
-                        <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No promo codes created yet.</td></tr>
+                        <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No promo codes yet -- promo codes will appear here once you create one.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -2946,7 +2947,7 @@ export default function Admin() {
                         </tr>
                       ))}
                       {referralStats.length === 0 && (
-                        <tr><td colSpan="4" className="text-center text-muted" style={{ padding: '2rem' }}>No referrals tracked yet.</td></tr>
+                        <tr><td colSpan="4" className="text-center text-muted" style={{ padding: '2rem' }}>No referrals yet -- referrals will appear here once a friend signs up using your code.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -3100,7 +3101,7 @@ export default function Admin() {
                   <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: prize.is_active ? '#166534' : '#475569', color: '#fff' }}>{prize.is_active ? 'Active' : 'Inactive'}</span></td>
                   <td><div style={{ display: 'flex', gap: '8px' }}>
                     <button className="btn btn-sm" style={{ background: prize.is_active ? '#f59e0b' : '#22c55e', color: '#fff' }} onClick={() => updateLoyaltyPrize(prize.id, { is_active: !prize.is_active })}>{prize.is_active ? 'Disable' : 'Enable'}</button>
-                    <button className="btn btn-sm btn-outline text-red" onClick={() => { if(window.confirm('Delete?')) deleteLoyaltyPrize(prize.id); }}>Delete</button>
+                    <button className="btn btn-sm btn-outline text-red" onClick={() => { if(window.confirm("Delete this prize? This can't be undone.")) deleteLoyaltyPrize(prize.id); }}>Delete</button>
                   </div></td>
                 </tr>);
               })}</tbody>
@@ -3117,7 +3118,7 @@ export default function Admin() {
               <thead><tr><th>Code</th><th>Customer</th><th>Prize</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>
                 {redemptions.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions found.</td></tr>
+                  <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions yet -- prize redemptions will appear here once customers redeem prizes.</td></tr>
                 ) : redemptions.map(r => (
                   <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
                     <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: '#FFC72C' }}>{r.redemption_code}</td>

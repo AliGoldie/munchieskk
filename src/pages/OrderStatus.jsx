@@ -51,7 +51,7 @@ export default function OrderStatus() {
       setClaimedReview(true);
       alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
     } catch (err) {
-      alert(err.message || 'Unable to claim bonus at this time.');
+      alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
     }
   };
 

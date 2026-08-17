@@ -585,7 +585,7 @@ const clearManualOverride = async (id) => {
     // 2. Fallback removed. We strictly rely on the atomic cancel_order RPC above.
     if (rpcError) {
       console.error('RPC cancel_order failed:', rpcError.message);
-      alert('Failed to cancel order: ' + rpcError.message);
+      alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
       // Revert optimistic update
       setOrders(orders.map(o => o.id === orderId ? order : o));
     }
@@ -893,7 +893,7 @@ const clearManualOverride = async (id) => {
 
     if (error) {
       console.error('Failed to place order via RPC:', error);
-      alert('Failed to place order. ' + (error.message || 'Unknown error'));
+      alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
       return null;
     }
 
@@ -1037,11 +1037,11 @@ const clearManualOverride = async (id) => {
       p_prize_id: prizeId
     });
     if (error) {
-      alert('Redemption failed: ' + error.message);
+      alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
       return null;
     }
     if (!data.success) {
-      alert('Redemption failed: ' + data.error);
+      alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
       return null;
     }
     // Deduct points locally

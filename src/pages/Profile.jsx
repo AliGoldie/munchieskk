@@ -84,7 +84,7 @@ export default function Profile() {
         alert('Profile updated successfully!');
       } catch (err) {
         console.error('Error updating profile:', err);
-        alert('Saved locally!');
+        alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
       } finally {
         setIsSaving(false);
         setIsEditing(false);
@@ -231,7 +231,7 @@ export default function Profile() {
               ))}
             </div>
           ) : (
-            <p className="text-muted">No past orders found.</p>
+            <p className="text-muted">No past orders yet -- your past orders will appear here once you place an order.</p>
           )}
         </div>
       </div>

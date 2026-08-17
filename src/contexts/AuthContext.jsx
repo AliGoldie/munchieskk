@@ -25,6 +25,19 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Fetch initial session
     const initializeAuth = async () => {
+      // Check for mock admin session on localhost
+      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        const savedMock = localStorage.getItem('munchies_mock_admin');
+        if (savedMock) {
+          try {
+            const parsed = JSON.parse(savedMock);
+            setUser(parsed);
+            cleanAuthUrlParams();
+            setLoading(false);
+            return;
+          } catch (e) {}
+        }
+      }
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
@@ -203,14 +216,35 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const loginAsMockAdmin = () => {
+    const mockAdminUser = {
+      id: '223492c5-f876-4212-87f5-0f12fca14e76',
+      email: 'munchieskk.sabah@gmail.com',
+      name: 'Munchies Admin (Local)',
+      phone: '0103818100',
+      address: 'Munchies KK Store',
+      role: 'admin',
+      points: 9999,
+      created_at: new Date().toISOString()
+    };
+    setUser(mockAdminUser);
+    try {
+      localStorage.setItem('munchies_mock_admin', JSON.stringify(mockAdminUser));
+    } catch (e) {}
+    navigate('/admin');
+  };
+
   const logout = async () => {
+    try {
+      localStorage.removeItem('munchies_mock_admin');
+    } catch (e) {}
     await supabase.auth.signOut();
     setUser(null);
     navigate('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, loginWithProvider, signup, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, loginWithProvider, signup, logout, loginAsMockAdmin }}>
       {!loading && children}
     </AuthContext.Provider>
   );

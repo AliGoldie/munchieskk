@@ -52,15 +52,15 @@ export default function Payment() {
     if (method === 'FPX' && !bank) return alert('Please select a bank.');
 
     if (shopSettings?.status === 'PAUSED') {
-      return alert('The shop is currently PAUSED by the store admin. Orders cannot be placed at this time.');
+      return alert('MunchiesKK is closed right now. Schedule your order for later, or check back during our opening hours.');
     }
 
     if (shopSettings?.status === 'CLOSED') {
-      return alert('The shop is currently CLOSED. Orders cannot be placed at this time.');
+      return alert('MunchiesKK is closed right now. Schedule your order for later, or check back during our opening hours.');
     }
 
     if (!isOpen && orderMode === 'NOW') {
-      return alert('The shop is currently closed or paused for instant orders. Please select "Schedule for Later"!');
+      return alert('MunchiesKK is closed right now. Schedule your order for later, or check back during our opening hours.');
     }
 
     const selectedSlot = timeSlots.find(s => s.value === scheduledTime) || timeSlots[0];
@@ -71,7 +71,7 @@ export default function Payment() {
     setTimeout(async () => {
       if (shopSettings?.status === 'PAUSED' || shopSettings?.status === 'CLOSED') {
         setIsProcessing(false);
-        return alert('The shop status changed to PAUSED/CLOSED. Order could not be placed.');
+        return alert('MunchiesKK is closed right now. Schedule your order for later, or check back during our opening hours.');
       }
 
       let paymentDetail = method === 'FPX' ? `FPX (${bank})` : method;
