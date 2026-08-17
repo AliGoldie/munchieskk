@@ -373,7 +373,7 @@ export function StoreProvider({ children }) {
   };
 
   // Fire-and-forget price sync to Loyverse API
-  const pushPriceToLoyverse = async (loyverseItemId, itemName, priceInCents) => {
+  const pushPriceToLoyverse = async (loyverseItemId, itemName, priceInCents, category) => {
     if (!loyverseItemId) return;
     const default_price = Number((priceInCents / 100).toFixed(2));
 
@@ -383,7 +383,8 @@ export function StoreProvider({ children }) {
         body: {
           loyverse_item_id: loyverseItemId,
           item_name: itemName,
-          price_in_cents: priceInCents
+          price_in_cents: priceInCents,
+          category: category
         }
       });
 
@@ -440,7 +441,7 @@ export function StoreProvider({ children }) {
     const targetItem = data && data[0] ? data[0] : menu.find(i => String(i.id) === String(id));
     if (targetItem?.loyverse_item_id) {
       console.log('[LOYVERSE PRICE SYNC] Syncing item:', targetItem.name, 'Price:', cents);
-      await pushPriceToLoyverse(targetItem.loyverse_item_id, targetItem.name, cents);
+      await pushPriceToLoyverse(targetItem.loyverse_item_id, targetItem.name, cents, targetItem.category);
     } else {
       console.warn('[LOYVERSE PRICE SYNC] Item not mapped to Loyverse:', targetItem?.name || id);
     }
