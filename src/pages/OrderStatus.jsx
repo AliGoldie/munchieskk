@@ -1,3 +1,4 @@
+import { formatOrderId } from '../contexts/StoreContext';
 import { useState, useEffect } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
@@ -72,7 +73,7 @@ export default function OrderStatus() {
           <div className="status-card cooking-card">
             <div className="kitchen-visual" style={{fontSize:'4rem', animation:'pulse 2s ease-in-out infinite'}}>⏳</div>
             <h2>ORDER RECEIVED!</h2>
-            <p className="order-id">Order ID: #{order.id.split('-')[0].toUpperCase()}</p>
+            <p className="order-id">Order ID: #{formatOrderId(order.id)}</p>
             <p className="text-muted mt-3" style={{lineHeight:'1.6'}}>
               Your order is with the kitchen.<br/>We'll start the timer once they confirm it!
             </p>
@@ -98,7 +99,7 @@ export default function OrderStatus() {
           <div className="status-card" style={{borderTop: '6px solid #ff5b5b'}}>
             <div className="kitchen-visual" style={{fontSize:'4rem'}}>❌</div>
             <h2 style={{color: '#ff5b5b'}}>ORDER CANCELLED</h2>
-            <p className="order-id">Order ID: #{order.id.split('-')[0].toUpperCase()}</p>
+            <p className="order-id">Order ID: #{formatOrderId(order.id)}</p>
             <p className="text-muted mt-3">This order has been cancelled.</p>
             <Link to="/" className="btn btn-dark w-100 mt-4" onClick={() => localStorage.removeItem('munchies_active_order')}>RETURN TO MENU</Link>
           </div>
@@ -112,7 +113,7 @@ export default function OrderStatus() {
             </div>
             
             <h2>ORDER IN KITCHEN</h2>
-            <p className="order-id">Order ID: #{order.id.split('-')[0].toUpperCase()}</p>
+            <p className="order-id">Order ID: #{formatOrderId(order.id)}</p>
             
             <div className="timer-container mt-4">
               <div className="timer-text font-black text-orange">
@@ -155,7 +156,7 @@ export default function OrderStatus() {
               <CheckCircle2 size={100} className="text-success pulse" />
             </div>
             <h1 className="text-success mt-3 font-black">IT'S READY!</h1>
-            <p className="order-id">Order ID: {order.id}</p>
+            <p className="order-id">Order ID: #{formatOrderId(order.id)}</p>
             <p className="mt-3">Your delicious Munchies are waiting for you at the counter.</p>
             
             <div className="action-box mt-4">

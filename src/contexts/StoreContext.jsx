@@ -1,3 +1,10 @@
+// Exported utility to format Order IDs cleanly across the app
+export const formatOrderId = (id) => {
+  if (!id) return '';
+  if (id.startsWith('MP-')) return id;
+  return id.includes('-') ? id.split('-')[0].toUpperCase() : id.toUpperCase().substring(0, 8);
+};
+
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
@@ -235,9 +242,10 @@ export function StoreProvider({ children }) {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, payload => {
         if (payload.eventType === 'INSERT') {
-          setMenu(prev => prev.some(i => i.id === payload.new.id) ? prev : [...prev, { ...payload.new, inStock: payload.new.in_stock, low_stock_threshold: payload.new.low_stock_threshold ?? 10 }]);
+          setMenu(prev => prev.some(i => String(i.id) === String(payload.new.id)) ? prev : [...prev, { ...payload.new, inStock: payload.new.in_stock, low_stock_threshold: payload.new.low_stock_threshold ?? 10 }]);
         } else if (payload.eventType === 'UPDATE') {
-          setMenu(prev => prev.map(item => item.id === payload.new.id ? { ...payload.new, inStock: payload.new.in_stock, low_stock_threshold: payload.new.low_stock_threshold ?? 10 } : item));
+          console.log('[REALTIME STOCK UPDATE]', payload.new.name, 'New Stock:', payload.new.stock_quantity);
+          setMenu(prev => prev.map(item => String(item.id) === String(payload.new.id) ? { ...payload.new, inStock: payload.new.in_stock, low_stock_threshold: payload.new.low_stock_threshold ?? 10 } : item));
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
@@ -364,14 +372,78 @@ export function StoreProvider({ children }) {
     await supabase.from('menu_items').update({ in_stock: newStatus, stock_quantity: newQty }).eq('id', id);
   };
 
+  // Fire-and-forget price sync to Loyverse API
+  const pushPriceToLoyverse = async (loyverseItemId, itemName, priceInCents) => {
+    if (!loyverseItemId) return;
+    const default_price = Number((priceInCents / 100).toFixed(2));
+
+    try {
+      // 1. Try Supabase Edge Function to avoid browser CORS restrictions
+      const { data, error } = await supabase.functions.invoke('loyverse-price-sync', {
+        body: {
+          loyverse_item_id: loyverseItemId,
+          item_name: itemName,
+          price_in_cents: priceInCents
+        }
+      });
+
+      if (error) {
+        console.warn('[LOYVERSE PRICE SYNC] Edge function warning (falling back to direct fetch):', error.message);
+        // Direct browser fallback (if proxy/CORS allowed)
+        const token = 'REDACTED_ROTATED_TOKEN';
+        await fetch('https://api.loyverse.com/v1.0/items', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id: loyverseItemId,
+            item_name: itemName,
+            variants: [{ item_id: loyverseItemId, default_price: default_price }]
+          })
+        });
+      } else {
+        console.log('[LOYVERSE PRICE SYNC] Successfully synced ' + itemName + ' to Loyverse (RM ' + default_price.toFixed(2) + ')');
+      }
+    } catch (err) {
+      // Fire-and-forget error logging
+      console.error('[LOYVERSE PRICE SYNC] Error:', err.message);
+    }
+  };
+
   const updatePrice = async (id, newPriceFloat) => {
     const cents = Math.round(newPriceFloat * 100);
+    const item = menu.find(i => i.id === id);
+    const previousMenu = [...menu];
     
     // Optimistic UI update
     setMenu(menu.map(item => item.id === id ? { ...item, price: cents } : item));
     
-    // DB update
-    await supabase.from('menu_items').update({ price: cents }).eq('id', id);
+    // 1. Strict DB update with .select() verification
+    const { data, error } = await supabase
+      .from('menu_items')
+      .update({ price: cents })
+      .eq('id', id)
+      .select();
+
+    // 2. Strict Error Handling: If DB write fails or 0 rows updated, REVERT & DO NOT SYNC
+    if (error || !data || data.length === 0) {
+      const errMsg = error ? error.message : 'Database returned 0 updated rows (blocked by RLS or invalid ID)';
+      console.error('[PRICE UPDATE FAILED] Supabase write failed:', errMsg);
+      alert('Error updating price in database: ' + errMsg);
+      setMenu(previousMenu); // Revert optimistic UI
+      return;
+    }
+
+    // 3. Only push to Loyverse if Supabase write ACTUALLY succeeded!
+    const targetItem = data && data[0] ? data[0] : menu.find(i => String(i.id) === String(id));
+    if (targetItem?.loyverse_item_id) {
+      console.log('[LOYVERSE PRICE SYNC] Syncing item:', targetItem.name, 'Price:', cents);
+      await pushPriceToLoyverse(targetItem.loyverse_item_id, targetItem.name, cents);
+    } else {
+      console.warn('[LOYVERSE PRICE SYNC] Item not mapped to Loyverse:', targetItem?.name || id);
+    }
   };
 
   const updateLowStockThreshold = async (id, threshold) => {
@@ -568,7 +640,7 @@ const clearManualOverride = async (id) => {
     }
   };
 
-  const cancelOrder = async (orderId, reason, wasteAction = 'restore') => {
+  const cancelOrder = async (orderId, reason, wasteAction = 'restore', isAdmin = false) => {
     const order = orders.find(o => o.id === orderId);
     if (!order || order.status === 'COLLECTED' || order.status === 'CANCELLED') return;
 
@@ -582,10 +654,14 @@ const clearManualOverride = async (id) => {
       p_waste_action: wasteAction // 'restore' or 'waste'
     });
 
-    // 2. Fallback removed. We strictly rely on the atomic cancel_order RPC above.
+    // 2. Error handling: Admin sees technical detail, customers see calm masked message
     if (rpcError) {
       console.error('RPC cancel_order failed:', rpcError.message);
-      alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
+      if (isAdmin) {
+        alert('Admin Error: cancel_order RPC failed - ' + rpcError.message);
+      } else {
+        alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
+      }
       // Revert optimistic update
       setOrders(orders.map(o => o.id === orderId ? order : o));
     }
@@ -870,8 +946,24 @@ const clearManualOverride = async (id) => {
     }));
 
     const finalTotal = Math.max(0, cartTotal - discountAmount);
+    // Generate clean Daily Order ID (e.g. MP-1708-001)
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const todayOrdersCount = orders.filter(o => {
+      const d = new Date(o.created_at || Date.now());
+      return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+    
+    let counter = todayOrdersCount + 1;
+    let orderIdStr = `MP-${day}${month}-${String(counter).padStart(3, '0')}`;
+    while (orders.some(o => o.id === orderIdStr)) {
+      counter++;
+      orderIdStr = `MP-${day}${month}-${String(counter).padStart(3, '0')}`;
+    }
+
     const newOrder = {
-      id: crypto.randomUUID(),
+      id: orderIdStr,
       items: finalCart,
       total: finalTotal,
       status: 'PENDING',
@@ -883,12 +975,28 @@ const clearManualOverride = async (id) => {
       discount_amount: discountAmount
     };
 
-    // Use atomic RPC for race-condition-free stock deduction + order creation
+    // Calculate atomic add-on deductions (multiplied by cart item quantity)
+    const addonStockMap = {};
+    finalCart.forEach(cartItem => {
+      const qty = cartItem.quantity || 1;
+      (cartItem.selectedAddons || []).forEach(addon => {
+        if (addon && addon.id) {
+          addonStockMap[addon.id] = (addonStockMap[addon.id] || 0) + qty;
+        }
+      });
+    });
+    const addon_deductions = Object.entries(addonStockMap).map(([addon_id, quantity]) => ({
+      addon_id,
+      quantity
+    }));
+
+    // Use atomic RPC for race-condition-free stock deduction for BOTH menu items and add-ons
     const { data, error } = await supabase.rpc('place_order', { 
       deductions, 
       payload: newOrder,
       p_promo_code: appliedPromoCode,
-      p_user_id: user ? user.id : null
+      p_user_id: user ? user.id : null,
+      addon_deductions
     });
 
     if (error) {
@@ -1123,6 +1231,45 @@ const clearManualOverride = async (id) => {
     }, ...prev]);
   };
 
+
+  const updateAddonStock = async (id, delta) => {
+    const addon = addons.find(a => String(a.id) === String(id));
+    if (!addon) return;
+    
+    let currentQty = parseInt(addon.stock_quantity, 10);
+    if (isNaN(currentQty)) currentQty = 0;
+    
+    const newQty = Math.max(0, currentQty + delta);
+    const newInStock = newQty > 0;
+    
+    // Optimistic UI update
+    setAddons(prev => prev.map(a => String(a.id) === String(id) ? { ...a, stock_quantity: newQty, in_stock: newInStock } : a));
+    
+    // DB update
+    await supabase.from('addons').update({ stock_quantity: newQty, in_stock: newInStock }).eq('id', id);
+  };
+
+  const setAddonStockQuantity = async (id, qty) => {
+    const newQty = Math.max(0, Math.floor(Number(qty) || 0));
+    const newInStock = newQty > 0;
+    
+    // Optimistic UI update
+    setAddons(prev => prev.map(a => String(a.id) === String(id) ? { ...a, stock_quantity: newQty, in_stock: newInStock } : a));
+    
+    // DB update
+    await supabase.from('addons').update({ stock_quantity: newQty, in_stock: newInStock }).eq('id', id);
+  };
+
+  const updateAddonLowStockThreshold = async (id, threshold) => {
+    const val = Math.max(0, parseInt(threshold) || 0);
+    
+    // Optimistic UI update
+    setAddons(prev => prev.map(a => String(a.id) === String(id) ? { ...a, low_stock_threshold: val } : a));
+    
+    // DB update
+    await supabase.from('addons').update({ low_stock_threshold: val }).eq('id', id);
+  };
+
   return (
     <StoreContext.Provider value={{
       menu, cart, cartTotal, cartCount,
@@ -1130,7 +1277,7 @@ const clearManualOverride = async (id) => {
       toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateOrderState, acceptOrder, cancelOrder,
       updateStock, setStockQuantity, clearManualOverride,
       isPromoActive, updatePromo,
-      addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice,
+      addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, addPoints, claimShareBonus,
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,

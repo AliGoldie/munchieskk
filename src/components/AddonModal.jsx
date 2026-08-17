@@ -44,22 +44,29 @@ export default function AddonModal({ item, onClose }) {
           {availableAddons.length === 0 ? (
             <p className="text-muted p-4 text-center">No customizations available.</p>
           ) : (
-            availableAddons.map(addon => (
-              <label key={addon.id} className="addon-option">
-                <div className="addon-option-info">
-                  <span className="addon-name">{addon.name}</span>
-                  <span className="addon-price">
-                    {addon.price === null ? 'TBD' : `+ RM ${(addon.price / 100).toFixed(2)}`}
-                  </span>
-                </div>
-                <input 
-                  type="checkbox" 
-                  checked={selectedAddonIds.includes(addon.id)}
-                  onChange={() => toggleAddon(addon.id)}
-                  className="addon-checkbox"
-                />
-              </label>
-            ))
+            availableAddons.map(addon => {
+              const isOutOfStock = addon.stock_quantity !== undefined && addon.stock_quantity <= 0;
+              return (
+                <label key={addon.id} className="addon-option" style={isOutOfStock ? { opacity: 0.45, cursor: 'not-allowed' } : {}}>
+                  <div className="addon-option-info">
+                    <span className="addon-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {addon.name}
+                      {isOutOfStock && <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>(Sold Out)</span>}
+                    </span>
+                    <span className="addon-price">
+                      {addon.price === null ? 'TBD' : `+ RM ${(addon.price / 100).toFixed(2)}`}
+                    </span>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    disabled={isOutOfStock}
+                    checked={!isOutOfStock && selectedAddonIds.includes(addon.id)}
+                    onChange={() => !isOutOfStock && toggleAddon(addon.id)}
+                    className="addon-checkbox"
+                  />
+                </label>
+              );
+            })
           )}
         </div>
 

@@ -103,27 +103,38 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
             <div className="modal-addons-section">
               <h3 className="modal-addons-title">🔥 Customize Your Order</h3>
               <div className="modal-addons-list">
-                {availableAddons.map(addon => (
-                  <label key={addon.id} className={`modal-addon-item ${selectedAddonIds.includes(addon.id) ? 'selected' : ''}`}>
-                    <div className="modal-addon-info">
-                      {addon.image && (
-                        <img src={addon.image} alt={addon.name} className="modal-addon-img" />
-                      )}
-                      <div>
-                        <span className="modal-addon-name">{addon.name}</span>
-                        <span className="modal-addon-price">
-                          {addon.price === null ? 'TBD' : `+ RM ${(addon.price / 100).toFixed(2)}`}
-                        </span>
+                {availableAddons.map(addon => {
+                  const isOutOfStock = addon.stock_quantity !== undefined && addon.stock_quantity <= 0;
+                  return (
+                    <label 
+                      key={addon.id} 
+                      className={`modal-addon-item ${selectedAddonIds.includes(addon.id) ? 'selected' : ''} ${isOutOfStock ? 'disabled' : ''}`}
+                      style={isOutOfStock ? { opacity: 0.45, cursor: 'not-allowed', background: '#f8fafc' } : {}}
+                    >
+                      <div className="modal-addon-info">
+                        {addon.image && (
+                          <img src={addon.image} alt={addon.name} className="modal-addon-img" style={isOutOfStock ? { filter: 'grayscale(1)' } : {}} />
+                        )}
+                        <div>
+                          <span className="modal-addon-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {addon.name}
+                            {isOutOfStock && <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>(Sold Out)</span>}
+                          </span>
+                          <span className="modal-addon-price">
+                            {addon.price === null ? 'TBD' : `+ RM ${(addon.price / 100).toFixed(2)}`}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedAddonIds.includes(addon.id)}
-                      onChange={() => toggleAddon(addon.id)}
-                      className="modal-addon-checkbox"
-                    />
-                  </label>
-                ))}
+                      <input 
+                        type="checkbox" 
+                        disabled={isOutOfStock}
+                        checked={!isOutOfStock && selectedAddonIds.includes(addon.id)}
+                        onChange={() => !isOutOfStock && toggleAddon(addon.id)}
+                        className="modal-addon-checkbox"
+                      />
+                    </label>
+                  );
+                })}
               </div>
             </div>
           )}

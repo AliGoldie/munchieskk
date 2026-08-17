@@ -1,3 +1,4 @@
+import { formatOrderId } from '../contexts/StoreContext';
 import { useState, useEffect } from 'react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -220,7 +221,7 @@ export default function Profile() {
               {orders.map(order => (
                 <div key={order.id} className="order-item">
                   <div className="order-header">
-                    <span className="order-id">{order.id}</span>
+                    <span className="order-id">#{formatOrderId(order.id)}</span>
                     <span className="order-date">{new Date(order.created_at).toLocaleDateString()}</span>
                   </div>
                   <div className="order-total">

@@ -29,6 +29,8 @@ export default function Admin() {
   
   const [editingPrice, setEditingPrice] = useState({});
   const [editingAddonPrice, setEditingAddonPrice] = useState({});
+  const [editingAddonStock, setEditingAddonStock] = useState({});
+  const [editingAddonLowStock, setEditingAddonLowStock] = useState({});
   const [editingStock, setEditingStock] = useState({});
   const [editingLowStock, setEditingLowStock] = useState({});
   const [editingPromo, setEditingPromo] = useState({});
@@ -396,7 +398,10 @@ export default function Admin() {
   todayStart.setHours(0, 0, 0, 0);
   const todaysOrders = orders.filter(o => new Date(o.created_at || now) >= todayStart && o.status !== 'PENDING');
   const todaysRevenue = todaysOrders.reduce((sum, o) => sum + o.total, 0);
-  const lowStockItems = menu.filter(item => (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10));
+  const lowStockItems = [
+    ...menu.filter(item => (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).map(i => ({ ...i, isAddon: false })),
+    ...addons.filter(addon => (addon.stock_quantity ?? 99) <= (addon.low_stock_threshold ?? 10)).map(a => ({ ...a, name: `${a.name} (Add-on)`, isAddon: true }))
+  ];
   const lowStockCount = lowStockItems.length;
 
   const categorySales = {};
@@ -809,6 +814,20 @@ export default function Admin() {
   };
 
   const handleAddonPriceChange = (id, value) => setEditingAddonPrice({ ...editingAddonPrice, [id]: value });
+  const handleAddonStockChange = (id, value) => setEditingAddonStock({ ...editingAddonStock, [id]: value });
+  const saveAddonStock = (id) => {
+    if (editingAddonStock[id] !== undefined && editingAddonStock[id] !== '') {
+      setAddonStockQuantity(id, parseInt(editingAddonStock[id], 10));
+      setEditingAddonStock({ ...editingAddonStock, [id]: undefined });
+    }
+  };
+  const handleAddonLowStockChange = (id, value) => setEditingAddonLowStock({ ...editingAddonLowStock, [id]: value });
+  const saveAddonLowStock = (id) => {
+    if (editingAddonLowStock[id] !== undefined && editingAddonLowStock[id] !== '') {
+      updateAddonLowStockThreshold(id, parseInt(editingAddonLowStock[id], 10));
+      setEditingAddonLowStock({ ...editingAddonLowStock, [id]: undefined });
+    }
+  };
   const saveAddonPrice = (id) => {
     if (editingAddonPrice[id] !== undefined) {
       const val = editingAddonPrice[id];
@@ -3541,7 +3560,7 @@ export default function Admin() {
                 <div><div style={{ color: '#fca5a5', fontWeight: 'bold' }}>Mark as waste</div><div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Item prepped, cannot be resold.</div></div>
               </label></div>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => { if (!cancellingOrder.reason.trim()) { alert("Reason required."); return; } cancelOrder(cancellingOrder.id, cancellingOrder.reason.trim(), cancellingOrder.wasteAction); setCancellingOrder(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Confirm Cancel</button>
+                <button onClick={() => { if (!cancellingOrder.reason.trim()) { alert("Reason required."); return; } cancelOrder(cancellingOrder.id, cancellingOrder.reason.trim(), cancellingOrder.wasteAction, true); setCancellingOrder(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Confirm Cancel</button>
                 <button onClick={() => setCancellingOrder(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Abort</button>
               </div>
             </div>
