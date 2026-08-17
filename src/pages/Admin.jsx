@@ -399,8 +399,8 @@ export default function Admin() {
   const todaysOrders = orders.filter(o => new Date(o.created_at || now) >= todayStart && o.status !== 'PENDING');
   const todaysRevenue = todaysOrders.reduce((sum, o) => sum + o.total, 0);
   const lowStockItems = [
-    ...menu.filter(item => (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).map(i => ({ ...i, isAddon: false })),
-    ...addons.filter(addon => (addon.stock_quantity ?? 99) <= (addon.low_stock_threshold ?? 10)).map(a => ({ ...a, name: `${a.name} (Add-on)`, isAddon: true }))
+    ...menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).map(i => ({ ...i, isAddon: false })),
+    ...addons.filter(addon => addon.in_stock === false || (addon.stock_quantity ?? 99) <= (addon.low_stock_threshold ?? 10)).map(a => ({ ...a, name: `${a.name} (Add-on)`, isAddon: true }))
   ];
   const lowStockCount = lowStockItems.length;
 
@@ -976,6 +976,43 @@ export default function Admin() {
 
           {activeTab === 'overview' && (
             <div>
+              {lowStockCount > 0 && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(245,158,11,0.08))',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  borderRadius: '16px',
+                  padding: '1rem 1.5rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
+                  boxShadow: '0 4px 15px rgba(239,68,68,0.08)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ef4444', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.25rem', flexShrink: 0 }}>
+                      <AlertTriangle size={22} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, color: '#b91c1c', fontSize: '1rem', fontWeight: 'bold' }}>
+                        {lowStockCount} Item{lowStockCount > 1 ? 's' : ''} Require Immediate Restock
+                      </h4>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: '#7f1d1d' }}>
+                        {lowStockItems.map(item => `${item.name} (${(item.stock_quantity ?? 0) <= 0 || !item.inStock || item.in_stock === false ? 'Sold Out' : (item.stock_quantity ?? 0) + ' left'})`).join(' � ')}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-sm" style={{ background: '#fff', border: '1px solid #ef4444', color: '#b91c1c', fontWeight: 600 }} onClick={() => setActiveTab('inventory')}>
+                      Manage Menu Stock
+                    </button>
+                    <button className="btn btn-sm btn-primary" style={{ backgroundColor: '#ef4444', borderColor: '#ef4444', fontWeight: 600 }} onClick={() => setActiveTab('addons')}>
+                      Manage Add-ons Stock
+                    </button>
+                  </div>
+                </div>
+              )}
               {/* Schedule Manager Modal */}
               {scheduleModalOpen && localSchedule && (
                 <div style={{
@@ -1719,17 +1756,25 @@ export default function Admin() {
                 {lowStockCount > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                     {lowStockItems.slice(0, 3).map(item => (
-                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => setActiveTab(item.isAddon ? 'addons' : 'inventory')}>
                         <span style={{ wordBreak: 'break-word', paddingRight: '8px' }}>{item.name}</span>
-                        <span style={{ fontWeight: 600, color: '#ef4444' }}>{item.stock_quantity} left</span>
+                        <span style={{ fontWeight: 600, color: '#ef4444' }}>
+                          {(item.stock_quantity ?? 0) <= 0 || !item.inStock || item.in_stock === false ? 'Sold Out' : (item.stock_quantity ?? 0) + ' left'}
+                        </span>
                       </div>
                     ))}
                     {lowStockCount > 3 && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>+{lowStockCount - 3} more...</div>}
                   </div>
                 )}
                 
-                <div style={{ fontSize: '0.75rem', color: '#3b82f6', textDecoration: 'underline', marginTop: 'auto', cursor: 'pointer' }} onClick={() => setActiveTab('inventory')}>
-                  Manage Inventory
+                <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', fontSize: '0.75rem' }}>
+                  <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setActiveTab('inventory')}>
+                    Menu Stock
+                  </span>
+                  <span style={{ color: '#cbd5e1' }}>�</span>
+                  <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setActiveTab('addons')}>
+                    Add-ons Stock
+                  </span>
                 </div>
               </div>
             </div>
@@ -2104,13 +2149,17 @@ export default function Admin() {
             </div>
             <div style={{ width: '250px', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem' }}>
               <h3 style={{ color: '#ef4444' }}>Needs Restock</h3>
-              {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).length === 0 ? (
-                <p className="text-muted" style={{ fontSize: '0.9rem' }}>All items stocked!</p>
+              {lowStockItems.length === 0 ? (
+                <p className="text-muted" style={{ fontSize: '0.9rem' }}>All items & add-ons stocked!</p>
               ) : (
                 <ul style={{ margin: 0, paddingLeft: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem', maxHeight: '200px', overflowY: 'auto' }}>
-                  {menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).map(item => (
-                    <li key={item.id} style={{ marginBottom: '0.5rem' }}>
-                      {item.name} {(!item.inStock || (item.stock_quantity === 0)) ? <span style={{ color: '#ef4444', fontWeight: 'bold' }}>(Sold Out)</span> : <span style={{ color: '#f59e0b' }}>({item.stock_quantity} left)</span>}
+                  {lowStockItems.map(item => (
+                    <li key={item.id} style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setActiveTab(item.isAddon ? 'addons' : 'inventory')}>
+                      {item.name} {((item.stock_quantity ?? 0) <= 0 || !item.inStock || item.in_stock === false) ? (
+                        <span style={{ color: '#ef4444', fontWeight: 'bold' }}>(Sold Out)</span>
+                      ) : (
+                        <span style={{ color: '#f59e0b' }}>({item.stock_quantity} left)</span>
+                      )}
                     </li>
                   ))}
                 </ul>
