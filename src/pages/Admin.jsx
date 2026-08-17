@@ -978,36 +978,71 @@ export default function Admin() {
             <div>
               {lowStockCount > 0 && (
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(245,158,11,0.08))',
-                  border: '1px solid rgba(239,68,68,0.3)',
+                  background: 'linear-gradient(135deg, rgba(239,68,68,0.16), rgba(245,158,11,0.12))',
+                  border: '2px solid #ef4444',
                   borderRadius: '16px',
-                  padding: '1rem 1.5rem',
+                  padding: '1.1rem 1.5rem',
                   marginBottom: '1.5rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
                   gap: '1rem',
-                  boxShadow: '0 4px 15px rgba(239,68,68,0.08)'
+                  animation: 'restockPulse 2s infinite ease-in-out',
+                  boxShadow: '0 0 20px rgba(239,68,68,0.3)'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ef4444', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.25rem', flexShrink: 0 }}>
-                      <AlertTriangle size={22} />
+                  <style>
+                    {`
+                      @keyframes restockPulse {
+                        0%, 100% {
+                          border-color: #ef4444;
+                          box-shadow: 0 0 15px rgba(239, 68, 68, 0.35);
+                          background: linear-gradient(135deg, rgba(239,68,68,0.18), rgba(245,158,11,0.12));
+                        }
+                        50% {
+                          border-color: #f87171;
+                          box-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+                          background: linear-gradient(135deg, rgba(239,68,68,0.3), rgba(245,158,11,0.22));
+                        }
+                      }
+                      @keyframes alertBounce {
+                        0%, 100% { transform: scale(1); }
+                        50% { transform: scale(1.15); }
+                      }
+                    `}
+                  </style>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '50%',
+                      background: '#ef4444',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '1.35rem',
+                      flexShrink: 0,
+                      boxShadow: '0 4px 12px rgba(239,68,68,0.4)',
+                      animation: 'alertBounce 1.5s infinite ease-in-out'
+                    }}>
+                      <AlertTriangle size={24} />
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, color: '#b91c1c', fontSize: '1rem', fontWeight: 'bold' }}>
-                        {lowStockCount} Item{lowStockCount > 1 ? 's' : ''} Require Immediate Restock
+                      <h4 style={{ margin: 0, color: '#b91c1c', fontSize: '1.05rem', fontWeight: 800 }}>
+                        {lowStockCount} Item{lowStockCount > 1 ? 's' : ''} Require Immediate Restock!
                       </h4>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: '#7f1d1d' }}>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.875rem', color: '#7f1d1d', fontWeight: 600 }}>
                         {lowStockItems.map(item => `${item.name} (${(item.stock_quantity ?? 0) <= 0 || !item.inStock || item.in_stock === false ? 'Sold Out' : (item.stock_quantity ?? 0) + ' left'})`).join(' � ')}
                       </p>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn btn-sm" style={{ background: '#fff', border: '1px solid #ef4444', color: '#b91c1c', fontWeight: 600 }} onClick={() => setActiveTab('inventory')}>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className="btn btn-sm" style={{ background: '#fff', border: '1.5px solid #ef4444', color: '#b91c1c', fontWeight: 700, padding: '0.5rem 1rem' }} onClick={() => setActiveTab('inventory')}>
                       Manage Menu Stock
                     </button>
-                    <button className="btn btn-sm btn-primary" style={{ backgroundColor: '#ef4444', borderColor: '#ef4444', fontWeight: 600 }} onClick={() => setActiveTab('addons')}>
+                    <button className="btn btn-sm btn-primary" style={{ backgroundColor: '#ef4444', borderColor: '#ef4444', fontWeight: 700, padding: '0.5rem 1rem', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' }} onClick={() => setActiveTab('addons')}>
                       Manage Add-ons Stock
                     </button>
                   </div>
@@ -1236,16 +1271,12 @@ export default function Admin() {
                 </div>
 
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><AlertTriangle size={28} /></div>
+                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><Clock size={28} /></div>
                   <div className="sedap-metric-content">
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Pending / Alerts</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', display: 'flex', gap: '8px', alignItems: 'baseline' }}>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Pending Orders</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>
                        <span onClick={() => setActiveTab('orders')} style={{ cursor: 'pointer' }}>
-                         {pendingOrders.length} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-secondary)'}}>pending</span>
-                       </span>
-                       <span style={{color: '#cbd5e1'}}>|</span>
-                       <span onClick={() => setActiveTab('inventory')} className={lowStockCount > 0 ? 'flash-alert' : ''} style={{ cursor: 'pointer' }}>
-                         {lowStockCount} <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: lowStockCount > 0 ? '#ef4444' : 'var(--text-secondary)'}}>low stock</span>
+                         {pendingOrders.length}
                        </span>
                     </div>
                   </div>
