@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Phone } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import './Login.css';
 
 export default function Signup() {
@@ -89,9 +89,6 @@ export default function Signup() {
         <div className="social-login-group">
           <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Google')}>
             <Mail size={18} /> Sign up with Google
-          </button>
-          <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Phone')}>
-            <Phone size={18} /> Sign up with Phone
           </button>
         </div>
 

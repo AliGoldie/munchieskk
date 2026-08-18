@@ -288,7 +288,7 @@
   transform: scale(0.9);
 }
 
-.suggestion-add-btn--added {
+.suggestion-add-btn-added {
   background-color: #22c55e;
   color: white;
   transform: scale(1.15);

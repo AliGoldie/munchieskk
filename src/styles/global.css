@@ -1,6 +1,6 @@
 :root {
   /* Brutalist Theme Colors */
-  --munchies-yellow: #ffca08;
+  --munchies-yellow: #FFC72C;
   --munchies-orange: #c73b0f;
   --munchies-dark: #1a1a1a;
   --munchies-white: #ffffff;
@@ -39,6 +39,14 @@
   /* Font Families */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-heading: 'Kanit', var(--font-sans);
+  /* Typography Scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.85rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.5rem;
 }
 
 * {
@@ -132,6 +140,27 @@ button {
   background-color: var(--munchies-yellow);
   color: var(--munchies-dark);
 }
+.btn-danger {
+  background-color: var(--danger-color);
+  color: var(--munchies-white);
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  color: var(--munchies-white);
+}
+
+.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  box-shadow: var(--shadow-brutalist-sm);
+}
+
+.btn-sm:hover {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0px 0px var(--munchies-dark);
+}
+
 
 /* Brutalist Card Styles */
 .card {

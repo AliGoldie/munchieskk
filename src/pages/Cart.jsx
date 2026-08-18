@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Trash2, Plus, Sparkles, ChevronRight } from 'lucide-react';
+import { Trash2, Plus, Sparkles, ChevronRight, Edit2 } from 'lucide-react';
 import ItemModal from '../components/ItemModal';
 import './Cart.css';
 
@@ -68,6 +68,27 @@ export default function Cart() {
                   </span>
                 </div>
                 <div className="cart-item-actions" onDoubleClick={(e) => e.stopPropagation()}>
+                  <button 
+                    className="btn-edit-addons" 
+                    onClick={() => setEditingCartItem(item)}
+                    title="Edit customizations"
+                    style={{
+                      background: 'rgba(249, 115, 22, 0.1)',
+                      border: '1px solid rgba(249, 115, 22, 0.3)',
+                      borderRadius: '8px',
+                      padding: '5px 9px',
+                      color: '#ea580c',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Edit2 size={13} />
+                    <span>Edit</span>
+                  </button>
                   <div className="quantity-controls">
                     <button className="btn-qty" onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}>-</button>
                     <span className="qty">{item.quantity}</span>
@@ -107,7 +128,7 @@ export default function Cart() {
                       <div className="suggestion-bottom">
                         <span className="suggestion-price">RM {(item.price / 100).toFixed(2)}</span>
                         <button
-                          className={`suggestion-add-btn ${addedIds[item.id] ? 'suggestion-add-btn--added' : ''}`}
+                          className={`suggestion-add-btn ${addedIds[item.id] ? 'suggestion-add-btn-added' : ''}`}
                           onClick={() => handleQuickAdd(item)}
                         >
                           {addedIds[item.id] ? '✓' : <Plus size={16} />}

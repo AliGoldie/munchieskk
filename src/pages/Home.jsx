@@ -8,12 +8,21 @@ import { siteConfig } from '../config/siteConfig';
 import './Home.css';
 
 export default function Home() {
-  const { menu, isPromoActive, addToCart, itemAddons, points } = useStore();
+  const { menu, isPromoActive, addToCart, itemAddons, points, loyaltyPrizes } = useStore();
   const navigate = useNavigate();
   const [addonModalItem, setAddonModalItem] = useState(null);
 
   // Just grab some items for the grid
   const featuredItems = menu.slice(0, 4);
+
+  // Calculate real loyalty target prize and progress
+  const userPoints = points || 0;
+  const targetPrize = loyaltyPrizes && loyaltyPrizes.length > 0
+    ? (loyaltyPrizes.find(p => p.points_cost > userPoints) || loyaltyPrizes[loyaltyPrizes.length - 1])
+    : { name: 'FREE BURGER', points_cost: 500 };
+  const targetCost = targetPrize.points_cost || 500;
+  const pointsAway = Math.max(0, targetCost - userPoints);
+  const progressPercent = Math.min(100, Math.round((userPoints / targetCost) * 100));
 
   // Hero Spotlight Logic
   const [currentHeroIdx, setCurrentHeroIdx] = useState(0);
@@ -143,13 +152,17 @@ export default function Home() {
         <Gamepad2 className="banner-icon" size={64} opacity={0.2} />
       </div>
 
-      <div className="card banner-orange">
+      <div className="card banner-orange" onClick={() => navigate('/loyalty')} style={{ cursor: 'pointer' }}>
         <div className="banner-content">
           <Award size={24} />
           <h3 className="mt-2">LOYALTY PERKS</h3>
-          <p>You're 250 pts away from a FREE SHAKE.</p>
+          <p>
+            {pointsAway > 0
+              ? `You're ${pointsAway.toLocaleString()} pts away from a ${targetPrize.name.toUpperCase()}.`
+              : `You have enough points for a ${targetPrize.name.toUpperCase()}! Tap to claim.`}
+          </p>
           <div className="progress-bar">
-            <div className="progress-fill" style={{ width: '70%' }}></div>
+            <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
           </div>
         </div>
       </div>

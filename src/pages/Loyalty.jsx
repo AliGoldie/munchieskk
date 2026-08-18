@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react';
 import { Award, QrCode, Gamepad2, Lock, History, CheckCircle, Gift } from 'lucide-react';
+import Modal from '../components/Modal';
 import { useStore } from '../contexts/StoreContext';
 import './Loyalty.css';
 
@@ -112,21 +113,26 @@ export default function Loyalty() {
       </div>
 
       {redemptionResult && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: '#0f172a', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '360px', textAlign: 'center', border: '2px solid #FFC72C', boxShadow: '0 0 40px rgba(255,199,44,0.3)' }}>
-            <CheckCircle size={48} color="#22c55e" style={{ marginBottom: '12px' }} />
-            <h2 style={{ color: '#FFC72C', margin: '0 0 4px 0', fontSize: '1.3rem' }}>Redeemed!</h2>
-            <p style={{ color: '#94a3b8', margin: '0 0 1.5rem 0', fontSize: '0.9rem' }}>{redemptionResult.prizeName} - {redemptionResult.pointsSpent.toLocaleString()} pts spent</p>
-            <div style={{ background: '#1e293b', borderRadius: '12px', padding: '1.2rem', marginBottom: '1.5rem', border: '1px solid #334155' }}>
-              <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0 0 6px 0', fontWeight: 'bold', letterSpacing: '1px' }}>YOUR REDEMPTION CODE</p>
-              <div style={{ fontSize: '2rem', fontWeight: '900', color: '#FFC72C', letterSpacing: '4px', fontFamily: 'monospace' }}>{redemptionResult.code}</div>
-              <p style={{ color: '#64748b', fontSize: '0.72rem', margin: '8px 0 0 0' }}>Show this to the counter staff to claim your prize</p>
-            </div>
-            <button onClick={() => setRedemptionResult(null)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: '#FFC72C', color: '#0f172a', fontWeight: '900', fontSize: '1rem', cursor: 'pointer' }}>
-              GOT IT!
-            </button>
+        <Modal
+          onClose={() => setRedemptionResult(null)}
+          closeOnBackdropClick={false}
+          closeOnEscape={false}
+          showCloseButton={false}
+          contentStyle={{ background: '#0f172a', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '360px', textAlign: 'center', border: '2px solid #FFC72C', boxShadow: '0 0 40px rgba(255,199,44,0.3)' }}
+          ariaLabel="Prize Redemption Code"
+        >
+          <CheckCircle size={48} color="#22c55e" style={{ marginBottom: '12px' }} />
+          <h2 style={{ color: '#FFC72C', margin: '0 0 4px 0', fontSize: '1.3rem' }}>Redeemed!</h2>
+          <p style={{ color: '#94a3b8', margin: '0 0 1.5rem 0', fontSize: '0.9rem' }}>{redemptionResult.prizeName} - {redemptionResult.pointsSpent.toLocaleString()} pts spent</p>
+          <div style={{ background: '#1e293b', borderRadius: '12px', padding: '1.2rem', marginBottom: '1.5rem', border: '1px solid #334155' }}>
+            <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0 0 6px 0', fontWeight: 'bold', letterSpacing: '1px' }}>YOUR REDEMPTION CODE</p>
+            <div style={{ fontSize: '2rem', fontWeight: '900', color: '#FFC72C', letterSpacing: '4px', fontFamily: 'monospace' }}>{redemptionResult.code}</div>
+            <p style={{ color: '#64748b', fontSize: '0.72rem', margin: '8px 0 0 0' }}>Show this to the counter staff to claim your prize</p>
           </div>
-        </div>
+          <button onClick={() => setRedemptionResult(null)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: '#FFC72C', color: '#0f172a', fontWeight: '900', fontSize: '1rem', cursor: 'pointer' }}>
+            GOT IT!
+          </button>
+        </Modal>
       )}
     </div>
   );

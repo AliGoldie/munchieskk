@@ -476,7 +476,7 @@
   height: 28px;
   border-radius: 50%;
   border: none;
-  background-color: #ffca08;
+  background-color: var(--munchies-yellow);
   color: #111;
   font-weight: bold;
   font-size: 1.2rem;

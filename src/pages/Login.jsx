@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Phone } from 'lucide-react';
+import { supabase } from '../config/supabase';
+import { Mail } from 'lucide-react';
 import './Login.css';
 
 export default function Login() {
@@ -10,8 +11,33 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const navigate = useNavigate();
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (isResetting) return;
+    setError('');
+    setInfoMessage('');
+    if (!email) {
+      setError('Please enter your email address above to reset your password.');
+      return;
+    }
+    setIsResetting(true);
+    try {
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+      if (resetErr) throw resetErr;
+      setInfoMessage('Password reset link sent! Check your email inbox.');
+    } catch (err) {
+      setError(err.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,6 +71,12 @@ export default function Login() {
           </div>
         )}
 
+        {infoMessage && (
+          <div style={{color: '#16a34a', backgroundColor: 'rgba(22,163,74,0.1)', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem', textAlign: 'center'}}>
+            {infoMessage}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label>Email Address</label>
@@ -61,14 +93,13 @@ export default function Login() {
           <div className="form-group">
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <label>Password</label>
-              <a href="#" onClick={async (e) => {
-                e.preventDefault();
-                if (!email) {
-                  alert('Please enter your email address first to reset your password.');
-                  return;
-                }
-                alert('If an account exists for that email, a password reset link has been sent!');
-              }} style={{fontSize: '0.8rem', color: 'var(--munchies-primary)', textDecoration: 'none'}}>Forgot Password?</a>
+              <a 
+                href="#" 
+                onClick={handleForgotPassword} 
+                style={{fontSize: '0.8rem', color: 'var(--munchies-primary)', textDecoration: 'none', cursor: isResetting ? 'wait' : 'pointer', opacity: isResetting ? 0.6 : 1}}
+              >
+                {isResetting ? 'Sending link...' : 'Forgot Password?'}
+              </a>
             </div>
             <input 
               type="password" 
@@ -95,9 +126,6 @@ export default function Login() {
           </button>
           <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Facebook')}>
             Continue with Facebook
-          </button>
-          <button className="btn btn-outline social-btn" onClick={() => loginWithProvider('Phone')}>
-            <Phone size={18} /> Continue with Phone
           </button>
         </div>
 

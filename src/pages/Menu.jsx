@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Flame, Award } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import ItemModal from '../components/ItemModal';
@@ -289,17 +290,11 @@ export default function Menu() {
         <p className="text-white-dim">Every 5th burger is on the house. Scan at the arcade!</p>
       </div>
 
-      <div className="card spicy-banner mt-4">
-        <h3 className="text-white">SPICY CHALLENGE</h3>
-        <p className="text-white-dim">Finish the Inferno Crunch in 5 mins & win a limited tee!</p>
-        <button className="btn btn-outline-white mt-2">Details</button>
-      </div>
-
       <div className="card ad-banner mt-4 mb-4">
         <div className="ad-content">
           <h2>WANT IT FREE?</h2>
           <p>Play the Munchies Run arcade game & unlock rewards!</p>
-          <button className="btn btn-dark w-full mt-3">GO TO ARCADE</button>
+          <Link to="/arcade" className="btn btn-dark w-full mt-3" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>GO TO ARCADE</Link>
         </div>
       </div>
 

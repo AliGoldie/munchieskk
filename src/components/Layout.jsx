@@ -37,9 +37,6 @@ export default function Layout() {
       {/* Top Header */}
       <header className="top-header">
         <div className="container header-container">
-          <button className="menu-btn">
-            <MenuIcon size={24} color="var(--munchies-white)" />
-          </button>
           <Link to="/" className="logo">
             <img src="/images/logo.png" alt="MUNCHIESKK" style={{ height: '48px' }} />
           </Link>

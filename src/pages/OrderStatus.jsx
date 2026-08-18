@@ -1,5 +1,5 @@
 import { formatOrderId } from '../contexts/StoreContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { loyaltyConfig } from '../config/loyaltyConfig';
@@ -15,6 +15,17 @@ export default function OrderStatus() {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [claimedReview, setClaimedReview] = useState(false);
+  const shareListenerCleanupRef = useRef(null);
+
+  // Guaranteed cleanup of pending share listeners & timers on unmount
+  useEffect(() => {
+    return () => {
+      if (shareListenerCleanupRef.current) {
+        shareListenerCleanupRef.current();
+        shareListenerCleanupRef.current = null;
+      }
+    };
+  }, []);
 
   // Timer logic for COOKING state
   useEffect(() => {
@@ -47,11 +58,78 @@ export default function OrderStatus() {
 
   const handleSocialShare = async (platform) => {
     if (claimedReview) return;
+    
+    const shareData = {
+      title: 'MunchiesKK',
+      text: 'Just enjoyed delicious smash burgers from MunchiesKK! ???? #MunchiesKK',
+      url: window.location.origin
+    };
+
     try {
-      await claimShareBonus(loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
-      setClaimedReview(true);
-      alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
+      if (navigator.share) {
+        // 1. Native mobile share sheet
+        await navigator.share(shareData);
+        await claimShareBonus(loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
+        setClaimedReview(true);
+        alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
+      } else {
+        // 2. Desktop Fallback: Synchronously open tab first to prevent popup blocking
+        if (platform === 'Facebook') {
+          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`, '_blank', 'noopener,noreferrer');
+        } else {
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(shareData.text + ' ' + shareData.url).catch(() => {});
+          }
+          window.open('https://www.instagram.com', '_blank', 'noopener,noreferrer');
+        }
+
+        // Clean up any existing listener before attaching a new one
+        if (shareListenerCleanupRef.current) {
+          shareListenerCleanupRef.current();
+        }
+
+        const shareStartTime = Date.now();
+        let maxTimeoutId = null;
+
+        const cleanup = () => {
+          if (maxTimeoutId) {
+            clearTimeout(maxTimeoutId);
+            maxTimeoutId = null;
+          }
+          document.removeEventListener('visibilitychange', handleReturn);
+          window.removeEventListener('focus', handleReturn);
+          shareListenerCleanupRef.current = null;
+        };
+
+        const handleReturn = async () => {
+          if (!document.hidden) {
+            const elapsedSeconds = (Date.now() - shareStartTime) / 1000;
+            // Only claim and cleanup if user was away for at least 5s
+            if (elapsedSeconds >= 5) {
+              cleanup();
+              try {
+                await claimShareBonus(loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
+                setClaimedReview(true);
+                alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
+              } catch (err) {
+                alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
+              }
+            }
+          }
+        };
+
+        // 2-minute safety auto-cleanup if abandoned
+        maxTimeoutId = setTimeout(() => {
+          cleanup();
+        }, 120000);
+
+        shareListenerCleanupRef.current = cleanup;
+        document.addEventListener('visibilitychange', handleReturn);
+        window.addEventListener('focus', handleReturn);
+      }
     } catch (err) {
+      // User aborted / closed native share dialog without sharing - do not award points
+      if (err.name === 'AbortError') return;
       alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
     }
   };
