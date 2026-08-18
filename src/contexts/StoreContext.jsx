@@ -5,7 +5,7 @@ export const formatOrderId = (id) => {
   return id.includes('-') ? id.split('-')[0].toUpperCase() : id.toUpperCase().substring(0, 8);
 };
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
 import { calculateOrderPoints } from '../utils/pointsCalculator';
@@ -19,6 +19,7 @@ export function StoreProvider({ children }) {
   const [menu, setMenu] = useState([]);
   const [addons, setAddons] = useState([]);
   const [itemAddons, setItemAddons] = useState({});
+  const [syncWarnings, setSyncWarnings] = useState([]);
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loyaltyPrizes, setLoyaltyPrizes] = useState([]);
@@ -374,11 +375,10 @@ export function StoreProvider({ children }) {
 
   // Fire-and-forget price sync to Loyverse API
   const pushPriceToLoyverse = async (loyverseItemId, itemName, priceInCents, category) => {
-    if (!loyverseItemId) return;
+    if (!loyverseItemId) return { success: false, error: 'No loyverse_item_id mapped' };
     const default_price = Number((priceInCents / 100).toFixed(2));
 
     try {
-      // 1. Try Supabase Edge Function to avoid browser CORS restrictions
       const { data, error } = await supabase.functions.invoke('loyverse-price-sync', {
         body: {
           loyverse_item_id: loyverseItemId,
@@ -389,29 +389,31 @@ export function StoreProvider({ children }) {
       });
 
       if (error) {
-        console.warn('[LOYVERSE PRICE SYNC] Edge function warning (falling back to direct fetch):', error.message);
-        // Direct browser fallback (if proxy/CORS allowed)
-        const token = 'REDACTED_ROTATED_TOKEN';
-        await fetch('https://api.loyverse.com/v1.0/items', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            id: loyverseItemId,
-            item_name: itemName,
-            variants: [{ item_id: loyverseItemId, default_price: default_price }]
-          })
-        });
-      } else {
-        console.log('[LOYVERSE PRICE SYNC] Successfully synced ' + itemName + ' to Loyverse (RM ' + default_price.toFixed(2) + ')');
+        console.error('[LOYVERSE PRICE SYNC] Edge function invocation error for ' + itemName + ':', error.message || error);
+        return { success: false, error: error.message || error };
       }
+
+      if (data && data.success === false) {
+        console.error('[LOYVERSE PRICE SYNC] Loyverse API returned error for ' + itemName + ':', data.error);
+        return { success: false, error: data.error };
+      }
+
+      console.log('[LOYVERSE PRICE SYNC] Successfully synced ' + itemName + ' to Loyverse (RM ' + default_price.toFixed(2) + ')');
+      return { success: true, data };
     } catch (err) {
-      // Fire-and-forget error logging
-      console.error('[LOYVERSE PRICE SYNC] Error:', err.message);
+      console.error('[LOYVERSE PRICE SYNC] Network/runtime error syncing ' + itemName + ':', err.message || err);
+      return { success: false, error: err.message || err };
     }
   };
+
+  const addSyncWarning = useCallback((warning) => {
+    const id = Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+    setSyncWarnings(prev => [...prev, { ...warning, id }]);
+  }, []);
+
+  const removeSyncWarning = useCallback((id) => {
+    setSyncWarnings(prev => prev.filter(w => w.id !== id));
+  }, []);
 
   const updatePrice = async (id, newPriceFloat) => {
     const cents = Math.round(newPriceFloat * 100);
@@ -441,7 +443,14 @@ export function StoreProvider({ children }) {
     const targetItem = data && data[0] ? data[0] : menu.find(i => String(i.id) === String(id));
     if (targetItem?.loyverse_item_id) {
       console.log('[LOYVERSE PRICE SYNC] Syncing item:', targetItem.name, 'Price:', cents);
-      await pushPriceToLoyverse(targetItem.loyverse_item_id, targetItem.name, cents, targetItem.category);
+      const syncResult = await pushPriceToLoyverse(targetItem.loyverse_item_id, targetItem.name, cents, targetItem.category);
+      if (syncResult && syncResult.success === false) {
+        addSyncWarning({
+          itemName: targetItem.name,
+          error: typeof syncResult.error === 'object' ? JSON.stringify(syncResult.error) : syncResult.error,
+          time: new Date().toLocaleTimeString()
+        });
+      }
     } else {
       console.warn('[LOYVERSE PRICE SYNC] Item not mapped to Loyverse:', targetItem?.name || id);
     }
@@ -502,7 +511,14 @@ export function StoreProvider({ children }) {
     const targetItem = data[0];
     if (targetItem?.loyverse_item_id && dbPayload.price !== undefined) {
       console.log('[LOYVERSE PRICE SYNC] updateMenuItem pushing to Loyverse:', targetItem.name, 'Price:', dbPayload.price);
-      await pushPriceToLoyverse(targetItem.loyverse_item_id, targetItem.name, dbPayload.price, targetItem.category);
+      const syncResult = await pushPriceToLoyverse(targetItem.loyverse_item_id, targetItem.name, dbPayload.price, targetItem.category);
+      if (syncResult && syncResult.success === false) {
+        addSyncWarning({
+          itemName: targetItem.name,
+          error: typeof syncResult.error === 'object' ? JSON.stringify(syncResult.error) : syncResult.error,
+          time: new Date().toLocaleTimeString()
+        });
+      }
     }
   };
 

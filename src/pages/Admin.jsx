@@ -14,11 +14,63 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Admin.css';
 
+function SyncToastItem({ warning, onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onDismiss(warning.id);
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [warning.id, onDismiss]);
+
+  return (
+    <div style={{
+      backgroundColor: '#fffbeb',
+      border: '1.5px solid #f59e0b',
+      borderRadius: '12px',
+      padding: '0.875rem 1rem',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+      width: '380px',
+      maxWidth: 'calc(100vw - 32px)',
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '10px',
+      pointerEvents: 'auto'
+    }}>
+      <AlertTriangle size={20} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 'bold', color: '#92400e', fontSize: '0.85rem' }}>
+          Loyverse POS Sync Warning
+        </div>
+        <div style={{ color: '#78350f', fontSize: '0.8rem', marginTop: '2px', lineHeight: 1.35 }}>
+          Price updated on website, but failed to sync <strong>{warning.itemName}</strong> to Loyverse POS ({warning.error}). Prices may be out of sync.
+        </div>
+      </div>
+      <button
+        onClick={() => onDismiss(warning.id)}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: '#b45309',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          fontSize: '1rem',
+          padding: '0 2px',
+          lineHeight: 1
+        }}
+        title="Dismiss"
+      >
+        ?
+      </button>
+    </div>
+  );
+}
+
 export default function Admin() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
     menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateStock, setStockQuantity, clearManualOverride,
+    syncWarnings, removeSyncWarning,
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
     loyaltyPrizes, redemptions, fetchAdminRedemptions, fulfillRedemption, addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
@@ -967,6 +1019,24 @@ export default function Admin() {
 
         {/* Main Content Area */}
         <main className="admin-content">
+          {/* Stacked Loyverse Sync Warning Toasts */}
+          {syncWarnings && syncWarnings.length > 0 && (
+            <div style={{
+              position: 'fixed',
+              bottom: '24px',
+              right: '24px',
+              zIndex: 9999,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              pointerEvents: 'none'
+            }}>
+              {syncWarnings.map(warning => (
+                <SyncToastItem key={warning.id} warning={warning} onDismiss={removeSyncWarning} />
+              ))}
+            </div>
+          )}
+
           <div className="admin-header-section mb-6" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h1>Dashboard</h1>

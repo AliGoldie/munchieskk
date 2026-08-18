@@ -21,7 +21,13 @@ serve(async (req: Request) => {
     }
 
     const default_price = Number((price_in_cents / 100).toFixed(2));
-    const token = Deno.env.get('LOYVERSE_API_TOKEN') || 'REDACTED_ROTATED_TOKEN';
+    const token = Deno.env.get('LOYVERSE_API_TOKEN');
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Missing LOYVERSE_API_TOKEN configuration' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // 1. Fetch existing item from Loyverse to PRESERVE category, description, and image
     let category_id = null;
