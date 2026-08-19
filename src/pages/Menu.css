@@ -1,3 +1,4 @@
+/* Menu Page Styling */
 .menu-page {
   display: flex;
   flex-direction: column;
@@ -15,7 +16,7 @@
   gap: 6px;
   overflow-x: auto;
   padding: 12px;
-  background: #1A1D24; /* Dark background from design */
+  background: #1A1D24;
   border-radius: 20px;
   position: sticky;
   top: 60px;
@@ -38,7 +39,7 @@
   padding: 10px 8px;
   border-radius: 999px;
   border: none;
-  background: #2A2F3A; /* Inactive: dark grey pill */
+  background: #2A2F3A;
   color: #FFFFFF;
   font-weight: 800;
   font-size: 12px;
@@ -58,11 +59,11 @@
 }
 
 .category-btn.active {
-  background-color: #FFC400; /* Active: bold yellow from design */
+  background-color: #FFC400;
   background-image: url('/images/trex_pattern.png');
   background-size: 150px;
-  background-blend-mode: overlay; /* Softly blends the pattern into the yellow */
-  color: #1A1A2E; /* Dark text for high contrast */
+  background-blend-mode: overlay;
+  color: #1A1A2E;
   box-shadow: 0 4px 12px rgba(255, 196, 0, 0.3);
 }
 
@@ -72,28 +73,51 @@
 }
 
 .category-section {
-  scroll-margin-top: 130px; /* Offset for sticky headers */
+  scroll-margin-top: 130px;
 }
 
 /* Hero Menu Card */
 .menu-hero-card {
   position: relative;
-  overflow: visible;
+  overflow: hidden;
   margin-top: 10px;
+  background-color: #161922;
+  border: var(--border-thick);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-brutalist);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-hero-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0px 0px var(--munchies-dark);
 }
 
 .hero-badge {
   position: absolute;
-  top: -12px;
-  left: 20px;
-  transform: rotate(-5deg);
+  top: 14px;
+  left: 14px;
+  background-color: var(--danger-color, #ef4444);
+  color: #ffffff;
+  border: 2px solid var(--munchies-dark);
+  box-shadow: 2px 2px 0px 0px var(--munchies-dark);
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 0.8rem;
+  letter-spacing: 0.8px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  transform: rotate(-3deg);
   z-index: 10;
 }
 
 .hero-img-bg {
-  background-color: #f0f0f0; /* Brick wall texture placeholder */
-  height: 200px;
+  position: relative;
+  background-color: #1f2430;
+  height: 240px;
   border-bottom: var(--border-thick);
+  overflow: hidden;
 }
 
 .hero-img {
@@ -101,23 +125,40 @@
   height: 100%;
   background-size: cover;
   background-position: center;
+  transition: transform 0.3s ease;
+}
+
+.menu-hero-card:hover .hero-img {
+  transform: scale(1.03);
 }
 
 .menu-hero-info {
-  padding: var(--space-4);
-  background-color: var(--munchies-white);
-  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  padding: var(--space-6);
+  background-color: #161922;
+  color: #ffffff;
 }
 
 .menu-hero-info h2 {
   font-size: 2rem;
+  font-weight: 900;
+  color: #ffffff;
   margin-bottom: var(--space-2);
+  line-height: 1.15;
 }
 
-.menu-desc {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  line-height: 1.4;
+.menu-hero-info .menu-desc {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.menu-hero-info .price-large {
+  color: var(--munchies-yellow);
+}
+
+.menu-hero-info .pts-badge {
+  background-color: var(--munchies-yellow);
+  color: var(--munchies-dark);
 }
 
 .price-row {
@@ -157,14 +198,14 @@
 
 /* Banners */
 .card.loyalty-banner {
-  background-color: #1a5c68; /* Dark teal */
+  background-color: #1a5c68;
   padding: var(--space-4);
   position: relative;
   overflow: hidden;
 }
 
 .loyalty-banner::after {
-  content: "F"; /* Star/abstract shape placeholder */
+  content: "?";
   font-family: var(--font-heading);
   font-size: 150px;
   position: absolute;
@@ -187,7 +228,7 @@
   text-transform: uppercase;
 }
 
-/* Hot List */
+/* Regular Menu Item Rows (Compact Horizontal Row) */
 .hot-list-header {
   display: flex;
   align-items: center;
@@ -195,35 +236,46 @@
 }
 
 .hot-list-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
-  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0.5rem 0 1.5rem 0;
 }
 
 .hot-list-card {
   display: flex;
-  flex-direction: column;
-  background-color: #fff;
-  border-radius: 16px;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  flex-direction: row;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: var(--radius-lg, 16px);
+  border: 2px solid var(--munchies-dark);
+  box-shadow: 3px 3px 0px 0px var(--munchies-dark);
+  padding: 10px;
+  gap: 12px;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
 }
 
 .hot-list-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0px 0px var(--munchies-dark);
+}
+
+.hot-list-card:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px var(--munchies-dark);
 }
 
 .hot-list-img-wrap {
   position: relative;
-  width: 100%;
-  aspect-ratio: 4/3;
+  width: 90px;
+  height: 90px;
+  min-width: 90px;
+  border-radius: var(--radius-md, 12px);
+  border: 1.5px solid var(--munchies-dark);
   overflow: hidden;
-  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
 }
 
 .hot-list-img {
@@ -231,11 +283,11 @@
   height: 100%;
   background-size: cover;
   background-position: center;
-  transition: transform 0.3s ease, filter 0.3s ease;
+  transition: transform 0.3s ease;
 }
 
 .hot-list-card:hover .hot-list-img {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
 .card-oos .hot-list-img,
@@ -257,9 +309,9 @@
   color: white;
   font-family: var(--font-heading);
   font-weight: 900;
-  font-size: 1rem;
-  letter-spacing: 0.1em;
-  padding: 6px 14px;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
   border-radius: 4px;
   transform: rotate(-5deg);
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
@@ -277,23 +329,43 @@
 
 /* Shared add-btn yellow style for Menu page */
 .hot-list-info {
-  padding: 1.25rem;
+  padding: 0;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   flex: 1;
+  min-width: 0;
+  gap: 4px;
 }
 
 .hot-list-info h3 {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--munchies-dark);
+  margin: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hot-list-info .menu-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .hot-list-card .add-btn {
   background-color: var(--munchies-yellow);
   color: var(--munchies-dark);
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -302,6 +374,8 @@
   box-shadow: 2px 2px 0px 0px var(--munchies-dark);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
               box-shadow 0.15s ease;
+  cursor: pointer;
+  padding: 0;
 }
 
 .hot-list-card .add-btn:hover:not(:disabled) {
@@ -313,7 +387,6 @@
   transform: scale(0.92);
   box-shadow: 0px 0px 0px 0px var(--munchies-dark);
 }
-
 
 .flex-between {
   display: flex;
@@ -359,7 +432,6 @@
   margin-bottom: var(--space-4);
 }
 
-
 /* Desktop Layout (768px+) */
 @media (min-width: 768px) {
   .menu-page {
@@ -375,24 +447,27 @@
 
   .menu-hero-card {
     display: grid;
-    grid-template-columns: 1.1fr 1fr;
+    grid-template-columns: 1.15fr 1fr;
     align-items: stretch;
   }
 
   .hero-img-bg {
     height: 100%;
-    min-height: 260px;
+    min-height: 300px;
     border-bottom: none;
     border-right: var(--border-thick);
-    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
-    overflow: hidden;
   }
 
   .menu-hero-info {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
-    padding: var(--space-6);
+    padding: var(--space-8);
+  }
+
+  .hot-list-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
 }

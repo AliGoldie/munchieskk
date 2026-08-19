@@ -148,8 +148,8 @@ export default function Menu() {
       {/* Hero Menu Item */}
       {heroItem && (
         <div className={`card menu-hero-card ${!heroItem.inStock ? 'card-oos' : ''}`} onClick={() => { if (heroItem.inStock) setSelectedItem(heroItem); }}>
-          <span className="badge-red hero-badge">MUST TRY!</span>
           <div className="hero-img-bg" style={{ position: 'relative' }}>
+            <span className="badge-red hero-badge">MUST TRY!</span>
             <div className="hero-img" style={{ backgroundImage: `url('${heroItem.image}')` }}></div>
             {!heroItem.inStock && (
               <div className="oos-overlay">
