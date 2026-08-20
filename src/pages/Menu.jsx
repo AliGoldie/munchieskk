@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Flame, Award } from 'lucide-react';
+import { Flame, Award } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import ItemModal from '../components/ItemModal';
 import { getItemPoints } from '../utils/pointsCalculator';
@@ -259,20 +259,17 @@ export default function Menu() {
                         ) : (
                           <span className="price-large">RM {(item.price / 100).toFixed(2)}</span>
                         )}
-                        <div className="flex items-center gap-2">
-                          <span className="pts-badge-dark">+{getItemPoints(item)} PTS</span>
-                          <button 
-                            className={`add-btn ${!item.inStock ? 'add-btn-disabled' : ''}`}
-                            disabled={!item.inStock}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!item.inStock) return;
-                              setSelectedItem(item);
-                            }}
-                          >
-                            <Plus size={20} />
-                          </button>
-                        </div>
+                        <button 
+                          className={`add-btn ${!item.inStock ? 'add-btn-disabled' : ''}`}
+                          disabled={!item.inStock}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!item.inStock) return;
+                            setSelectedItem(item);
+                          }}
+                        >
+                          {item.inStock ? 'POWER UP' : 'SOLD OUT'}
+                        </button>
                       </div>
                     </div>
                   </div>
