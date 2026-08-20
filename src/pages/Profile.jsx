@@ -1,5 +1,6 @@
 import { formatOrderId } from '../contexts/StoreContext';
 import { useState, useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
@@ -9,7 +10,9 @@ import './Profile.css';
 export default function Profile() {
   const { points, orders } = useStore();
   const { user, setUser, logout } = useAuth();
-  const [isSaving, setIsSaving] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+  const [expandedOrderIds, setExpandedOrderIds] = useState(new Set());
+  const [visibleOrdersCount, setVisibleOrdersCount] = useState(5);
 
   const [userProfile, setUserProfile] = useState({
     name: '',
@@ -37,6 +40,18 @@ export default function Profile() {
 
   const handleProfileChange = (e) => {
     setUserProfile({ ...userProfile, [e.target.name]: e.target.value });
+  };
+
+  const toggleOrderExpand = (orderId) => {
+    setExpandedOrderIds(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
   };
 
   const handleSaveToggle = async () => {
@@ -217,20 +232,70 @@ export default function Profile() {
         <div className="profile-card">
           <h3>Order History</h3>
           {orders.length > 0 ? (
-            <div className="order-list">
-              {orders.map(order => (
-                <div key={order.id} className="order-item">
-                  <div className="order-header">
-                    <span className="order-id">#{formatOrderId(order.id)}</span>
-                    <span className="order-date">{new Date(order.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <div className="order-total">
-                    RM {(order.total / 100).toFixed(2)} - <span className="text-primary">{order.status}</span>
-                    {order.paymentMethod && <div className="text-muted" style={{fontSize: '0.85rem', marginTop: '0.25rem'}}>Paid via: {order.paymentMethod}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="order-list">
+                {orders.slice(0, visibleOrdersCount).map(order => {
+                  const isExpanded = expandedOrderIds.has(order.id);
+                  return (
+                    <div 
+                      key={order.id} 
+                      className="order-item"
+                      onClick={() => toggleOrderExpand(order.id)}
+                      style={{ cursor: 'pointer', transition: 'background-color 0.15s ease' }}
+                    >
+                      <div className="order-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <ChevronDown 
+                            size={16} 
+                            style={{ 
+                              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                              transition: 'transform 0.2s ease',
+                              flexShrink: 0 
+                            }} 
+                          />
+                          <span className="order-id">#{formatOrderId(order.id)}</span>
+                        </div>
+                        <span className="order-date">{new Date(order.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <div className="order-total">
+                        RM {(order.total / 100).toFixed(2)} - <span className="text-primary">{order.status}</span>
+                        {(order.payment_method || order.paymentMethod) && <div className="text-muted" style={{fontSize: '0.85rem', marginTop: '0.25rem'}}>Paid via: {order.payment_method || order.paymentMethod}</div>}
+                      </div>
+
+                      {isExpanded && (
+                        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed var(--border-color)', fontSize: '0.875rem' }}>
+                          <div style={{ fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text-main)' }}>Items:</div>
+                          {order.items && order.items.length > 0 ? (
+                            order.items.map((item, i) => (
+                              <div key={i} style={{ marginBottom: '0.25rem', color: 'var(--text-main)' }}>
+                                <span style={{ fontWeight: 800 }}>{item.quantity || 1}x</span> {item.name}
+                                {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.15rem' }}>
+                                    + {item.selectedAddons.map(a => a.name).join(', ')}
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-muted" style={{ fontSize: '0.8rem' }}>No item details recorded.</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {orders.length > visibleOrdersCount && (
+                <button 
+                  type="button"
+                  className="btn btn-secondary w-full"
+                  style={{ marginTop: '1rem', fontSize: '0.9rem', padding: '10px' }}
+                  onClick={() => setVisibleOrdersCount(prev => prev + 5)}
+                >
+                  Load More
+                </button>
+              )}
+            </>
           ) : (
             <p className="text-muted">No past orders yet -- your past orders will appear here once you place an order.</p>
           )}

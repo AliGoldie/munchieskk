@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Admin.css';
@@ -86,6 +86,20 @@ export default function Admin() {
   const [editingStock, setEditingStock] = useState({});
   const [editingLowStock, setEditingLowStock] = useState({});
   const [editingPromo, setEditingPromo] = useState({});
+  const [expandedHistoryOrderIds, setExpandedHistoryOrderIds] = useState(new Set());
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState(5);
+
+  const toggleHistoryOrderExpand = (orderId) => {
+    setExpandedHistoryOrderIds(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
+  };
 
   // Menu Item Detail Editing State
   const [editingMenuItem, setEditingMenuItem] = useState(null);
@@ -3003,42 +3017,112 @@ export default function Admin() {
         {activeTab === 'history' && (
           <div className="admin-card">
             <h3 style={{ marginBottom: '1.5rem' }}>Completed & Cancelled Orders</h3>
-            <div className="table-responsive">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Order ID</th>
-                    <th>Date</th>
-                    <th>Customer</th>
-                    <th>Total (RM)</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.filter(o => o.status === 'COLLECTED' || o.status === 'CANCELLED').sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).map(order => (
-                    <tr key={order.id}>
-                      <td className="font-medium text-xs">#{formatOrderId(order.id)}</td>
-                      <td className="text-xs text-muted">{new Date(order.created_at).toLocaleString()}</td>
-                      <td>
-                        <div className="font-bold text-sm">{order.customer_name || 'Guest'}</div>
-                        {order.customer_phone && order.customer_phone !== 'No Phone' && <div className="text-xs text-muted">📞 {order.customer_phone}</div>}
-                      </td>
-                      <td className="font-bold">{(order.total / 100).toFixed(2)}</td>
-                      <td>
-                        <span className={`status-badge ${order.status === 'COLLECTED' ? 'in-stock' : 'out-stock'}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {orders.filter(o => o.status === 'COLLECTED' || o.status === 'CANCELLED').length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="text-center text-muted" style={{ padding: '2rem' }}>No past orders yet -- past orders will appear here once orders are placed.</td>
-                    </tr>
+            {(() => {
+              const historyOrders = orders
+                .filter(o => o.status === 'COLLECTED' || o.status === 'CANCELLED')
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              return (
+                <>
+                  <div className="table-responsive">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Order ID</th>
+                          <th>Date</th>
+                          <th>Customer</th>
+                          <th>Total (RM)</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historyOrders.slice(0, visibleHistoryCount).map(order => {
+                          const isExpanded = expandedHistoryOrderIds.has(order.id);
+                          return (
+                            <Fragment key={order.id}>
+                              <tr 
+                                onClick={() => toggleHistoryOrderExpand(order.id)}
+                                style={{ cursor: 'pointer', transition: 'background-color 0.15s ease' }}
+                              >
+                                <td className="font-medium text-xs">
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <ChevronDown 
+                                      size={14} 
+                                      style={{ 
+                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                                        transition: 'transform 0.2s ease',
+                                        flexShrink: 0 
+                                      }} 
+                                    />
+                                    <span>#{formatOrderId(order.id)}</span>
+                                  </div>
+                                </td>
+                                <td className="text-xs text-muted">{new Date(order.created_at).toLocaleString()}</td>
+                                <td>
+                                  <div className="font-bold text-sm">{order.customer_name || 'Guest'}</div>
+                                  {order.customer_phone && order.customer_phone !== 'No Phone' && <div className="text-xs text-muted">?? {order.customer_phone}</div>}
+                                </td>
+                                <td className="font-bold">{(order.total / 100).toFixed(2)}</td>
+                                <td>
+                                  <span className={`status-badge ${order.status === 'COLLECTED' ? 'in-stock' : 'out-stock'}`}>
+                                    {order.status}
+                                  </span>
+                                </td>
+                              </tr>
+                              {isExpanded && (
+                                <tr style={{ backgroundColor: 'rgba(0, 0, 0, 0.02)' }}>
+                                  <td colSpan="5" style={{ padding: '0.75rem 1.25rem' }}>
+                                    <div style={{ fontWeight: 700, marginBottom: '0.35rem', fontSize: '0.85rem', color: 'var(--text-main)' }}>Order Items:</div>
+                                    {order.items && order.items.length > 0 ? (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.85rem' }}>
+                                        {order.items.map((item, i) => (
+                                          <div key={i} style={{ color: 'var(--text-main)' }}>
+                                            <span style={{ fontWeight: 800 }}>{item.quantity || 1}x</span> {item.name}
+                                            {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.1rem' }}>
+                                                + {item.selectedAddons.map(a => a.name).join(', ')}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="text-muted" style={{ fontSize: '0.8rem' }}>No item details recorded.</div>
+                                    )}
+                                    {(order.payment_method || order.paymentMethod) && (
+                                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                        Payment Method: <span style={{ fontWeight: 600 }}>{order.payment_method || order.paymentMethod}</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                        {historyOrders.length === 0 && (
+                          <tr>
+                            <td colSpan="5" className="text-center text-muted" style={{ padding: '2rem' }}>No past orders yet -- past orders will appear here once orders are placed.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {historyOrders.length > visibleHistoryCount && (
+                    <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+                      <button 
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ padding: '8px 20px', fontSize: '0.875rem' }}
+                        onClick={() => setVisibleHistoryCount(prev => prev + 5)}
+                      >
+                        Load More ({historyOrders.length - visibleHistoryCount} remaining)
+                      </button>
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
+                </>
+              );
+            })()}
           </div>
         )}
 
