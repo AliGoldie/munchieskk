@@ -132,6 +132,7 @@ export function AuthProvider({ children }) {
         address: '',
         role: 'user',
         points: effectivePoints,
+        short_code: authUser.user_metadata?.short_code || '',
         created_at: authUser.created_at
       });
     } else {
@@ -143,6 +144,7 @@ export function AuthProvider({ children }) {
         address: profileData.address || '',
         role: profileData.role || 'user',
         points: effectivePoints,
+        short_code: profileData.short_code || '',
         created_at: profileData.created_at || authUser.created_at
       });
     }
@@ -168,7 +170,8 @@ export function AuthProvider({ children }) {
       options: {
         data: {
           name: name,
-          phone: phone || ''
+          phone: phone || '',
+          referred_by: referredBy || null
         }
       }
     });
@@ -186,10 +189,6 @@ export function AuthProvider({ children }) {
           phone: phone || '',
           role: 'user'
         };
-        
-        if (referredBy) {
-          profilePayload.referred_by = referredBy;
-        }
 
         await supabase.from('profiles').upsert(profilePayload);
       } catch (e) {

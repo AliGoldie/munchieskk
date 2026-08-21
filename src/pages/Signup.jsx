@@ -6,12 +6,18 @@ import './Login.css';
 
 export default function Signup() {
   const { signup, loginWithProvider } = useAuth();
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '' });
+  const [searchParams] = useSearchParams();
+  const initialRef = searchParams.get('ref') || '';
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    email: '', 
+    phone: '', 
+    password: '',
+    referralCode: initialRef
+  });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const referredBy = searchParams.get('ref');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,7 +30,8 @@ export default function Signup() {
     if (formData.name && formData.email && formData.password) {
       setIsLoading(true);
       try {
-        await signup(formData.email, formData.password, formData.name, formData.phone, referredBy);
+        const referredByValue = formData.referralCode ? formData.referralCode.trim().toUpperCase() : null;
+        await signup(formData.email, formData.password, formData.name, formData.phone, referredByValue);
         navigate('/');
       } catch (err) {
         setError(err.message || 'Failed to create an account.');
@@ -61,6 +68,17 @@ export default function Signup() {
           <div className="form-group">
             <label>Phone Number (Optional)</label>
             <input type="tel" name="phone" className="price-input" value={formData.phone} onChange={handleChange} />
+          </div>
+          <div className="form-group">
+            <label>Referral Code (optional)</label>
+            <input 
+              type="text" 
+              name="referralCode" 
+              className="price-input" 
+              placeholder="e.g. AB12CD"
+              value={formData.referralCode} 
+              onChange={handleChange} 
+            />
           </div>
           <div className="form-group">
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>

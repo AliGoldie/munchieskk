@@ -1071,24 +1071,6 @@ const clearManualOverride = async (id) => {
       addPoints(earnedPoints, `Earned from Order #${newOrderId.slice(0, 8)}`);
     }
 
-    // Handle Referral Conversion (if this is their first non-PENDING order, we check orders length locally)
-    if (user && user.id) {
-      try {
-        const { data: profile } = await supabase.from('profiles').select('referred_by, referral_converted_at').eq('id', user.id).single();
-        if (profile && profile.referred_by && !profile.referral_converted_at) {
-          // Verify if they have other non-PENDING orders
-          const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'PENDING');
-          // If 0 previous completed orders, this order will be the one to convert them (once it leaves PENDING, but we can optimistically set it or set it now)
-          // To be strict, the prompt said "when they complete their first paid order". For simplicity and since they just paid, we mark it now.
-          if (count === 0) {
-            await supabase.from('profiles').update({ referral_converted_at: new Date().toISOString() }).eq('id', user.id);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to update referral conversion:', e);
-      }
-    }
-
     clearCart();
     return newOrderId;
   };

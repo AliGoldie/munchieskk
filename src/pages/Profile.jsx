@@ -197,12 +197,29 @@ export default function Profile() {
                 readOnly
                 className="price-input" 
                 style={{flex: 1, padding: '0.5rem', backgroundColor: '#f8fafc', color: '#64748b'}}
-                value={`${window.location.origin}/signup?ref=${user?.id || ''}`}
+                value={`${window.location.origin}/signup?ref=${user?.short_code || ''}`}
               />
               <button 
                 className="btn btn-secondary" 
                 onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/signup?ref=${user?.id || ''}`);
+                  const shareUrl = `${window.location.origin}/signup?ref=${user?.short_code || ''}`;
+                  if (navigator.share) {
+                    navigator.share({
+                      url: shareUrl,
+                      text: 'Use my code to get bonus points at MunchiesKK!'
+                    }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(shareUrl);
+                    alert('Referral link copied to clipboard!');
+                  }
+                }}
+              >
+                Share
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/signup?ref=${user?.short_code || ''}`);
                   alert('Referral link copied to clipboard!');
                 }}
               >
