@@ -13,6 +13,7 @@ import Loyalty from './pages/Loyalty';
 import Arcade from './pages/Arcade';
 import OrderStatus from './pages/OrderStatus';
 import AdminRoute from './components/AdminRoute';
+import ArcadeRoute from './components/ArcadeRoute';
 
 import AdminReports from './pages/AdminReports';
 
@@ -27,7 +28,9 @@ function App() {
         <Route path="menu" element={<Menu />} />
         <Route path="profile" element={<Profile />} />
         <Route path="loyalty" element={<Loyalty />} />
-        <Route path="arcade" element={<Arcade />} />
+        <Route element={<ArcadeRoute />}>
+          <Route path="arcade" element={<Arcade />} />
+        </Route>
         <Route path="cart" element={<Cart />} />
         <Route path="payment" element={<Payment />} />
         <Route path="order/:id" element={<OrderStatus />} />

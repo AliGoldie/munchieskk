@@ -11,7 +11,18 @@ UPDATE public.addons SET stock_quantity = 99 WHERE stock_quantity IS NULL;
 UPDATE public.addons SET low_stock_threshold = 10 WHERE low_stock_threshold IS NULL;
 UPDATE public.addons SET in_stock = true WHERE in_stock IS NULL;
 
--- 2. Ensure addons table is in supabase_realtime
+-- 2. Create addon_deduction_log table
+CREATE TABLE IF NOT EXISTS public.addon_deduction_log (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_id text,
+  addon_id text,
+  quantity integer,
+  stock_before integer,
+  stock_after integer,
+  logged_at timestamptz DEFAULT now()
+);
+
+-- 3. Ensure addons table is in supabase_realtime
 DO $$
 BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.addons;
@@ -19,14 +30,14 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
 
--- 3. Drop older overloaded signatures of place_order
+-- 4. Drop older overloaded signatures of place_order
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, text, jsonb);
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, text);
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, uuid);
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb, text, uuid, jsonb);
 DROP FUNCTION IF EXISTS public.place_order(jsonb, jsonb);
 
--- 4. Atomic place_order RPC (Menu Items + Add-ons + Promo Validation + Redemptions)
+-- 5. Atomic place_order RPC (Menu Items + Add-ons + Promo Validation + Redemptions)
 CREATE OR REPLACE FUNCTION public.place_order(
   deductions jsonb,
   payload jsonb,
@@ -46,6 +57,8 @@ DECLARE
   v_promo_code_id uuid := NULL;
   v_user_uuid uuid := NULL;
 BEGIN
+  order_id := payload->>'id';
+
   -- Cast user ID to uuid if provided
   IF p_user_id IS NOT NULL AND p_user_id <> '' THEN
     v_user_uuid := p_user_id::uuid;
@@ -85,17 +98,39 @@ BEGIN
       WHERE id = ad.addon_id 
       FOR UPDATE;
 
-      IF current_addon_stock IS NOT NULL THEN
-        IF current_addon_stock < ad.quantity THEN
-          RAISE EXCEPTION 'Insufficient stock for add-on %', ad.addon_id;
-        END IF;
-
-        UPDATE public.addons
-        SET 
-          stock_quantity = current_addon_stock - ad.quantity,
-          in_stock = (current_addon_stock - ad.quantity > 0)
-        WHERE id = ad.addon_id;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Add-on % not found', ad.addon_id;
       END IF;
+
+      IF current_addon_stock IS NULL THEN
+        RAISE EXCEPTION 'Add-on % has NULL stock_quantity', ad.addon_id;
+      END IF;
+
+      IF current_addon_stock < ad.quantity THEN
+        RAISE EXCEPTION 'Insufficient stock for add-on %', ad.addon_id;
+      END IF;
+
+      UPDATE public.addons
+      SET 
+        stock_quantity = current_addon_stock - ad.quantity,
+        in_stock = (current_addon_stock - ad.quantity > 0)
+      WHERE id = ad.addon_id;
+
+      INSERT INTO public.addon_deduction_log (
+        order_id,
+        addon_id,
+        quantity,
+        stock_before,
+        stock_after,
+        logged_at
+      ) VALUES (
+        order_id,
+        ad.addon_id,
+        ad.quantity,
+        current_addon_stock,
+        current_addon_stock - ad.quantity,
+        NOW()
+      );
     END LOOP;
   END IF;
 
@@ -125,8 +160,6 @@ BEGIN
   END IF;
 
   -- 4. Calculate Final Total and Insert Order
-  order_id := payload->>'id';
-  
   INSERT INTO public.orders (
     id,
     items,
@@ -174,7 +207,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 5. Drop and recreate cancel_order RPC with Add-on Stock Restoration & Waste Logging
+-- 6. Drop and recreate cancel_order RPC with Add-on Stock Restoration & Waste Logging
 DROP FUNCTION IF EXISTS public.cancel_order(text, text, text);
 DROP FUNCTION IF EXISTS public.cancel_order(text, text);
 

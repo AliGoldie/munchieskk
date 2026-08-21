@@ -52,7 +52,8 @@ export function StoreProvider({ children }) {
     closingTime: '23:00',
     noticeMessage: '',
     weeklySchedule: defaultWeeklySchedule,
-    specialClosures: []
+    specialClosures: [],
+    arcade_enabled: false
   }));
 
   // Ref always holds the CURRENT value of shopSettings synchronously.
@@ -63,7 +64,7 @@ export function StoreProvider({ children }) {
   // Also seed it immediately so it's valid before first render cycle
   if (shopSettingsRef.current === null) shopSettingsRef.current = loadState('munchies_shop_settings', {
     status: 'OPEN', openingTime: '17:00', closingTime: '23:00',
-    noticeMessage: '', weeklySchedule: defaultWeeklySchedule, specialClosures: []
+    noticeMessage: '', weeklySchedule: defaultWeeklySchedule, specialClosures: [], arcade_enabled: false
   });
 
   useEffect(() => { localStorage.setItem('munchies_cart', JSON.stringify(cart)); }, [cart]);
@@ -181,7 +182,8 @@ export function StoreProvider({ children }) {
             closingTime: settingsData.closing_time || '23:00',
             noticeMessage: settingsData.notice_message || '',
             weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
-            specialClosures: settingsData.special_closures || []
+            specialClosures: settingsData.special_closures || [],
+            arcade_enabled: settingsData.arcade_enabled ?? false
           };
           shopSettingsRef.current = loaded;
           setShopSettings(loaded);
@@ -234,7 +236,8 @@ export function StoreProvider({ children }) {
             closingTime: payload.new.closing_time || '23:00',
             noticeMessage: payload.new.notice_message || '',
             weeklySchedule: { ...defaultWeeklySchedule, ...(payload.new.weekly_schedule || {}) },
-            specialClosures: payload.new.special_closures || []
+            specialClosures: payload.new.special_closures || [],
+            arcade_enabled: payload.new.arcade_enabled ?? false
           };
           try { localStorage.setItem('munchies_shop_settings', JSON.stringify(updated)); } catch (e) {}
           shopSettingsRef.current = updated;
@@ -309,7 +312,8 @@ export function StoreProvider({ children }) {
             closingTime: settingsData.closing_time || '22:00',
             noticeMessage: settingsData.notice_message || '',
             weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
-            specialClosures: settingsData.special_closures || []
+            specialClosures: settingsData.special_closures || [],
+            arcade_enabled: settingsData.arcade_enabled ?? false
           };
           shopSettingsRef.current = merged;
           setShopSettings(merged);
@@ -1315,7 +1319,8 @@ const clearManualOverride = async (id) => {
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
       addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
       categoriesList, addCategory, updateCategory, deleteCategory,
-      shopSettings, updateShopSettings, isShopOpenNow
+      shopSettings, updateShopSettings, isShopOpenNow,
+      arcade_enabled: shopSettings?.arcade_enabled ?? false
     }}>
       {children}
     </StoreContext.Provider>
