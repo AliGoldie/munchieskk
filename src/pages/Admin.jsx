@@ -1118,7 +1118,7 @@ export default function Admin() {
                         {lowStockCount} Item{lowStockCount > 1 ? 's' : ''} Require Immediate Restock!
                       </h4>
                       <p style={{ margin: '3px 0 0', fontSize: '0.875rem', color: '#7f1d1d', fontWeight: 600 }}>
-                        {lowStockItems.map(item => `${item.name} (${(item.stock_quantity ?? 0) <= 0 || !item.inStock || item.in_stock === false ? 'Sold Out' : (item.stock_quantity ?? 0) + ' left'})`).join(' � ')}
+                        {lowStockItems.map(item => `${item.name} (${(item.stock_quantity ?? 0) <= 0 || item.inStock === false || item.in_stock === false ? 'Sold Out' : (item.stock_quantity ?? 0) + ' left'})`).join(' � ')}
                       </p>
                     </div>
                   </div>
@@ -1874,7 +1874,7 @@ export default function Admin() {
                       <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => setActiveTab(item.isAddon ? 'addons' : 'inventory')}>
                         <span style={{ wordBreak: 'break-word', paddingRight: '8px' }}>{item.name}</span>
                         <span style={{ fontWeight: 600, color: '#ef4444' }}>
-                          {(item.stock_quantity ?? 0) <= 0 || !item.inStock || item.in_stock === false ? 'Sold Out' : (item.stock_quantity ?? 0) + ' left'}
+                          {(item.stock_quantity ?? 0) <= 0 || item.inStock === false || item.in_stock === false ? 'Sold Out' : (item.stock_quantity ?? 0) + ' left'}
                         </span>
                       </div>
                     ))}
@@ -2270,7 +2270,12 @@ export default function Admin() {
                 <ul style={{ margin: 0, paddingLeft: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem', maxHeight: '200px', overflowY: 'auto' }}>
                   {lowStockItems.map(item => (
                     <li key={item.id} style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setActiveTab(item.isAddon ? 'addons' : 'inventory')}>
-                      {item.name} {((item.stock_quantity ?? 0) <= 0 || !item.inStock || item.in_stock === false) ? (
+                      {item.name}{' '}
+                      {(item.stock_quantity ?? 0) > 0 && (item.inStock === false || item.in_stock === false) ? (
+                        <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>
+                          (Manually marked sold out - {item.stock_quantity} in stock)
+                        </span>
+                      ) : ((item.stock_quantity ?? 0) <= 0 || item.inStock === false || item.in_stock === false) ? (
                         <span style={{ color: '#ef4444', fontWeight: 'bold' }}>(Sold Out)</span>
                       ) : (
                         <span style={{ color: '#f59e0b' }}>({item.stock_quantity} left)</span>
@@ -2475,9 +2480,15 @@ export default function Admin() {
                     </td>
                     <td>
                       <div className="flex items-center gap-3">
-                        <span className={`status-badge ${item.inStock ? 'in-stock' : 'out-stock'}`}>
-                          {item.inStock ? 'In Stock' : 'Sold Out'}
-                        </span>
+                        {(item.stock_quantity ?? 0) > 0 && (item.inStock === false || item.in_stock === false) ? (
+                          <span className="status-badge" style={{ backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #f59e0b', whiteSpace: 'nowrap' }}>
+                            Manually marked sold out ({item.stock_quantity} in stock)
+                          </span>
+                        ) : (
+                          <span className={`status-badge ${item.inStock ? 'in-stock' : 'out-stock'}`}>
+                            {item.inStock ? 'In Stock' : 'Sold Out'}
+                          </span>
+                        )}
                         <button className={`btn btn-sm ${item.inStock ? 'btn-danger' : 'btn-success'}`} onClick={() => toggleStock(item.id)}>
                           {item.inStock ? 'Mark Sold Out' : 'Restock'}
                         </button>
