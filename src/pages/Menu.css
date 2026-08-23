@@ -450,3 +450,10 @@
     padding: var(--space-8);
   }
 }
+
+/* Narrow viewport: scale ghost watermark down so it stays behind foreground content */
+@media (max-width: 479px) {
+  .category-ghost-text {
+    font-size: 38px;
+  }
+}

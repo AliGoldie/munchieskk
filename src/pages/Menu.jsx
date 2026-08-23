@@ -229,7 +229,7 @@ export default function Menu() {
                 }} />
 
                 {/* Ghosted category word behind content */}
-                <span aria-hidden="true" style={{
+                <span aria-hidden="true" className="category-ghost-text" style={{
                   position: 'absolute',
                   top: '50%',
                   right: '1rem',

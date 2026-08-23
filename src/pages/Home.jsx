@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Gamepad2, Award, ChevronRight, Flame, Clock, Sparkles, Plus } from 'lucide-react';
+import { Gamepad2, Award, ChevronRight, Flame, Clock, Sparkles } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useNavigate } from 'react-router-dom';
 import AddonModal from '../components/AddonModal';
@@ -186,7 +186,7 @@ export default function Home() {
                     }
                   }}
                 >
-                  <Plus size={20} />
+                  ADD +
                 </button>
               </div>
             </div>
