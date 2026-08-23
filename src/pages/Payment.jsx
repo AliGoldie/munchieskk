@@ -188,7 +188,7 @@ export default function Payment() {
         {orderMode === 'SCHEDULED' && (
           <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px' }}>
-              Select Pre-Order Pickup/Delivery Time Slot (Operating Hours: {openingFormatted} - {closingFormatted}):
+              Select Pre-Order Pickup Time Slot (Operating Hours: {openingFormatted} - {closingFormatted}):
             </label>
             <select
               value={scheduledTime}
