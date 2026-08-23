@@ -532,7 +532,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         if (!p.eaten) {
           const px = p.c * CELL + CELL / 2;
           const py = p.r * CELL + CELL / 2;
-          const ringColor = p.type === 'speed' ? '#FFD23F' : p.type === 'freeze' ? '#4FC3F7' : '#E8491D';
+          const ringColor = p.type === 'speed' ? '#FFD23F' : p.type === 'freeze' ? '#4FC3F7' : 'var(--munchies-orange-accent)';
           const pulse = 1 + Math.sin(Date.now() / 220) * 0.12;
           ctx.strokeStyle = ringColor;
           ctx.lineWidth = 2;
@@ -593,7 +593,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       if (trexImg.complete && trexImg.naturalWidth > 0) {
         ctx.drawImage(trexImg, -TREX_DRAW_W / 2, -TREX_DRAW_H / 2, TREX_DRAW_W, TREX_DRAW_H);
       } else {
-        ctx.fillStyle = '#FFC72C';
+        ctx.fillStyle = 'var(--munchies-yellow)';
         ctx.beginPath();
         ctx.arc(0, 0, 9.5, 0, Math.PI * 2);
         ctx.fill();
@@ -946,7 +946,7 @@ export default function MunchManModal({ isOpen, onClose }) {
                 {timerDisplay}
               </span>
               {streak > 0 && (
-                <span style={{ color: '#FFC72C', fontSize: 13, display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span style={{ color: 'var(--munchies-yellow)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 3 }}>
                   <Flame size={14} color="#FF9800" /> {streak}d Streak
                 </span>
               )}
@@ -974,11 +974,11 @@ export default function MunchManModal({ isOpen, onClose }) {
                     <p style={{ color: '#ccc' }}>Checking play status...</p>
                   ) : alreadyPlayedToday && !gameOver ? (
                     <>
-                      <Lock size={36} color="#FFC72C" style={{ marginBottom: 8 }} />
+                      <Lock size={36} color="var(--munchies-yellow)" style={{ marginBottom: 8 }} />
                       <h2>Played Today!</h2>
                       <p>Come back tomorrow for another free play!</p>
                       {streak > 0 && (
-                        <p style={{ fontSize: 12, color: '#FFC72C' }}>
+                        <p style={{ fontSize: 12, color: 'var(--munchies-yellow)' }}>
                           🔥 Daily Streak: {streak} Day{streak > 1 ? 's' : ''}
                         </p>
                       )}
@@ -1011,8 +1011,8 @@ export default function MunchManModal({ isOpen, onClose }) {
                       {rewardMsg && (
                         <div style={{
                           background: 'rgba(255, 199, 44, 0.2)',
-                          border: '1px solid #FFC72C',
-                          color: '#FFC72C',
+                          border: '1px solid var(--munchies-yellow)',
+                          color: 'var(--munchies-yellow)',
                           padding: '8px 16px',
                           borderRadius: '8px',
                           fontWeight: 700,

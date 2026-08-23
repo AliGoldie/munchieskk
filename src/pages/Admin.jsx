@@ -533,7 +533,7 @@ export default function Admin() {
     // Channel Fees Config
     const CHANNEL_FEES = { web: 0, loyverse: 0, grabfood: 0.30 };
     let channelStats = {
-      web: { gross: 0, net: 0, name: 'Web App Direct', color: '#E8491D' },
+      web: { gross: 0, net: 0, name: 'Web App Direct', color: 'var(--munchies-orange-accent)' },
       loyverse: { gross: 0, net: 0, name: 'Loyverse / Walk-in', color: '#10b981' },
       grabfood: { gross: 0, net: 0, name: 'GrabFood', color: '#16a34a' }
     };
@@ -1148,7 +1148,7 @@ export default function Admin() {
                     {/* Modal Header */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                       <div>
-                        <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>📅 Schedule Manager</h3>
+                        <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>📅 Schedule Manager</h3>
                         <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Set weekly operating hours and block special closure dates</p>
                       </div>
                       <button onClick={() => setScheduleModalOpen(false)}
@@ -1289,7 +1289,7 @@ export default function Admin() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>🏪 Store Status</h3>
+                    <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>🏪 Store Status</h3>
                     <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                       {(() => {
                         const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
@@ -1308,7 +1308,7 @@ export default function Admin() {
                       {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ PAUSED' : shopSettings?.status === 'SCHEDULE' ? '📅 SCHEDULE' : '🔴 CLOSED'}
                     </span>
                     <button onClick={() => openScheduleModal()}
-                      style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: '#FFC72C', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: 'var(--munchies-yellow)', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                       ⚙️ Manage Schedule
                     </button>
                   </div>
@@ -1604,7 +1604,7 @@ export default function Admin() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <div>
-                        <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           📌 NOTES & UPCOMING EVENTS
                         </h3>
                         <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
@@ -1615,7 +1615,7 @@ export default function Admin() {
                         type="button"
                         onClick={() => handleOpenAddEventModal()}
                         style={{
-                          padding: '6px 12px', borderRadius: '8px', background: '#E8491D', color: '#fff',
+                          padding: '6px 12px', borderRadius: '8px', background: 'var(--munchies-orange-accent)', color: '#fff',
                           border: 'none', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer',
                           display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0
                         }}
@@ -1911,7 +1911,7 @@ export default function Admin() {
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
                       <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)' }}/>
-                      <Bar dataKey="web" name="Web App Direct" stackId="a" fill="#E8491D" radius={[0, 0, 0, 0]} barSize={40} />
+                      <Bar dataKey="web" name="Web App Direct" stackId="a" fill="var(--munchies-orange-accent)" radius={[0, 0, 0, 0]} barSize={40} />
                       <Bar dataKey="loyverse" name="Loyverse POS (Walk-in)" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -1944,7 +1944,7 @@ export default function Admin() {
                            ]} 
                            cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value"
                          >
-                           <Cell fill="#E8491D" />
+                           <Cell fill="var(--munchies-orange-accent)" />
                            <Cell fill="#10b981" />
                          </Pie>
                          <RechartsTooltip />
@@ -1952,7 +1952,7 @@ export default function Admin() {
                      </ResponsiveContainer>
                    </div>
                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#E8491D',borderRadius:'50%'}}></div> Web App</div>
+                     <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'var(--munchies-orange-accent)',borderRadius:'50%'}}></div> Web App</div>
                      <div style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:'8px',height:'8px',backgroundColor:'#10b981',borderRadius:'50%'}}></div> Loyverse POS</div>
                    </div>
                 </div>
@@ -2092,7 +2092,7 @@ export default function Admin() {
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
                       <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)' }}/>
-                      <Bar dataKey="web" name="Web App Direct" stackId="a" fill="#E8491D" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="web" name="Web App Direct" stackId="a" fill="var(--munchies-orange-accent)" radius={[0, 0, 0, 0]} />
                       <Bar dataKey="grabfood" name="GrabFood" stackId="a" fill="#16a34a" radius={[0, 0, 0, 0]} />
                       <Bar dataKey="loyverse" name="Loyverse / Walk-in" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -2803,7 +2803,7 @@ export default function Admin() {
               boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   ✏️ Edit Category
                 </h3>
                 <button type="button" onClick={() => setEditingCat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
@@ -3445,7 +3445,7 @@ export default function Admin() {
                   <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions yet -- prize redemptions will appear here once customers redeem prizes.</td></tr>
                 ) : redemptions.map(r => (
                   <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: '#FFC72C' }}>{r.redemption_code}</td>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--munchies-yellow)' }}>{r.redemption_code}</td>
                     <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.profiles?.phone || ''}</div></td>
                     <td><strong>{r.prize_name}</strong><div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>{r.points_spent} pts</div></td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
@@ -3666,7 +3666,7 @@ export default function Admin() {
             boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {eventFormData.id ? '✏️ Edit Event / Note' : '📌 Add Event / Note'}
               </h3>
               <button type="button" onClick={() => setIsEventModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
@@ -3762,7 +3762,7 @@ export default function Admin() {
             boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, color: '#FFC72C', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 ✏️ Edit Item Details
               </h3>
               <button type="button" onClick={() => setEditingMenuItem(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
@@ -3851,7 +3851,7 @@ export default function Admin() {
       {cancellingOrder && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
-            <h3 style={{ margin: '0 0 1rem 0', color: '#FFC72C', fontSize: '1.2rem' }}>Cancel Order</h3>
+            <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Cancel Order</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 'bold' }}>REASON</label>
               <input type="text" value={cancellingOrder.reason} onChange={e => setCancellingOrder({...cancellingOrder, reason: e.target.value})} placeholder="e.g. Customer no-show" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff' }} /></div>

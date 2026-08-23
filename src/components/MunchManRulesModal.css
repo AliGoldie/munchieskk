@@ -16,7 +16,7 @@
 .munchman-rules-card {
   position: relative;
   background: #14141f;
-  border: 2px solid #FFC72C;
+  border: 2px solid var(--munchies-yellow);
   border-radius: 16px;
   padding: 24px;
   width: 100%;
@@ -28,7 +28,7 @@
 }
 
 .munchman-rules-title {
-  color: #FFC72C;
+  color: var(--munchies-yellow);
   font-size: 22px;
   font-weight: 800;
   margin-top: 0;
@@ -52,7 +52,7 @@
   background: #1e1e2e;
   padding: 12px;
   border-radius: 10px;
-  border-left: 4px solid #E8491D;
+  border-left: 4px solid var(--munchies-orange-accent);
   font-size: 13.5px;
   line-height: 1.4;
   color: #e0e0e0;
@@ -65,8 +65,8 @@
 
 .munchman-streak-badge {
   background: rgba(255, 199, 44, 0.15);
-  border: 1px dashed #FFC72C;
-  color: #FFC72C;
+  border: 1px dashed var(--munchies-yellow);
+  color: var(--munchies-yellow);
   font-size: 12px;
   font-weight: 700;
   padding: 8px 12px;

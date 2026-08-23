@@ -118,18 +118,18 @@ export default function Loyalty() {
           closeOnBackdropClick={false}
           closeOnEscape={false}
           showCloseButton={false}
-          contentStyle={{ background: '#0f172a', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '360px', textAlign: 'center', border: '2px solid #FFC72C', boxShadow: '0 0 40px rgba(255,199,44,0.3)' }}
+          contentStyle={{ background: '#0f172a', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '360px', textAlign: 'center', border: '2px solid var(--munchies-yellow)', boxShadow: '0 0 40px rgba(255,199,44,0.3)' }}
           ariaLabel="Prize Redemption Code"
         >
           <CheckCircle size={48} color="#22c55e" style={{ marginBottom: '12px' }} />
-          <h2 style={{ color: '#FFC72C', margin: '0 0 4px 0', fontSize: '1.3rem' }}>Redeemed!</h2>
+          <h2 style={{ color: 'var(--munchies-yellow)', margin: '0 0 4px 0', fontSize: '1.3rem' }}>Redeemed!</h2>
           <p style={{ color: '#94a3b8', margin: '0 0 1.5rem 0', fontSize: '0.9rem' }}>{redemptionResult.prizeName} - {redemptionResult.pointsSpent.toLocaleString()} pts spent</p>
           <div style={{ background: '#1e293b', borderRadius: '12px', padding: '1.2rem', marginBottom: '1.5rem', border: '1px solid #334155' }}>
             <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0 0 6px 0', fontWeight: 'bold', letterSpacing: '1px' }}>YOUR REDEMPTION CODE</p>
-            <div style={{ fontSize: '2rem', fontWeight: '900', color: '#FFC72C', letterSpacing: '4px', fontFamily: 'monospace' }}>{redemptionResult.code}</div>
+            <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--munchies-yellow)', letterSpacing: '4px', fontFamily: 'monospace' }}>{redemptionResult.code}</div>
             <p style={{ color: '#64748b', fontSize: '0.72rem', margin: '8px 0 0 0' }}>Show this to the counter staff to claim your prize</p>
           </div>
-          <button onClick={() => setRedemptionResult(null)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: '#FFC72C', color: '#0f172a', fontWeight: '900', fontSize: '1rem', cursor: 'pointer' }}>
+          <button onClick={() => setRedemptionResult(null)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: 'var(--munchies-yellow)', color: '#0f172a', fontWeight: '900', fontSize: '1rem', cursor: 'pointer' }}>
             GOT IT!
           </button>
         </Modal>
