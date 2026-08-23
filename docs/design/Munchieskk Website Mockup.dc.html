@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  body{margin:0;background:#1c1712;font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased}
+  ::selection{background:{{ accent }};color:#1c1712}
+  a{color:{{ accent }};text-decoration:none}
+  a:hover{color:#f5ecdf}
+  @keyframes riseIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+</helmet>
+
+<div style="max-width:1440px;margin:0 auto;background:#1c1712;color:#f5ecdf;position:relative;overflow:hidden">
+
+<!-- NAV -->
+<nav style="display:flex;align-items:center;justify-content:space-between;padding:26px 56px;position:relative;z-index:20;animation:fadeIn .6s ease both">
+  <div style="font-family:Anton,sans-serif;font-size:26px;letter-spacing:1px;color:#f5ecdf">MUNCHIES<span style="color:{{ accent }}">KK</span></div>
+  <div style="display:flex;gap:36px;align-items:center;font-size:14px;font-weight:600;letter-spacing:.3px;color:#cbbfae">
+    <a href="#menu" style="color:#cbbfae">Menu</a>
+    <a href="#build" style="color:#cbbfae">Build Your Own</a>
+    <a href="#story" style="color:#cbbfae">Our Story</a>
+    <a href="#locations" style="color:#cbbfae">Locations</a>
+  </div>
+  <a href="#order" style="background:{{ accent }};color:#1c1712;padding:12px 26px;border-radius:999px;font-weight:700;font-size:14px;letter-spacing:.3px;display:inline-flex;align-items:center;gap:8px" style-hover="background:#f5ecdf">Order Now</a>
+</nav>
+
+<!-- HERO -->
+<section style="position:relative;display:grid;grid-template-columns:1.05fr .95fr;align-items:center;padding:36px 56px 80px;gap:40px;min-height:560px">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 900px 500px at 15% 20%, rgba(232,161,60,.14), transparent 60%);pointer-events:none"></div>
+  <div style="position:relative;z-index:2;animation:riseIn .7s cubic-bezier(.16,1,.3,1) both">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(232,161,60,.12);border:1px solid rgba(232,161,60,.35);color:{{ accent }};padding:8px 16px;border-radius:999px;font-size:12.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:28px">
+      <span>●</span> 100% Halal &nbsp;·&nbsp; Homemade in Kota Kinabalu
+    </div>
+    <h1 style="font-family:Anton,sans-serif;font-size:76px;line-height:.98;letter-spacing:.5px;margin:0 0 24px;text-transform:uppercase">
+      Fusion Burgers,<br>Sabahan <span style="color:{{ accent }}">Soul.</span>
+    </h1>
+    <p style="font-size:18px;line-height:1.6;color:#cbbfae;max-width:460px;margin:0 0 34px">
+      Juicy patties, handcrafted sauces, and flavours you won't find anywhere else — sambal tuhau, creamy mushroom, street-style grit, made fresh in-house every day.
+    </p>
+    <div style="display:flex;gap:16px;align-items:center">
+      <a href="#order" style="background:{{ accent }};color:#1c1712;padding:16px 32px;border-radius:999px;font-weight:700;font-size:15.5px;display:inline-flex;align-items:center;gap:10px" style-hover="transform:translateY(-2px)">Order Delivery →</a>
+      <a href="#menu" style="color:#f5ecdf;padding:16px 10px;font-weight:600;font-size:15.5px;border-bottom:1px solid rgba(245,236,223,.3)" style-hover="border-color:#f5ecdf">See Full Menu</a>
+    </div>
+    <div style="display:flex;gap:28px;margin-top:52px">
+      <div><div style="font-family:Anton,sans-serif;font-size:30px;color:{{ accent }}">4.5★</div><div style="font-size:12.5px;color:#8a7d6b;margin-top:4px">120+ reviews</div></div>
+      <div><div style="font-family:Anton,sans-serif;font-size:30px;color:{{ accent }}">6</div><div style="font-size:12.5px;color:#8a7d6b;margin-top:4px">signature builds</div></div>
+      <div><div style="font-family:Anton,sans-serif;font-size:30px;color:{{ accent }}">0</div><div style="font-size:12.5px;color:#8a7d6b;margin-top:4px">shortcuts taken</div></div>
+    </div>
+  </div>
+  <div style="position:relative;z-index:2;animation:riseIn .8s cubic-bezier(.16,1,.3,1) .1s both">
+    <div style="position:relative;border-radius:28px;overflow:hidden;box-shadow:0 40px 80px -30px rgba(0,0,0,.7);aspect-ratio:4/5">
+      <image-slot id="hero-burger" shape="rect" placeholder="Drop hero burger photo (Sumandak Burger)"></image-slot>
+      <div style="position:absolute;bottom:20px;left:20px;background:rgba(28,23,18,.75);backdrop-filter:blur(6px);border-radius:14px;padding:14px 18px;pointer-events:none">
+        <div style="font-weight:700;font-size:14px">Sumandak Burger</div>
+        <div style="font-size:12px;color:#cbbfae;margin-top:2px">Sambal tuhau · double beef</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST STRIP -->
+<section style="display:flex;justify-content:space-between;align-items:center;padding:22px 56px;border-top:1px solid rgba(245,236,223,.08);border-bottom:1px solid rgba(245,236,223,.08);flex-wrap:wrap;gap:18px">
+  <div style="font-size:13px;color:#8a7d6b;letter-spacing:.4px">AS SEEN ON</div>
+  <div style="display:flex;gap:40px;flex-wrap:wrap;font-family:Anton,sans-serif;letter-spacing:.5px;color:#5a5044;font-size:16px">
+    <span>GRABFOOD</span><span>FOODPANDA</span><span>TIKTOK</span><span>TRIPADVISOR 4.5★</span>
+  </div>
+</section>
+
+<!-- MENU -->
+<section id="menu" style="padding:110px 56px 90px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:48px;flex-wrap:wrap;gap:20px">
+    <div>
+      <div style="color:{{ accent }};font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">The Menu</div>
+      <h2 style="font-family:Anton,sans-serif;font-size:48px;margin:0;text-transform:uppercase;letter-spacing:.3px">Signature Builds</h2>
+    </div>
+    <p style="color:#8a7d6b;font-size:15px;max-width:360px;margin:0">Every sauce made in-house. Every patty pressed and grilled to order. No fast-food shortcuts.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:28px">
+
+    <sc-for list="{{ menuItems }}" as="item" hint-placeholder-count="6">
+      <div style="background:#241d16;border-radius:22px;overflow:hidden;border:1px solid rgba(245,236,223,.06);display:flex;flex-direction:column;transition:transform .25s ease" style-hover="transform:translateY(-6px)">
+        <div style="position:relative;aspect-ratio:4/3">
+          <image-slot id="{{ item.imgId }}" shape="rect" placeholder="{{ item.placeholder }}"></image-slot>
+          <sc-if value="{{ item.tag }}">
+            <div style="position:absolute;top:14px;left:14px;background:rgba(28,23,18,.85);color:{{ accent }};font-size:11.5px;font-weight:700;letter-spacing:.5px;padding:6px 12px;border-radius:999px;text-transform:uppercase;pointer-events:none">{{ item.tag }}</div>
+          </sc-if>
+        </div>
+        <div style="padding:22px 22px 24px;display:flex;flex-direction:column;gap:10px;flex:1">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <h3 style="font-family:Anton,sans-serif;font-size:21px;margin:0;letter-spacing:.2px;text-transform:uppercase">{{ item.name }}</h3>
+            <div style="font-weight:700;color:{{ accent }};font-size:17px;white-space:nowrap">{{ item.price }}</div>
+          </div>
+          <p style="font-size:14px;color:#a89a86;line-height:1.55;margin:0;flex:1">{{ item.desc }}</p>
+          <a href="#order" style="margin-top:8px;font-size:13.5px;font-weight:700;color:#f5ecdf;display:inline-flex;align-items:center;gap:6px">Add to order →</a>
+        </div>
+      </div>
+    </sc-for>
+
+  </div>
+</section>
+
+<!-- BUILD YOUR OWN -->
+<section id="build" style="background:#151109;padding:100px 56px;display:grid;grid-template-columns:.95fr 1.05fr;gap:56px;align-items:center;border-radius:40px;margin:0 24px">
+  <div style="position:relative;border-radius:26px;overflow:hidden;aspect-ratio:1/1;box-shadow:0 30px 60px -25px rgba(0,0,0,.6)">
+    <image-slot id="build-your-own" shape="rect" placeholder="Drop build-your-own burger photo"></image-slot>
+  </div>
+  <div>
+    <div style="color:{{ accent }};font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px">Customize</div>
+    <h2 style="font-family:Anton,sans-serif;font-size:44px;margin:0 0 18px;text-transform:uppercase;line-height:1.05">Build Your Own Munchies</h2>
+    <p style="color:#a89a86;font-size:15.5px;line-height:1.6;margin:0 0 32px;max-width:480px">Pick your patty, sauce, and add-ons. Same homemade quality, made exactly the way you like it.</p>
+
+    <div style="margin-bottom:26px">
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#8a7d6b;margin-bottom:12px">1. Choose your patty</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <sc-for list="{{ patties }}" as="p" hint-placeholder-count="3">
+          <div style="padding:11px 20px;border-radius:999px;border:1.5px solid {{ p.active ? accent : 'rgba(245,236,223,.18)' }};background:{{ p.active ? 'rgba(232,161,60,.14)' : 'transparent' }};color:{{ p.active ? accent : '#cbbfae' }};font-size:14px;font-weight:600;cursor:pointer" onClick="{{ p.onClick }}">{{ p.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="margin-bottom:32px">
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#8a7d6b;margin-bottom:12px">2. Pick a signature sauce</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <sc-for list="{{ sauces }}" as="s" hint-placeholder-count="4">
+          <div style="padding:11px 20px;border-radius:999px;border:1.5px solid {{ s.active ? accent : 'rgba(245,236,223,.18)' }};background:{{ s.active ? 'rgba(232,161,60,.14)' : 'transparent' }};color:{{ s.active ? accent : '#cbbfae' }};font-size:14px;font-weight:600;cursor:pointer" onClick="{{ s.onClick }}">{{ s.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#1c1712;border:1px solid rgba(245,236,223,.1);border-radius:16px;padding:18px 24px">
+      <div>
+        <div style="font-size:12px;color:#8a7d6b;letter-spacing:.4px;text-transform:uppercase">Your build</div>
+        <div style="font-weight:700;font-size:15.5px;margin-top:4px">{{ buildSummary }}</div>
+      </div>
+      <div style="font-family:Anton,sans-serif;font-size:26px;color:{{ accent }}">{{ buildPrice }}</div>
+    </div>
+  </div>
+</section>
+
+<!-- STORY -->
+<section id="story" style="padding:110px 56px;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
+  <div>
+    <div style="color:{{ accent }};font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px">Our Story</div>
+    <h2 style="font-family:Anton,sans-serif;font-size:44px;margin:0 0 22px;text-transform:uppercase;line-height:1.06">Not your usual<br>burger joint.</h2>
+    <p style="color:#a89a86;font-size:16px;line-height:1.7;margin:0 0 20px">Munchies KK started as a small Sabahan stall with one idea: fuse local flavour into the American burger, made fully halal, fully homemade. Every sauce — from sambal tuhau to our creamy mushroom blend — is handcrafted in our own kitchen, no shortcuts, no store-bought bottles.</p>
+    <p style="color:#a89a86;font-size:16px;line-height:1.7;margin:0 0 34px">Today we serve Kota Kinabalu and Penampang, still cooking every patty to order.</p>
+    <div style="display:flex;gap:36px">
+      <div><div style="font-family:Anton,sans-serif;font-size:28px;color:{{ accent }}">2018</div><div style="font-size:12.5px;color:#8a7d6b;margin-top:4px">Est. in Sabah</div></div>
+      <div><div style="font-family:Anton,sans-serif;font-size:28px;color:{{ accent }}">Halal</div><div style="font-size:12.5px;color:#8a7d6b;margin-top:4px">Fully certified</div></div>
+      <div><div style="font-family:Anton,sans-serif;font-size:28px;color:{{ accent }}">100%</div><div style="font-size:12.5px;color:#8a7d6b;margin-top:4px">In-house sauces</div></div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="border-radius:20px;overflow:hidden;aspect-ratio:3/4;margin-top:36px"><image-slot id="story-1" shape="rect" placeholder="Kitchen / grill photo"></image-slot></div>
+    <div style="border-radius:20px;overflow:hidden;aspect-ratio:3/4"><image-slot id="story-2" shape="rect" placeholder="Founder / crew photo"></image-slot></div>
+  </div>
+</section>
+
+<!-- LOCATIONS -->
+<section id="locations" style="padding:0 56px 110px">
+  <div style="background:#241d16;border-radius:32px;padding:64px 56px;display:grid;grid-template-columns:1fr 1fr;gap:50px">
+    <div>
+      <div style="color:{{ accent }};font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px">Find Us</div>
+      <h2 style="font-family:Anton,sans-serif;font-size:38px;margin:0 0 28px;text-transform:uppercase">Locations &amp; Hours</h2>
+      <div style="display:flex;flex-direction:column;gap:22px">
+        <sc-for list="{{ locations }}" as="loc" hint-placeholder-count="2">
+          <div style="border-top:1px solid rgba(245,236,223,.08);padding-top:18px">
+            <div style="font-weight:700;font-size:16px;margin-bottom:4px">{{ loc.name }}</div>
+            <div style="font-size:14px;color:#a89a86;margin-bottom:4px">{{ loc.address }}</div>
+            <div style="font-size:13.5px;color:{{ accent }}">{{ loc.hours }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="border-radius:22px;overflow:hidden;position:relative"><image-slot id="locations-map" shape="rect" placeholder="Drop map or storefront photo"></image-slot></div>
+  </div>
+</section>
+
+<!-- FOOTER / ORDER CTA -->
+<section id="order" style="padding:80px 56px;text-align:center;position:relative">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 700px 400px at 50% 0%, rgba(232,161,60,.12), transparent 65%);pointer-events:none"></div>
+  <h2 style="font-family:Anton,sans-serif;font-size:52px;margin:0 0 20px;text-transform:uppercase;position:relative;z-index:1">Craving Munchies?</h2>
+  <p style="color:#a89a86;font-size:16px;margin:0 0 36px;position:relative;z-index:1">Order for delivery or pickup — fresh off the grill, every time.</p>
+  <div style="display:flex;gap:16px;justify-content:center;position:relative;z-index:1;flex-wrap:wrap">
+    <div style="background:{{ accent }};color:#1c1712;padding:16px 34px;border-radius:999px;font-weight:700;font-size:15.5px;cursor:pointer">Order on GrabFood</div>
+    <div style="background:transparent;border:1.5px solid rgba(245,236,223,.25);color:#f5ecdf;padding:16px 34px;border-radius:999px;font-weight:700;font-size:15.5px;cursor:pointer">Order on foodpanda</div>
+  </div>
+</section>
+
+<footer style="border-top:1px solid rgba(245,236,223,.08);padding:36px 56px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
+  <div style="font-family:Anton,sans-serif;font-size:18px;letter-spacing:.5px">MUNCHIES<span style="color:{{ accent }}">KK</span></div>
+  <div style="font-size:13px;color:#8a7d6b">© 2026 Munchies KK · Sabah, Malaysia</div>
+  <div style="display:flex;gap:20px;font-size:13px;color:#cbbfae"><a href="#" style="color:#cbbfae">Instagram</a><a href="#" style="color:#cbbfae">TikTok</a><a href="#" style="color:#cbbfae">Facebook</a></div>
+</footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#e8a13c&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#e8a13c&quot;,&quot;#c9622a&quot;,&quot;#d4a017&quot;,&quot;#b3432b&quot;],&quot;section&quot;:&quot;Theme&quot;}}">
+class Component extends DCLogic {
+  state = { patty: 'double-beef', sauce: 'sumandak' };
+
+  patties = [
+    { id: 'single-beef', label: 'Single Beef' },
+    { id: 'double-beef', label: 'Double Beef' },
+    { id: 'lamb', label: 'Lamb' },
+  ];
+  sauces = [
+    { id: 'sumandak', label: 'Sumandak (Sambal Tuhau)' },
+    { id: 'mushy', label: 'Mushy Cream' },
+    { id: 'mamacita', label: 'Mamacita Salsa' },
+    { id: 'classic', label: 'Classic House' },
+  ];
+
+  pattyPrice = { 'single-beef': 15, 'double-beef': 19, 'lamb': 21 };
+  sauceLabel = { sumandak: 'Sumandak sambal tuhau', mushy: 'creamy mushroom', mamacita: 'mamacita salsa', classic: 'classic house sauce' };
+  pattyLabel = { 'single-beef': 'single beef', 'double-beef': 'double beef', 'lamb': 'lamb' };
+
+  menuItemsData = [
+    { id: 'sumandak', name: 'Sumandak Burger', price: 'RM 19', tag: 'Best Seller', desc: 'Double beef patty, sambal tuhau, melted cheddar, house pickles — our most-ordered build.', imgId: 'menu-sumandak', placeholder: 'Sumandak Burger photo' },
+    { id: 'mushy2', name: 'Mushy² Burger', price: 'RM 18', tag: 'Creamy', desc: 'Beef patty smothered in a rich, creamy mushroom sauce with sautéed mushrooms.', imgId: 'menu-mushy', placeholder: 'Mushy² Burger photo' },
+    { id: 'mamacita', name: 'Mamacita Burger', price: 'RM 18', tag: null, desc: 'A fresh salsa-forward build with a lighter, tangy kick against a juicy patty.', imgId: 'menu-mamacita', placeholder: 'Mamacita Burger photo' },
+    { id: 'double-trouble', name: 'Double Trouble', price: 'RM 23', tag: 'Big Appetite', desc: 'Classic double beef, double cheese, caramelised onions — for the seriously hungry.', imgId: 'menu-double-trouble', placeholder: 'Double Trouble photo' },
+    { id: 'monster-fries', name: 'Monster Fries', price: 'RM 15', tag: 'Loaded', desc: 'Crispy fries loaded with beef strips, nacho cheese, and house sauce drizzle.', imgId: 'menu-monster-fries', placeholder: 'Monster Fries photo' },
+    { id: 'meatballs', name: 'Sabahan Meatballs', price: 'RM 16', tag: null, desc: 'Handmade meatballs in black pepper sauce, served with fries — a house original.', imgId: 'menu-meatballs', placeholder: 'Meatballs plate photo' },
+  ];
+
+  locationsData = [
+    { name: 'Munchies KK — Penampang', address: 'Lorong Goldie, Jln Nosoob Hungab, Kg. Tunoh, 89500 Kota Kinabalu, Sabah', hours: 'Daily · 6:00 PM – 12:00 AM' },
+    { name: 'Munchies KK — Menggatal', address: 'Taman Satria, Batu 10, Menggatal, 88450 Kota Kinabalu, Sabah', hours: 'Delivery only via GrabFood' },
+  ];
+
+  renderVals() {
+    const accent = this.props.accentColor ?? '#e8a13c';
+    const patties = this.patties.map(p => ({ label: p.label, active: this.state.patty === p.id, onClick: () => this.setState({ patty: p.id }) }));
+    const sauces = this.sauces.map(s => ({ label: s.label, active: this.state.sauce === s.id, onClick: () => this.setState({ sauce: s.id }) }));
+    const price = this.pattyPrice[this.state.patty] + (this.state.sauce === 'sumandak' ? 2 : 0);
+    return {
+      accent,
+      menuItems: this.menuItemsData,
+      patties,
+      sauces,
+      buildSummary: `${this.pattyLabel[this.state.patty]} patty + ${this.sauceLabel[this.state.sauce]}`,
+      buildPrice: `RM ${price}`,
+      locations: this.locationsData,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
