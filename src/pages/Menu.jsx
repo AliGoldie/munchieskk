@@ -236,7 +236,6 @@ export default function Menu() {
                   transform: 'translateY(-50%)',
                   fontFamily: 'Kanit, sans-serif',
                   fontWeight: 900,
-                  fontSize: '66px',
                   color: colors.accent,
                   opacity: 0.14,
                   lineHeight: 1,
