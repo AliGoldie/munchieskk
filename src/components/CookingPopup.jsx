@@ -135,7 +135,7 @@ export default function CookingPopup() {
           <div className="popup-ready-icon">🍔</div>
           <div>
             <div className="popup-ready-title">Your order is READY!</div>
-            <div className="popup-ready-sub">Tap to collect · #{orderId.split('-')[0].toUpperCase()}</div>
+            <div className="popup-ready-sub">Tap to collect{orderId ? ` · #${orderId.split('-')[0].toUpperCase()}` : ''}</div>
           </div>
         </div>
       ) : isPending ? (

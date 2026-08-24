@@ -5,6 +5,7 @@ import './Layout.css';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import CookingPopup from './CookingPopup';
+import ErrorBoundary from './ErrorBoundary';
 
 export default function Layout() {
   const location = useLocation();
@@ -100,7 +101,9 @@ export default function Layout() {
         </div>
       </nav>
       {/* Cooking Order Popup */}
-      <CookingPopup />
+      <ErrorBoundary>
+        <CookingPopup />
+      </ErrorBoundary>
     </div>
   );
 }
