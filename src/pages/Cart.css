@@ -16,6 +16,7 @@
 
 .cart-page {
   padding: var(--space-8) var(--space-4);
+  overflow-x: hidden; /* prevent shadow bleed causing horizontal scroll */
 }
 
 .cart-content {
@@ -40,43 +41,65 @@
 .cart-items {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
+/* ─── Cart Line Item ────────────────────────────────────────────── */
 .cart-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-4);
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 0.9rem 1rem;
+  background-color: #ffffff;
+  border: 2px solid #1a1a1a;
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 0 #1a1a1a;
+  transition: box-shadow 0.12s ease, transform 0.12s ease;
+  gap: 0.75rem;
 }
 
 .cart-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 1px 1px 0 0 #1a1a1a;
+  transform: translate(2px, 2px);
 }
 
-.cart-item-info h4 {
-  margin-bottom: 0.25rem;
+.cart-item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-item-details h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--munchies-dark);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cart-item-price {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--munchies-dark);
 }
 
 .cart-item-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
+/* ─── Qty Controls ──────────────────────────────────────────────── */
 .quantity-controls {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  background-color: var(--bg-color);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  padding: 2px;
+  gap: 0;
+  background-color: #ffffff;
+  border: 2px solid #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .btn-qty {
@@ -85,76 +108,88 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
-  transition: background-color 0.15s ease, transform 0.1s ease;
+  font-size: 1rem;
+  font-weight: 900;
+  background: #f5f5f5;
+  border: none;
+  border-right: 1px solid #1a1a1a;
+  transition: background-color 0.12s ease;
+  cursor: pointer;
+}
+
+.btn-qty:last-child {
+  border-right: none;
+  border-left: 1px solid #1a1a1a;
 }
 
 .btn-qty:hover {
-  background-color: var(--border-color);
+  background-color: var(--munchies-yellow);
 }
 
 .btn-qty:active {
-  transform: scale(0.9);
+  background-color: var(--munchies-orange-accent);
 }
 
 .qty {
-  width: 20px;
+  width: 24px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--munchies-dark);
 }
 
+/* ─── Remove Button ─────────────────────────────────────────────── */
 .btn-remove {
-  color: var(--danger-color);
-  padding: var(--space-2);
+  color: #ef4444;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  border-radius: 8px;
+  border: 2px solid #ef4444;
+  background: #fff0f0;
+  transition: background-color 0.12s ease, transform 0.12s ease;
+  cursor: pointer;
 }
 
 .btn-remove:hover {
-  background-color: rgb(239 68 68 / 0.1);
-  transform: scale(1.1);
+  background-color: #ef4444;
+  color: #ffffff;
 }
 
-/* ────────────────────────────────
-   SUGGESTIONS SECTION
-──────────────────────────────── */
+.btn-remove:active {
+  transform: scale(0.9);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SUGGESTIONS SECTION — brutalist light treatment
+═══════════════════════════════════════════════════════════════════ */
 .suggestions-section {
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d1a00 100%);
-  border-radius: var(--radius-xl);
-  padding: 1.25rem 1.25rem 1.5rem;
-  border: 2px solid #3d2a00;
+  background: var(--munchies-canvas, #f4f1ea);
+  border-radius: 16px;
+  padding: 1.1rem 1.1rem 1.25rem;
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 0 #1a1a1a;
   position: relative;
   overflow: hidden;
-}
-
-.suggestions-section::before {
-  content: '🔥';
-  position: absolute;
-  font-size: 100px;
-  right: -15px;
-  bottom: -20px;
-  opacity: 0.07;
-  pointer-events: none;
 }
 
 .suggestions-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.2rem;
-  color: var(--munchies-yellow);
+  margin-bottom: 0.15rem;
+  color: var(--munchies-dark);
   font-family: var(--font-heading);
-  font-weight: 800;
+  font-weight: 900;
   font-size: 1.05rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 .suggestions-icon {
-  color: var(--munchies-yellow);
+  color: var(--munchies-orange-accent);
   animation: sparkSpin 2s ease-in-out infinite;
 }
 
@@ -166,84 +201,85 @@
 .suggestions-see-all {
   margin-left: auto;
   font-size: 0.72rem;
-  color: rgba(255,255,255,0.5);
+  color: #6b6b6b;
   display: flex;
   align-items: center;
   gap: 2px;
   font-family: var(--font-sans);
   text-transform: none;
   letter-spacing: 0;
-  transition: color 0.2s;
+  font-weight: 700;
+  transition: color 0.15s;
+  text-decoration: none;
 }
 
 .suggestions-see-all:hover {
-  color: var(--munchies-yellow);
+  color: var(--munchies-orange-accent);
 }
 
 .suggestions-sub {
   font-size: 0.78rem;
-  color: rgba(255,255,255,0.45);
-  margin-bottom: 1rem;
+  color: #6b6b6b;
+  margin-bottom: 0.9rem;
   font-family: var(--font-sans);
 }
 
 .suggestions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
 .suggestion-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 14px;
+  background: #ffffff;
+  border: 2px solid #1a1a1a;
+  border-radius: 10px;
   overflow: hidden;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-              border-color 0.2s ease,
-              background 0.2s ease;
+  box-shadow: 2px 2px 0 0 #1a1a1a;
+  transition: box-shadow 0.12s ease, transform 0.12s ease;
   cursor: default;
 }
 
 .suggestion-card:hover {
-  transform: translateY(-3px) scale(1.02);
-  border-color: var(--munchies-yellow);
-  background: rgba(255,202,8,0.08);
+  box-shadow: 1px 1px 0 0 #1a1a1a;
+  transform: translate(1px, 1px);
 }
 
 .suggestion-img {
-  height: 90px;
+  height: 80px;
   background-size: cover;
   background-position: center;
   position: relative;
+  border-bottom: 2px solid #1a1a1a;
 }
 
 .suggestion-cat-badge {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  background: rgba(0,0,0,0.65);
-  color: var(--munchies-yellow);
+  top: 5px;
+  left: 5px;
+  background: var(--munchies-yellow);
+  color: var(--munchies-dark);
   font-family: var(--font-heading);
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   padding: 2px 6px;
   border-radius: 4px;
+  border: 1px solid #1a1a1a;
   text-transform: uppercase;
 }
 
 .suggestion-info {
-  padding: 0.6rem 0.75rem 0.75rem;
+  padding: 0.55rem 0.65rem 0.65rem;
 }
 
 .suggestion-name {
   font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: white;
-  margin-bottom: 0.45rem;
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: var(--munchies-dark);
+  margin-bottom: 0.4rem;
   line-height: 1.2;
-  /* Truncate long names */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -253,84 +289,153 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 4px;
 }
 
 .suggestion-price {
   font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 0.82rem;
-  color: var(--munchies-yellow);
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: var(--munchies-dark);
 }
 
+/* Pill "ADD +" button matching Home brutalist style */
 .suggestion-add-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
   background-color: var(--munchies-yellow);
   color: var(--munchies-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.72rem;
   font-weight: 900;
-  border: none;
+  border: 2px solid #1a1a1a;
+  box-shadow: 2px 2px 0 0 #1a1a1a;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-              background-color 0.2s ease;
+  transition: box-shadow 0.1s ease, transform 0.1s ease;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .suggestion-add-btn:hover {
-  transform: scale(1.2) rotate(8deg);
+  box-shadow: 1px 1px 0 0 #1a1a1a;
+  transform: translate(1px, 1px);
 }
 
 .suggestion-add-btn:active {
-  transform: scale(0.9);
+  box-shadow: 0 0 0 0 #1a1a1a;
+  transform: translate(2px, 2px);
 }
 
 .suggestion-add-btn-added {
   background-color: #22c55e;
   color: white;
-  transform: scale(1.15);
+  border-color: #15803d;
+  box-shadow: 2px 2px 0 0 #15803d;
 }
 
-/* ────────────────────────────────
-   ORDER SUMMARY
-──────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   ORDER SUMMARY — brutalist card
+═══════════════════════════════════════════════════════════════════ */
 .cart-summary {
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
+  background-color: #ffffff;
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 0 #1a1a1a;
+  border-radius: 16px;
+  padding: 1.25rem;
   height: fit-content;
+}
+
+.cart-summary h3 {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--munchies-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid #1a1a1a;
 }
 
 .summary-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: var(--space-2);
+  font-size: 0.9rem;
 }
 
 .total-row {
-  font-size: 1.25rem;
-  font-weight: 700;
-  border-top: 1px solid var(--border-color);
-  padding-top: var(--space-2);
-  margin-top: var(--space-2);
+  font-size: 1.2rem;
+  font-weight: 900;
+  border-top: 2px solid #1a1a1a;
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+  color: var(--munchies-dark);
 }
 
 .checkout-instructions {
-  margin-top: var(--space-6);
-  padding: var(--space-3);
-  background-color: var(--bg-color);
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: var(--munchies-canvas, #f4f1ea);
+  border-radius: 8px;
+  border: 1px solid #d0cbbe;
+  font-size: 0.8rem;
+  color: #6b6b6b;
 }
 
 .checkout-instructions h4 {
-  margin-bottom: var(--space-2);
+  margin-bottom: 0.25rem;
+  font-weight: 800;
+  color: var(--munchies-dark);
+  font-size: 0.85rem;
 }
 
 .checkout-btn {
-  margin-top: var(--space-4);
+  margin-top: 1rem;
+}
+
+/* ─── Narrow viewport overflow fix (≤480px) ────────────────────────────────
+   At 375px the actions row (Edit + qty + remove) cannot fit beside the item
+   name on a single line. Stack them: name/price on line 1, actions on line 2.
+   Also clip any residual shadow bleed on full-width cards.
+── */
+@media (max-width: 480px) {
+  /* Stack cart line item: details top, actions bottom-right */
+  .cart-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .cart-item-actions {
+    justify-content: flex-end;
+  }
+
+  /* Slightly smaller qty cells so they breathe at 375px */
+  .btn-qty {
+    width: 26px;
+    height: 26px;
+    font-size: 0.9rem;
+  }
+
+  .qty {
+    width: 20px;
+    font-size: 0.8rem;
+  }
+
+  /* Clip the 4px right/bottom shadow on full-width cards so it
+     never protrudes past the viewport edge */
+  .cart-items,
+  .suggestions-section,
+  .cart-summary {
+    /* Reduce right shadow so it stays within padding zone */
+    box-shadow: 2px 2px 0 0 #1a1a1a;
+  }
+
+  .cart-item {
+    box-shadow: 2px 2px 0 0 #1a1a1a;
+  }
 }

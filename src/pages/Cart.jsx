@@ -73,17 +73,19 @@ export default function Cart() {
                     onClick={() => setEditingCartItem(item)}
                     title="Edit customizations"
                     style={{
-                      background: 'rgba(249, 115, 22, 0.1)',
-                      border: '1px solid rgba(249, 115, 22, 0.3)',
-                      borderRadius: '8px',
-                      padding: '5px 9px',
-                      color: '#ea580c',
+                      background: 'var(--munchies-yellow)',
+                      border: '2px solid #1a1a1a',
+                      borderRadius: '999px',
+                      padding: '3px 10px',
+                      color: '#1a1a1a',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '2px 2px 0 0 #1a1a1a',
+                      whiteSpace: 'nowrap'
                     }}
                   >
                     <Edit2 size={13} />
@@ -131,7 +133,7 @@ export default function Cart() {
                           className={`suggestion-add-btn ${addedIds[item.id] ? 'suggestion-add-btn-added' : ''}`}
                           onClick={() => handleQuickAdd(item)}
                         >
-                          {addedIds[item.id] ? '✓' : <Plus size={16} />}
+                          {addedIds[item.id] ? '✓' : 'ADD +'}
                         </button>
                       </div>
                     </div>
