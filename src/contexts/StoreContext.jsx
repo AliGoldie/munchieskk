@@ -198,17 +198,11 @@ export function StoreProvider({ children }) {
       if (menuData) setMenu(menuData.map(item => ({...item, inStock: item.in_stock, low_stock_threshold: item.low_stock_threshold ?? 10})));
       else console.error('Menu fetch error:', menuErr?.message || 'Unknown error', menuErr);
 
-      // 2. Fetch Orders
-      const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-      if (ordersData) {
-        setOrders(ordersData);
-      }
-
-      // 3. Fetch Addons
+      // 2. Fetch Addons
       const { data: addonsData } = await supabase.from('addons').select('*').order('created_at', { ascending: true });
       if (addonsData) setAddons(addonsData);
 
-      // 4. Fetch Item-Addon assignments
+      // 3. Fetch Item-Addon assignments
       const { data: assignmentsData } = await supabase.from('item_addons').select('*');
       if (assignmentsData) {
         const mapping = {};
@@ -218,10 +212,6 @@ export function StoreProvider({ children }) {
         });
         setItemAddons(mapping);
       }
-
-      // 5. Fetch Profiles (Customers)
-      const { data: profilesData } = await supabase.from('profiles').select('*');
-      if (profilesData) setCustomers(profilesData);
     };
 
     fetchInitialData();
@@ -295,6 +285,39 @@ export function StoreProvider({ children }) {
     };
   }, []);
 
+  // Fetch user-scoped orders (or admin orders + profiles) whenever auth state resolves or user changes
+  useEffect(() => {
+    if (!user) {
+      setOrders([]);
+      setCustomers([]);
+      return;
+    }
+
+    if (user.role === 'admin') {
+      supabase.from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200)
+        .then(({ data }) => {
+          if (data) setOrders(data);
+        });
+      supabase.from('profiles')
+        .select('*')
+        .then(({ data }) => {
+          if (data) setCustomers(data);
+        });
+    } else if (user.id) {
+      supabase.from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+        .then(({ data }) => {
+          if (data) setOrders(data);
+        });
+    }
+  }, [user?.id, user?.role]);
+
   // Polling fallback in case Supabase Realtime is disabled on the orders table
   // Acts as a periodic reconciliation safety net (30s) when Realtime is connected, 
   // and a fast primary sync (5s) when Realtime is disconnected.
@@ -359,7 +382,7 @@ export function StoreProvider({ children }) {
     }, pollInterval);
 
     return () => clearInterval(pollOrders);
-  }, [isRealtimeConnected]);
+  }, [isRealtimeConnected, user?.id, user?.role]);
 
   // Lightweight single-order fetch for non-admin customer tracking.
   // OrderStatus.jsx and CookingPopup.jsx call this on their own interval
