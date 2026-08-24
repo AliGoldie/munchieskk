@@ -6,7 +6,7 @@ import { playReadySound } from '../utils/soundAlert';
 import './CookingPopup.css';
 
 export default function CookingPopup() {
-  const { orders } = useStore();
+  const { fetchSingleOrder } = useStore();
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState(() => localStorage.getItem('munchies_active_order'));
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -30,7 +30,33 @@ export default function CookingPopup() {
     };
   }, []);
 
-  const order = orders.find(o => o.id === orderId);
+  const [order, setOrder] = useState(null);
+  // True until the first fetch attempt completes — prevents the popup from
+  // rendering null purely because the fetch hasn't resolved yet.
+  const [orderLoading, setOrderLoading] = useState(false);
+
+  // Poll single order whenever orderId changes — avoids bulk orders array fetch
+  useEffect(() => {
+    if (!orderId) {
+      setOrder(null);
+      setOrderLoading(false);
+      return;
+    }
+    let active = true;
+    setOrderLoading(true);
+    const poll = async (isFirst = false) => {
+      const data = await fetchSingleOrder(orderId);
+      if (!active) return;
+      if (data) setOrder(data);
+      if (isFirst) setOrderLoading(false); // unblock early-return after first attempt
+    };
+    poll(true); // immediate first fetch, marks loading done when it settles
+    const interval = setInterval(() => poll(false), 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [orderId]);
 
   // Reset dismissed when a new order comes in
   useEffect(() => {
@@ -85,6 +111,9 @@ export default function CookingPopup() {
     document.title = originalTitle.current;
   }, []);
 
+  // While the first fetch is still in-flight, render nothing (not the same as
+  // genuinely having no order — avoids a false invisible-popup state).
+  if (orderLoading) return null;
   if (!order || dismissed || order.status === 'COLLECTED' || order.status === 'CANCELLED') return null;
 
   const cookTime = order.cook_time_seconds || loyaltyConfig.DEFAULT_COOK_TIME_SECONDS;

@@ -8,8 +8,29 @@ import './OrderStatus.css';
 
 export default function OrderStatus() {
   const { id } = useParams();
-  const { orders, updateOrderState, addPoints, claimShareBonus, cancelOrder } = useStore();
-  const order = orders.find(o => o.id === id);
+  const { fetchSingleOrder, updateOrderState, addPoints, claimShareBonus, cancelOrder } = useStore();
+  const [order, setOrder] = useState(null);
+  // True until the first fetch attempt completes (success or failure).
+  // Prevents the Navigate guard from firing before the fetch resolves.
+  const [orderLoading, setOrderLoading] = useState(true);
+
+  // Poll single order by id — no bulk fetch needed for customer-facing tracking
+  useEffect(() => {
+    if (!id) return;
+    let active = true;
+    const poll = async (isFirst = false) => {
+      const data = await fetchSingleOrder(id);
+      if (!active) return;
+      if (data) setOrder(data);
+      if (isFirst) setOrderLoading(false); // unblock the Navigate guard after first attempt
+    };
+    poll(true); // immediate first fetch, marks loading done when it settles
+    const interval = setInterval(() => poll(false), 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [id]);
 
   const cookTime = order?.cook_time_seconds || loyaltyConfig.DEFAULT_COOK_TIME_SECONDS;
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -47,7 +68,10 @@ export default function OrderStatus() {
     return () => clearInterval(interval);
   }, [order]);
 
-  if (!order) return <Navigate to="/" replace />;
+  // Only redirect if loading is done AND the fetch returned no order.
+  // Prevents a false redirect while the first fetchSingleOrder is in-flight.
+  if (!orderLoading && !order) return <Navigate to="/" replace />;
+  if (orderLoading && !order) return null; // render nothing while first fetch is pending
 
   const handleCollect = () => {
     updateOrderState(id, 'COLLECTED');

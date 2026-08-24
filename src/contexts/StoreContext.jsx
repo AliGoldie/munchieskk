@@ -320,42 +320,67 @@ export function StoreProvider({ children }) {
         }
       } catch (e) {}
 
-      const { data: latestOrdersRaw } = await supabase.from('orders')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
-      if (latestOrdersRaw) {
-        const latestOrders = latestOrdersRaw;
-        setOrders(prev => {
-          let newOrders = [...prev];
-          let changed = false;
-          latestOrders.forEach(lo => {
-            const index = newOrders.findIndex(po => po.id === lo.id);
-            if (index === -1) {
-              newOrders.push(lo);
-              changed = true;
-            } else if (newOrders[index].status !== lo.status) {
-              const statusOrder = { 'PENDING': 0, 'COOKING': 1, 'READY': 2, 'COLLECTED': 3, 'CANCELLED': 4 };
-              const oldRank = statusOrder[newOrders[index].status] ?? 0;
-              const newRank = statusOrder[lo.status] ?? 0;
-              
-              if (newRank >= oldRank) {
-                newOrders[index] = lo;
+      // 1. Admin-only: full 100-row orders fetch.
+      //    Non-admin users do not run this fetch — they use fetchSingleOrder instead.
+      if (user?.role === 'admin') {
+        const { data: latestOrdersRaw } = await supabase.from('orders')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        
+        if (latestOrdersRaw) {
+          const latestOrders = latestOrdersRaw;
+          setOrders(prev => {
+            let newOrders = [...prev];
+            let changed = false;
+            latestOrders.forEach(lo => {
+              const index = newOrders.findIndex(po => po.id === lo.id);
+              if (index === -1) {
+                newOrders.push(lo);
                 changed = true;
+              } else if (newOrders[index].status !== lo.status) {
+                const statusOrder = { 'PENDING': 0, 'COOKING': 1, 'READY': 2, 'COLLECTED': 3, 'CANCELLED': 4 };
+                const oldRank = statusOrder[newOrders[index].status] ?? 0;
+                const newRank = statusOrder[lo.status] ?? 0;
+                
+                if (newRank >= oldRank) {
+                  newOrders[index] = lo;
+                  changed = true;
+                }
               }
+            });
+            if (changed) {
+              return newOrders.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
             }
+            return prev;
           });
-          if (changed) {
-            return newOrders.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-          }
-          return prev;
-        });
+        }
       }
     }, pollInterval);
 
     return () => clearInterval(pollOrders);
   }, [isRealtimeConnected]);
+
+  // Lightweight single-order fetch for non-admin customer tracking.
+  // OrderStatus.jsx and CookingPopup.jsx call this on their own interval
+  // instead of searching the bulk orders array.
+  const fetchSingleOrder = async (orderId) => {
+    if (!orderId) return null;
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (error) {
+        console.warn('[fetchSingleOrder] error:', error.message);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      return null;
+    }
+  };
 
   // --- CRM & Admin Actions ---
   const toggleStock = async (id) => {
@@ -1297,7 +1322,7 @@ const clearManualOverride = async (id) => {
       isPromoActive, updatePromo,
       addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
-      placeOrder, addPoints, claimShareBonus,
+      placeOrder, addPoints, claimShareBonus, fetchSingleOrder,
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
       addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
       categoriesList, addCategory, updateCategory, deleteCategory,
