@@ -40,9 +40,7 @@ export function AuthProvider({ children }) {
       }
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (session?.user) {
-        await fetchAndSetUser(session.user);
-      } else {
+      if (!session?.user) {
         setUser(null);
       }
       cleanAuthUrlParams();
@@ -51,7 +49,7 @@ export function AuthProvider({ children }) {
 
     initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes - single source of truth for user profile fetching
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         await fetchAndSetUser(session.user);
@@ -59,6 +57,7 @@ export function AuthProvider({ children }) {
         setUser(null);
       }
       cleanAuthUrlParams();
+      setLoading(false);
     });
 
     return () => {
