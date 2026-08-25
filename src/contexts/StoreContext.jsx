@@ -1113,12 +1113,6 @@ const clearManualOverride = async (id) => {
     const completeNewOrder = { ...newOrder, id: newOrderId, created_at: new Date().toISOString() };
     setOrders(prev => [completeNewOrder, ...prev]);
 
-    // Automatically award loyalty points based on item rules (Burger: 20 pts, Drink: 15 pts, Fries: 10 pts)
-    if (user && user.id) {
-      const earnedPoints = calculateOrderPoints(finalCart);
-      addPoints(earnedPoints, `Earned from Order #${newOrderId.slice(0, 8)}`);
-    }
-
     clearCart();
     return newOrderId;
   };

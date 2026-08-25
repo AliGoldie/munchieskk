@@ -75,7 +75,6 @@ export default function OrderStatus() {
 
   const handleCollect = () => {
     updateOrderState(id, 'COLLECTED');
-    addPoints(loyaltyConfig.COLLECTION_BONUS_PTS, `Collected Order ${id}`);
     localStorage.removeItem('munchies_active_order');
     setShowReviewPrompt(true);
   };
