@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../config/supabase';
-import { calculateOrderPoints } from '../utils/pointsCalculator';
 
 const AuthContext = createContext();
 
@@ -22,24 +21,33 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Reads the localhost-only mock admin session from localStorage, if any.
+  // Shared by initializeAuth and onAuthStateChange below so neither one can
+  // clobber the other's view of a mock session — see the race explained there.
+  const getMockAdmin = () => {
+    if (typeof window === 'undefined') return null;
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') return null;
+    const savedMock = localStorage.getItem('munchies_mock_admin');
+    if (!savedMock) return null;
+    try {
+      return JSON.parse(savedMock);
+    } catch (e) {
+      return null;
+    }
+  };
+
   useEffect(() => {
     // Fetch initial session
     const initializeAuth = async () => {
-      // Check for mock admin session on localhost
-      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        const savedMock = localStorage.getItem('munchies_mock_admin');
-        if (savedMock) {
-          try {
-            const parsed = JSON.parse(savedMock);
-            setUser(parsed);
-            cleanAuthUrlParams();
-            setLoading(false);
-            return;
-          } catch (e) {}
-        }
+      const mockAdmin = getMockAdmin();
+      if (mockAdmin) {
+        setUser(mockAdmin);
+        cleanAuthUrlParams();
+        setLoading(false);
+        return;
       }
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session?.user) {
         setUser(null);
       }
@@ -53,7 +61,11 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         await fetchAndSetUser(session.user);
-      } else {
+      } else if (!getMockAdmin()) {
+        // This fires asynchronously on mount and can land after initializeAuth's
+        // mock-session check above, so re-check here too — otherwise a real
+        // (session-less) Supabase auth state can clobber an active mock admin
+        // session back to null on a hard page reload.
         setUser(null);
       }
       cleanAuthUrlParams();
@@ -73,54 +85,10 @@ export function AuthProvider({ children }) {
       .eq('id', authUser.id)
       .maybeSingle();
 
-    // 2. Calculate points from past non-cancelled orders based on item rules (Burger: 20, Drink: 15, Fries: 10)
-    let orderPoints = 0;
-    try {
-      const { data: userOrders } = await supabase
-        .from('orders')
-        .select('total, items, status')
-        .eq('user_id', authUser.id)
-        .neq('status', 'CANCELLED');
-
-      if (userOrders && userOrders.length > 0) {
-        orderPoints = userOrders.reduce((sum, o) => {
-          let itemsList = o.items;
-          if (typeof itemsList === 'string') {
-            try { itemsList = JSON.parse(itemsList); } catch (e) { itemsList = []; }
-          }
-          let pts = 0;
-          if (Array.isArray(itemsList) && itemsList.length > 0) {
-            pts = calculateOrderPoints(itemsList);
-          } else {
-            // Fallback estimate if items list not parsed: ~18 points per RM 10
-            pts = Math.max(15, Math.floor(((o.total || 0) / 100) * 1.5));
-          }
-          return sum + pts;
-        }, 0);
-      }
-    } catch (e) {
-      console.warn('Could not calculate order points:', e);
-    }
-
-    // 3. Check local storage backup
-    const savedBackup = localStorage.getItem(`munchies_pts_${authUser.id}`);
-    const backupPts = savedBackup ? parseInt(savedBackup, 10) : 0;
-
-    // 4. Effective points is the max of DB points, Order history points, and Local backup
-    const dbPts = profileData?.points || 0;
-    const effectivePoints = Math.max(dbPts, orderPoints, backupPts);
-
-    // 5. Self-heal DB if DB had 0 or stale lower points
-    if (effectivePoints > dbPts) {
-      try {
-        await supabase.from('profiles').update({ points: effectivePoints }).eq('id', authUser.id);
-      } catch (e) {
-        console.warn('Self-heal profile update failed:', e);
-      }
-    }
-
-    // 6. Save backup locally
-    localStorage.setItem(`munchies_pts_${authUser.id}`, effectivePoints.toString());
+    // Points are now calculated and written server-side by DB triggers on order
+    // placement/collection, so profiles.points is authoritative — no client-side
+    // recompute or self-heal write needed here.
+    const effectivePoints = profileData?.points || 0;
 
     if (error || !profileData) {
       setUser({
