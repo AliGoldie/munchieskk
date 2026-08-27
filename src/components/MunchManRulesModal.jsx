@@ -1,8 +1,18 @@
-import React from 'react';
-import { X, Award, ShieldAlert, Zap, Flame } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { X, Flame } from 'lucide-react';
 import './MunchManRulesModal.css';
 
 export default function MunchManRulesModal({ isOpen, onClose, onConfirm, streak = 0 }) {
+  // Escape-to-close, matching the shared Modal component's default behavior.
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (

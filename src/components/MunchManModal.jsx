@@ -36,6 +36,39 @@ export default function MunchManModal({ isOpen, onClose }) {
   const audioCtxRef = useRef(null);
   const musicIntervalRef = useRef(null);
 
+  // The game-loop effect below only re-runs on `isOpen` changes, so its closures
+  // (endGame in particular) would otherwise see a stale `user` snapshot from
+  // whenever the modal was opened. Keep a ref in sync so endGame always reads
+  // the live value without needing to restart the game loop on every point change.
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // Escape-to-close, matching the shared Modal component's default behavior.
+  // Deferred while the rules sub-modal is open so Escape closes that first,
+  // not both at once.
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && !showRules) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, showRules, onClose]);
+
+  // Body scroll lock while open, matching the shared Modal component.
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   // Sound Utility Functions (Web Audio API)
   const ensureAudio = () => {
     try {
@@ -464,7 +497,8 @@ export default function MunchManModal({ isOpen, onClose }) {
       setGameReason(reason);
       setGameStarted(false);
 
-      if (user && user.id) {
+      const liveUser = userRef.current;
+      if (liveUser && liveUser.id) {
         let ptsAwarded = 0;
         let msg = '';
         if (win) {
@@ -477,10 +511,20 @@ export default function MunchManModal({ isOpen, onClose }) {
 
         if (ptsAwarded > 0) {
           setRewardMsg(msg);
-          const currentPts = user.points || 0;
-          const newTotal = currentPts + ptsAwarded;
+          setUser(prev => prev ? ({ ...prev, points: (prev.points || 0) + ptsAwarded }) : prev);
 
-          setUser(prev => prev ? ({ ...prev, points: newTotal }) : prev);
+          // Fallback path only runs if the RPC itself errors — re-read the current
+          // DB value right before writing so this doesn't overwrite points earned
+          // from any other source (an order, another reward) while the game was running.
+          const writeFallbackPoints = async () => {
+            const { data: freshProfile } = await supabase
+              .from('profiles')
+              .select('points')
+              .eq('id', liveUser.id)
+              .maybeSingle();
+            const freshTotal = (freshProfile?.points ?? liveUser.points ?? 0) + ptsAwarded;
+            await supabase.from('profiles').update({ points: freshTotal }).eq('id', liveUser.id);
+          };
 
           try {
             const { data, error } = await supabase.rpc('claim_munchman_reward', {
@@ -490,12 +534,12 @@ export default function MunchManModal({ isOpen, onClose }) {
             });
 
             if (error) {
-              await supabase.from('profiles').update({ points: newTotal }).eq('id', user.id);
+              await writeFallbackPoints();
             } else if (data && data.total_points !== undefined) {
               setUser(prev => prev ? ({ ...prev, points: data.total_points }) : prev);
             }
           } catch (err) {
-            await supabase.from('profiles').update({ points: newTotal }).eq('id', user.id);
+            await writeFallbackPoints();
           }
         }
       }
