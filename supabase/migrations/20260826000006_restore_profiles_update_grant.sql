@@ -1,0 +1,21 @@
+-- Discovered via information_schema.role_table_grants: `authenticated` has
+-- NO UPDATE grant on public.profiles at all (only INSERT/SELECT/DELETE/
+-- TRUNCATE/REFERENCES/TRIGGER), while `anon` inexplicably has full UPDATE/
+-- INSERT/DELETE/TRUNCATE grants it can never use (RLS already blocks it,
+-- since auth.uid() is always NULL for anon and no profile row has a NULL id).
+--
+-- The missing `authenticated` UPDATE grant looks like a prior, crude attempt
+-- to block the points/role self-escalation hole by revoking UPDATE outright
+-- — which also silently breaks the legitimate self-edit feature
+-- (src/pages/Profile.jsx saving name/phone/address) for every real customer.
+-- Now that 20260826000005 added a WITH CHECK policy plus a trigger that pins
+-- points/role/tier/etc. back to their current value for any non-admin,
+-- non-postgres write, it's safe to restore UPDATE for authenticated — the
+-- column-level protection is enforced independently of this grant.
+--
+-- Also revoke anon's UPDATE/INSERT/DELETE/TRUNCATE on profiles: guests have
+-- no profile row and no legitimate reason to ever write to this table, so
+-- these grants are pure unnecessary exposure even though RLS currently
+-- neutralizes them.
+GRANT UPDATE ON public.profiles TO authenticated;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.profiles FROM anon;

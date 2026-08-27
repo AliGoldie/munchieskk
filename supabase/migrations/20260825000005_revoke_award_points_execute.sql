@@ -1,0 +1,12 @@
+-- award_points (20260825_award_points_function.sql) guards WHO can call it
+-- (auth.uid() = user_id_param OR is_admin()) but never bounds amount_param, so any
+-- authenticated user could call `supabase.rpc('award_points', { user_id_param: me,
+-- amount_param: 999999999 })` and award themselves arbitrary points.
+--
+-- Confirmed via a full grep of src/: no shipped UI flow calls award_points from the
+-- client (the one call site, StoreContext.jsx's addPoints(), was dead code and has
+-- been removed in this same change). It's only meant to be called from other
+-- SECURITY DEFINER functions/triggers, which don't need an explicit grant to call
+-- another function owned by the same role. Revoking direct client execute closes the
+-- hole with zero functional impact.
+REVOKE EXECUTE ON FUNCTION public.award_points(uuid, integer) FROM authenticated, anon;
