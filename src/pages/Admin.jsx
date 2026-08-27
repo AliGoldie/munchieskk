@@ -59,7 +59,7 @@ function SyncToastItem({ warning, onDismiss }) {
         }}
         title="Dismiss"
       >
-        ?
+        ✕
       </button>
     </div>
   );
@@ -69,7 +69,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
-    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateStock, setStockQuantity, clearManualOverride,
+    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateStock, setStockQuantity,
     syncWarnings, removeSyncWarning,
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
@@ -233,10 +233,6 @@ export default function Admin() {
     }));
   }, [menu]);
 
-  if (!user || user.role !== 'admin') {
-    return <Navigate to="/login" replace />;
-  }
-
   const pendingOrders = orders.filter(o => o.status === 'PENDING');
   const activeOrders = orders.filter(o => o.status !== 'COLLECTED' && o.status !== 'CANCELLED');
   
@@ -268,7 +264,7 @@ export default function Admin() {
       }
 
       // 2. Fetch referral stats from profiles
-      const { data: profiles } = await supabase.from('profiles').select('id, name, referred_by, referral_converted_at');
+      const { data: profiles } = await supabase.from('profiles').select('id, name, referred_by, referral_converted_at').limit(5000);
       if (profiles) {
         const statsMap = {}; // key: referrer id
         profiles.forEach(p => {
@@ -463,7 +459,6 @@ export default function Admin() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todaysOrders = orders.filter(o => new Date(o.created_at || now) >= todayStart && o.status !== 'PENDING');
-  const todaysRevenue = todaysOrders.reduce((sum, o) => sum + o.total, 0);
   const lowStockItems = [
     ...menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).map(i => ({ ...i, isAddon: false })),
     ...addons.filter(addon => addon.in_stock === false || (addon.stock_quantity ?? 99) <= (addon.low_stock_threshold ?? 10)).map(a => ({ ...a, name: `${a.name} (Add-on)`, isAddon: true }))
@@ -795,6 +790,13 @@ export default function Admin() {
     return () => stopNewOrderAlert();
   }, [pendingOrders.length]);
 
+  // This guard must come after every Hook call above (Rules of Hooks) so that
+  // a mid-session admin->non-admin transition redirects cleanly instead of
+  // changing the number of Hooks called between renders and crashing.
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/login" replace />;
+  }
+
   const getElapsedTime = (startedAt) => {
     let parsedStartedAt = startedAt;
     if (typeof parsedStartedAt === 'string' && /^\d+$/.test(parsedStartedAt)) {
@@ -805,21 +807,6 @@ export default function Admin() {
     const mins = Math.floor(diff / 60);
     const secs = diff % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getCookTimeLeft = (order) => {
-    if (order.status !== 'COOKING') return null;
-    if (!order.cooking_started_at || !order.cook_time_seconds) return '—';
-    const started = new Date(order.cooking_started_at).getTime();
-    const now = Date.now();
-    const elapsedSeconds = Math.floor((now - started) / 1000);
-    const cookTime = order.cook_time_seconds;
-    
-    if (elapsedSeconds >= cookTime) return 'OVERDUE';
-    const left = cookTime - elapsedSeconds;
-    const m = Math.floor(left / 60);
-    const s = left % 60;
-    return `${m}m ${s}s`;
   };
 
   const formatOrderId = (id) => {
@@ -1118,7 +1105,7 @@ export default function Admin() {
                         {lowStockCount} Item{lowStockCount > 1 ? 's' : ''} Require Immediate Restock!
                       </h4>
                       <p style={{ margin: '3px 0 0', fontSize: '0.875rem', color: '#7f1d1d', fontWeight: 600 }}>
-                        {lowStockItems.map(item => `${item.name} (${(item.stock_quantity ?? 0) <= 0 || item.inStock === false || item.in_stock === false ? 'Sold Out' : (item.stock_quantity ?? 0) + ' left'})`).join(' � ')}
+                        {lowStockItems.map(item => `${item.name} (${(item.stock_quantity ?? 0) <= 0 || item.inStock === false || item.in_stock === false ? 'Sold Out' : (item.stock_quantity ?? 0) + ' left'})`).join(' • ')}
                       </p>
                     </div>
                   </div>
@@ -1886,7 +1873,7 @@ export default function Admin() {
                   <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setActiveTab('inventory')}>
                     Menu Stock
                   </span>
-                  <span style={{ color: '#cbd5e1' }}>�</span>
+                  <span style={{ color: '#cbd5e1' }}>•</span>
                   <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setActiveTab('addons')}>
                     Add-ons Stock
                   </span>
@@ -3071,7 +3058,7 @@ export default function Admin() {
                                 <td className="text-xs text-muted">{new Date(order.created_at).toLocaleString()}</td>
                                 <td>
                                   <div className="font-bold text-sm">{order.customer_name || 'Guest'}</div>
-                                  {order.customer_phone && order.customer_phone !== 'No Phone' && <div className="text-xs text-muted">?? {order.customer_phone}</div>}
+                                  {order.customer_phone && order.customer_phone !== 'No Phone' && <div className="text-xs text-muted">📞 {order.customer_phone}</div>}
                                 </td>
                                 <td className="font-bold">{(order.total / 100).toFixed(2)}</td>
                                 <td>
