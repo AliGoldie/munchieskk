@@ -197,28 +197,98 @@ export default function Menu() {
           
           return (
             <div key={cat} id={`category-${cat}`} className="category-section" style={{ marginTop: '3rem' }}>
-              <div 
+              <div
                 id={cat}
                 className="category-header-band"
-                style={{ 
+                style={{
+                  position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '1.25rem',
+                  gap: '1rem',
                   marginBottom: '2rem',
-                  padding: '1.25rem 2rem',
-                  backgroundColor: '#1c1c1e',
-                  borderRadius: '20px',
-                  boxShadow: `0 12px 30px ${colors.tint}50`,
-                  borderLeft: `8px solid ${colors.accent}`
+                  padding: '1.1rem 1.5rem 1.1rem 0',
+                  backgroundColor: colors.bg,
+                  borderRadius: '16px',
+                  border: '3px solid #1a1a1a',
+                  boxShadow: '4px 4px 0 0 #1a1a1a',
+                  overflow: 'hidden',
                 }}
               >
-                <span className="category-header-icon" style={{ fontSize: '3rem', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>{colors.icon}</span>
-                <h2 style={{ color: '#ffffff', fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '1px', textTransform: 'uppercase', lineHeight: '1.1' }}>
-                  {cat}
-                  <span style={{ display: 'block', fontSize: '0.9rem', color: colors.accent, fontWeight: 700, letterSpacing: '3px', marginTop: '4px' }}>
-                    SIGNATURE {cat}
+                {/* Left color bar */}
+                <div style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: '9px',
+                  backgroundColor: colors.accent,
+                  borderRight: '3px solid #1a1a1a',
+                  flexShrink: 0,
+                }} />
+
+                {/* Ghosted category word behind content */}
+                <span aria-hidden="true" className="category-ghost-text" style={{
+                  position: 'absolute',
+                  top: '50%',
+                  right: '1rem',
+                  transform: 'translateY(-50%)',
+                  fontFamily: 'Kanit, sans-serif',
+                  fontWeight: 900,
+                  color: colors.accent,
+                  opacity: 0.14,
+                  lineHeight: 1,
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                  letterSpacing: '-1px',
+                  whiteSpace: 'nowrap',
+                }}>{cat}</span>
+
+                {/* Icon circle */}
+                <div style={{
+                  flexShrink: 0,
+                  marginLeft: '18px',
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ffffff',
+                  border: '3px solid #1a1a1a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.4rem',
+                  zIndex: 1,
+                }}>
+                  {colors.icon}
+                </div>
+
+                {/* Title + pill */}
+                <div style={{ zIndex: 1 }}>
+                  <h2 style={{
+                    color: colors.text,
+                    fontSize: '1.6rem',
+                    fontWeight: 900,
+                    margin: '0 0 4px 0',
+                    letterSpacing: '1px',
+                    textTransform: 'uppercase',
+                    lineHeight: 1.1,
+                    fontFamily: 'Kanit, sans-serif',
+                  }}>
+                    {cat}
+                  </h2>
+                  <span style={{
+                    display: 'inline-block',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    backgroundColor: colors.accent,
+                    border: '2px solid #1a1a1a',
+                    borderRadius: '999px',
+                    padding: '1px 10px',
+                    letterSpacing: '0.5px',
+                  }}>
+                    {categoryItems.length} item{categoryItems.length !== 1 ? 's' : ''}
                   </span>
-                </h2>
+                </div>
               </div>
               
               <div className="hot-list-grid">

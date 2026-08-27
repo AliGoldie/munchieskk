@@ -58,11 +58,11 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background-color: #1c1c1e; /* Soft charcoal */
-  border-radius: 20px;
+  background-color: #FFF0E6;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15); /* Slightly darker shadow for charcoal */
-  border: 1px solid rgba(255,255,255,0.05); /* subtle highlight border */
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 0 #1a1a1a;
   margin-top: 1rem;
 }
 
@@ -145,27 +145,27 @@
 }
 
 .hero-spotlight-content {
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem 1.5rem;
   z-index: 1;
-  background-color: #1c1c1e;
+  background-color: transparent;
 }
 
 .hero-spotlight-content h2 {
-  font-size: 2.2rem;
+  font-size: 2rem;
   margin-bottom: 0.5rem;
   line-height: 1.1;
-  color: #f8fafc; /* off-white */
+  color: var(--munchies-dark);
 }
 
 .hero-spotlight-content p {
   font-size: 0.9rem;
-  color: #94a3b8; /* lighter grey for contrast against charcoal */
+  color: #6b6b6b;
   margin-bottom: 1.2rem;
 }
 
 .hero-spotlight-content .price-large {
   display: block;
-  color: #f8fafc; /* override for dark background */
+  color: var(--munchies-dark);
 }
 
 .btn-sleek {
@@ -259,22 +259,24 @@
   flex: 1;
   min-width: 60px;
   background-color: #fff;
-  border-radius: 16px;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px 8px;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  padding: 14px 8px;
+  gap: 6px;
+  border: 2px solid #1a1a1a;
+  box-shadow: 3px 3px 0 0 #1a1a1a;
   text-decoration: none;
-  color: #334155;
-  transition: transform 0.2s, box-shadow 0.2s;
+  color: #1a1a1a;
+  font-weight: 800;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .cat-card-clean:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+  box-shadow: 1px 1px 0 0 #1a1a1a;
+  transform: translate(2px, 2px);
 }
 
 .cat-icon-clean {
@@ -309,49 +311,49 @@
 }
 
 .card.banner-orange {
-  background-color: var(--munchies-orange);
-  color: var(--munchies-white);
+  background-color: var(--munchies-yellow);
+  color: var(--munchies-dark);
   padding: var(--space-6);
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 0 #1a1a1a;
+  border-radius: 16px;
 }
 
 .progress-bar {
-  background-color: var(--munchies-dark);
-  height: 16px;
+  background-color: rgba(0,0,0,0.15);
+  height: 12px;
   border-radius: var(--radius-full);
   margin-top: var(--space-4);
-  border: 2px solid var(--munchies-dark);
+  border: 2px solid #1a1a1a;
   overflow: hidden;
-  box-shadow: 0 0 0 2px var(--munchies-orange) inset; /* Trick for inner border */
 }
 
 .progress-fill {
-  background-color: var(--munchies-yellow);
+  background-color: var(--munchies-orange-accent);
   height: 100%;
-  border-right: 2px solid var(--munchies-dark);
+  border-right: 2px solid #1a1a1a;
 }
 
 /* Product Grid */
 .product-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
-}
-
-@media (min-width: 768px) {
-  .product-grid {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
 .product-card {
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 2px solid #1a1a1a !important;
+  box-shadow: 3px 3px 0 0 #1a1a1a !important;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+  box-shadow: 1px 1px 0 0 #1a1a1a !important;
+  transform: translate(2px, 2px);
 }
 
 .product-img {
@@ -385,26 +387,30 @@
 .add-btn {
   background-color: var(--munchies-yellow);
   color: var(--munchies-dark);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--munchies-dark);
-  box-shadow: 2px 2px 0px 0px var(--munchies-dark);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.15s ease;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  border: 2px solid #1a1a1a;
+  box-shadow: 2px 2px 0 0 #1a1a1a;
+  transition: box-shadow 0.12s ease, transform 0.12s ease;
+  white-space: nowrap;
 }
 
 .add-btn:hover {
-  transform: scale(1.15) rotate(5deg);
-  box-shadow: 3px 3px 0px 0px var(--munchies-dark);
+  box-shadow: 1px 1px 0 0 #1a1a1a;
+  transform: translate(1px, 1px);
 }
 
 .add-btn:active {
-  transform: scale(0.92);
-  box-shadow: 0px 0px 0px 0px var(--munchies-dark);
+  box-shadow: 0 0 0 0 #1a1a1a;
+  transform: translate(2px, 2px);
 }
 
 .mt-2 { margin-top: var(--space-2); }

@@ -146,7 +146,7 @@ export default function Payment() {
         marginBottom: '1.5rem',
         boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
       }}>
-        <h3 style={{ margin: '0 0 12px', fontSize: '1.1rem', color: '#FFC72C', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: '1.1rem', color: 'var(--munchies-yellow)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Clock size={20} /> FULFILLMENT TIMING
         </h3>
 
@@ -157,8 +157,8 @@ export default function Payment() {
             onClick={() => setOrderMode('NOW')}
             style={{
               flex: 1.2, minWidth: '160px', padding: '14px 18px', borderRadius: '10px',
-              border: orderMode === 'NOW' ? '3px solid #FFC72C' : '1px solid #475569',
-              background: orderMode === 'NOW' ? '#E8491D' : '#0f172a',
+              border: orderMode === 'NOW' ? '3px solid var(--munchies-yellow)' : '1px solid #475569',
+              background: orderMode === 'NOW' ? 'var(--munchies-orange-accent)' : '#0f172a',
               color: '#fff', fontWeight: '800', cursor: 'pointer', fontSize: '1rem',
               boxShadow: orderMode === 'NOW' ? '0 4px 15px rgba(232, 73, 29, 0.45)' : 'none',
               transition: 'all 0.2s ease',
@@ -174,7 +174,7 @@ export default function Payment() {
             onClick={() => setOrderMode('SCHEDULED')}
             style={{
               flex: 1, minWidth: '140px', padding: '14px 18px', borderRadius: '10px',
-              border: orderMode === 'SCHEDULED' ? '3px solid #FFC72C' : '1px solid #475569',
+              border: orderMode === 'SCHEDULED' ? '3px solid var(--munchies-yellow)' : '1px solid #475569',
               background: orderMode === 'SCHEDULED' ? '#0284c7' : '#0f172a',
               color: '#fff', fontWeight: '800', cursor: 'pointer', fontSize: '0.95rem',
               boxShadow: orderMode === 'SCHEDULED' ? '0 4px 15px rgba(2, 132, 199, 0.45)' : 'none',
@@ -188,7 +188,7 @@ export default function Payment() {
         {orderMode === 'SCHEDULED' && (
           <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px' }}>
-              Select Pre-Order Pickup/Delivery Time Slot (Operating Hours: {openingFormatted} - {closingFormatted}):
+              Select Pre-Order Pickup Time Slot (Operating Hours: {openingFormatted} - {closingFormatted}):
             </label>
             <select
               value={scheduledTime}

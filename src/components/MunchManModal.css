@@ -51,7 +51,7 @@
 }
 
 .munchman-close-btn:hover {
-  background: #E8491D;
+  background: var(--munchies-orange-accent);
   transform: scale(1.05);
 }
 
@@ -66,7 +66,7 @@
   font-size: 26px;
   letter-spacing: 3px;
   margin: 0 0 12px;
-  color: #FFC72C;
+  color: var(--munchies-yellow);
   text-transform: uppercase;
   font-weight: 800;
   text-shadow: 0 0 15px rgba(255, 199, 44, 0.4);
@@ -96,7 +96,7 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #E8491D, #c23b15);
+  background: linear-gradient(135deg, var(--munchies-orange-accent), #c23b15);
   box-shadow: 0 2px 4px rgba(232, 73, 29, 0.4);
 }
 
@@ -150,7 +150,7 @@
 }
 
 .munchman-btn {
-  background: linear-gradient(135deg, #FFC72C, #e5b022);
+  background: linear-gradient(135deg, var(--munchies-yellow), #e5b022);
   color: #0F172A;
   border: none;
   padding: 14px 32px;
@@ -199,8 +199,8 @@
 
 .munchman-tbtn:active {
   background: rgba(255, 199, 44, 0.2);
-  border-color: #FFC72C;
-  color: #FFC72C;
+  border-color: var(--munchies-yellow);
+  color: var(--munchies-yellow);
   transform: scale(0.92);
 }
 

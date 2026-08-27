@@ -120,7 +120,7 @@
   flex-direction: column !important;
   align-items: flex-start !important;
   justify-content: center !important;
-  border: 3.5px solid #FFC72C !important; /* Gold border */
+  border: 3.5px solid var(--munchies-yellow) !important; /* Gold border */
   box-shadow: 4px 4px 0 #14141f !important;
   border-radius: var(--radius-lg) !important;
   margin: 0 !important;
@@ -136,7 +136,7 @@
 
 .points-card-title {
   font-size: 1.25rem !important;
-  color: #FFC72C !important;
+  color: var(--munchies-yellow) !important;
   text-transform: uppercase !important;
   letter-spacing: 1.5px !important;
   margin: 0 !important;
@@ -156,7 +156,7 @@
   font-size: 1.35rem !important;
   font-weight: 800 !important;
   border: 2.5px solid #14141f !important;
-  background: #E8491D !important; /* Vibrant Orange Pill Badge */
+  background: var(--munchies-orange-accent) !important; /* Vibrant Orange Pill Badge */
   color: #ffffff !important;
   box-shadow: 2px 2px 0 #14141f !important;
 }
@@ -164,7 +164,7 @@
 .points-star-circle {
   width: 30px;
   height: 30px;
-  background-color: #FFC72C;
+  background-color: var(--munchies-yellow);
   border: 2px solid #14141f;
   border-radius: 50%;
   display: flex;

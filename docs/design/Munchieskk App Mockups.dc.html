@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<meta name="ext-resource-dependency" content="public/images/bbq_chicken.jpg">
+<meta name="ext-resource-dependency" content="public/images/bbq_lamb.jpg">
+<meta name="ext-resource-dependency" content="public/images/BigG.jpg">
+<meta name="ext-resource-dependency" content="public/images/premium_platter.jpg">
+<meta name="ext-resource-dependency" content="public/images/cheese_fries.png">
+<meta name="ext-resource-dependency" content="public/images/iced_lemon_tea.png">
+<meta name="ext-resource-dependency" content="public/images/shake_match.png">
+<style>
+  body{margin:0;background:#f4f1ea;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:'Kanit',sans-serif;font-weight:800;text-transform:uppercase;line-height:1.1;margin:0}
+  a{color:#c73b0f}
+  a:hover{color:#1a1a1a}
+  ::-webkit-scrollbar{display:none}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
+</style>
+</helmet>
+
+<template id="__bundler_thumbnail" data-bg-color="#c73b0f">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#c73b0f"></rect>
+    <rect x="360" y="240" width="480" height="320" rx="40" fill="#FFC72C" stroke="#1a1a1a" stroke-width="16"></rect>
+    <text x="600" y="440" font-family="Kanit, sans-serif" font-size="150" font-weight="900" fill="#1a1a1a" text-anchor="middle">MKK</text>
+  </svg>
+</template>
+<div style="padding:44px 40px;max-width:100%">
+
+  <div style="margin-bottom:36px">
+    <div style="font-size:12.5px;font-weight:800;letter-spacing:1.5px;color:#c73b0f;text-transform:uppercase;margin-bottom:8px">Munchies KK · App Mockups</div>
+    <h1 style="font-size:34px;color:#1a1a1a">Homemade Halal Burgers, Penampang</h1>
+    <p style="font-family:Inter,sans-serif;text-transform:none;font-weight:500;font-size:14.5px;color:#525252;max-width:640px;margin-top:10px;line-height:1.55">
+      Pickup-only ordering app — built on Munchies KK's brutalist brand (Kanit display type, thick outlines, hard offset shadows, yellow/orange/dark palette). Preview the order-tracking stage with the switch below.
+    </p>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:32px;flex-wrap:wrap">
+    <sc-for list="{{ stageOptions }}" as="opt" hint-placeholder-count="4">
+      <button onClick="{{ opt.onClick }}" style="padding:10px 18px;border-radius:999px;border:3px solid #1a1a1a;background:{{ opt.bg }};color:{{ opt.color }};font-family:Kanit,sans-serif;font-weight:800;font-size:12.5px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;box-shadow:{{ opt.shadow }}">{{ opt.label }}</button>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;gap:26px;overflow-x:auto;padding-bottom:20px;align-items:flex-start">
+
+    <!-- HOME -->
+    <div id="screen-home" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Home</div>
+      <div style="width:380px;background:#fff;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden">
+        <div style="background:#1a1a1a;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+          <img src="public/images/logo.png" alt="MUNCHIESKK" style="height:34px;display:block">
+          <a href="#screen-cart" style="position:relative;color:#fff;text-decoration:none">🛍<span style="position:absolute;top:-8px;right:-10px;background:#c73b0f;color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:1px 5px;border:2px solid #1a1a1a">2</span></a>
+        </div>
+        <div style="padding:18px 18px 22px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:10.5px;font-weight:800;letter-spacing:1px;color:#525252">WELCOME BACK</div>
+              <h2 style="font-size:26px;margin-top:2px">HEY,<br>GOURMET!</h2>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;background:#93d9f8;border:3px solid #1a1a1a;border-radius:999px;padding:7px 12px">
+              <span>🏆</span>
+              <div style="display:flex;flex-direction:column;line-height:1"><span style="font-family:Kanit;font-weight:800;font-size:13px">{{ points }}</span><span style="font-size:9.5px;font-weight:700">Pts</span></div>
+            </div>
+          </div>
+
+          <div style="position:relative;background:#1c1c1e;border-radius:20px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.2)">
+            <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:#FFC72C;border-radius:50%;opacity:.85"></div>
+            <div style="position:relative;height:170px;z-index:1">
+              <image-slot id="home-hero" shape="rect" src="public/images/sumandak burger.jpg" placeholder="Sumandak Burger hero photo"></image-slot>
+              <div style="position:absolute;top:12px;left:12px;background:#FFC72C;color:#8B4513;font-weight:800;font-size:10.5px;padding:5px 10px;border-radius:20px;display:flex;align-items:center;gap:4px;white-space:nowrap;pointer-events:none">🔥 BEST SELLER</div>
+            </div>
+            <div style="position:relative;z-index:1;padding:18px">
+              <h2 style="color:#f8fafc;font-size:22px">Sumandak Burger</h2>
+              <p style="color:#94a3b8;font-size:12.5px;font-weight:500;text-transform:none;margin:6px 0 12px">Sambal tuhau, double beef, house pickles</p>
+              <div style="color:#f8fafc;font-family:Kanit;font-weight:900;font-size:19px;margin-bottom:12px">RM 19.90</div>
+              <a href="#screen-item" style="width:100%;background:#FFC72C;color:#333;border:none;border-radius:24px;padding:12px;font-family:Kanit;font-weight:800;font-size:13.5px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;text-decoration:none;box-sizing:border-box">ORDER NOW →</a>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <h3 style="font-size:16px;color:#1e293b">Menu Lineup</h3>
+              <a href="#screen-menu" style="font-size:11.5px;font-weight:700;color:#64748b;text-transform:none;white-space:nowrap;text-decoration:none">See All →</a>
+            </div>
+            <div style="display:flex;gap:8px;overflow-x:auto">
+              <sc-for list="{{ categories }}" as="cat" hint-placeholder-count="5">
+                <a href="{{ cat.href }}" style="flex:none;min-width:64px;background:#fff;border-radius:14px;box-shadow:0 3px 10px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 6px;text-decoration:none" style-hover="box-shadow:0 3px 10px rgba(199,59,15,.35)">
+                  <span style="font-size:22px">{{ cat.icon }}</span>
+                  <span style="font-size:10px;font-weight:700;color:#334155">{{ cat.name }}</span>
+                </a>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:#c73b0f;border-radius:16px;padding:16px;position:relative;overflow:hidden">
+            <div style="color:#fff"><span>🏆</span><h3 style="margin-top:6px;color:#fff;font-size:14px">LOYALTY PERKS</h3><p style="font-size:11.5px;font-weight:500;text-transform:none;color:#ffe2d6;margin:6px 0 10px">{{ pointsAwayMsg }}</p>
+              <div style="background:#1a1a1a;height:14px;border-radius:999px;box-shadow:0 0 0 2px #c73b0f inset;overflow:hidden"><div style="background:#FFC72C;height:100%;width:{{ progressPercent }}%"></div></div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:#fff;border:2px solid #1a1a1a;border-radius:12px;overflow:hidden">
+              <div style="height:80px"><image-slot id="mamacita-home" shape="rect" src="public/images/mamacita.jpg" placeholder="Mamacita Burger"></image-slot></div>
+              <div style="padding:9px">
+                <div style="font-size:11.5px;font-weight:700;color:#1a1a1a;margin-bottom:6px">Mamacita Burger</div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:11px;font-weight:700">RM 18.90</span>
+                  <a href="#screen-item" style="background:#FFC72C;border:2px solid #1a1a1a;border-radius:999px;box-shadow:2px 2px 0 0 #1a1a1a;padding:4px 12px;font-family:Kanit;font-weight:900;font-size:10px;letter-spacing:.4px;color:#1a1a1a;white-space:nowrap;text-decoration:none">ADD +</a>
+                </div>
+              </div>
+            </div>
+            <div style="background:#fff;border:2px solid #1a1a1a;border-radius:12px;overflow:hidden">
+              <div style="height:80px"><image-slot id="fries-home" shape="rect" src="public/images/monsta_fries.jpg" placeholder="Monster Fries"></image-slot></div>
+              <div style="padding:9px">
+                <div style="font-size:11.5px;font-weight:700;color:#1a1a1a;margin-bottom:6px">Monster Fries</div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:11px;font-weight:700">RM 14.90</span>
+                  <a href="#screen-item" style="background:#FFC72C;border:2px solid #1a1a1a;border-radius:999px;box-shadow:2px 2px 0 0 #1a1a1a;padding:4px 12px;font-family:Kanit;font-weight:900;font-size:10px;letter-spacing:.4px;color:#1a1a1a;white-space:nowrap;text-decoration:none">ADD +</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;padding:14px 10px;border-top:3px solid #1a1a1a;background:#fff">
+          <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="5">
+            <a href="{{ nav.href }}" style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;padding:4px 0;border-radius:16px 16px 0 0;background:{{ nav.bg }};text-decoration:none">
+              <span style="font-size:16px">{{ nav.icon }}</span>
+              <span style="font-size:9px;font-weight:800;color:{{ nav.color }};text-transform:uppercase">{{ nav.label }}</span>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- MENU -->
+    <div id="screen-menu" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Full Menu</div>
+      <div style="width:380px;height:816px;background:#fff;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden;display:flex;flex-direction:column">
+        <div style="background:#1a1a1a;padding:16px 20px;color:#fff;font-family:Kanit;font-weight:900;font-size:16px">MENU</div>
+        <div style="overflow-y:auto;flex:1;padding:16px 16px 24px">
+          <div style="display:flex;gap:6px;overflow-x:auto;background:#1A1D24;border-radius:16px;padding:8px;margin-bottom:16px">
+            <sc-for list="{{ menuCategories }}" as="mc" hint-placeholder-count="5">
+              <button onClick="{{ mc.onClick }}" style="flex:1;padding:8px 6px;border-radius:999px;border:none;background:{{ mc.bg }};color:{{ mc.color }};font-weight:800;font-size:10.5px;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;white-space:nowrap">{{ mc.icon }} {{ mc.name }}</button>
+            </sc-for>
+          </div>
+
+          <div style="position:relative;background:#161922;border:3px solid #1a1a1a;border-radius:20px;box-shadow:4px 4px 0 0 #1a1a1a;overflow:hidden;margin-bottom:24px">
+            <div style="position:relative;height:150px">
+              <image-slot id="menu-hero" shape="rect" src="public/images/sumandak burger.jpg" placeholder="Sumandak Burger photo"></image-slot>
+              <span style="position:absolute;top:12px;left:12px;background:#ef4444;color:#fff;border:2px solid #1a1a1a;font-family:Kanit;font-weight:900;font-size:10.5px;padding:3px 9px;border-radius:6px;transform:rotate(-3deg);white-space:nowrap;pointer-events:none">MUST TRY!</span>
+            </div>
+            <div style="padding:18px;color:#fff">
+              <h2 style="font-size:19px">Sumandak Burger</h2>
+              <p style="font-size:11.5px;color:#94a3b8;font-weight:500;text-transform:none;margin:6px 0 10px">Sambal tuhau, double beef patty, house pickles, melted cheddar</p>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
+                <span style="background:#93d9f8;border:2px solid #1a1a1a;font-family:Kanit;font-weight:700;font-size:9.5px;padding:2px 7px">+20 PTS</span>
+                <span style="color:#FFC72C;font-family:Kanit;font-weight:900;font-size:21px">RM 19.90</span>
+              </div>
+              <a href="#screen-cart" style="display:block;text-align:center;width:100%;background:#c73b0f;color:#fff;border:3px solid #1a1a1a;border-radius:999px;padding:11px;font-family:Kanit;font-weight:800;font-size:13px;box-shadow:3px 3px 0 0 #1a1a1a;cursor:pointer;text-decoration:none;box-sizing:border-box">ADD TO BAG</a>
+            </div>
+          </div>
+
+          <sc-for list="{{ menuSections }}" as="section" hint-placeholder-count="5">
+            <div style="margin-bottom:26px">
+              <div id="{{ section.anchorId }}" style="position:relative;scroll-margin-top:70px;display:flex;align-items:center;gap:13px;padding:13px 15px;background:{{ section.tint }};border:3px solid #1a1a1a;border-radius:16px;box-shadow:4px 4px 0 0 #1a1a1a;margin-bottom:16px;overflow:hidden">
+                <div style="position:absolute;inset:0 auto 0 0;width:9px;background:{{ section.accent }};border-right:3px solid #1a1a1a"></div>
+                <div style="position:absolute;top:-18px;right:-10px;font-family:Kanit;font-weight:900;font-size:66px;color:{{ section.accent }};opacity:.14;letter-spacing:-2px;pointer-events:none">{{ section.name }}</div>
+                <div style="margin-left:9px;width:42px;height:42px;border-radius:50%;background:#fff;border:3px solid #1a1a1a;display:flex;align-items:center;justify-content:center;font-size:21px;flex:none;z-index:1">{{ section.icon }}</div>
+                <div style="z-index:1">
+                  <h3 style="color:{{ section.deep }};font-size:20px;letter-spacing:.2px;white-space:nowrap">{{ section.title }}</h3>
+                  <span style="display:inline-block;margin-top:5px;font-size:9px;font-weight:800;letter-spacing:1.2px;color:#fff;background:{{ section.accent }};border:2px solid #1a1a1a;border-radius:999px;padding:2px 8px;text-transform:uppercase;white-space:nowrap">{{ section.countLabel }}</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <sc-for list="{{ section.items }}" as="item" hint-placeholder-count="2">
+                  <div style="display:flex;background:#fff;border:1px solid #f1f5f9;border-radius:14px;box-shadow:0 3px 10px rgba(0,0,0,.05);overflow:hidden">
+                    <div style="width:100px;flex:none"><image-slot id="{{ item.imgId }}" shape="rect" src="{{ item.src }}" placeholder="{{ item.name }}"></image-slot></div>
+                    <div style="padding:12px;flex:1;display:flex;flex-direction:column;gap:5px">
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+                        <h4 style="font-size:13.5px;color:#1e293b;text-transform:none;font-weight:800">{{ item.name }}</h4>
+                        <span style="background:{{ section.accent }}18;color:{{ section.accent }};border:1px solid {{ section.accent }};font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:6px;white-space:nowrap">{{ section.name }}</span>
+                      </div>
+                      <p style="font-size:11px;color:#64748b;font-weight:500;text-transform:none;margin:0;line-height:1.4">{{ item.desc }}</p>
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+                        <span style="font-family:Kanit;font-weight:900;font-size:15px;color:#1a1a1a">RM {{ item.priceStr }}</span>
+                        <a href="#screen-item" style="background:#FFC72C;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:999px;padding:6px 12px;font-family:Kanit;font-weight:900;font-size:10.5px;box-shadow:2px 2px 0 0 #1a1a1a;cursor:pointer;text-decoration:none;white-space:nowrap">POWER UP</a>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- ITEM DETAIL -->
+    <div id="screen-item" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Item Detail · Customize</div>
+      <div style="width:380px;background:#fff;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden">
+        <div style="height:220px;position:relative"><image-slot id="item-detail" shape="rect" src="public/images/mushy2.jpg" placeholder="Mushy² Burger photo"></image-slot></div>
+        <div style="padding:22px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px">
+            <h2 style="font-size:23px;color:#1e293b">Mushy² Burger</h2>
+            <div style="color:#16a34a;font-family:Kanit;font-weight:900;font-size:18px;white-space:nowrap">RM 18.90</div>
+          </div>
+          <p style="font-size:12.5px;color:#64748b;font-weight:500;text-transform:none;line-height:1.55;margin-bottom:16px">Beef patty smothered in a rich, creamy mushroom sauce with sautéed mushrooms. Prepared fresh daily.</p>
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(199,59,15,.08);border:1px dashed #c73b0f;padding:10px 14px;border-radius:12px;margin-bottom:18px">
+            <span>🎁</span><span style="font-size:12px;color:#1a1a1a;font-weight:500">Points you'll earn: <strong style="color:#c73b0f;font-size:14px">10</strong></span>
+          </div>
+
+          <div style="margin-bottom:18px">
+            <h4 style="font-size:13px;color:#1a1a1a;margin-bottom:10px">Customize Your Order</h4>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ addons }}" as="addon" hint-placeholder-count="3">
+                <label onClick="{{ addon.onToggle }}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;border:2px solid {{ addon.borderColor }};background:{{ addon.bg }};cursor:pointer">
+                  <div><span style="font-weight:700;font-size:13px;color:#1a1a1a">{{ addon.name }}</span><span style="display:block;font-size:11px;color:#c73b0f;font-weight:700;margin-top:2px">+ RM {{ addon.priceStr }}</span></div>
+                  <div style="width:20px;height:20px;border-radius:5px;border:2px solid #1a1a1a;background:{{ addon.boxBg }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:900">{{ addon.checkMark }}</div>
+                </label>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid #e2e8f0;margin-bottom:16px">
+            <span style="font-weight:600;font-size:13.5px;color:#1a1a1a">Quantity</span>
+            <div style="display:flex;align-items:center;gap:14px">
+              <button onClick="{{ decQty }}" style="width:30px;height:30px;border-radius:50%;border:2px solid #1a1a1a;background:#fff;font-weight:800;cursor:pointer">−</button>
+              <span style="font-weight:800;font-size:15px;min-width:16px;text-align:center">{{ qty }}</span>
+              <button onClick="{{ incQty }}" style="width:30px;height:30px;border-radius:50%;border:2px solid #1a1a1a;background:#fff;font-weight:800;cursor:pointer">+</button>
+            </div>
+          </div>
+          <a href="#screen-cart" style="display:block;text-align:center;width:100%;background:#c73b0f;color:#fff;border:3px solid #1a1a1a;border-radius:999px;padding:14px;font-family:Kanit;font-weight:800;font-size:14px;box-shadow:4px 4px 0 0 #1a1a1a;cursor:pointer;text-decoration:none;box-sizing:border-box">ADD TO CART · RM {{ itemTotal }}</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- CART / CHECKOUT (PICKUP) -->
+    <div id="screen-cart" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Cart · Pickup Checkout</div>
+      <div style="width:380px;background:#fff;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden">
+        <div style="background:#1a1a1a;padding:16px 20px;color:#fff;font-family:Kanit;font-weight:900;font-size:16px">YOUR ORDER</div>
+        <div style="padding:18px;display:flex;flex-direction:column;gap:16px">
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ cartItems }}" as="ci" hint-placeholder-count="2">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
+                <div><div style="font-weight:700;font-size:13.5px;color:#1a1a1a">{{ ci.name }}</div><div style="font-size:11px;color:#64748b;font-weight:500;margin-top:2px">RM {{ ci.priceStr }}</div></div>
+                <div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;border-radius:10px;padding:4px 8px">
+                  <span style="font-weight:700">−</span><span style="font-weight:800;font-size:12.5px">{{ ci.qty }}</span><span style="font-weight:700">+</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div>
+            <h4 style="font-size:12px;color:#1a1a1a;margin-bottom:10px">📍 Pickup Store</h4>
+            <div style="display:flex;gap:8px">
+              <sc-for list="{{ stores }}" as="store" hint-placeholder-count="2">
+                <button onClick="{{ store.onClick }}" style="flex:1;padding:10px;border-radius:12px;border:2px solid {{ store.borderColor }};background:{{ store.bg }};text-align:left;cursor:pointer">
+                  <div style="font-weight:800;font-size:11.5px;color:#1a1a1a">{{ store.name }}</div>
+                  <div style="font-size:9.5px;color:#64748b;font-weight:500;margin-top:2px">{{ store.hours }}</div>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+              <h4 style="font-size:12px;color:#1a1a1a">⏱ Pickup Time</h4>
+              <span style="font-size:10px;font-weight:600;color:#64748b">Open 6:00 PM – 12:00 AM</span>
+            </div>
+            <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:10px">
+              <sc-for list="{{ timeSlots }}" as="slot" hint-placeholder-count="4">
+                <button onClick="{{ slot.onClick }}" style="flex:none;padding:9px 14px;border-radius:999px;border:2px solid {{ slot.borderColor }};background:{{ slot.bg }};color:{{ slot.color }};font-weight:800;font-size:11.5px;cursor:pointer;white-space:nowrap">{{ slot.label }}</button>
+              </sc-for>
+            </div>
+            <div style="border:2px solid {{ customBorder }};background:{{ customBg }};border-radius:12px;padding:12px 14px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div onClick="{{ pickCustom }}" style="width:18px;height:18px;border-radius:50%;border:2px solid #1a1a1a;background:{{ customDotBg }};display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="width:7px;height:7px;border-radius:50%;background:{{ customDotInner }}"></span></div>
+                  <span style="font-weight:700;font-size:12px;color:#1a1a1a;white-space:nowrap">Custom time</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <button onClick="{{ nudgeEarlier }}" style="width:28px;height:28px;border-radius:8px;border:2px solid #1a1a1a;background:#fff;font-weight:900;font-size:13px;cursor:pointer;line-height:1">−</button>
+                  <div onClick="{{ pickCustom }}" style="min-width:82px;text-align:center;padding:6px 10px;border:2px solid #1a1a1a;border-radius:8px;background:#fff;font-family:Kanit;font-weight:800;font-size:13.5px;color:#1a1a1a;cursor:pointer;white-space:nowrap">{{ customTimeLabel }}</div>
+                  <button onClick="{{ nudgeLater }}" style="width:28px;height:28px;border-radius:8px;border:2px solid #1a1a1a;background:#fff;font-weight:900;font-size:13px;cursor:pointer;line-height:1">+</button>
+                </div>
+              </div>
+              <div style="font-size:10px;color:{{ customHintColor }};font-weight:600;margin-top:8px">{{ customHint }}</div>
+            </div>
+          </div>
+
+          <div>
+            <h4 style="font-size:12px;color:#1a1a1a;margin-bottom:10px">💳 Payment Method</h4>
+            <div style="display:flex;gap:8px">
+              <sc-for list="{{ paymentMethods }}" as="pm" hint-placeholder-count="2">
+                <button onClick="{{ pm.onClick }}" style="flex:1;padding:12px;border-radius:12px;border:2px solid {{ pm.borderColor }};background:{{ pm.bg }};display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer">
+                  <span style="font-size:19px">{{ pm.icon }}</span><span style="font-weight:700;font-size:11px;color:#1a1a1a">{{ pm.label }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:#f8fafc;border-radius:12px;padding:14px">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;color:#1a1a1a"><span>Total</span><span style="color:#c73b0f">RM {{ cartTotal }}</span></div>
+          </div>
+
+          <a href="#screen-payment" style="display:block;text-align:center;width:100%;background:#c73b0f;color:#fff;border:3px solid #1a1a1a;border-radius:999px;padding:14px;font-family:Kanit;font-weight:800;font-size:14px;box-shadow:4px 4px 0 0 #1a1a1a;cursor:pointer;text-decoration:none;box-sizing:border-box">PLACE PICKUP ORDER</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDER TRACKING -->
+    <div id="screen-tracking" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Order Tracking</div>
+      <div style="width:380px;background:#fff;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden;min-height:600px;display:flex;flex-direction:column">
+        <div style="background:#1a1a1a;padding:16px 20px;color:#fff;font-family:Kanit;font-weight:900;font-size:16px">ORDER STATUS</div>
+        <div style="padding:26px 22px;display:flex;flex-direction:column;align-items:center;text-align:center;flex:1">
+          <div style="font-size:52px;margin-bottom:14px">{{ stageEmoji }}</div>
+          <h2 style="font-size:22px;color:{{ stageColor }}">{{ stageTitle }}</h2>
+          <div style="font-size:12px;font-weight:700;color:#64748b;margin-top:6px">Order #MK-2481</div>
+
+          <div style="display:flex;align-items:center;width:100%;margin:28px 0 22px">
+            <sc-for list="{{ steps }}" as="step" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative">
+                <div style="width:34px;height:34px;border-radius:50%;background:{{ step.circleBg }};border:2px solid #1a1a1a;display:flex;align-items:center;justify-content:center;font-size:15px;z-index:1">{{ step.icon }}</div>
+                <span style="font-size:9px;font-weight:800;color:{{ step.labelColor }};margin-top:6px;text-align:center">{{ step.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:#f8fafc;border-radius:14px;padding:16px;width:100%;text-align:left">
+            <h4 style="font-size:11.5px;color:#1a1a1a;margin-bottom:10px">Your Order</h4>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ trackOrderItems }}" as="oi" hint-placeholder-count="2">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:#334155;font-weight:600"><span>{{ oi.qty }}x {{ oi.name }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <a href="{{ stageActionHref }}" style="display:block;text-align:center;width:100%;margin-top:20px;background:{{ stageActionBg }};color:{{ stageActionColor }};border:3px solid #1a1a1a;border-radius:999px;padding:14px;font-family:Kanit;font-weight:800;font-size:13.5px;box-shadow:4px 4px 0 0 #1a1a1a;cursor:pointer;text-decoration:none;box-sizing:border-box">{{ stageAction }}</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOYALTY -->
+    <div id="screen-loyalty" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Loyalty · Rewards</div>
+      <div style="width:380px;background:#fff;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden">
+        <div style="background:#1a1a1a;padding:16px 20px;color:#fff;font-family:Kanit;font-weight:900;font-size:16px">LOYALTY</div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#fff;border:3px solid #1a1a1a;border-radius:20px;box-shadow:4px 4px 0 0 #1a1a1a;padding:22px;text-align:center;position:relative;overflow:hidden">
+            <div style="position:absolute;top:-40px;right:-16px;font-size:150px;color:#fef3c7;z-index:0">★</div>
+            <div style="width:64px;height:64px;background:#c73b0f;border:3px solid #1a1a1a;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;position:relative;z-index:1">🏆</div>
+            <h2 style="font-size:21px;position:relative;z-index:1">BURGER MASTER</h2>
+            <div style="color:#c73b0f;font-family:Kanit;font-weight:800;font-size:11px;letter-spacing:1px;margin:4px 0 18px;position:relative;z-index:1">1 PT PER RM SPENT</div>
+            <div style="display:flex;justify-content:space-between;font-family:Kanit;font-weight:800;font-size:11px;margin-bottom:8px;position:relative;z-index:1"><span>{{ points }} PTS</span><span>5,000 TARGET</span></div>
+            <div style="height:22px;border:3px solid #1a1a1a;border-radius:999px;background:#e0e0e0;overflow:hidden;position:relative;z-index:1"><div style="height:100%;background:#c73b0f;width:{{ progressPercent }}%"></div></div>
+          </div>
+
+          <div style="display:flex;gap:12px">
+            <a href="#screen-menu" style="flex:1;background:#93d9f8;border:3px solid #1a1a1a;border-radius:16px;padding:18px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:#1a1a1a"><span style="font-size:22px">📱</span><span style="font-family:Kanit;font-weight:700;font-size:11px">Order Now</span></a>
+            <a href="#screen-arcade" style="flex:1;background:#c73b0f;border:3px solid #1a1a1a;border-radius:16px;padding:18px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;text-decoration:none"><span style="font-size:22px">🕹️</span><span style="font-family:Kanit;font-weight:700;font-size:11px">Play to Earn</span></a>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="font-size:15px">Prize Vault</h3><span>🔒</span></div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ prizes }}" as="prize" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:12px;background:#fff;border:3px solid #1a1a1a;border-radius:16px;box-shadow:3px 3px 0 0 #1a1a1a;padding:12px">
+                  <div style="width:52px;height:52px;border-radius:50%;background:#1e293b;border:2px dashed #1a1a1a;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none">🎁</div>
+                  <div style="flex:1"><div style="font-weight:800;font-size:13px;color:#1a1a1a">{{ prize.name }}</div><div style="font-family:Kanit;font-weight:800;font-size:11px;color:#c73b0f;margin-top:2px">{{ prize.cost }} PTS</div></div>
+                  <button style="padding:8px 14px;border-radius:999px;font-family:Kanit;font-weight:800;font-size:10.5px;border:none;cursor:pointer;background:{{ prize.btnBg }};color:#fff;opacity:{{ prize.btnOpacity }}">{{ prize.redeemLabel }}</button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:#1a1a1a;color:#fff;border-radius:16px;padding:18px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span>🕓</span><h3 style="color:#fff;font-size:14px">Point History</h3></div>
+            <sc-for list="{{ pointHistory }}" as="ph" hint-placeholder-count="3">
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #333">
+                <div><div style="font-size:12px">{{ ph.desc }}</div><div style="font-size:9.5px;color:#888;margin-top:2px">{{ ph.date }}</div></div>
+                <div style="font-family:Kanit;font-weight:800;color:#FFC72C;font-size:13px">+{{ ph.amount }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARCADE -->
+    <div id="screen-arcade" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Arcade</div>
+      <div style="width:380px;background:#fff;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden">
+        <div style="background:#1a1a1a;padding:16px 20px;color:#fff;font-family:Kanit;font-weight:900;font-size:16px">ARCADE</div>
+        <div style="padding:18px;display:flex;flex-direction:column;gap:16px">
+
+          <div style="position:relative;background:#E8491D;border:3px solid #1a1a1a;border-radius:20px;box-shadow:4px 4px 0 0 #1a1a1a;padding:22px 18px;overflow:hidden;color:#fff">
+            <div style="position:absolute;right:-24px;bottom:-24px;width:150px;height:150px;border-radius:50%;background:#8c2b0a;border:3px solid #1a1a1a;overflow:hidden">
+              <image-slot id="arcade-prize" shape="circle" src="public/images/cz_chix_burger.png" placeholder="CZ Chix burger"></image-slot>
+            </div>
+            <div style="position:relative;z-index:2;width:66%">
+              <span style="display:inline-block;background:#93d9f8;color:#1a1a1a;border:2px solid #1a1a1a;font-family:Kanit;font-weight:800;font-size:10px;padding:3px 11px;border-radius:999px;margin-bottom:12px;white-space:nowrap">WEEKLY PRIZE</span>
+              <h2 style="font-size:25px;text-shadow:2px 2px 0 #1a1a1a;line-height:1.08">WIN A FREE<br>CZ CHIX<br>BURGER SET!</h2>
+              <p style="font-size:12px;font-weight:500;text-transform:none;margin:8px 0 14px">Rank in the Top 10 to claim your crown!</p>
+              <button style="background:#1a1a1a;color:#fff;border:3px solid #1a1a1a;border-radius:999px;padding:10px 22px;font-family:Kanit;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap">PLAY NOW</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px">
+            <div style="flex:1;background:#fff;border:3px solid #1a1a1a;border-radius:16px;box-shadow:3px 3px 0 0 #1a1a1a;padding:16px 10px;display:flex;flex-direction:column;align-items:center;text-align:center">
+              <span style="font-size:20px">🏅</span>
+              <div style="font-family:Kanit;font-weight:800;font-size:9.5px;letter-spacing:1px;color:#64748b;margin-top:4px">GLOBAL RANK</div>
+              <div style="font-family:Kanit;font-weight:900;font-size:38px;color:#E8491D;text-shadow:2px 2px 0 #1a1a1a;line-height:1.1">#14</div>
+              <span style="background:#f0f0f0;font-family:Kanit;font-weight:700;font-size:9.5px;padding:3px 10px;border-radius:999px;margin-top:6px;white-space:nowrap">top 6% this week</span>
+            </div>
+            <div style="flex:1;background:#1e1b4b;border:3.5px solid #FFC72C;border-radius:16px;box-shadow:4px 4px 0 #14141f;padding:18px 14px;display:flex;flex-direction:column;justify-content:center;gap:10px">
+              <div style="font-family:Kanit;font-weight:800;font-size:14px;color:#FFC72C;letter-spacing:1.5px;text-shadow:2px 2px 0 #14141f">MY POINTS</div>
+              <div style="display:inline-flex;align-items:center;gap:8px;background:#E8491D;border:2.5px solid #14141f;box-shadow:2px 2px 0 #14141f;border-radius:999px;padding:5px 14px 5px 5px;align-self:flex-start">
+                <span style="width:26px;height:26px;background:#FFC72C;border:2px solid #14141f;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px">★</span>
+                <span style="font-family:Kanit;font-weight:800;font-size:16px;color:#fff;white-space:nowrap">{{ points }} PTS</span>
+              </div>
+            </div>
+          </div>
+
+          <h2 style="font-size:22px;color:#1a1a1a">CHOOSE YOUR<br>GAME</h2>
+
+          <div style="background:#fff;border:3px solid #1a1a1a;border-radius:18px;box-shadow:4px 4px 0 0 #1a1a1a;overflow:hidden">
+            <div style="position:relative;height:150px;background:#fff1b8;border-bottom:3px solid #1a1a1a">
+              <image-slot id="arcade-munchman" shape="rect" src="public/images/munchman_game.jpg" placeholder="Munch Man game art"></image-slot>
+              <span style="position:absolute;top:10px;right:10px;background:#1a1a1a;color:#fff;font-family:Kanit;font-weight:800;font-size:10px;padding:4px 12px;border-radius:999px;z-index:5;pointer-events:none">HARD</span>
+            </div>
+            <div style="padding:16px">
+              <h3 style="font-size:19px;color:#1a1a1a">MUNCH MAN</h3>
+              <p style="font-size:12px;color:#64748b;font-weight:500;text-transform:none;line-height:1.45;margin:6px 0 12px">Eat all the dots before the Food Ghosts catch you! Grab a power pellet to turn the tables.</p>
+              <div style="display:flex;gap:18px;font-family:Kanit;font-weight:700;font-size:11.5px;color:#64748b">
+                <span style="display:flex;align-items:center;gap:4px">★ 4.9</span>
+                <span style="display:flex;align-items:center;gap:4px">🕐 1m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYMENT -->
+    <div id="screen-payment" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Payment</div>
+      <div style="width:380px;background:#fff;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden">
+        <div style="background:#1a1a1a;padding:16px 20px;color:#fff;font-family:Kanit;font-weight:900;font-size:16px">PAYMENT</div>
+        <div style="padding:18px;display:flex;flex-direction:column;gap:16px">
+
+          <div style="background:#1e293b;border:2px solid rgba(255,199,44,.4);border-radius:16px;padding:18px;color:#fff;box-shadow:0 8px 20px rgba(0,0,0,.3)">
+            <h3 style="font-size:13.5px;color:#FFC72C;display:flex;align-items:center;gap:8px;margin-bottom:12px">🕐 FULFILLMENT TIMING</h3>
+            <div style="display:flex;gap:10px">
+              <button onClick="{{ setNow }}" style="flex:1.2;padding:13px 10px;border-radius:10px;border:{{ nowBorder }};background:{{ nowBg }};color:#fff;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap">⚡ ORDER NOW</button>
+              <button onClick="{{ setLater }}" style="flex:1;padding:13px 10px;border-radius:10px;border:{{ laterBorder }};background:{{ laterBg }};color:#fff;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap">📅 Schedule</button>
+            </div>
+            <sc-if value="{{ showSchedule }}">
+              <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)">
+                <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">Choose any pickup time (operating hours 6:00 PM – 12:00 AM):</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <button onClick="{{ nudgeEarlier }}" style="width:34px;height:38px;border-radius:8px;border:1.5px solid #38bdf8;background:#0f172a;color:#38bdf8;font-weight:900;font-size:15px;cursor:pointer;line-height:1">−</button>
+                  <div style="flex:1;text-align:center;padding:10px;border-radius:8px;border:1.5px solid #38bdf8;background:#0f172a;font-family:Kanit;font-weight:800;font-size:15px;color:#fff;white-space:nowrap">{{ customTimeLabel }}</div>
+                  <button onClick="{{ nudgeLater }}" style="width:34px;height:38px;border-radius:8px;border:1.5px solid #38bdf8;background:#0f172a;color:#38bdf8;font-weight:900;font-size:15px;cursor:pointer;line-height:1">+</button>
+                </div>
+                <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-top:8px">15-minute steps · clamped to opening hours</div>
+              </div>
+            </sc-if>
+          </div>
+
+          <div>
+            <h3 style="font-size:15px;color:#1a1a1a;margin-bottom:12px">Select Payment Method</h3>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ payOptions }}" as="pay" hint-placeholder-count="3">
+                <div onClick="{{ pay.onClick }}" style="display:flex;align-items:center;gap:14px;padding:14px;border:2px solid {{ pay.borderColor }};background:{{ pay.bg }};border-radius:14px;cursor:pointer">
+                  <span style="font-size:20px">{{ pay.icon }}</span>
+                  <div style="flex:1">
+                    <div style="font-weight:800;font-size:13px;color:#1a1a1a">{{ pay.name }}</div>
+                    <div style="font-size:11px;color:#64748b;font-weight:500;margin-top:2px">{{ pay.desc }}</div>
+                  </div>
+                  <span style="color:#c73b0f;font-size:15px">{{ pay.check }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ showFpx }}">
+              <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:12.5px;font-weight:600;color:#334155">
+                <span>Maybank2U</span><span style="color:#94a3b8">▾</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ showQr }}">
+              <div style="margin-top:10px;border:1px dashed #cbd5e1;border-radius:12px;padding:22px;text-align:center">
+                <div style="font-size:52px;line-height:1">🔲</div>
+                <div style="font-size:11.5px;color:#64748b;margin-top:8px">Scan this code to pay RM 34.80</div>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px">
+            <h4 style="font-size:12px;color:#1a1a1a;margin-bottom:12px">Order Summary</h4>
+            <div style="display:flex;flex-direction:column;gap:7px;padding-bottom:12px;border-bottom:1px solid #e2e8f0">
+              <sc-for list="{{ cartItems }}" as="si" hint-placeholder-count="2">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;font-weight:600"><span>{{ si.qty }}x {{ si.name }}</span><span>RM {{ si.priceStr }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8px;margin:12px 0">
+              <div style="flex:1;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:11.5px;color:#94a3b8;background:#fff">PROMO CODE</div>
+              <div style="padding:9px 16px;background:#1a1a1a;color:#fff;border-radius:8px;font-weight:700;font-size:11.5px;white-space:nowrap">Apply</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:800;color:#1a1a1a;padding-top:10px;border-top:2px solid #f1f5f9"><span>Total to Pay</span><span style="color:#c73b0f">RM 34.80</span></div>
+          </div>
+
+          <a href="#screen-tracking" style="display:block;text-align:center;width:100%;background:#c73b0f;color:#fff;border:3px solid #1a1a1a;border-radius:999px;padding:14px;font-family:Kanit;font-weight:800;font-size:14px;box-shadow:4px 4px 0 0 #1a1a1a;cursor:pointer;text-decoration:none;box-sizing:border-box">PAY RM 34.80</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="screen-profile" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Profile</div>
+      <div style="width:380px;background:#fff;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden">
+        <div style="background:#1a1a1a;padding:16px 20px;color:#fff;font-family:Kanit;font-weight:900;font-size:16px">MY PROFILE</div>
+        <div style="padding:18px;display:flex;flex-direction:column;gap:16px">
+
+          <div style="border:1px solid #e2e8f0;border-radius:14px;padding:18px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid #e2e8f0;margin-bottom:14px">
+              <h3 style="font-size:15px;color:#1a1a1a">Personal Info</h3>
+              <button style="padding:5px 14px;font-size:11px;font-weight:700;border:2px solid #1a1a1a;background:#fff;border-radius:999px;cursor:pointer">Edit</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ profileFields }}" as="pf" hint-placeholder-count="4">
+                <div>
+                  <div style="font-size:11.5px;color:#64748b;margin-bottom:2px">{{ pf.label }}</div>
+                  <div style="font-size:13.5px;font-weight:600;color:#1a1a1a">{{ pf.value }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="margin-top:20px;padding:16px;background:rgba(199,59,15,.08);border:1px dashed #c73b0f;border-radius:12px">
+              <h4 style="font-size:13px;color:#c73b0f">MunchiesKK Rewards</h4>
+              <div style="font-family:Kanit;font-weight:900;font-size:30px;color:#c73b0f;margin:6px 0 12px">{{ points }} <span style="font-size:15px;color:#64748b">pts</span></div>
+              <a href="#screen-loyalty" style="display:block;text-align:center;width:100%;background:#c73b0f;color:#fff;border:3px solid #1a1a1a;border-radius:999px;padding:11px;font-family:Kanit;font-weight:800;font-size:12.5px;box-shadow:3px 3px 0 0 #1a1a1a;cursor:pointer;text-decoration:none;box-sizing:border-box">VIEW PRIZE VAULT</a>
+            </div>
+
+            <div style="margin-top:20px">
+              <h3 style="font-size:13.5px;color:#1a1a1a;margin-bottom:4px">Share Referral Link</h3>
+              <p style="font-size:11.5px;color:#64748b;font-weight:500;text-transform:none;margin:0 0 10px">Invite friends and get rewarded when they order!</p>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#64748b;font-size:10.5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">munchieskk.com/signup?ref=ALF29</div>
+                <div style="padding:9px 14px;background:#1a1a1a;color:#fff;border-radius:8px;font-weight:700;font-size:11.5px;white-space:nowrap">Copy</div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+              <button style="width:100%;background:#25d366;color:#fff;border:3px solid #1a1a1a;border-radius:999px;padding:12px;font-family:Kanit;font-weight:800;font-size:12.5px;box-shadow:3px 3px 0 0 #1a1a1a;cursor:pointer">💬 SUPPORT VIA WHATSAPP</button>
+              <a href="#screen-login" style="display:block;text-align:center;width:100%;background:#ef4444;color:#fff;border:3px solid #1a1a1a;border-radius:999px;padding:12px;font-family:Kanit;font-weight:800;font-size:12.5px;box-shadow:3px 3px 0 0 #1a1a1a;cursor:pointer;text-decoration:none;box-sizing:border-box">LOGOUT</a>
+            </div>
+          </div>
+
+          <div style="border:1px solid #e2e8f0;border-radius:14px;padding:18px">
+            <h3 style="font-size:15px;color:#1a1a1a;padding-bottom:10px;border-bottom:1px solid #e2e8f0;margin-bottom:14px">Order History</h3>
+            <div style="display:flex;flex-direction:column;gap:11px">
+              <sc-for list="{{ orderHistory }}" as="oh" hint-placeholder-count="3">
+                <div style="border:1px solid #e2e8f0;border-radius:10px;padding:12px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    <span style="font-weight:700;font-size:12.5px;color:#1a1a1a">▾ #{{ oh.id }}</span>
+                    <span style="font-size:11px;color:#64748b">{{ oh.date }}</span>
+                  </div>
+                  <div style="font-weight:700;font-size:12.5px;color:#c73b0f">RM {{ oh.total }} — <span style="color:#16a34a">{{ oh.status }}</span></div>
+                  <div style="font-size:10.5px;color:#94a3b8;margin-top:3px">Paid via: {{ oh.paid }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="screen-login" style="flex:none">
+      <div style="font-family:Kanit;font-weight:800;font-size:13px;letter-spacing:.5px;color:#1a1a1a;text-transform:uppercase;margin-bottom:10px">Login</div>
+      <div style="width:380px;box-sizing:border-box;background:#f4f1ea;border:3px solid #1a1a1a;border-radius:28px;box-shadow:6px 6px 0 0 #1a1a1a;overflow:hidden;min-height:600px;display:flex;align-items:center;justify-content:center;padding:26px">
+        <div style="background:#fff;border:3px solid #1a1a1a;border-radius:20px;box-shadow:5px 5px 0 0 #1a1a1a;padding:26px 22px;width:100%">
+          <div style="width:76px;height:76px;border-radius:50%;overflow:hidden;border:3px solid #1a1a1a;margin:0 auto 14px">
+            <image-slot id="login-logo" shape="circle" src="public/images/logo.png" placeholder="Munchies KK logo"></image-slot>
+          </div>
+          <h2 style="font-size:22px;text-align:center;color:#1a1a1a">Welcome Back</h2>
+          <p style="font-size:12.5px;color:#64748b;text-align:center;font-weight:500;text-transform:none;margin:6px 0 22px">Please log in to continue.</p>
+
+          <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#1a1a1a;margin-bottom:6px">Email Address</div>
+              <div style="padding:11px 13px;border:2px solid #1a1a1a;border-radius:10px;font-size:12.5px;color:#94a3b8;background:#fff">you@example.com</div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <span style="font-size:12px;font-weight:600;color:#1a1a1a">Password</span>
+                <span style="font-size:10.5px;color:#c73b0f;font-weight:600">Forgot Password?</span>
+              </div>
+              <div style="padding:11px 13px;border:2px solid #1a1a1a;border-radius:10px;font-size:12.5px;color:#94a3b8;background:#fff">••••••••</div>
+            </div>
+            <a href="#screen-home" style="display:block;text-align:center;width:100%;background:#c73b0f;color:#fff;border:3px solid #1a1a1a;border-radius:999px;padding:13px;font-family:Kanit;font-weight:800;font-size:13.5px;box-shadow:4px 4px 0 0 #1a1a1a;cursor:pointer;text-decoration:none;box-sizing:border-box">SIGN IN</a>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;margin:18px 0;color:#94a3b8;font-size:11px;font-weight:600">
+            <div style="flex:1;height:1px;background:#e2e8f0"></div>OR<div style="flex:1;height:1px;background:#e2e8f0"></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button style="width:100%;background:#fff;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:999px;padding:11px;font-weight:700;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer">✉ Continue with Google</button>
+            <button style="width:100%;background:#fff;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:999px;padding:11px;font-weight:700;font-size:12.5px;cursor:pointer">Continue with Facebook</button>
+          </div>
+
+          <p style="text-align:center;font-size:11.5px;color:#64748b;font-weight:500;text-transform:none;margin-top:18px">Don't have an account? <span style="font-weight:700;color:#c73b0f">Sign up</span></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    payMethod: 'TNG',
+    orderMode: 'NOW',
+    orderStage: 'COOKING',
+    menuCat: 'PREMIUM',
+    addon1: true, addon2: false, addon3: false,
+    qty: 1,
+    storeIdx: 0,
+    slotIdx: 1,
+    useCustomTime: false,
+    customMinutes: 20 * 60 + 15,
+    paymentIdx: 0,
+  };
+
+  categoriesData = [
+    { name: 'BBQ', icon: '🔥', href: '#cat-BBQ' }, { name: 'Premium', icon: '👑', href: '#cat-PREMIUM' },
+    { name: 'Platters', icon: '🍽️', href: '#cat-PLATTERS' }, { name: 'Sides', icon: '🥗', href: '#cat-SIDES' },
+    { name: 'Drinks', icon: '🥤', href: '#cat-DRINKS' },
+  ];
+  menuCatData = [
+    { key: 'BBQ', name: 'BBQ', icon: '🔥' }, { key: 'PREMIUM', name: 'PREMIUM', icon: '👑' },
+    { key: 'PLATTERS', name: 'PLATTERS', icon: '🍽️' }, { key: 'SIDES', name: 'SIDES', icon: '🥗' },
+    { key: 'DRINKS', name: 'DRINKS', icon: '🥤' },
+  ];
+  featuredData = [
+    { name: 'Mamacita Burger', priceStr: '18.90', imgId: 'mamacita', src: 'public/images/mamacita.jpg' },
+    { name: 'Monster Fries', priceStr: '14.90', imgId: 'fries', src: 'public/images/monsta_fries.jpg' },
+  ];
+  navData = [
+    { icon: '🏠', label: 'Home', active: true, href: '#screen-home' }, { icon: '📋', label: 'Menu', active: false, href: '#screen-menu' },
+    { icon: '🕹️', label: 'Arcade', active: false, href: '#screen-arcade' }, { icon: '🎁', label: 'Loyalty', active: false, href: '#screen-loyalty' },
+    { icon: '👤', label: 'Profile', active: false, href: '#screen-profile' },
+  ];
+  menuSectionsData = [
+    { key: 'BBQ', name: 'BBQ', title: 'BBQ Signature', icon: '🔥', accent: '#E8650A', tint: '#FFF0E6', deep: '#9C3D00', items: [
+      { name: 'BBQ Chicken Burger', priceStr: '17.90', desc: 'Grilled chicken thigh, smoky BBQ glaze, slaw.', imgId: 'bbq-chicken', src: 'public/images/bbq_chicken.jpg' },
+      { name: 'BBQ Lamb Burger', priceStr: '22.90', desc: 'Char-grilled lamb patty, BBQ sauce, caramelised onions.', imgId: 'bbq-lamb', src: 'public/images/bbq_lamb.jpg' },
+    ] },
+    { key: 'PREMIUM', name: 'PREMIUM', title: 'Premium', icon: '👑', accent: '#9B30C9', tint: '#FBE9FF', deep: '#6B1D87', items: [
+      { name: 'Mamacita Burger', priceStr: '18.90', desc: 'Fresh salsa, tangy kick, juicy beef patty.', imgId: 'mamacita-menu', src: 'public/images/mamacita.jpg' },
+      { name: 'Big G Burger', priceStr: '21.90', desc: 'Double beef, double cheese, house sauce.', imgId: 'bigg', src: 'public/images/BigG.jpg' },
+    ] },
+    { key: 'PLATTERS', name: 'PLATTERS', title: 'Platters', icon: '🍽️', accent: '#D4A017', tint: '#FFF5E0', deep: '#8B6914', items: [
+      { name: 'Premium Platter', priceStr: '45.00', desc: 'Two burgers, meatballs, loaded fries — built for sharing.', imgId: 'platter', src: 'public/images/premium_platter.jpg' },
+    ] },
+    { key: 'SIDES', name: 'SIDES', title: 'Sides', icon: '🥗', accent: '#1DAA54', tint: '#E6FFF0', deep: '#0E6930', items: [
+      { name: 'Monster Fries', priceStr: '14.90', desc: 'Crispy fries loaded with beef strips & nacho cheese.', imgId: 'monster-fries', src: 'public/images/monsta_fries.jpg' },
+      { name: 'Cheese Fries', priceStr: '12.90', desc: 'Classic fries smothered in melted cheese sauce.', imgId: 'cheese-fries', src: 'public/images/cheese_fries.png' },
+    ] },
+    { key: 'DRINKS', name: 'DRINKS', title: 'Drinks', icon: '🥤', accent: '#2E7DD6', tint: '#E6F0FF', deep: '#1A4C8B', items: [
+      { name: 'Iced Lemon Tea', priceStr: '6.00', desc: 'Refreshing house-brewed iced lemon tea.', imgId: 'lemon-tea', src: 'public/images/iced_lemon_tea.png' },
+      { name: 'Shake Match', priceStr: '9.90', desc: 'Thick matcha milkshake, topped with whipped cream.', imgId: 'shake', src: 'public/images/shake_match.png' },
+    ] },
+  ];
+  addonsData = [
+    { key: 'addon1', name: 'Extra Cheese', priceStr: '2.00' },
+    { key: 'addon2', name: 'Beef Bacon', priceStr: '3.50' },
+    { key: 'addon3', name: 'Fried Egg', priceStr: '2.50' },
+  ];
+  storesData = [
+    { name: 'Penampang', hours: 'Daily · 6PM–12AM' },
+    { name: 'Menggatal', hours: 'Delivery/pickup varies' },
+  ];
+  slotsData = ['6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM'];
+  paymentData = [
+    { icon: '💳', label: 'Card' }, { icon: '📱', label: "e-Wallet (TnG/Grab)" },
+  ];
+  cartItemsData = [
+    { name: 'Sumandak Burger', priceStr: '19.90', qty: 1 },
+    { name: 'Monster Fries', priceStr: '14.90', qty: 1 },
+  ];
+  prizesData = [
+    { name: 'Free Regular Fries', cost: 300 },
+    { name: 'Free Iced Lemon Tea', cost: 400 },
+    { name: 'Free Burger of Choice', cost: 500 },
+  ];
+  historyData = [
+    { desc: 'Order #MK-2470 collected', date: '2 days ago', amount: 24 },
+    { desc: 'Munch-Man arcade bonus', date: '4 days ago', amount: 15 },
+    { desc: 'Social share bonus', date: '1 week ago', amount: 30 },
+  ];
+  trackItemsData = [ { name: 'Sumandak Burger', qty: 1 }, { name: 'Monster Fries', qty: 1 } ];
+
+  payMethodsData = [
+    { key: 'TNG', icon: '💳', name: "Touch 'n Go eWallet", desc: 'Pay instantly with your TNG app.' },
+    { key: 'FPX', icon: '🏦', name: 'FPX Online Banking', desc: 'Secure transfer from Malaysian banks.' },
+    { key: 'QR', icon: '🔲', name: 'DuitNow QR', desc: 'Scan to pay with any supported app.' },
+  ];
+  orderHistoryData = [
+    { id: 'MK-2470', date: '20 Aug 2026', total: '34.80', status: 'COLLECTED', paid: 'Touch \u2019n Go' },
+    { id: 'MK-2455', date: '16 Aug 2026', total: '21.90', status: 'COLLECTED', paid: 'DuitNow QR' },
+    { id: 'MK-2431', date: '09 Aug 2026', total: '52.70', status: 'COLLECTED', paid: 'FPX (Maybank2U)' },
+  ];
+  profileFieldsData = [
+    { label: 'Full Name', value: 'Aliff Rahman' },
+    { label: 'Email', value: 'aliff@example.com' },
+    { label: 'Phone', value: '+60 13 842 5510' },
+    { label: 'Address', value: 'Kg. Tunoh, Penampang, Sabah' },
+  ];
+
+  stageData = {
+    PENDING:   { emoji: '⏳', title: 'ORDER RECEIVED!', color: '#c73b0f', action: 'CANCEL ORDER', actionBg: '#fff', actionColor: '#ff5b5b', href: '#screen-cart' },
+    COOKING:   { emoji: '🔥', title: 'ORDER IN KITCHEN', color: '#c73b0f', action: 'VIEW ORDER DETAILS', actionBg: '#1a1a1a', actionColor: '#fff', href: '#screen-profile' },
+    READY:     { emoji: '✅', title: "IT'S READY!", color: '#16a34a', action: 'TAP TO COLLECT', actionBg: '#c73b0f', actionColor: '#fff', href: '#screen-home' },
+    COLLECTED: { emoji: '🎉', title: 'ENJOY YOUR MEAL!', color: '#1a1a1a', action: 'BACK TO HOME', actionBg: '#1a1a1a', actionColor: '#fff', href: '#screen-home' },
+  };
+  stepOrder = ['PENDING', 'COOKING', 'READY', 'COLLECTED'];
+  stepMeta = [
+    { key: 'PENDING', label: 'Received', icon: '⏳' }, { key: 'COOKING', label: 'Preparing', icon: '🔥' },
+    { key: 'READY', label: 'Ready', icon: '✅' }, { key: 'COLLECTED', label: 'Collected', icon: '🎉' },
+  ];
+
+  OPEN_MIN = 18 * 60;
+  CLOSE_MIN = 23 * 60 + 45;
+
+  fmtMinutes(m) {
+    const h24 = Math.floor(m / 60) % 24, mm = m % 60;
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
+    const h = h24 % 12 === 0 ? 12 : h24 % 12;
+    return `${h}:${String(mm).padStart(2, '0')} ${ampm}`;
+  }
+
+  renderVals() {
+    const custom = this.state.useCustomTime;
+    const points = 2840;
+    const targetCost = 5000;
+    const pointsAway = Math.max(0, targetCost - points);
+    const progressPercent = Math.min(100, Math.round((points / targetCost) * 100));
+
+    const addons = this.addonsData.map(a => {
+      const selected = this.state[a.key];
+      return { ...a, selected,
+        borderColor: selected ? '#c73b0f' : '#1a1a1a',
+        bg: selected ? 'rgba(199,59,15,.06)' : '#fff',
+        boxBg: selected ? '#c73b0f' : '#fff',
+        checkMark: selected ? '✓' : '',
+        onToggle: () => this.setState({ [a.key]: !this.state[a.key] }) };
+    });
+    const addonTotal = addons.filter(a => a.selected).reduce((s, a) => s + parseFloat(a.priceStr), 0);
+    const basePrice = 18.90;
+    const itemTotal = ((basePrice + addonTotal) * this.state.qty).toFixed(2);
+
+    const stageIdx = this.stepOrder.indexOf(this.state.orderStage);
+    const steps = this.stepMeta.map((s, i) => {
+      const done = i < stageIdx, active = i === stageIdx;
+      return { ...s, done, active,
+        circleBg: done ? '#16a34a' : (active ? '#FFC72C' : '#e2e8f0'),
+        labelColor: (done || active) ? '#1a1a1a' : '#94a3b8' };
+    });
+    const stage = this.stageData[this.state.orderStage];
+
+    const menuSections = this.menuSectionsData;
+
+    return {
+      points, pointsAwayMsg: `You're ${pointsAway.toLocaleString()} pts away from a FREE BURGER.`, progressPercent,
+      categories: this.categoriesData,
+      featuredItems: this.featuredData,
+      navItems: this.navData.map(n => ({ ...n, bg: n.active ? '#c73b0f' : 'transparent', color: n.active ? '#fff' : '#1a1a1a' })),
+      menuCategories: this.menuCatData.map(c => {
+        const active = c.key === this.state.menuCat;
+        return { ...c, active, bg: active ? '#FFC72C' : '#2A2F3A', color: active ? '#1a1a2e' : '#fff', onClick: () => this.setState({ menuCat: c.key }) };
+      }),
+      menuSections: menuSections.map(s => ({ ...s, anchorId: 'cat-' + s.key, countLabel: s.items.length + (s.items.length === 1 ? ' item' : ' items') })),
+      addons,
+      qty: this.state.qty,
+      incQty: () => this.setState(s => ({ qty: s.qty + 1 })),
+      decQty: () => this.setState(s => ({ qty: Math.max(1, s.qty - 1) })),
+      itemTotal,
+      cartItems: this.cartItemsData,
+      stores: this.storesData.map((s, i) => {
+        const active = i === this.state.storeIdx;
+        return { ...s, active, borderColor: active ? '#c73b0f' : '#e2e8f0', bg: active ? 'rgba(199,59,15,.06)' : '#fff', onClick: () => this.setState({ storeIdx: i }) };
+      }),
+      timeSlots: this.slotsData.map((label, i) => {
+        const active = !this.state.useCustomTime && i === this.state.slotIdx;
+        return { label, active, borderColor: active ? '#c73b0f' : '#1a1a1a', bg: active ? '#c73b0f' : '#fff', color: active ? '#fff' : '#1a1a1a',
+          onClick: () => this.setState({ slotIdx: i, useCustomTime: false }) };
+      }),
+      customBorder: custom ? '#c73b0f' : '#e2e8f0',
+      customBg: custom ? 'rgba(199,59,15,.06)' : '#fff',
+      customDotBg: custom ? '#c73b0f' : '#fff',
+      customDotInner: custom ? '#fff' : 'transparent',
+      customTimeLabel: this.fmtMinutes(this.state.customMinutes),
+      customHint: custom ? `Ready for collection at ${this.fmtMinutes(this.state.customMinutes)} · within opening hours` : 'Tap to set any time in 15-min steps',
+      customHintColor: custom ? '#16a34a' : '#94a3b8',
+      pickCustom: () => this.setState({ useCustomTime: true }),
+      nudgeEarlier: () => this.setState(s => ({ useCustomTime: true, customMinutes: Math.max(this.OPEN_MIN, s.customMinutes - 15) })),
+      nudgeLater: () => this.setState(s => ({ useCustomTime: true, customMinutes: Math.min(this.CLOSE_MIN, s.customMinutes + 15) })),
+      paymentMethods: this.paymentData.map((p, i) => {
+        const active = i === this.state.paymentIdx;
+        return { ...p, active, borderColor: active ? '#c73b0f' : '#e2e8f0', bg: active ? 'rgba(199,59,15,.06)' : '#fff', onClick: () => this.setState({ paymentIdx: i }) };
+      }),
+      cartTotal: '34.80',
+      stageOptions: this.stepOrder.map(k => {
+        const active = k === this.state.orderStage;
+        return { label: this.stageData[k].title, active, bg: active ? '#c73b0f' : '#fff', color: active ? '#fff' : '#1a1a1a', shadow: active ? '3px 3px 0 0 #1a1a1a' : 'none', onClick: () => this.setState({ orderStage: k }) };
+      }),
+      stageEmoji: stage.emoji, stageTitle: stage.title, stageColor: stage.color,
+      stageAction: stage.action, stageActionBg: stage.actionBg, stageActionColor: stage.actionColor, stageActionHref: stage.href,
+      steps,
+      trackOrderItems: this.trackItemsData,
+      prizes: this.prizesData.map(p => {
+        const canRedeem = points >= p.cost;
+        return { ...p, canRedeem, btnBg: canRedeem ? '#c73b0f' : '#1a1a1a', btnOpacity: canRedeem ? 1 : 0.6, redeemLabel: canRedeem ? 'REDEEM' : 'LOCKED' };
+      }),
+      pointHistory: this.historyData,
+      payOptions: this.payMethodsData.map(p => {
+        const active = p.key === this.state.payMethod;
+        return { ...p, active, borderColor: active ? '#c73b0f' : '#e2e8f0', bg: active ? 'rgba(199,59,15,.07)' : '#fff',
+          check: active ? '●' : '○', onClick: () => this.setState({ payMethod: p.key }) };
+      }),
+      showFpx: this.state.payMethod === 'FPX',
+      showQr: this.state.payMethod === 'QR',
+      nowActive: this.state.orderMode === 'NOW',
+      nowBg: this.state.orderMode === 'NOW' ? '#E8491D' : '#0f172a',
+      nowBorder: this.state.orderMode === 'NOW' ? '3px solid #FFC72C' : '1px solid #475569',
+      laterBg: this.state.orderMode === 'SCHEDULED' ? '#0284c7' : '#0f172a',
+      laterBorder: this.state.orderMode === 'SCHEDULED' ? '3px solid #FFC72C' : '1px solid #475569',
+      showSchedule: this.state.orderMode === 'SCHEDULED',
+      setNow: () => this.setState({ orderMode: 'NOW' }),
+      setLater: () => this.setState({ orderMode: 'SCHEDULED' }),
+      orderHistory: this.orderHistoryData,
+      profileFields: this.profileFieldsData,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
