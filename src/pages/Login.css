@@ -4,15 +4,15 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-4);
-  background-color: var(--bg-color);
+  background-color: var(--munchies-canvas);
 }
 
 .login-card {
-  background-color: var(--surface-color);
-  padding: var(--space-8);
+  background-color: var(--munchies-white);
+  padding: var(--space-6) var(--space-4);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border-color);
+  border: var(--border-thick);
+  box-shadow: 5px 5px 0px 0px var(--munchies-dark);
   width: 100%;
   max-width: 400px;
   text-align: center;
@@ -28,12 +28,28 @@
 .form-group label {
   display: block;
   margin-bottom: var(--space-2);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
 
 .form-group input {
   width: 100%;
-  padding: var(--space-3);
+  padding: 0.7rem 0.85rem;
+  border: 2px solid var(--munchies-dark);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  background-color: var(--munchies-white);
+  color: var(--text-main);
+}
+
+.form-group input::placeholder {
+  color: #94a3b8;
+}
+
+.form-group input:focus {
+  outline: none;
+  box-shadow: 2px 2px 0px 0px var(--munchies-dark);
 }
 
 .mb-4 {
@@ -52,13 +68,14 @@
 .login-divider::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .login-divider span {
   padding: 0 var(--space-4);
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-heading);
 }
 
 .social-login-group {
@@ -74,15 +91,26 @@
   justify-content: center;
   gap: var(--space-2);
   width: 100%;
+  background-color: var(--munchies-white);
+  color: var(--munchies-dark);
+  border: 2px solid var(--munchies-dark);
+  box-shadow: none;
+}
+
+.social-btn:hover {
+  box-shadow: 3px 3px 0px 0px var(--munchies-dark);
 }
 
 .signup-prompt {
   margin-top: var(--space-4);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .signup-prompt a {
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--munchies-orange);
   text-decoration: none;
 }
 

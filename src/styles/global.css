@@ -143,6 +143,17 @@ button {
   background-color: var(--munchies-yellow);
   color: var(--munchies-dark);
 }
+
+.btn-outline {
+  background-color: var(--munchies-white);
+  color: var(--munchies-dark);
+  border: 2px solid var(--munchies-dark);
+  box-shadow: none;
+}
+
+.btn-outline:hover {
+  box-shadow: 3px 3px 0px 0px var(--munchies-dark);
+}
 .btn-danger {
   background-color: var(--danger-color);
   color: var(--munchies-white);

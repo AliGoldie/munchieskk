@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../config/supabase';
 import { Mail } from 'lucide-react';
 import './Login.css';
 
@@ -17,7 +18,32 @@ export default function Signup() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [infoMessage, setInfoMessage] = useState('');
   const navigate = useNavigate();
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (isResetting) return;
+    setError('');
+    setInfoMessage('');
+    if (!formData.email) {
+      setError('Please enter your email address above to reset your password.');
+      return;
+    }
+    setIsResetting(true);
+    try {
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+      if (resetErr) throw resetErr;
+      setInfoMessage('Password reset link sent! Check your email inbox.');
+    } catch (err) {
+      setError(err.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -56,6 +82,12 @@ export default function Signup() {
           </div>
         )}
 
+        {infoMessage && (
+          <div style={{color: '#16a34a', backgroundColor: 'rgba(22,163,74,0.1)', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem', textAlign: 'center'}}>
+            {infoMessage}
+          </div>
+        )}
+
         <form onSubmit={handleInitialSubmit} className="login-form">
           <div className="form-group">
             <label>Full Name</label>
@@ -83,14 +115,13 @@ export default function Signup() {
           <div className="form-group">
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <label>Password</label>
-              <a href="#" onClick={async (e) => {
-                e.preventDefault();
-                if (!formData.email) {
-                  alert('Please enter your email address first to reset your password.');
-                  return;
-                }
-                alert('If an account exists for that email, a password reset link has been sent!');
-              }} style={{fontSize: '0.8rem', color: 'var(--munchies-primary)', textDecoration: 'none'}}>Forgot Password?</a>
+              <a
+                href="#"
+                onClick={handleForgotPassword}
+                style={{fontSize: '0.8rem', color: 'var(--munchies-orange)', fontWeight: 600, textDecoration: 'none', cursor: isResetting ? 'wait' : 'pointer', opacity: isResetting ? 0.6 : 1}}
+              >
+                {isResetting ? 'Sending link...' : 'Forgot Password?'}
+              </a>
             </div>
             <input type="password" name="password" className="price-input" value={formData.password} onChange={handleChange} required />
           </div>
