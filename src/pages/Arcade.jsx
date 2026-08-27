@@ -1,36 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Award, Star, Clock } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import MunchManModal from '../components/MunchManModal';
 import './Arcade.css';
 
 export default function Arcade() {
-  const { user, points } = useStore();
+  const { points } = useStore();
+  const { user } = useAuth();
   const [isMunchManOpen, setIsMunchManOpen] = useState(false);
   const [globalRank, setGlobalRank] = useState(null);
   const [rankPercentile, setRankPercentile] = useState(null);
 
   useEffect(() => {
     const fetchGlobalRank = async () => {
-      const userPoints = points || 0;
+      if (!user?.id) {
+        setGlobalRank(null);
+        setRankPercentile(null);
+        return;
+      }
       try {
-        const { count: higherCount } = await supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true })
-          .gt('points', userPoints);
-
-        const { count: totalCount } = await supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true });
-
-        const currentRank = (higherCount || 0) + 1;
-        setGlobalRank(currentRank);
-
-        if (totalCount && totalCount > 0) {
-          const topPercent = Math.max(1, Math.round((currentRank / totalCount) * 100));
-          setRankPercentile(topPercent);
-        }
+        const { data, error } = await supabase.rpc('get_user_rank');
+        if (error) throw error;
+        setGlobalRank(data?.rank ?? null);
+        setRankPercentile(data?.percentile ?? null);
       } catch (err) {
         console.error('Error fetching global rank:', err);
       }
