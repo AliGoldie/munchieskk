@@ -8,7 +8,7 @@ import './OrderStatus.css';
 
 export default function OrderStatus() {
   const { id } = useParams();
-  const { fetchSingleOrder, updateOrderState, addPoints, claimShareBonus, cancelOrder } = useStore();
+  const { fetchSingleOrder, updateOrderState, claimShareBonus, cancelOrder } = useStore();
   const [order, setOrder] = useState(null);
   // True until the first fetch attempt completes (success or failure).
   // Prevents the Navigate guard from firing before the fetch resolves.
@@ -84,7 +84,7 @@ export default function OrderStatus() {
     
     const shareData = {
       title: 'MunchiesKK',
-      text: 'Just enjoyed delicious smash burgers from MunchiesKK! ???? #MunchiesKK',
+      text: 'Just enjoyed delicious smash burgers from MunchiesKK! 🍔🔥 #MunchiesKK',
       url: window.location.origin
     };
 

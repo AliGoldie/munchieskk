@@ -78,7 +78,7 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
         {/* Add-ons Section */}
         {availableAddons.length > 0 && (
           <div className="modal-addons-section">
-            <h3 className="modal-addons-title">?? Customize Your Order</h3>
+            <h3 className="modal-addons-title">🎨 Customize Your Order</h3>
             <div className="modal-addons-list">
               {availableAddons.map(addon => {
                 const isOutOfStock = addon.stock_quantity !== undefined && addon.stock_quantity <= 0;
@@ -144,7 +144,7 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
           disabled={!item.inStock}
           onClick={handleAddToCart}
         >
-          {editMode ? 'Save Changes' : (item.inStock ? `Add to Cart � RM ${(totalPrice / 100).toFixed(2)}` : 'Sold Out')}
+          {editMode ? 'Save Changes' : (item.inStock ? `Add to Cart • RM ${(totalPrice / 100).toFixed(2)}` : 'Sold Out')}
         </button>
       </div>
     </Modal>

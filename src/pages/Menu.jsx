@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Award } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
@@ -18,7 +18,7 @@ const CATEGORY_COLORS = {
 const DEFAULT_COLOR = { bg: '#F5F5F5', tint: '#E0E0E0', text: '#333', accent: '#666', icon: '📦' };
 
 export default function Menu() {
-  const { menu, addToCart, isPromoActive } = useStore();
+  const { menu, isPromoActive } = useStore();
 
   const PromoCountdown = ({ promoEnd }) => {
     const [timeLeft, setTimeLeft] = useState('');
@@ -60,8 +60,6 @@ export default function Menu() {
   const CATEGORY_ORDER = ['BBQ', 'PREMIUM', 'PLATTERS', 'SIDES', 'DRINKS'];
   const existingCategories = new Set(menu.map(item => item.category));
   const categories = CATEGORY_ORDER.filter(cat => existingCategories.has(cat));
-
-  const activeColors = CATEGORY_COLORS[activeCategory] || DEFAULT_COLOR;
 
   // Set initial active category
   useEffect(() => {

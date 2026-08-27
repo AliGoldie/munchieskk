@@ -7,7 +7,7 @@ import ItemModal from '../components/ItemModal';
 import './Cart.css';
 
 export default function Cart() {
-  const { cart, cartTotal, removeFromCart, updateQuantity, addToCart, menu, itemAddons, updateCartItemAddons } = useStore();
+  const { cart, cartTotal, removeFromCart, updateQuantity, addToCart, menu, updateCartItemAddons } = useStore();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [addedIds, setAddedIds] = useState({});

@@ -154,7 +154,7 @@ export default function Login() {
                 cursor: 'pointer'
               }}
             >
-              ? Quick Dev Admin Login (Localhost Only)
+              🛠️ Quick Dev Admin Login (Localhost Only)
             </button>
           </div>
         )}
