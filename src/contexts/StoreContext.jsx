@@ -8,7 +8,6 @@ export const formatOrderId = (id) => {
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
-import { calculateOrderPoints } from '../utils/pointsCalculator';
 import { parseTimeToMinutes } from '../utils/timeUtils';
 
 const StoreContext = createContext();
@@ -216,7 +215,10 @@ export function StoreProvider({ children }) {
 
     fetchInitialData();
 
-    // Set up Realtime subscriptions (with duplicate prevention for optimistic updates)
+    // Set up Realtime subscriptions for PUBLIC data only (with duplicate prevention
+    // for optimistic updates). This channel is open to every visitor, logged in or
+    // not, so it must never carry orders/profiles data — see the private channel
+    // below for that, scoped per-role/per-user.
     const channel = supabase.channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, payload => {
         if (payload.new) {
@@ -242,14 +244,6 @@ export function StoreProvider({ children }) {
           setMenu(prev => prev.map(item => String(item.id) === String(payload.new.id) ? { ...payload.new, inStock: payload.new.in_stock, low_stock_threshold: payload.new.low_stock_threshold ?? 10 } : item));
         }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
-        if (payload.eventType === 'INSERT') {
-          setOrders(prev => prev.some(o => o.id === payload.new.id) ? prev : [payload.new, ...prev]);
-        } else if (payload.eventType === 'UPDATE') {
-          console.log(`[REALTIME LAG TEST] Realtime Event Received for ${payload.new.id} with status ${payload.new.status}: ${Date.now()}`);
-          setOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
-        }
-      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'addons' }, payload => {
         if (payload.eventType === 'INSERT') setAddons(prev => prev.some(a => a.id === payload.new.id) ? prev : [...prev, payload.new]);
         else if (payload.eventType === 'DELETE') setAddons(prev => prev.filter(a => a.id !== payload.old.id));
@@ -268,10 +262,6 @@ export function StoreProvider({ children }) {
           });
         }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
-        if (payload.eventType === 'INSERT') setCustomers(prev => [...prev, payload.new]);
-        else if (payload.eventType === 'UPDATE') setCustomers(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
-      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setIsRealtimeConnected(true);
@@ -285,7 +275,9 @@ export function StoreProvider({ children }) {
     };
   }, []);
 
-  // Fetch user-scoped orders (or admin orders + profiles) whenever auth state resolves or user changes
+  // Fetch user-scoped orders (or admin orders + profiles) whenever auth state resolves or user changes,
+  // and open a PRIVATE realtime channel scoped to what this specific user is allowed to see:
+  // admins get unfiltered orders+profiles, everyone else gets only their own orders.
   useEffect(() => {
     if (!user) {
       setOrders([]);
@@ -316,6 +308,38 @@ export function StoreProvider({ children }) {
           if (data) setOrders(data);
         });
     }
+
+    if (!user.id) return;
+
+    let privateChannel = supabase.channel('schema-db-changes-private-' + user.id);
+    if (user.role === 'admin') {
+      privateChannel = privateChannel
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
+          if (payload.eventType === 'INSERT') {
+            setOrders(prev => prev.some(o => o.id === payload.new.id) ? prev : [payload.new, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
+          if (payload.eventType === 'INSERT') setCustomers(prev => [...prev, payload.new]);
+          else if (payload.eventType === 'UPDATE') setCustomers(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
+        });
+    } else {
+      privateChannel = privateChannel
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: 'user_id=eq.' + user.id }, payload => {
+          if (payload.eventType === 'INSERT') {
+            setOrders(prev => prev.some(o => o.id === payload.new.id) ? prev : [payload.new, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
+          }
+        });
+    }
+    privateChannel.subscribe();
+
+    return () => {
+      supabase.removeChannel(privateChannel);
+    };
   }, [user?.id, user?.role]);
 
   // Polling fallback in case Supabase Realtime is disabled on the orders table
@@ -324,24 +348,28 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     const pollInterval = isRealtimeConnected ? 15000 : 3000;
     const pollOrders = setInterval(async () => {
-      // 0. Poll Store Settings (guarantees PAUSED/CLOSED sync across devices within 3s)
-      try {
-        const { data: settingsData } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
-        if (settingsData) {
-          const merged = {
-            ...shopSettingsRef.current,
-            status: settingsData.status || 'OPEN',
-            openingTime: settingsData.opening_time || '10:00',
-            closingTime: settingsData.closing_time || '22:00',
-            noticeMessage: settingsData.notice_message || '',
-            weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
-            specialClosures: settingsData.special_closures || [],
-            arcade_enabled: settingsData.arcade_enabled ?? false
-          };
-          shopSettingsRef.current = merged;
-          setShopSettings(merged);
-        }
-      } catch (e) {}
+      // 0. Poll Store Settings — only needed as a fallback when Realtime is down.
+      //    When Realtime is connected, store_settings changes already arrive via
+      //    the public channel above, so polling here would just be redundant egress.
+      if (!isRealtimeConnected) {
+        try {
+          const { data: settingsData } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
+          if (settingsData) {
+            const merged = {
+              ...shopSettingsRef.current,
+              status: settingsData.status || 'OPEN',
+              openingTime: settingsData.opening_time || '10:00',
+              closingTime: settingsData.closing_time || '22:00',
+              noticeMessage: settingsData.notice_message || '',
+              weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
+              specialClosures: settingsData.special_closures || [],
+              arcade_enabled: settingsData.arcade_enabled ?? false
+            };
+            shopSettingsRef.current = merged;
+            setShopSettings(merged);
+          }
+        } catch (e) {}
+      }
 
       // 1. Admin-only: full 100-row orders fetch.
       //    Non-admin users do not run this fetch — they use fetchSingleOrder instead.
@@ -410,19 +438,25 @@ export function StoreProvider({ children }) {
     const item = menu.find(i => i.id === id);
     if (!item) return;
     const newStatus = !item.inStock;
-    
+
     let newQty = item.stock_quantity;
-    
+
     // Auto-replenish stock to 99 if toggling ON while stock is 0
     if (newStatus && (newQty === undefined || newQty <= 0)) {
       newQty = 99;
     }
-    
+
+    const previousMenu = menu;
     // Optimistic UI update
     setMenu(menu.map(i => i.id === id ? { ...i, inStock: newStatus, stock_quantity: newQty } : i));
-    
+
     // DB update
-    await supabase.from('menu_items').update({ in_stock: newStatus, stock_quantity: newQty }).eq('id', id);
+    const { error } = await supabase.from('menu_items').update({ in_stock: newStatus, stock_quantity: newQty }).eq('id', id);
+    if (error) {
+      console.error('Failed to toggle stock:', error);
+      alert('Failed to update stock status: ' + error.message);
+      setMenu(previousMenu);
+    }
   };
 
   // Fire-and-forget price sync to Loyverse API
@@ -510,12 +544,18 @@ export function StoreProvider({ children }) {
 
   const updateLowStockThreshold = async (id, threshold) => {
     const val = Math.max(0, parseInt(threshold) || 0);
-    
+    const previousMenu = menu;
+
     // Optimistic UI update
     setMenu(menu.map(item => item.id === id ? { ...item, low_stock_threshold: val } : item));
-    
+
     // DB update
-    await supabase.from('menu_items').update({ low_stock_threshold: val }).eq('id', id);
+    const { error } = await supabase.from('menu_items').update({ low_stock_threshold: val }).eq('id', id);
+    if (error) {
+      console.error('Failed to update low stock threshold:', error);
+      alert('Failed to update low stock threshold: ' + error.message);
+      setMenu(previousMenu);
+    }
   };
 
   const addMenuItem = async (item) => {
@@ -532,8 +572,13 @@ export function StoreProvider({ children }) {
     
     // Optimistic UI update (makes UI instant instead of waiting for realtime)
     setMenu(prev => [...prev, { ...newItem, inStock: newItem.in_stock }]);
-    
-    await supabase.from('menu_items').insert([newItem]);
+
+    const { error } = await supabase.from('menu_items').insert([newItem]);
+    if (error) {
+      console.error('Failed to add menu item:', error);
+      alert('Failed to add menu item: ' + error.message);
+      setMenu(prev => prev.filter(i => i.id !== newItem.id));
+    }
   };
 
   const updateMenuItem = async (id, fields) => {
@@ -699,12 +744,18 @@ const clearManualOverride = async (id) => {
       promo_start: startDateIso || null,
       promo_end: endDateIso || null,
     };
-    
+    const previousMenu = menu;
+
     // Optimistic UI update
     setMenu(prev => prev.map(m => m.id === id ? { ...m, ...promoData } : m));
-    
+
     // DB update
-    await supabase.from('menu_items').update(promoData).eq('id', id);
+    const { error } = await supabase.from('menu_items').update(promoData).eq('id', id);
+    if (error) {
+      console.error('Failed to update promo:', error);
+      alert('Failed to update promo: ' + error.message);
+      setMenu(previousMenu);
+    }
   };
 
   const updateOrderState = async (orderId, newState) => {
@@ -797,19 +848,31 @@ const clearManualOverride = async (id) => {
   };
   
   const deleteAddon = async (id) => {
+    const previousAddons = addons;
     // Optimistic UI update
     setAddons(prev => prev.filter(a => a.id !== id));
-    await supabase.from('addons').delete().eq('id', id);
+    const { error } = await supabase.from('addons').delete().eq('id', id);
+    if (error) {
+      console.error('Failed to delete addon:', error);
+      alert('Failed to delete addon: ' + error.message);
+      setAddons(previousAddons);
+    }
   };
-  
+
   const updateAddonPrice = async (id, newPriceFloat) => {
     const cents = newPriceFloat === '' || isNaN(newPriceFloat) ? null : Math.round(newPriceFloat * 100);
-    
+    const previousAddons = addons;
+
     // Optimistic UI update
     setAddons(addons.map(a => a.id === id ? { ...a, price: cents } : a));
-    
+
     // DB update
-    await supabase.from('addons').update({ price: cents }).eq('id', id);
+    const { error } = await supabase.from('addons').update({ price: cents }).eq('id', id);
+    if (error) {
+      console.error('Failed to update addon price:', error);
+      alert('Failed to update addon price: ' + error.message);
+      setAddons(previousAddons);
+    }
   };
   
   const toggleItemAddon = async (itemId, addonId) => {
@@ -1046,9 +1109,23 @@ const clearManualOverride = async (id) => {
       orderIdStr = `MP-${day}${month}-${String(counter).padStart(3, '0')}`;
     }
 
+    // Store only the fields an order actually needs on record — finalCart items are
+    // full live menu_items rows (description, image, stock counters, Loyverse ids,
+    // promo window, etc.) which are never read back off a saved order anywhere in
+    // the app. Keeping them would bloat orders.items (and every future fetch of it)
+    // with several hundred bytes of dead weight per line item for no benefit.
+    const orderItems = finalCart.map(item => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      price: item.price,
+      quantity: item.quantity,
+      selectedAddons: (item.selectedAddons || []).map(a => ({ id: a.id, name: a.name, price: a.price }))
+    }));
+
     const newOrder = {
       id: orderIdStr,
-      items: finalCart,
+      items: orderItems,
       total: finalTotal,
       status: 'PENDING',
       payment_method: paymentMethod,
@@ -1163,38 +1240,6 @@ const clearManualOverride = async (id) => {
     console.log(`[REALTIME LAG TEST] DB Write Succeeded for ${orderId}: ${Date.now()}`);
   };
 
-  const addPoints = async (amount, description) => {
-    if (!user || !user.id || !amount) return; // Only logged in users get points
-    
-    const currentPoints = user.points || 0;
-    const newTotal = currentPoints + amount;
-
-    // 1. Update user state locally so UI updates instantly across header, profile, arcade
-    setUser(prev => prev ? ({ ...prev, points: newTotal }) : prev);
-    try {
-      localStorage.setItem(`munchies_pts_${user.id}`, newTotal.toString());
-    } catch (e) {}
-
-    // 2. Call RPC first
-    const { error: rpcErr } = await supabase.rpc('award_points', {
-      user_id_param: user.id,
-      amount_param: amount
-    });
-    
-    // 3. Fallback direct update to profiles table if RPC fails or not installed
-    if (rpcErr) {
-      console.warn('RPC award_points warning, performing direct profiles update:', rpcErr.message);
-      await supabase.from('profiles').update({ points: newTotal }).eq('id', user.id);
-    }
-
-    setPointHistory(prev => [{
-      id: `TXN-${Math.floor(Math.random() * 10000)}`,
-      date: new Date().toISOString().split('T')[0],
-      type: 'Earned',
-      amount, description
-    }, ...prev]);
-  };
-
   const redeemPrize = async (prizeId) => {
     if (!user || !user.id) {
       alert('You must be logged in to redeem prizes.');
@@ -1295,51 +1340,70 @@ const clearManualOverride = async (id) => {
   const updateAddonStock = async (id, delta) => {
     const addon = addons.find(a => String(a.id) === String(id));
     if (!addon) return;
-    
+
     let currentQty = parseInt(addon.stock_quantity, 10);
     if (isNaN(currentQty)) currentQty = 0;
-    
+
     const newQty = Math.max(0, currentQty + delta);
     const newInStock = newQty > 0;
-    
+    const previousAddons = addons;
+
     // Optimistic UI update
     setAddons(prev => prev.map(a => String(a.id) === String(id) ? { ...a, stock_quantity: newQty, in_stock: newInStock } : a));
-    
+
     // DB update
-    await supabase.from('addons').update({ stock_quantity: newQty, in_stock: newInStock }).eq('id', id);
+    const { error } = await supabase.from('addons').update({ stock_quantity: newQty, in_stock: newInStock }).eq('id', id);
+    if (error) {
+      console.error('Failed to update addon stock:', error);
+      alert('Failed to update addon stock: ' + error.message);
+      setAddons(previousAddons);
+    }
   };
 
   const setAddonStockQuantity = async (id, qty) => {
     const newQty = Math.max(0, Math.floor(Number(qty) || 0));
     const newInStock = newQty > 0;
-    
+    const previousAddons = addons;
+
     // Optimistic UI update
     setAddons(prev => prev.map(a => String(a.id) === String(id) ? { ...a, stock_quantity: newQty, in_stock: newInStock } : a));
-    
+
     // DB update
-    await supabase.from('addons').update({ stock_quantity: newQty, in_stock: newInStock }).eq('id', id);
+    const { error } = await supabase.from('addons').update({ stock_quantity: newQty, in_stock: newInStock }).eq('id', id);
+    if (error) {
+      console.error('Failed to set addon stock quantity:', error);
+      alert('Failed to set addon stock quantity: ' + error.message);
+      setAddons(previousAddons);
+    }
   };
 
   const updateAddonLowStockThreshold = async (id, threshold) => {
     const val = Math.max(0, parseInt(threshold) || 0);
-    
+    const previousAddons = addons;
+
     // Optimistic UI update
     setAddons(prev => prev.map(a => String(a.id) === String(id) ? { ...a, low_stock_threshold: val } : a));
-    
+
     // DB update
-    await supabase.from('addons').update({ low_stock_threshold: val }).eq('id', id);
+    const { error } = await supabase.from('addons').update({ low_stock_threshold: val }).eq('id', id);
+    if (error) {
+      console.error('Failed to update addon low stock threshold:', error);
+      alert('Failed to update addon low stock threshold: ' + error.message);
+      setAddons(previousAddons);
+    }
   };
 
   return (
     <StoreContext.Provider value={{
       menu, cart, cartTotal, cartCount,
       points, tier, pointHistory, orders, addons, itemAddons, customers,
+      syncWarnings, removeSyncWarning,
       toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateOrderState, acceptOrder, cancelOrder,
       updateStock, setStockQuantity, clearManualOverride,
       isPromoActive, updatePromo,
-      addons, addAddon, deleteAddon, itemAddons, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
+      addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
-      placeOrder, addPoints, claimShareBonus, fetchSingleOrder,
+      placeOrder, claimShareBonus, fetchSingleOrder,
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
       addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
       categoriesList, addCategory, updateCategory, deleteCategory,
