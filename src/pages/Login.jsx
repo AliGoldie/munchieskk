@@ -96,7 +96,7 @@ export default function Login() {
               <a 
                 href="#" 
                 onClick={handleForgotPassword} 
-                style={{fontSize: '0.8rem', color: 'var(--munchies-orange)', fontWeight: 600, textDecoration: 'none', cursor: isResetting ? 'wait' : 'pointer', opacity: isResetting ? 0.6 : 1}}
+                style={{fontSize: '0.8rem', color: 'var(--gold)', fontWeight: 600, textDecoration: 'none', cursor: isResetting ? 'wait' : 'pointer', opacity: isResetting ? 0.6 : 1}}
               >
                 {isResetting ? 'Sending link...' : 'Forgot Password?'}
               </a>
@@ -134,19 +134,20 @@ export default function Login() {
         </p>
 
         {isLocalhost && (
-          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed #cbd5e1' }}>
+          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed var(--line-control)' }}>
             <button
               type="button"
               onClick={loginAsMockAdmin}
               className="btn w-full"
               style={{
-                background: '#1e293b',
-                color: '#38bdf8',
+                background: 'var(--surface)',
+                color: 'var(--gold)',
                 fontWeight: 700,
                 fontSize: '0.85rem',
                 padding: '10px',
-                borderRadius: '8px',
-                border: '1px solid #334155',
+                minHeight: '44px',
+                borderRadius: 'var(--r-pill)',
+                border: '1px solid var(--line-control)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
