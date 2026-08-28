@@ -14,9 +14,21 @@
   50%       { transform: translateY(-10px); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .cart-empty-icon,
+  .suggestions-icon {
+    animation: none !important;
+  }
+}
+
 .cart-page {
   padding: var(--space-8) var(--space-4);
-  overflow-x: hidden; /* prevent shadow bleed causing horizontal scroll */
+  overflow-x: hidden;
+}
+
+.cart-page h1 {
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
 }
 
 .cart-content {
@@ -41,7 +53,7 @@
 .cart-items {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 11px;
 }
 
 /* ─── Cart Line Item ────────────────────────────────────────────── */
@@ -50,17 +62,16 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.9rem 1rem;
-  background-color: #ffffff;
-  border: 2px solid #1a1a1a;
-  border-radius: 12px;
-  box-shadow: 3px 3px 0 0 #1a1a1a;
-  transition: box-shadow 0.12s ease, transform 0.12s ease;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-card);
+  box-shadow: none;
+  transition: border-color 0.16s ease;
   gap: 0.75rem;
 }
 
 .cart-item:hover {
-  box-shadow: 1px 1px 0 0 #1a1a1a;
-  transform: translate(2px, 2px);
+  border-color: rgba(240, 78, 35, .4);
 }
 
 .cart-item-details {
@@ -70,18 +81,21 @@
 
 .cart-item-details h3 {
   font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--munchies-dark);
+  font-family: 'Archivo', sans-serif;
+  font-weight: 900;
+  color: #fff;
   margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: none;
 }
 
 .cart-item-price {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--munchies-dark);
+  font-size: 0.9rem;
+  font-family: 'Archivo', sans-serif;
+  font-weight: 900;
+  color: var(--gold);
 }
 
 .cart-item-actions {
@@ -96,9 +110,9 @@
   display: flex;
   align-items: center;
   gap: 0;
-  background-color: #ffffff;
-  border: 2px solid #1a1a1a;
-  border-radius: 8px;
+  background-color: rgba(255, 255, 255, .06);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-pill);
   overflow: hidden;
 }
 
@@ -110,24 +124,19 @@
   justify-content: center;
   font-size: 1rem;
   font-weight: 900;
-  background: #f5f5f5;
+  background: transparent;
+  color: var(--text);
   border: none;
-  border-right: 1px solid #1a1a1a;
   transition: background-color 0.12s ease;
   cursor: pointer;
 }
 
-.btn-qty:last-child {
-  border-right: none;
-  border-left: 1px solid #1a1a1a;
-}
-
 .btn-qty:hover {
-  background-color: var(--munchies-yellow);
+  background-color: rgba(240, 78, 35, .2);
 }
 
 .btn-qty:active {
-  background-color: var(--munchies-orange-accent);
+  background-color: var(--ember);
 }
 
 .qty {
@@ -135,7 +144,7 @@
   text-align: center;
   font-weight: 800;
   font-size: 0.85rem;
-  color: var(--munchies-dark);
+  color: var(--text);
 }
 
 /* ─── Remove Button ─────────────────────────────────────────────── */
@@ -146,9 +155,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  border: 2px solid #ef4444;
-  background: #fff0f0;
+  border-radius: var(--r-card);
+  border: 1px solid rgba(239, 68, 68, .4);
+  background: rgba(239, 68, 68, .1);
   transition: background-color 0.12s ease, transform 0.12s ease;
   cursor: pointer;
 }
@@ -163,14 +172,13 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   SUGGESTIONS SECTION — brutalist light treatment
+   SUGGESTIONS SECTION
 ═══════════════════════════════════════════════════════════════════ */
 .suggestions-section {
-  background: var(--munchies-canvas, #f4f1ea);
-  border-radius: 16px;
+  background: var(--surface-raised);
+  border-radius: var(--r-card);
   padding: 1.1rem 1.1rem 1.25rem;
-  border: 3px solid #1a1a1a;
-  box-shadow: 4px 4px 0 0 #1a1a1a;
+  border: 1px solid var(--line-strong);
   position: relative;
   overflow: hidden;
 }
@@ -180,8 +188,8 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.15rem;
-  color: var(--munchies-dark);
-  font-family: var(--font-heading);
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
   font-weight: 900;
   font-size: 1.05rem;
   text-transform: uppercase;
@@ -189,7 +197,7 @@
 }
 
 .suggestions-icon {
-  color: var(--munchies-orange-accent);
+  color: var(--gold);
   animation: sparkSpin 2s ease-in-out infinite;
 }
 
@@ -201,11 +209,11 @@
 .suggestions-see-all {
   margin-left: auto;
   font-size: 0.72rem;
-  color: #6b6b6b;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 2px;
-  font-family: var(--font-sans);
+  font-family: 'Inter', sans-serif;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 700;
@@ -214,14 +222,14 @@
 }
 
 .suggestions-see-all:hover {
-  color: var(--munchies-orange-accent);
+  color: var(--ember);
 }
 
 .suggestions-sub {
   font-size: 0.78rem;
-  color: #6b6b6b;
+  color: var(--text-muted);
   margin-bottom: 0.9rem;
-  font-family: var(--font-sans);
+  font-family: 'Inter', sans-serif;
 }
 
 .suggestions-grid {
@@ -231,18 +239,18 @@
 }
 
 .suggestion-card {
-  background: #ffffff;
-  border: 2px solid #1a1a1a;
-  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
   overflow: hidden;
-  box-shadow: 2px 2px 0 0 #1a1a1a;
-  transition: box-shadow 0.12s ease, transform 0.12s ease;
+  box-shadow: none;
+  transition: border-color 0.16s ease, transform 0.16s ease;
   cursor: default;
 }
 
 .suggestion-card:hover {
-  box-shadow: 1px 1px 0 0 #1a1a1a;
-  transform: translate(1px, 1px);
+  border-color: rgba(240, 78, 35, .4);
+  transform: translateY(-2px);
 }
 
 .suggestion-img {
@@ -250,22 +258,22 @@
   background-size: cover;
   background-position: center;
   position: relative;
-  border-bottom: 2px solid #1a1a1a;
+  background-color: var(--plate);
 }
 
 .suggestion-cat-badge {
   position: absolute;
   top: 5px;
   left: 5px;
-  background: var(--munchies-yellow);
-  color: var(--munchies-dark);
-  font-family: var(--font-heading);
+  background: rgba(6, 6, 6, .6);
+  backdrop-filter: blur(4px);
+  color: var(--gold);
+  font-family: 'Inter', sans-serif;
   font-size: 0.52rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #1a1a1a;
+  border-radius: var(--r-pill);
   text-transform: uppercase;
 }
 
@@ -274,15 +282,16 @@
 }
 
 .suggestion-name {
-  font-family: var(--font-heading);
+  font-family: 'Archivo', sans-serif;
   font-weight: 800;
   font-size: 0.78rem;
-  color: var(--munchies-dark);
+  color: #fff;
   margin-bottom: 0.4rem;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: none;
 }
 
 .suggestion-bottom {
@@ -293,70 +302,64 @@
 }
 
 .suggestion-price {
-  font-family: var(--font-sans);
+  font-family: 'Archivo', sans-serif;
   font-weight: 800;
   font-size: 0.8rem;
-  color: var(--munchies-dark);
+  color: var(--gold);
 }
 
-/* Pill "ADD +" button matching Home brutalist style */
 .suggestion-add-btn {
   height: 26px;
   padding: 0 9px;
-  border-radius: 999px;
-  background-color: var(--munchies-yellow);
-  color: var(--munchies-dark);
+  border-radius: var(--r-pill);
+  background-color: rgba(255, 255, 255, .1);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.72rem;
-  font-weight: 900;
-  border: 2px solid #1a1a1a;
-  box-shadow: 2px 2px 0 0 #1a1a1a;
+  font-weight: 800;
+  border: 1px solid var(--line-control);
+  box-shadow: none;
   cursor: pointer;
-  transition: box-shadow 0.1s ease, transform 0.1s ease;
+  transition: background 0.16s ease, border-color 0.16s ease;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .suggestion-add-btn:hover {
-  box-shadow: 1px 1px 0 0 #1a1a1a;
-  transform: translate(1px, 1px);
-}
-
-.suggestion-add-btn:active {
-  box-shadow: 0 0 0 0 #1a1a1a;
-  transform: translate(2px, 2px);
+  background: var(--ember);
+  border-color: var(--ember);
 }
 
 .suggestion-add-btn-added {
-  background-color: #22c55e;
-  color: white;
-  border-color: #15803d;
-  box-shadow: 2px 2px 0 0 #15803d;
+  background-color: var(--go);
+  color: #06170f;
+  border-color: var(--go);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ORDER SUMMARY — brutalist card
+   ORDER SUMMARY
 ═══════════════════════════════════════════════════════════════════ */
 .cart-summary {
-  background-color: #ffffff;
-  border: 3px solid #1a1a1a;
-  box-shadow: 4px 4px 0 0 #1a1a1a;
-  border-radius: 16px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+  border-radius: var(--r-card);
   padding: 1.25rem;
   height: fit-content;
 }
 
 .cart-summary h3 {
-  font-size: 1.1rem;
+  font-size: 1rem;
+  font-family: 'Archivo', sans-serif;
   font-weight: 900;
-  color: var(--munchies-dark);
+  color: var(--text);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 1rem;
   padding-bottom: 0.6rem;
-  border-bottom: 2px solid #1a1a1a;
+  border-bottom: 1px solid var(--line);
 }
 
 .summary-row {
@@ -365,31 +368,37 @@
   align-items: center;
   margin-bottom: var(--space-2);
   font-size: 0.9rem;
+  color: var(--text-2);
 }
 
 .total-row {
   font-size: 1.2rem;
+  font-family: 'Archivo', sans-serif;
   font-weight: 900;
-  border-top: 2px solid #1a1a1a;
+  border-top: 1px solid var(--line);
   padding-top: var(--space-3);
   margin-top: var(--space-3);
-  color: var(--munchies-dark);
+  color: var(--text);
+}
+
+.total-row .text-primary {
+  color: var(--gold);
 }
 
 .checkout-instructions {
   margin-top: 1rem;
   padding: 0.75rem;
-  background-color: var(--munchies-canvas, #f4f1ea);
-  border-radius: 8px;
-  border: 1px solid #d0cbbe;
+  background-color: var(--surface);
+  border-radius: var(--r-card);
+  border: 1px solid var(--line);
   font-size: 0.8rem;
-  color: #6b6b6b;
+  color: var(--text-2);
 }
 
 .checkout-instructions h4 {
   margin-bottom: 0.25rem;
   font-weight: 800;
-  color: var(--munchies-dark);
+  color: var(--text);
   font-size: 0.85rem;
 }
 
@@ -397,13 +406,8 @@
   margin-top: 1rem;
 }
 
-/* ─── Narrow viewport overflow fix (≤480px) ────────────────────────────────
-   At 375px the actions row (Edit + qty + remove) cannot fit beside the item
-   name on a single line. Stack them: name/price on line 1, actions on line 2.
-   Also clip any residual shadow bleed on full-width cards.
-── */
+/* ─── Narrow viewport overflow fix (≤480px) ──────────────────────── */
 @media (max-width: 480px) {
-  /* Stack cart line item: details top, actions bottom-right */
   .cart-item {
     flex-direction: column;
     align-items: stretch;
@@ -414,7 +418,6 @@
     justify-content: flex-end;
   }
 
-  /* Slightly smaller qty cells so they breathe at 375px */
   .btn-qty {
     width: 26px;
     height: 26px;
@@ -424,18 +427,5 @@
   .qty {
     width: 20px;
     font-size: 0.8rem;
-  }
-
-  /* Clip the 4px right/bottom shadow on full-width cards so it
-     never protrudes past the viewport edge */
-  .cart-items,
-  .suggestions-section,
-  .cart-summary {
-    /* Reduce right shadow so it stays within padding zone */
-    box-shadow: 2px 2px 0 0 #1a1a1a;
-  }
-
-  .cart-item {
-    box-shadow: 2px 2px 0 0 #1a1a1a;
   }
 }

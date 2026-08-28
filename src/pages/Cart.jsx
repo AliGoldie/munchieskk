@@ -73,18 +73,17 @@ export default function Cart() {
                     onClick={() => setEditingCartItem(item)}
                     title="Edit customizations"
                     style={{
-                      background: 'var(--munchies-yellow)',
-                      border: '2px solid #1a1a1a',
-                      borderRadius: '999px',
-                      padding: '3px 10px',
-                      color: '#1a1a1a',
+                      background: 'rgba(255, 199, 44, .13)',
+                      border: '1px solid rgba(255, 199, 44, .4)',
+                      borderRadius: 'var(--r-pill)',
+                      padding: '4px 11px',
+                      color: 'var(--gold)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
                       fontSize: '0.72rem',
                       fontWeight: 800,
                       cursor: 'pointer',
-                      boxShadow: '2px 2px 0 0 #1a1a1a',
                       whiteSpace: 'nowrap'
                     }}
                   >
