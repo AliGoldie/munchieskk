@@ -8,14 +8,14 @@ import './Menu.css';
 
 // Category color config — each category gets a unique color identity
 const CATEGORY_COLORS = {
-  BBQ:      { bg: '#FFF0E6', tint: '#FFDDC1', text: '#9C3D00', accent: '#E8650A', icon: '🔥' },
-  PREMIUM:  { bg: '#FBE9FF', tint: '#F0CCFA', text: '#6B1D87', accent: '#9B30C9', icon: '👑' },
-  PLATTERS: { bg: '#FFF5E0', tint: '#FFE6B0', text: '#8B6914', accent: '#D4A017', icon: '🍽️' },
-  SIDES:    { bg: '#E6FFF0', tint: '#B8F0D0', text: '#0E6930', accent: '#1DAA54', icon: '🥗' },
-  DRINKS:   { bg: '#E6F0FF', tint: '#BDD8FF', text: '#1A4C8B', accent: '#2E7DD6', icon: '🥤' },
+  BBQ:      { accent: '#F0862A', icon: '🔥' },
+  PREMIUM:  { accent: '#C77DFF', icon: '👑' },
+  PLATTERS: { accent: '#FFC72C', icon: '🍽️' },
+  SIDES:    { accent: '#5FD68C', icon: '🥗' },
+  DRINKS:   { accent: '#63A7F5', icon: '🥤' },
 };
 
-const DEFAULT_COLOR = { bg: '#F5F5F5', tint: '#E0E0E0', text: '#333', accent: '#666', icon: '📦' };
+const DEFAULT_COLOR = { accent: '#8E867C', icon: '📦' };
 
 export default function Menu() {
   const { menu, isPromoActive } = useStore();
@@ -47,7 +47,7 @@ export default function Menu() {
     if (!timeLeft || timeLeft === 'Sale ended') return null;
     
     return (
-      <div style={{ fontSize: '0.75rem', color: '#ff2a2a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', backgroundColor: '#ffe5e5', padding: '2px 8px', borderRadius: '12px', width: 'fit-content' }}>
+      <div style={{ fontSize: '0.75rem', color: '#ff6b6b', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', backgroundColor: 'rgba(255,42,42,0.14)', padding: '2px 8px', borderRadius: '12px', width: 'fit-content' }}>
         <Flame size={12} /> {timeLeft}
       </div>
     );
@@ -225,100 +225,14 @@ export default function Menu() {
           
           return (
             <div key={cat} id={`category-${cat}`} className="category-section" style={{ marginTop: '3rem' }}>
-              <div
-                id={cat}
-                className="category-header-band"
-                style={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  marginBottom: '2rem',
-                  padding: '1.1rem 1.5rem 1.1rem 0',
-                  backgroundColor: colors.bg,
-                  borderRadius: '16px',
-                  border: '3px solid #1a1a1a',
-                  boxShadow: '4px 4px 0 0 #1a1a1a',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Left color bar */}
-                <div style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: '9px',
-                  backgroundColor: colors.accent,
-                  borderRight: '3px solid #1a1a1a',
-                  flexShrink: 0,
-                }} />
-
-                {/* Ghosted category word behind content */}
-                <span aria-hidden="true" className="category-ghost-text" style={{
-                  position: 'absolute',
-                  top: '50%',
-                  right: '1rem',
-                  transform: 'translateY(-50%)',
-                  fontFamily: 'Kanit, sans-serif',
-                  fontWeight: 900,
-                  color: colors.accent,
-                  opacity: 0.14,
-                  lineHeight: 1,
-                  pointerEvents: 'none',
-                  userSelect: 'none',
-                  letterSpacing: '-1px',
-                  whiteSpace: 'nowrap',
-                }}>{cat}</span>
-
-                {/* Icon circle */}
-                <div style={{
-                  flexShrink: 0,
-                  marginLeft: '18px',
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  backgroundColor: '#ffffff',
-                  border: '3px solid #1a1a1a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.4rem',
-                  zIndex: 1,
-                }}>
-                  {colors.icon}
-                </div>
-
-                {/* Title + pill */}
-                <div style={{ zIndex: 1 }}>
-                  <h2 style={{
-                    color: colors.text,
-                    fontSize: '1.6rem',
-                    fontWeight: 900,
-                    margin: '0 0 4px 0',
-                    letterSpacing: '1px',
-                    textTransform: 'uppercase',
-                    lineHeight: 1.1,
-                    fontFamily: 'Kanit, sans-serif',
-                  }}>
-                    {cat}
-                  </h2>
-                  <span style={{
-                    display: 'inline-block',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    color: '#ffffff',
-                    backgroundColor: colors.accent,
-                    border: '2px solid #1a1a1a',
-                    borderRadius: '999px',
-                    padding: '1px 10px',
-                    letterSpacing: '0.5px',
-                  }}>
-                    {categoryItems.length} item{categoryItems.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
+              <div id={cat} className="category-header-band">
+                <div className="category-header-bar" style={{ backgroundColor: colors.accent }} />
+                <h2 className="category-header-title">{cat}</h2>
+                <span className="category-header-count" style={{ color: colors.accent }}>
+                  {categoryItems.length} item{categoryItems.length !== 1 ? 's' : ''}
+                </span>
               </div>
-              
+
               <div className="hot-list-grid">
                 {categoryItems.map(item => (
                   <div key={item.id} className={`card hot-list-card ${!item.inStock ? 'card-oos' : ''}`} onClick={() => { if (item.inStock) setSelectedItem(item); }}>
