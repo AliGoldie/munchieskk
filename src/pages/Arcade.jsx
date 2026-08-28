@@ -51,10 +51,10 @@ export default function Arcade() {
     <div className="arcade-page">
       
       {/* Weekly Prize Banner with CZ CHIX Image Background */}
-      <div 
+      <div
         className="card arcade-prize-banner"
         style={{
-          backgroundImage: "linear-gradient(rgba(232, 73, 29, 0.82), rgba(200, 45, 10, 0.92)), url('/images/cz_chix_burger.png')",
+          backgroundImage: "linear-gradient(rgba(10, 10, 10, .35), rgba(10, 10, 10, .96)), url('/images/cz_chix_burger.png')",
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
@@ -74,9 +74,9 @@ export default function Arcade() {
 
       {/* Global Rank */}
       <div className="card rank-card">
-        <Award size={24} className="rank-icon" color="var(--munchies-orange)" />
+        <Award size={24} className="rank-icon" color="var(--ember)" />
         <p className="rank-label">GLOBAL RANK</p>
-        <h2 className="rank-number text-orange">
+        <h2 className="rank-number">
           {globalRank ? `#${globalRank}` : '...'}
         </h2>
         <span className="rank-sub">
@@ -120,7 +120,7 @@ export default function Arcade() {
               <h3>{game.title}</h3>
               <p>{game.desc}</p>
               <div className="game-stats">
-                <span className="stat"><Star size={14} fill="var(--munchies-dark)" /> {game.rating}</span>
+                <span className="stat"><Star size={14} fill="var(--gold)" color="var(--gold)" /> {game.rating}</span>
                 <span className="stat"><Clock size={14} /> {game.time}</span>
               </div>
             </div>

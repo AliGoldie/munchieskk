@@ -54,39 +54,39 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
       <div className="modal-body">
         {/* Base Price Row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 900, margin: 0, color: '#1e293b', lineHeight: '1.2' }}>
+          <h2 style={{ fontFamily: "'Archivo', sans-serif", fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'var(--text)', lineHeight: '1.2', textTransform: 'uppercase' }}>
             {item.name}
           </h2>
           <div style={{ textAlign: 'right' }}>
             {isPromoActive(item) ? (
               <>
-                <div className="text-muted" style={{ textDecoration: 'line-through', fontSize: '0.9rem', fontWeight: 600 }}>RM {(item.price / 100).toFixed(2)}</div>
-                <div className="text-danger font-black" style={{ fontSize: '1.25rem' }}>RM {(item.promo_price / 100).toFixed(2)}</div>
+                <div style={{ color: 'var(--text-dim)', textDecoration: 'line-through', fontSize: '0.9rem', fontWeight: 600 }}>RM {(item.price / 100).toFixed(2)}</div>
+                <div style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: '1.25rem', color: 'var(--ember)' }}>RM {(item.promo_price / 100).toFixed(2)}</div>
               </>
             ) : (
-              <div className="text-success font-black" style={{ fontSize: '1.25rem' }}>RM {(item.price / 100).toFixed(2)}</div>
+              <div style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: '1.25rem', color: 'var(--gold)' }}>RM {(item.price / 100).toFixed(2)}</div>
             )}
           </div>
         </div>
         <p className="modal-description">{extendedDescription}</p>
         
         <div className="modal-points-banner">
-          <Gift size={20} className="text-primary" />
+          <Gift size={20} />
           <span>Points you'll earn: <strong>{pointsEarned}</strong></span>
         </div>
 
         {/* Add-ons Section */}
         {availableAddons.length > 0 && (
           <div className="modal-addons-section">
-            <h3 className="modal-addons-title">🎨 Customize Your Order</h3>
+            <h3 className="modal-addons-title">Customize Your Order</h3>
             <div className="modal-addons-list">
               {availableAddons.map(addon => {
                 const isOutOfStock = addon.stock_quantity !== undefined && addon.stock_quantity <= 0;
                 return (
-                  <label 
-                    key={addon.id} 
+                  <label
+                    key={addon.id}
                     className={`modal-addon-item ${selectedAddonIds.includes(addon.id) ? 'selected' : ''} ${isOutOfStock ? 'disabled' : ''}`}
-                    style={isOutOfStock ? { opacity: 0.45, cursor: 'not-allowed', background: '#f8fafc' } : {}}
+                    style={isOutOfStock ? { opacity: 0.45, cursor: 'not-allowed', background: 'var(--surface)' } : {}}
                   >
                     <div className="modal-addon-info">
                       {addon.image && (

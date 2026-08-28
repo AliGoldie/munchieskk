@@ -14,24 +14,29 @@
   text-align: center;
   position: relative;
   overflow: hidden;
+  background:
+    linear-gradient(rgba(10, 10, 10, .5), rgba(19, 17, 16, .97)),
+    url('/images/BigG.jpg') center 38% / cover no-repeat,
+    var(--surface-raised) !important;
+  border: 1px solid var(--line-strong) !important;
+  box-shadow: none !important;
 }
 
-/* A large star in the background */
 .rank-header-card::before {
-  content: "★";
+  content: '';
   position: absolute;
-  font-size: 200px;
-  color: #e6f7ff;
-  top: -50px;
-  right: -20px;
+  inset: 0;
+  background: radial-gradient(90% 60% at 50% 100%, rgba(240, 78, 35, .28) 0%, rgba(240, 78, 35, 0) 65%);
+  mix-blend-mode: screen;
+  pointer-events: none;
   z-index: 0;
 }
 
 .medal-circle {
-  width: 80px;
-  height: 80px;
-  background-color: var(--munchies-orange);
-  border: var(--border-thick);
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(140deg, var(--ember), var(--ember-deep));
+  border: none;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -41,17 +46,20 @@
 }
 
 .rank-header-card h1 {
-  font-size: 2.5rem;
+  font-family: 'Archivo', sans-serif;
+  font-size: 1.4rem;
   z-index: 1;
   margin-bottom: 4px;
+  color: #fff;
 }
 
 .rank-level {
-  color: var(--munchies-orange);
-  font-family: var(--font-heading);
-  font-size: 0.9rem;
+  color: var(--gold);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
   z-index: 1;
   margin-bottom: var(--space-6);
 }
@@ -60,26 +68,27 @@
   width: 100%;
   display: flex;
   justify-content: space-between;
-  font-family: var(--font-heading);
+  font-family: 'Archivo', sans-serif;
   font-size: 0.8rem;
+  color: var(--text-2);
   z-index: 1;
   margin-bottom: 8px;
 }
 
 .progress-bar-lg {
   width: 100%;
-  height: 24px;
-  border: var(--border-thick);
-  border-radius: var(--radius-full);
-  background-color: #e0e0e0;
+  height: 12px;
+  border: none;
+  border-radius: var(--r-pill);
+  background-color: rgba(255, 255, 255, .12);
   z-index: 1;
   overflow: hidden;
 }
 
 .progress-fill-lg {
   height: 100%;
-  background-color: var(--munchies-orange);
-  border-right: var(--border-thick);
+  background: linear-gradient(90deg, #FFC72C, #F04E23);
+  border-right: none;
 }
 
 /* Actions Row */
@@ -96,27 +105,40 @@
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-6) var(--space-4);
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
-  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
   cursor: pointer;
+  color: #fff;
+  border-radius: var(--r-card);
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
 }
 
 .card.action-scan {
-  background-color: var(--munchies-blue);
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  color: var(--go);
 }
+.card.action-scan:hover { border-color: rgba(95, 214, 140, .5); }
 
 .card.action-play {
-  background-color: var(--munchies-orange);
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  color: var(--ember);
 }
-
-.text-orange { color: var(--munchies-orange); }
+.card.action-play:hover { border-color: rgba(240, 78, 35, .5); }
 
 /* Prize Vault */
 .prize-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 8px;
 }
 
 .prize-card {
@@ -124,15 +146,20 @@
   align-items: center;
   padding: var(--space-4);
   gap: var(--space-4);
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--line-strong) !important;
+  box-shadow: none !important;
+  border-radius: var(--r-card);
 }
 
 .prize-img {
-  width: 80px;
-  height: 80px;
+  width: 56px;
+  height: 56px;
   background-size: cover;
   background-position: center;
   border-radius: 50%;
-  border: 2px dashed var(--munchies-dark);
+  border: 1px solid var(--line-control);
+  flex-shrink: 0;
 }
 
 .prize-info {
@@ -140,40 +167,55 @@
 }
 
 .prize-info h3 {
-  font-size: 1.2rem;
+  font-size: 1rem;
+  font-family: 'Archivo', sans-serif;
+  color: #fff;
   line-height: 1.1;
   margin-bottom: 4px;
+  text-transform: none;
 }
 
 .pts-req {
-  font-family: var(--font-heading);
+  font-family: 'Archivo', sans-serif;
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--gold);
+  margin-top: 4px;
 }
 
 .prize-btn {
-  padding: 8px 16px;
-  font-size: 0.8rem;
-  border-radius: var(--radius-full);
+  padding: 0 16px;
+  min-height: 36px;
+  font-size: 0.72rem;
+  border-radius: var(--r-pill);
+  flex-shrink: 0;
 }
 
 /* History Card */
 .history-card {
-  background-color: var(--munchies-dark);
-  color: var(--munchies-white);
+  background: var(--surface-raised) !important;
+  color: var(--text);
+  border: 1px solid var(--line-strong) !important;
+  box-shadow: none !important;
   padding: var(--space-6) var(--space-4);
   margin-top: var(--space-4);
+  border-radius: var(--r-card);
 }
 
 .history-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
+  color: var(--text-muted);
 }
 
 .history-header h3 {
-  font-size: 1.2rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .history-list {
@@ -186,7 +228,7 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-4) 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--line);
 }
 
 .history-item:last-child {
@@ -200,17 +242,18 @@
 }
 
 .history-action {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
 .history-date {
   font-size: 0.7rem;
-  color: #888;
+  color: var(--text-dim);
 }
 
 .history-pts {
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
   font-weight: 800;
-  color: var(--munchies-yellow);
+  color: var(--gold);
 }

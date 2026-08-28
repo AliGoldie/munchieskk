@@ -6,45 +6,65 @@
 }
 
 /* Weekly Prize Banner */
-.arcade-prize-banner {
-  background-color: var(--munchies-orange);
-  color: var(--munchies-white);
+.card.arcade-prize-banner {
+  background-color: var(--plate);
+  color: #fff;
   padding: var(--space-6) var(--space-4);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+  border-radius: var(--r-card);
+}
+
+.card.arcade-prize-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 70% at 15% 90%, rgba(240, 78, 35, .4) 0%, rgba(240, 78, 35, 0) 65%);
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 
 .badge-light-blue {
-  background-color: var(--munchies-blue);
-  color: var(--munchies-dark);
-  font-family: var(--font-heading);
+  background: rgba(255, 199, 44, .16);
+  color: var(--gold);
+  font-family: 'Inter', sans-serif;
   font-weight: 800;
-  font-size: 0.7rem;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  letter-spacing: .1em;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
   display: inline-block;
   margin-bottom: var(--space-4);
-  border: 2px solid var(--munchies-dark);
+  border: 1px solid rgba(255, 199, 44, .4);
+  width: fit-content;
+  position: relative;
+  z-index: 2;
 }
 
 .prize-content {
   z-index: 2;
   width: 65%;
+  position: relative;
 }
 
 .prize-content h2 {
-  font-size: 2rem;
+  font-family: 'Archivo', sans-serif;
+  font-size: 1.7rem;
   line-height: 1.1;
-  text-shadow: 2px 2px 0 var(--munchies-dark);
+  text-shadow: none;
   margin-bottom: var(--space-2);
+  color: #fff;
 }
 
 .prize-content p {
   font-size: 0.85rem;
   font-weight: 500;
   margin-bottom: var(--space-3);
+  color: var(--text-2);
 }
 
 .prize-img-wrapper {
@@ -53,18 +73,20 @@
   bottom: -20px;
   width: 150px;
   height: 150px;
+  z-index: 1;
 }
 
 .prize-img-circle {
   width: 100%;
   height: 100%;
-  background-color: #8c2b0a; /* Darker orange */
+  background-color: var(--surface-raised);
   border-radius: 50%;
-  border: var(--border-thick);
+  border: 1px solid var(--line-strong);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .prize-burger {
@@ -77,12 +99,16 @@
 }
 
 /* Rank Card */
-.rank-card {
+.card.rank-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: var(--space-4);
   text-align: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+  border-radius: var(--r-card);
 }
 
 .rank-icon {
@@ -90,39 +116,43 @@
 }
 
 .rank-label {
-  font-family: var(--font-heading);
-  font-size: 0.8rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
   color: var(--text-muted);
-  letter-spacing: 1px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
 .rank-number {
-  font-size: 3rem;
-  color: var(--munchies-orange);
-  text-shadow: 2px 2px 0 var(--munchies-dark);
+  font-family: 'Archivo', sans-serif;
+  font-size: 2.5rem;
+  color: var(--ember);
+  text-shadow: none;
 }
 
 .rank-sub {
-  background-color: #f0f0f0;
-  font-family: var(--font-heading);
-  font-size: 0.75rem;
+  background: rgba(255, 255, 255, .06);
+  color: var(--text-2);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
   padding: 4px 12px;
-  border-radius: var(--radius-full);
+  border-radius: var(--r-pill);
   margin-top: 8px;
 }
 
-/* Colorful High-Contrast Points Card */
+/* Points Card */
 .arcade-page .card.points-card {
-  background-color: #1e1b4b !important; /* Deep Royal Midnight Blue */
-  color: #ffffff !important;
+  background: var(--surface-raised) !important;
+  color: #fff !important;
   padding: 1.25rem 1.5rem !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-start !important;
   justify-content: center !important;
-  border: 3.5px solid var(--munchies-yellow) !important; /* Gold border */
-  box-shadow: 4px 4px 0 #14141f !important;
-  border-radius: var(--radius-lg) !important;
+  border: 1px solid rgba(255, 199, 44, .35) !important;
+  box-shadow: none !important;
+  border-radius: var(--r-card) !important;
   margin: 0 !important;
 }
 
@@ -135,14 +165,15 @@
 }
 
 .points-card-title {
-  font-size: 1.25rem !important;
-  color: var(--munchies-yellow) !important;
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.9rem !important;
+  color: var(--gold) !important;
   text-transform: uppercase !important;
-  letter-spacing: 1.5px !important;
+  letter-spacing: .08em !important;
   margin: 0 !important;
   padding: 0 !important;
   font-weight: 800 !important;
-  text-shadow: 2px 2px 0 #14141f !important;
+  text-shadow: none !important;
   line-height: 1.2 !important;
 }
 
@@ -151,21 +182,21 @@
   align-items: center !important;
   gap: 10px !important;
   padding: 6px 18px 6px 6px !important;
-  border-radius: var(--radius-full) !important;
-  font-family: var(--font-heading);
-  font-size: 1.35rem !important;
-  font-weight: 800 !important;
-  border: 2.5px solid #14141f !important;
-  background: var(--munchies-orange-accent) !important; /* Vibrant Orange Pill Badge */
+  border-radius: var(--r-pill) !important;
+  font-family: 'Archivo', sans-serif;
+  font-size: 1.2rem !important;
+  font-weight: 900 !important;
+  border: none !important;
+  background: var(--ember) !important;
   color: #ffffff !important;
-  box-shadow: 2px 2px 0 #14141f !important;
+  box-shadow: 0 10px 24px rgba(240, 78, 35, .35) !important;
 }
 
 .points-star-circle {
-  width: 30px;
-  height: 30px;
-  background-color: var(--munchies-yellow);
-  border: 2px solid #14141f;
+  width: 28px;
+  height: 28px;
+  background-color: var(--gold);
+  border: none;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -179,44 +210,59 @@
   gap: var(--space-4);
 }
 
-.game-card {
+.card.game-card {
   display: flex;
   flex-direction: column;
   padding: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+  border-radius: var(--r-card);
+  overflow: hidden;
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+
+.card.game-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(240, 78, 35, .5);
 }
 
 .game-img-container {
   height: 160px;
-  border-bottom: var(--border-thick);
+  border-bottom: 1px solid var(--line);
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--plate);
 }
 
-.game-bg-yellow { background-color: #fff1b8; }
-.game-bg-blue { background-color: #e6f7ff; }
-.game-bg-pink { background-color: #fff0f6; }
+.game-bg-yellow, .game-bg-blue, .game-bg-pink {
+  background-color: var(--plate);
+}
 
 .difficulty-badge {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: var(--munchies-dark);
-  color: var(--munchies-white);
-  font-family: var(--font-heading);
-  font-size: 0.7rem;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
+  background: rgba(6, 6, 6, .6);
+  backdrop-filter: blur(6px);
+  color: var(--ember);
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: .08em;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
   z-index: 10;
 }
 
 .game-pattern {
   position: absolute;
   inset: 0;
-  opacity: 0.3;
-  background-image: radial-gradient(circle at 2px 2px, var(--munchies-dark) 1px, transparent 0);
+  opacity: 0.08;
+  background-image: radial-gradient(circle at 2px 2px, #fff 1px, transparent 0);
   background-size: 20px 20px;
 }
 
@@ -234,13 +280,15 @@
 }
 
 .game-info h3 {
-  font-size: 1.25rem;
+  font-family: 'Archivo', sans-serif;
+  font-size: 1.1rem;
   margin-bottom: 4px;
+  color: #fff;
 }
 
 .game-info p {
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  font-size: 0.82rem;
+  color: var(--text-2);
   margin-bottom: var(--space-3);
   line-height: 1.4;
 }
@@ -248,8 +296,8 @@
 .game-stats {
   display: flex;
   gap: var(--space-4);
-  font-size: 0.8rem;
-  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-family: 'Inter', sans-serif;
   color: var(--text-muted);
 }
 

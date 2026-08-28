@@ -118,7 +118,7 @@ export default function Signup() {
               <a
                 href="#"
                 onClick={handleForgotPassword}
-                style={{fontSize: '0.8rem', color: 'var(--munchies-orange)', fontWeight: 600, textDecoration: 'none', cursor: isResetting ? 'wait' : 'pointer', opacity: isResetting ? 0.6 : 1}}
+                style={{fontSize: '0.8rem', color: 'var(--gold)', fontWeight: 600, textDecoration: 'none', cursor: isResetting ? 'wait' : 'pointer', opacity: isResetting ? 0.6 : 1}}
               >
                 {isResetting ? 'Sending link...' : 'Forgot Password?'}
               </a>

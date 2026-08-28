@@ -2,8 +2,9 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background-color: rgba(6, 6, 6, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -19,13 +20,14 @@
 /* Modal Content Container */
 .modal-container {
   position: relative;
-  background-color: var(--surface-color, #ffffff);
-  border: var(--border-thick, 3px solid #1a1a1a);
-  border-radius: var(--radius-xl, 24px);
-  box-shadow: var(--shadow-brutalist, 4px 4px 0px 0px #1a1a1a);
+  background-color: var(--surface-raised, #131110);
+  border: 1px solid var(--line-strong, rgba(255, 255, 255, .13));
+  border-radius: var(--r-card, 8px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .7);
   max-height: 90vh;
   overflow-y: auto;
   outline: none;
+  color: var(--text, #F6F1E7);
   animation: modalContentSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -41,9 +43,10 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px solid var(--border-color, #1a1a1a);
-  background-color: var(--munchies-white, #ffffff);
-  color: var(--munchies-dark, #1a1a1a);
+  border: none;
+  background-color: rgba(6, 6, 6, .6);
+  backdrop-filter: blur(6px);
+  color: var(--text, #F6F1E7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,7 +57,7 @@
 }
 
 .modal-close-btn:hover {
-  background-color: var(--danger-color, #ef4444);
+  background-color: var(--ember, #F04E23);
   color: #ffffff;
   transform: scale(1.08) rotate(90deg);
 }
@@ -93,5 +96,12 @@
   to {
     opacity: 0;
     transform: scale(0.94) translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-container {
+    animation: none !important;
   }
 }

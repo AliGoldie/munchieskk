@@ -114,17 +114,17 @@ export default function Payment() {
       {/* Shop Status Banner when shop is Paused or Closed */}
       {!isOpen && (
         <div style={{
-          background: '#451a03',
-          border: '2px solid #f59e0b',
-          color: '#fef3c7',
+          background: 'rgba(255, 199, 44, .08)',
+          border: '1px solid rgba(255, 199, 44, .35)',
+          color: 'var(--text-2)',
           padding: '1rem',
-          borderRadius: '12px',
+          borderRadius: 'var(--r-card)',
           marginBottom: '1.5rem',
           display: 'flex',
           alignItems: 'center',
           gap: '12px'
         }}>
-          <AlertTriangle size={28} color="#f59e0b" style={{ flexShrink: 0 }} />
+          <AlertTriangle size={28} color="var(--gold)" style={{ flexShrink: 0 }} />
           <div>
             <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>
               {shopSettings?.status === 'PAUSED' ? '⏸️ SHOP IS TEMPORARILY PAUSED' : '🔴 SHOP IS CURRENTLY CLOSED'}
@@ -137,66 +137,41 @@ export default function Payment() {
       )}
 
       {/* Fulfillment Timing Card */}
-      <div className="card mb-6" style={{
-        background: '#1e293b',
-        color: '#fff',
-        padding: '1.25rem',
-        borderRadius: '16px',
-        border: '2px solid rgba(255, 199, 44, 0.4)',
-        marginBottom: '1.5rem',
-        boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
-      }}>
-        <h3 style={{ margin: '0 0 12px', fontSize: '1.1rem', color: 'var(--munchies-yellow)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Clock size={20} /> FULFILLMENT TIMING
+      <div className="card mb-6 timing-card">
+        <div className="timing-card__glow" />
+        <h3 style={{ margin: '0 0 12px', fontSize: '0.7rem', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+          <Clock size={16} /> Fulfillment Timing
         </h3>
 
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', position: 'relative' }}>
           {/* Main Primary Option: ORDER NOW */}
           <button
             type="button"
             onClick={() => setOrderMode('NOW')}
-            style={{
-              flex: 1.2, minWidth: '160px', padding: '14px 18px', borderRadius: '10px',
-              border: orderMode === 'NOW' ? '3px solid var(--munchies-yellow)' : '1px solid #475569',
-              background: orderMode === 'NOW' ? 'var(--munchies-orange-accent)' : '#0f172a',
-              color: '#fff', fontWeight: '800', cursor: 'pointer', fontSize: '1rem',
-              boxShadow: orderMode === 'NOW' ? '0 4px 15px rgba(232, 73, 29, 0.45)' : 'none',
-              transition: 'all 0.2s ease',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-            }}
+            className={`timing-btn ${orderMode === 'NOW' ? 'timing-btn-active' : ''}`}
           >
-            <Zap size={18} fill="#ffffff" /> ORDER NOW (ASAP)
+            <Zap size={18} fill="currentColor" /> Now
           </button>
 
           {/* Secondary Option: Schedule for Later */}
           <button
             type="button"
             onClick={() => setOrderMode('SCHEDULED')}
-            style={{
-              flex: 1, minWidth: '140px', padding: '14px 18px', borderRadius: '10px',
-              border: orderMode === 'SCHEDULED' ? '3px solid var(--munchies-yellow)' : '1px solid #475569',
-              background: orderMode === 'SCHEDULED' ? '#0284c7' : '#0f172a',
-              color: '#fff', fontWeight: '800', cursor: 'pointer', fontSize: '0.95rem',
-              boxShadow: orderMode === 'SCHEDULED' ? '0 4px 15px rgba(2, 132, 199, 0.45)' : 'none',
-              transition: 'all 0.2s ease'
-            }}
+            className={`timing-btn ${orderMode === 'SCHEDULED' ? 'timing-btn-active' : ''}`}
           >
-            📅 Schedule for Later
+            Schedule
           </button>
         </div>
 
         {orderMode === 'SCHEDULED' && (
-          <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px' }}>
+          <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 199, 44, .2)', position: 'relative' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-2)', marginBottom: '6px' }}>
               Select Pre-Order Pickup Time Slot (Operating Hours: {openingFormatted} - {closingFormatted}):
             </label>
             <select
               value={scheduledTime}
               onChange={e => setScheduledTime(e.target.value)}
-              style={{
-                width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #38bdf8',
-                background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.95rem'
-              }}
+              className="timing-select"
             >
               {timeSlots.map(slot => (
                 <option key={slot.value} value={slot.value}>
@@ -280,7 +255,7 @@ export default function Payment() {
                     <span>RM {(((item.price + addonTotal) * item.quantity) / 100).toFixed(2)}</span>
                   </div>
                   {item.selectedAddons && item.selectedAddons.length > 0 && (
-                    <span className="text-muted text-sm" style={{ alignSelf: 'flex-start', marginLeft: '20px' }}>
+                    <span className="text-muted text-sm" style={{ alignSelf: 'flex-start', marginLeft: '20px', color: 'var(--text-dim)' }}>
                       + {item.selectedAddons.map(a => a.name).join(', ')}
                     </span>
                   )}
@@ -289,7 +264,7 @@ export default function Payment() {
             })}
           </div>
 
-          <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', padding: '1rem', backgroundColor: 'var(--surface)', borderRadius: 'var(--r-card)', border: '1px solid var(--line)' }}>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <input
                 type="text"
@@ -347,14 +322,14 @@ export default function Payment() {
               </button>
             </div>
             {promoStatus.message && (
-              <div style={{ fontSize: '0.85rem', marginTop: '4px', color: promoStatus.state === 'valid' ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.85rem', marginTop: '4px', color: promoStatus.state === 'valid' ? 'var(--go)' : '#ff6b6b', fontWeight: 600 }}>
                 {promoStatus.message}
               </div>
             )}
-            
+
             {promoStatus.state === 'valid' && (
               <button
-                style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.8rem', textDecoration: 'underline', cursor: 'pointer', marginTop: '4px', padding: 0 }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.8rem', textDecoration: 'underline', cursor: 'pointer', marginTop: '4px', padding: 0 }}
                 onClick={() => {
                   setPromoCodeInput('');
                   setAppliedPromoCode(null);
@@ -369,26 +344,26 @@ export default function Payment() {
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-2)', marginBottom: '8px' }}>
              <span>Subtotal</span>
              <span>RM {(cartTotal / 100).toFixed(2)}</span>
           </div>
-          
+
           {promoDiscount > 0 && (
-             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 600, marginBottom: '8px' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--go)', fontWeight: 600, marginBottom: '8px' }}>
                 <span>Discount ({appliedPromoCode})</span>
                 <span>-RM {(promoDiscount / 100).toFixed(2)}</span>
              </div>
           )}
-          
+
           {promoFreeItemName && (
-             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 600, marginBottom: '8px' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--go)', fontWeight: 600, marginBottom: '8px' }}>
                 <span>Free Item ({appliedPromoCode})</span>
                 <span>{promoFreeItemName}</span>
              </div>
           )}
 
-          <div className="summary-total" style={{ borderTop: '2px solid #f1f5f9', paddingTop: '12px', marginTop: '4px' }}>
+          <div className="summary-total" style={{ borderTop: '1px solid var(--line)', paddingTop: '12px', marginTop: '4px' }}>
             <span>Total to Pay</span>
             <span className="text-primary">RM {(finalTotal / 100).toFixed(2)}</span>
           </div>

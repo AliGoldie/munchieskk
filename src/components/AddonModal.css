@@ -1,22 +1,8 @@
-.addon-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.75);
-  display: flex;
-  justify-content: center;
-  align-items: flex-end; /* Mobile: slide up from bottom */
-  z-index: 1000;
-  animation: fadeIn 0.2s ease;
-}
-
 .addon-modal-content {
-  background-color: var(--munchies-white);
+  background-color: var(--surface-raised);
   width: 100%;
   max-width: 500px;
-  border-radius: 24px 24px 0 0;
+  border-radius: var(--r-card) var(--r-card) 0 0;
   padding: 1.5rem;
   position: relative;
   max-height: 90vh;
@@ -25,31 +11,21 @@
   animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1);
 }
 
-.addon-modal-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: var(--munchies-light);
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--munchies-dark);
-}
-
 .addon-modal-header {
   margin-bottom: 1.5rem;
   padding-right: 2rem;
 }
 
 .addon-modal-header h2 {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  font-size: 1.5rem;
+  font-family: 'Archivo', sans-serif;
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+.addon-modal-header .text-muted {
+  color: var(--text-muted) !important;
 }
 
 .addon-options-list {
@@ -63,7 +39,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--line);
   cursor: pointer;
 }
 
@@ -77,38 +53,40 @@
 }
 
 .addon-name {
-  font-weight: 600;
-  color: var(--munchies-dark);
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.9rem;
 }
 
 .addon-price {
-  font-size: 0.875rem;
-  color: var(--munchies-orange);
-  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--gold);
+  font-weight: 700;
 }
 
 .addon-checkbox {
-  width: 24px;
-  height: 24px;
-  accent-color: var(--munchies-orange);
+  width: 22px;
+  height: 22px;
+  accent-color: var(--ember);
   cursor: pointer;
 }
 
 .addon-modal-footer {
   padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--line);
 }
 
 @media (min-width: 768px) {
-  .addon-modal-overlay {
-    align-items: center;
-  }
   .addon-modal-content {
-    border-radius: 24px;
+    border-radius: var(--r-card);
   }
 }
 
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .addon-modal-content { animation: none !important; }
 }

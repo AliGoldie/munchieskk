@@ -4,25 +4,27 @@
   right: 16px;
   z-index: 900;
   width: 260px;
-  background: #1e293b;
-  color: white;
-  border-radius: 16px;
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-card);
   padding: 14px 16px 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   cursor: pointer;
-  animation: slideInPopup 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: slideInPopup 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+             emberGlow 3s ease-in-out infinite;
   transition: transform 0.2s ease, box-shadow 0.2s ease, width 0.3s ease;
   overflow: hidden;
 }
 
 .cooking-popup:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
 .cooking-popup-ready {
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  width: 310px;
+  background: var(--surface-raised);
+  border: 1px solid rgba(95, 214, 140, .4);
+  width: 300px;
   padding: 18px 20px 14px;
   animation: slideInPopup 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
              readyPulse 1.5s ease-in-out infinite;
@@ -32,9 +34,9 @@
   position: absolute;
   top: 8px;
   right: 10px;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, .1);
   border: none;
-  color: white;
+  color: var(--text);
   border-radius: 50%;
   width: 22px;
   height: 22px;
@@ -48,7 +50,7 @@
 }
 
 .cooking-popup-close:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, .2);
 }
 
 /* COOKING layout */
@@ -65,17 +67,21 @@
 }
 
 .popup-label {
-  font-size: 0.75rem;
-  opacity: 0.75;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
   margin-bottom: 2px;
 }
 
 .popup-timer {
-  font-family: 'Courier New', monospace;
-  font-size: 1.6rem;
+  font-family: 'Archivo', sans-serif;
+  font-size: 1.5rem;
   font-weight: 900;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   line-height: 1;
+  color: var(--ember);
 }
 
 /* READY layout */
@@ -92,30 +98,33 @@
 }
 
 .popup-ready-title {
+  font-family: 'Archivo', sans-serif;
   font-weight: 900;
-  font-size: 1.15rem;
-  letter-spacing: 0.02em;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  color: var(--go);
+  text-transform: uppercase;
 }
 
 .popup-ready-sub {
-  font-size: 0.78rem;
-  opacity: 0.85;
+  font-size: 0.75rem;
+  color: var(--text-2);
   margin-top: 3px;
 }
 
 /* Progress bar */
 .popup-progress-bar {
   height: 4px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, .1);
+  border-radius: var(--r-pill);
   overflow: hidden;
   margin-top: 2px;
 }
 
 .popup-progress-fill {
   height: 100%;
-  background: var(--munchies-orange, #f97316);
-  border-radius: 4px;
+  background: var(--ember);
+  border-radius: var(--r-pill);
   transition: width 1s linear;
 }
 
@@ -136,6 +145,20 @@
 }
 
 @keyframes readyPulse {
-  0%, 100% { box-shadow: 0 8px 32px rgba(22, 163, 74, 0.4); }
-  50%       { box-shadow: 0 8px 48px rgba(22, 163, 74, 0.8); }
+  0%, 100% { box-shadow: 0 8px 32px rgba(95, 214, 140, .25); }
+  50%       { box-shadow: 0 8px 40px rgba(95, 214, 140, .5); }
+}
+
+@keyframes emberGlow {
+  0%, 100% { box-shadow: 0 8px 32px rgba(0, 0, 0, .5); }
+  50%       { box-shadow: 0 8px 32px rgba(0, 0, 0, .5), 0 0 24px rgba(240, 78, 35, .3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cooking-popup,
+  .cooking-popup-ready,
+  .popup-flame,
+  .popup-ready-icon {
+    animation: none !important;
+  }
 }

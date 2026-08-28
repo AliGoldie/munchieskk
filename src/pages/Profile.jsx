@@ -192,11 +192,11 @@ export default function Profile() {
             <h3>Share Referral Link</h3>
             <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '8px' }}>Invite friends and get rewarded when they order!</p>
             <div className="referral-box" style={{marginTop: '0.5rem', display: 'flex', gap: '8px'}}>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 readOnly
-                className="price-input" 
-                style={{flex: 1, padding: '0.5rem', backgroundColor: '#f8fafc', color: '#64748b'}}
+                className="price-input"
+                style={{flex: 1, padding: '0.5rem', backgroundColor: 'var(--surface)', color: 'var(--text-dim)'}}
                 value={`${window.location.origin}/signup?ref=${user?.short_code || ''}`}
               />
               <button 
@@ -228,15 +228,15 @@ export default function Profile() {
             </div>
           </div>
           
-          <button 
-            className="btn btn-dark w-full" 
-            style={{ marginTop: '2rem', backgroundColor: 'var(--danger-color)', color: 'white' }}
+          <button
+            className="btn btn-outline w-full logout-btn"
+            style={{ marginTop: '2rem' }}
             onClick={logout}
           >
             LOGOUT
           </button>
-          
-          <a 
+
+          <a
             href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappGreeting)}`}
             target="_blank" rel="noopener noreferrer"
             className="btn w-full"
@@ -280,11 +280,11 @@ export default function Profile() {
                       </div>
 
                       {isExpanded && (
-                        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed var(--border-color)', fontSize: '0.875rem' }}>
-                          <div style={{ fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text-main)' }}>Items:</div>
+                        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed var(--line-control)', fontSize: '0.875rem' }}>
+                          <div style={{ fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text)' }}>Items:</div>
                           {order.items && order.items.length > 0 ? (
                             order.items.map((item, i) => (
-                              <div key={i} style={{ marginBottom: '0.25rem', color: 'var(--text-main)' }}>
+                              <div key={i} style={{ marginBottom: '0.25rem', color: 'var(--text-2)' }}>
                                 <span style={{ fontWeight: 800 }}>{item.quantity || 1}x</span> {item.name}
                                 {item.selectedAddons && item.selectedAddons.length > 0 && (
                                   <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.15rem' }}>
