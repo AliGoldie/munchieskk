@@ -55,6 +55,25 @@ export default function Menu() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [activeCategory, setActiveCategory] = useState('');
   const isClickScrolling = useRef(false);
+  const scrollUnlockTimeoutRef = useRef(null);
+
+  // Native `scrollIntoView({behavior:'smooth'})` can get stuck on some mobile
+  // browsers when a new scroll is requested before the previous one finishes —
+  // the animations collide and neither completes, leaving the page frozen
+  // while the category pill highlight keeps updating (confirmed via a user
+  // screen recording: tapping through categories updated the active tab but
+  // the page never actually scrolled). An instant, unanimated scroll can't
+  // get stuck mid-flight the way a native smooth-scroll animation can, so it
+  // trades a little visual polish for working reliably on every device.
+  const jumpTo = (targetY) => {
+    window.scrollTo(0, targetY);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (scrollUnlockTimeoutRef.current) clearTimeout(scrollUnlockTimeoutRef.current);
+    };
+  }, []);
 
   // Fixed category order
   const CATEGORY_ORDER = ['BBQ', 'PREMIUM', 'PLATTERS', 'SIDES', 'DRINKS'];
@@ -93,6 +112,15 @@ export default function Menu() {
     return () => observer.disconnect();
   }, [categories]);
 
+  // Category bar is sticky, so scrolling a target element flush to the top
+  // would tuck it behind the bar — offset by the bar's actual current height
+  // instead of a hardcoded pixel value, so it stays correct across devices.
+  const getCategoryScrollTarget = (el) => {
+    const bar = document.querySelector('.category-bar');
+    const barOffset = bar ? bar.getBoundingClientRect().height : 0;
+    return el.getBoundingClientRect().top + window.scrollY - barOffset - 10;
+  };
+
   // Handle hash links from other pages (e.g., Home clicking on #BBQ)
   useEffect(() => {
     if (categories.length > 0 && window.location.hash) {
@@ -100,7 +128,7 @@ export default function Menu() {
       if (categories.includes(hash)) {
         setTimeout(() => {
           const el = document.getElementById(hash);
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
+          if (el) jumpTo(getCategoryScrollTarget(el));
         }, 100); // small delay to ensure DOM is ready
       }
     }
@@ -109,16 +137,16 @@ export default function Menu() {
   const scrollToCategory = (cat) => {
     isClickScrolling.current = true;
     setActiveCategory(cat);
+    if (scrollUnlockTimeoutRef.current) clearTimeout(scrollUnlockTimeoutRef.current);
     const el = document.getElementById(`category-${cat}`);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-      // Re-enable observer after smooth scroll completes (approx 800ms max)
-      setTimeout(() => {
-        isClickScrolling.current = false;
-      }, 800);
-    } else {
-      isClickScrolling.current = false;
+      jumpTo(getCategoryScrollTarget(el));
     }
+    // Let the jump land and any resulting intersection events settle before
+    // handing control back to the scroll-tracking observer.
+    scrollUnlockTimeoutRef.current = setTimeout(() => {
+      isClickScrolling.current = false;
+    }, 150);
   };
 
   const heroItem = menu.find(item => item.name === 'Sumandak Burger') || menu[0];
