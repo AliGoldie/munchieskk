@@ -178,12 +178,12 @@ export default function OrderStatus() {
             <p className="text-muted mt-3" style={{lineHeight:'1.6'}}>
               Your order is with the kitchen.<br/>We'll start the timer once they confirm it!
             </p>
-            <div style={{marginTop:'1.5rem', background:'rgba(255,202,8,0.15)', borderRadius:'12px', padding:'1rem'}}>
-              <p className="font-black" style={{color:'var(--munchies-orange)', fontSize:'0.85rem', letterSpacing:'0.05em'}}>⚡ PREPARING YOUR ORDER</p>
+            <div style={{marginTop:'1.5rem', background:'rgba(255,199,44,0.1)', border: '1px solid rgba(255,199,44,0.3)', borderRadius:'var(--r-card)', padding:'1rem'}}>
+              <p className="font-black" style={{color:'var(--gold)', fontSize:'0.85rem', letterSpacing:'0.05em'}}>PREPARING YOUR ORDER</p>
             </div>
-            <button 
-              className="btn mt-4 w-100" 
-              style={{ background: 'transparent', border: '2px solid #ff5b5b', color: '#ff5b5b', fontWeight: '800', borderRadius: '12px' }}
+            <button
+              className="btn mt-4 w-100"
+              style={{ background: 'transparent', border: '1px solid #ff5b5b', color: '#ff5b5b', fontWeight: '800', borderRadius: 'var(--r-pill)', minHeight: '48px' }}
               onClick={() => {
                 cancelOrder(order.id, "Cancelled by Customer");
                 localStorage.removeItem('munchies_active_order');
@@ -197,8 +197,8 @@ export default function OrderStatus() {
 
         {/* CANCELLED STATE */}
         {order.status === 'CANCELLED' && (
-          <div className="status-card" style={{borderTop: '6px solid #ff5b5b'}}>
-            <div className="kitchen-visual" style={{fontSize:'4rem'}}>❌</div>
+          <div className="status-card" style={{borderTop: '3px solid #ff5b5b'}}>
+            <div className="kitchen-visual" style={{fontSize:'4rem', color: '#ff5b5b'}}>❌</div>
             <h2 style={{color: '#ff5b5b'}}>ORDER CANCELLED</h2>
             <p className="order-id">Order ID: #{formatOrderId(order.id)}</p>
             <p className="text-muted mt-3">This order has been cancelled.</p>
@@ -217,17 +217,17 @@ export default function OrderStatus() {
             <p className="order-id">Order ID: #{formatOrderId(order.id)}</p>
             
             <div className="timer-container mt-4">
-              <div className="timer-text font-black text-orange">
+              <div className="timer-text font-black">
                 {formatTime(timeElapsed)}
               </div>
-              <p className="text-muted text-sm mt-1">
+              <p className="text-muted text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
                 Time Elapsed
               </p>
-              
+
               <div className="progress-bar mt-3">
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? '#ef4444' : '#f59e0b' }}
+                <div
+                  className="progress-fill"
+                  style={{ width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? '#ef4444' : 'var(--ember)' }}
                 ></div>
               </div>
             </div>
@@ -254,9 +254,9 @@ export default function OrderStatus() {
         {order.status === 'READY' && (
           <div className="status-card ready-card scale-in">
             <div className="ready-visual">
-              <CheckCircle2 size={100} className="text-success pulse" />
+              <CheckCircle2 size={100} className="pulse" style={{ color: 'var(--go)' }} />
             </div>
-            <h1 className="text-success mt-3 font-black">IT'S READY!</h1>
+            <h1 className="mt-3 font-black" style={{ color: 'var(--go)' }}>IT'S READY!</h1>
             <p className="order-id">Order ID: #{formatOrderId(order.id)}</p>
             <p className="mt-3">Your delicious Munchies are waiting for you at the counter.</p>
             
@@ -272,35 +272,35 @@ export default function OrderStatus() {
         {/* COLLECTED STATE */}
         {order.status === 'COLLECTED' && (
           <div className="status-card collected-card fade-in">
-            <PartyPopper size={64} className="text-primary mb-3 mx-auto" />
+            <PartyPopper size={64} className="mb-3 mx-auto" style={{ color: 'var(--text)' }} />
             <h2>ENJOY YOUR MEAL!</h2>
-            <p className="text-muted mt-2">Thanks for choosing MunchiesKK.</p>
+            <p className="text-muted mt-2" style={{ color: 'var(--text-muted)' }}>Thanks for choosing MunchiesKK.</p>
 
             {showReviewPrompt && (
               <div className="social-prompt mt-4">
                 <div className="prompt-header">
-                  <Flame size={20} className="text-orange" />
+                  <Flame size={20} style={{ color: 'var(--ember)' }} />
                   <h4>EARN {loyaltyConfig.REVIEW_BONUS_PTS} BONUS POINTS</h4>
                 </div>
-                <p className="text-sm mt-2 mb-3">Snap a pic of your food and tag us on social media to claim your reward instantly!</p>
-                
+                <p className="text-sm mt-2 mb-3" style={{ color: 'var(--text-2)' }}>Snap a pic of your food and tag us on social media to claim your reward instantly!</p>
+
                 <div className="flex gap-2 justify-center">
-                  <button 
-                    className="btn btn-outline flex-1 social-share-btn" 
+                  <button
+                    className="btn btn-outline flex-1 social-share-btn"
                     onClick={() => handleSocialShare('Instagram')}
                     disabled={claimedReview}
                   >
                     <Share2 size={18} /> Instagram
                   </button>
-                  <button 
-                    className="btn btn-outline flex-1 social-share-btn" 
+                  <button
+                    className="btn btn-outline flex-1 social-share-btn"
                     onClick={() => handleSocialShare('Facebook')}
                     disabled={claimedReview}
                   >
                     <Share2 size={18} /> Facebook
                   </button>
                 </div>
-                {claimedReview && <p className="text-success text-sm mt-3 font-bold">Bonus claimed!</p>}
+                {claimedReview && <p className="text-sm mt-3 font-bold" style={{ color: 'var(--go)' }}>Bonus claimed!</p>}
               </div>
             )}
             

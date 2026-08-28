@@ -83,6 +83,25 @@
   color: #fff;
 }
 .app-layout .btn-sm:hover { background: var(--ember); border-color: var(--ember); box-shadow: none; }
+.app-layout .btn-dark {
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--line-control);
+}
+.app-layout .btn-dark:hover { background: var(--surface-hover); box-shadow: none; }
+.app-layout .btn-yellow {
+  background: var(--gold);
+  color: #0A0A0A;
+}
+.app-layout .btn-yellow:hover { background: var(--ember); color: #fff; box-shadow: none; }
+.app-layout .btn-danger {
+  background: #ef4444;
+  color: #fff;
+}
+.app-layout .btn-success {
+  background: var(--go);
+  color: #06170f;
+}
 
 /* Top Header */
 .app-layout .top-header {
