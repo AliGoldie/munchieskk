@@ -2,6 +2,11 @@
   padding: var(--space-8) var(--space-4);
 }
 
+.profile-page h1 {
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+}
+
 .profile-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -16,16 +21,21 @@
 }
 
 .profile-card {
-  background-color: var(--munchies-white);
-  border: 1px solid #e2e8f0;
-  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-card);
   padding: var(--space-6);
+  color: var(--text);
 }
 
 .profile-card h3 {
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-3);
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
+  text-transform: uppercase;
 }
 
 .info-group {
@@ -35,22 +45,43 @@
 }
 
 .info-group .label {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .loyalty-teaser {
   margin-top: var(--space-6);
   padding: var(--space-4);
-  background-color: rgba(199, 59, 15, 0.08);
-  border-radius: var(--radius-md);
-  border: 1.5px dashed var(--munchies-orange);
+  background: rgba(240, 78, 35, .08);
+  border-radius: var(--r-card);
+  border: 1px dashed rgba(240, 78, 35, .4);
 }
 
 .loyalty-teaser h4 {
-  color: var(--munchies-orange);
+  color: var(--ember);
   margin-bottom: var(--space-1);
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.loyalty-teaser .text-primary {
+  color: var(--gold);
+  font-family: 'Archivo', sans-serif;
+}
+
+.logout-btn {
+  border-color: var(--ember) !important;
+  color: var(--ember) !important;
+  background: transparent !important;
+}
+
+.logout-btn:hover {
+  background: rgba(240, 78, 35, .1) !important;
 }
 
 .order-list {
@@ -60,13 +91,14 @@
 }
 
 .order-item {
-  border: 1px solid #e2e8f0;
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-card);
   padding: var(--space-3);
+  background: var(--surface);
 }
 
 .order-item:hover {
-  background-color: #fafafa;
+  border-color: rgba(240, 78, 35, .4);
 }
 
 .order-header, .order-footer {
@@ -77,31 +109,43 @@
 
 .order-header {
   margin-bottom: var(--space-2);
+  color: var(--text);
 }
 
 .order-id {
-  font-weight: 700;
-  font-family: var(--font-heading);
+  font-weight: 900;
+  font-family: 'Archivo', sans-serif;
+  color: #fff;
 }
 
 .order-date {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--text-dim);
 }
 
 .order-total {
   font-weight: 700;
-  color: var(--munchies-orange);
+  color: var(--text-2);
+}
+
+.order-total .text-primary {
+  color: var(--gold);
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: .04em;
 }
 
 .order-status {
   font-size: 0.75rem;
   padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background-color: #f0f0f0;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .08);
+  color: var(--text-2);
 }
 
 .order-status.completed {
-  background-color: rgba(34, 197, 94, 0.1);
-  color: var(--success-color);
+  background: rgba(95, 214, 140, 0.13);
+  color: var(--go);
 }
