@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, User, Menu as MenuIcon, Home, Gift, Gamepad2, LogOut } from 'lucide-react';
+import { ShoppingBag, User, Menu as MenuIcon, Home, Gift, Gamepad2, LogOut, Star } from 'lucide-react';
 import './Layout.css';
 
 import { useStore } from '../contexts/StoreContext';
@@ -9,7 +9,7 @@ import ErrorBoundary from './ErrorBoundary';
 
 export default function Layout() {
   const location = useLocation();
-  const { cartCount } = useStore();
+  const { cartCount, points } = useStore();
   const { user, logout } = useAuth();
   const isAdmin = location.pathname.startsWith('/admin');
 
@@ -41,7 +41,7 @@ export default function Layout() {
           <Link to="/" className="logo">
             <img src="/images/logo.png" alt="MUNCHIESKK" style={{ height: '48px' }} />
           </Link>
-          <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
             {user?.role === 'admin' && (
               <Link to="/admin" style={{
                 background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
@@ -60,8 +60,14 @@ export default function Layout() {
                 ADMIN
               </Link>
             )}
+            {user && (
+              <Link to="/loyalty" className="points-chip">
+                <Star size={13} fill="currentColor" strokeWidth={0} />
+                {points.toLocaleString()}
+              </Link>
+            )}
             <Link to="/cart" className="cart-link">
-              <ShoppingBag size={24} color="var(--munchies-white)" />
+              <ShoppingBag size={24} />
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </Link>
           </div>

@@ -1,45 +1,129 @@
+/* ============================================================
+   v4 "Cinematic Dark" — tokens scoped to .app-layout only.
+   :root and .admin-layout keep the original brutalist tokens
+   untouched so Admin never sees these values.
+   ============================================================ */
 .app-layout {
+  --ink: #060606;
+  --surface: #0A0A0A;
+  --surface-raised: #131110;
+  --surface-hover: #181514;
+  --plate: #0F0D0C;
+
+  --line: rgba(255, 255, 255, .09);
+  --line-strong: rgba(255, 255, 255, .13);
+  --line-control: rgba(255, 255, 255, .22);
+
+  --text: #F6F1E7;
+  --text-2: #C6BEB4;
+  --text-muted: #8E867C;
+  --text-dim: #8A8378;
+
+  --ember: #F04E23;
+  --ember-deep: #C4210A;
+  --gold: #FFC72C;
+  --go: #5FD68C;
+
+  --r-card: 6px;
+  --r-pill: 999px;
+
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding-bottom: 70px; /* Space for bottom nav */
+  padding-bottom: 78px; /* space for bottom nav */
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+.app-layout h1, .app-layout h2, .app-layout h3, .app-layout h4 {
+  font-family: 'Archivo', var(--font-sans);
+  font-weight: 900;
+  letter-spacing: -.02em;
+  word-spacing: .08em;
+  line-height: 1;
+}
+
+/* Buttons — scoped override of the shared brutalist .btn/.btn-primary/etc,
+   so Admin (which uses the same class names outside .app-layout) is unaffected. */
+.app-layout .btn {
+  border: none;
+  box-shadow: none;
+  border-radius: var(--r-pill);
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  transition: all .16s ease;
+}
+.app-layout .btn:hover { transform: translateY(-2px); box-shadow: none; }
+.app-layout .btn:active { transform: translateY(0); }
+.app-layout .btn-primary {
+  background: var(--ember);
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(240, 78, 35, .42);
+}
+.app-layout .btn-primary:hover { background: var(--gold); color: #0A0A0A; }
+.app-layout .btn-secondary,
+.app-layout .btn-outline {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line-control);
+}
+.app-layout .btn-secondary:hover,
+.app-layout .btn-outline:hover { background: rgba(255, 255, 255, .1); box-shadow: none; }
+.app-layout .btn-sm {
+  padding: 0 17px;
+  min-height: 36px;
+  font-size: 10px;
+  letter-spacing: .1em;
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .22);
+  color: #fff;
+}
+.app-layout .btn-sm:hover { background: var(--ember); border-color: var(--ember); box-shadow: none; }
+
 /* Top Header */
-.top-header {
-  background-color: var(--munchies-dark);
-  color: var(--munchies-white);
+.app-layout .top-header {
+  background: rgba(10, 10, 10, .9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--text);
   position: sticky;
   top: 0;
   z-index: 100;
+  border-bottom: 1px solid var(--line);
 }
 
-.header-container {
+.app-layout .header-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 60px;
 }
 
-.menu-btn {
-  color: var(--munchies-white);
+.app-layout .logo {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px;
-  min-width: 44px;
-  min-height: 44px;
 }
 
-.logo {
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
+.app-layout .points-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 199, 44, .13);
+  border: 1px solid rgba(255, 199, 44, .4);
+  border-radius: var(--r-pill);
+  padding: 6px 12px;
+  font-family: 'Archivo', sans-serif;
   font-weight: 900;
-  letter-spacing: -0.5px;
-  color: var(--munchies-white);
+  font-size: 12px;
+  color: var(--gold);
+  min-height: 32px;
 }
 
-.cart-link {
+.app-layout .cart-link {
   position: relative;
   display: flex;
   align-items: center;
@@ -47,82 +131,91 @@
   padding: 8px;
   min-width: 44px;
   min-height: 44px;
+  color: var(--text);
 }
 
-.cart-badge {
+.app-layout .cart-badge {
   position: absolute;
-  top: 0px;
-  right: 0px;
-  background-color: var(--munchies-orange);
-  color: var(--munchies-white);
-  font-size: 0.75rem;
+  top: 2px;
+  right: 2px;
+  background: var(--ember);
+  color: #fff;
+  font-size: .7rem;
   font-weight: 800;
-  height: 20px;
-  min-width: 20px;
-  border-radius: var(--radius-full);
+  height: 18px;
+  min-width: 18px;
+  border-radius: var(--r-pill);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 4px;
-  border: 2px solid var(--munchies-dark);
+  border: none;
 }
 
 /* Main Content */
-.main-content {
+.app-layout .main-content {
   flex: 1;
   padding-top: var(--space-4);
   padding-bottom: var(--space-6);
 }
 
 /* Bottom Navigation */
-.bottom-nav {
+.app-layout .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  background-color: var(--munchies-white);
-  border-top: var(--border-thick);
+  background: rgba(6, 6, 6, .96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
   z-index: 100;
 }
 
-.nav-container {
+.app-layout .nav-container {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  height: 70px;
+  align-items: stretch;
+  gap: 4px;
+  height: 66px;
+  padding: 8px 8px 10px;
 }
 
-.nav-item {
+.app-layout .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: var(--munchies-dark);
-  font-weight: 700;
-  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: .55;
+  font-weight: 800;
+  font-size: .68rem;
+  letter-spacing: .05em;
   flex: 1;
   height: 100%;
   text-decoration: none;
-  font-family: var(--font-heading);
+  font-family: 'Inter', sans-serif;
   text-transform: uppercase;
+  border-radius: var(--r-card);
+  transition: all .16s ease;
 }
 
-.nav-item span {
-  margin-top: 2px;
+.app-layout .nav-item span {
+  margin-top: 0;
 }
 
-.nav-item.active {
-  background-color: var(--munchies-orange);
-  color: var(--munchies-white);
-  border-radius: 50% 50% 0 0; /* Creates an arch effect or pill shape */
-  border: var(--border-thick);
-  border-bottom: none;
-  transform: translateY(-4px);
-  padding-top: 4px;
+.app-layout .nav-item.active {
+  background: rgba(240, 78, 35, .16);
+  color: var(--ember);
+  opacity: 1;
+  border-radius: var(--r-card);
+  border: none;
+  transform: none;
+  padding-top: 0;
 }
 
-/* Admin Styles */
+/* Admin Styles — untouched, still brutalist tokens from :root */
 .admin-layout {
   min-height: 100vh;
   background-color: #f4f7fe; /* Sedap light gray */
