@@ -18,6 +18,70 @@
 
 .payment-methods h2 {
   margin-bottom: var(--space-4);
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+}
+
+/* Fulfillment Timing card */
+.timing-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-raised) !important;
+  color: var(--text);
+  padding: 1.25rem;
+  border-radius: var(--r-card);
+  border: 1px solid rgba(255, 199, 44, .35) !important;
+  box-shadow: none !important;
+}
+
+.timing-card__glow {
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240, 78, 35, .3), transparent 70%);
+  pointer-events: none;
+}
+
+.timing-btn {
+  flex: 1;
+  min-width: 140px;
+  padding: 14px 18px;
+  min-height: 48px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-control);
+  background: transparent;
+  color: var(--text);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.timing-btn-active {
+  border-color: var(--ember);
+  background: var(--ember);
+  color: #fff;
+}
+
+.timing-select {
+  width: 100%;
+  padding: 12px;
+  min-height: 44px;
+  border-radius: var(--r-card);
+  border: 1px solid rgba(255, 199, 44, .4);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 0.9rem;
 }
 
 .method-card {
@@ -25,36 +89,39 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4);
-  border: 2px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--space-4);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: var(--r-card);
+  margin-bottom: var(--space-3);
   cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: var(--surface-color);
+  transition: all 0.16s ease;
+  background-color: var(--surface-raised);
 }
 
 .method-card:hover {
-  border-color: var(--primary-color);
-  background-color: rgb(249 115 22 / 0.05);
+  border-color: rgba(240, 78, 35, .4);
 }
 
 .method-card.selected {
-  border-color: var(--primary-color);
-  background-color: rgb(249 115 22 / 0.1);
+  border-color: rgba(240, 78, 35, .6);
+  background-color: rgba(240, 78, 35, .09);
 }
 
 .method-card svg {
-  color: var(--primary-color);
+  color: var(--ember);
+  flex-shrink: 0;
 }
 
 .method-info h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+  text-transform: none;
 }
 
 .method-info p {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 
@@ -64,6 +131,14 @@
   padding: 0 var(--space-4);
 }
 
+.fpx-dropdown select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-card);
+  padding: 10px 12px;
+}
+
 .qr-display {
   display: flex;
   justify-content: center;
@@ -71,24 +146,31 @@
 }
 
 .qr-placeholder {
-  background: white;
+  background: var(--surface-raised);
   padding: var(--space-6);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--r-card);
   text-align: center;
-  border: 1px dashed var(--border-color);
+  border: 1px dashed var(--line-control);
+  color: var(--text-2);
 }
 
 .payment-summary {
-  background-color: var(--surface-color);
+  background-color: var(--surface-raised);
   padding: var(--space-6);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  border-radius: var(--r-card);
+  border: 1px solid var(--line-strong);
   height: fit-content;
 }
 
+.payment-summary h3 {
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+  text-transform: uppercase;
+  font-size: 1rem;
+}
+
 .summary-items {
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--line);
   padding-bottom: var(--space-4);
   margin-bottom: var(--space-4);
 }
@@ -97,15 +179,21 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: var(--space-2);
-  color: var(--text-muted);
+  color: var(--text-2);
 }
 
 .summary-total {
   display: flex;
   justify-content: space-between;
   font-size: 1.25rem;
-  font-weight: 700;
+  font-family: 'Archivo', sans-serif;
+  font-weight: 900;
   margin-bottom: var(--space-6);
+  color: var(--text);
+}
+
+.summary-total .text-primary {
+  color: var(--gold);
 }
 
 .pay-btn {
@@ -123,6 +211,10 @@
   100% { transform: rotate(360deg); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none !important; }
+}
+
 .success-view {
   text-align: center;
   display: flex;
@@ -130,4 +222,9 @@
   align-items: center;
   gap: var(--space-4);
   padding-top: 10vh;
+  color: var(--text);
+}
+
+.success-view .text-success {
+  color: var(--go);
 }
