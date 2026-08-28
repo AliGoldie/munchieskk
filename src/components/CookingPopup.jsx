@@ -143,7 +143,7 @@ export default function CookingPopup() {
           <div className="popup-flame">⏳</div>
           <div className="popup-text">
             <div className="popup-label">Waiting for kitchen…</div>
-            <div style={{fontSize:'0.85rem', color:'rgba(255,255,255,0.7)', marginTop:'2px'}}>Timer starts when accepted</div>
+            <div style={{fontSize:'0.85rem', color:'var(--text-2)', marginTop:'2px'}}>Timer starts when accepted</div>
           </div>
         </div>
       ) : (
@@ -158,7 +158,7 @@ export default function CookingPopup() {
 
       {!isReady && (
         <div className="popup-progress-bar">
-          <div className="popup-progress-fill" style={{ width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? '#ef4444' : '#f59e0b' }} />
+          <div className="popup-progress-fill" style={{ width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? '#ef4444' : 'var(--ember)' }} />
         </div>
       )}
     </div>

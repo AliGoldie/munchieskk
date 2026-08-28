@@ -35,7 +35,7 @@ export default function AddonModal({ item, onClose }) {
     <Modal onClose={onClose} className="addon-modal-content" ariaLabel={`Customize ${item.name}`}>
       <div className="addon-modal-header">
         <h2>Customize {item.name}</h2>
-        <p className="text-muted text-sm mt-1">Make it exactly how you want it.</p>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Make it exactly how you want it.</p>
       </div>
 
       <div className="addon-options-list">

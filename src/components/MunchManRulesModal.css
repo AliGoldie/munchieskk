@@ -4,43 +4,45 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(6, 6, 6, .82);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1100;
   padding: 16px;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .munchman-rules-card {
   position: relative;
-  background: #14141f;
-  border: 2px solid var(--munchies-yellow);
-  border-radius: 16px;
+  background: var(--surface-raised);
+  border: 1px solid rgba(255, 199, 44, .35);
+  border-radius: var(--r-card);
   padding: 24px;
   width: 100%;
   max-width: 420px;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-  color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .7);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
 }
 
 .munchman-rules-title {
-  color: var(--munchies-yellow);
-  font-size: 22px;
-  font-weight: 800;
+  font-family: 'Archivo', sans-serif;
+  color: var(--gold);
+  font-size: 20px;
+  font-weight: 900;
   margin-top: 0;
   margin-bottom: 12px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: .02em;
 }
 
 .munchman-rules-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   margin: 16px 0 24px;
   text-align: left;
 }
@@ -49,13 +51,13 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: #1e1e2e;
+  background: var(--surface);
   padding: 12px;
-  border-radius: 10px;
-  border-left: 4px solid var(--munchies-orange-accent);
+  border-radius: var(--r-card);
+  border: 1px solid var(--line);
   font-size: 13.5px;
   line-height: 1.4;
-  color: #e0e0e0;
+  color: var(--text-2);
 }
 
 .munchman-rule-icon {
@@ -64,12 +66,34 @@
 }
 
 .munchman-streak-badge {
-  background: rgba(255, 199, 44, 0.15);
-  border: 1px dashed var(--munchies-yellow);
-  color: var(--munchies-yellow);
+  background: rgba(255, 199, 44, .13);
+  border: 1px solid rgba(255, 199, 44, .4);
+  color: var(--gold);
   font-size: 12px;
   font-weight: 700;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-card);
   margin-bottom: 16px;
+}
+
+.munchman-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, .08);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.munchman-close-btn:hover {
+  background: var(--ember);
+  color: #fff;
 }
