@@ -119,6 +119,10 @@
   animation: fadeFromBlack 0.35s ease-out forwards;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .hero-spotlight-image { animation: none !important; }
+}
+
 .hero-spotlight-image-container:hover .hero-spotlight-image {
   transform: scale(1.03);
 }
