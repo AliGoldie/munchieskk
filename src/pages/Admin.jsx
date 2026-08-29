@@ -165,7 +165,7 @@ export default function Admin() {
 
   // New Menu Item State
   const [newItem, setNewItem] = useState({
-    name: '', category: 'BBQ', price: '', image: '', description: '', inStock: true
+    name: '', category: 'BBQ', price: '', cost_price: '', image: '', description: '', inStock: true
   });
   const [newItemImageFile, setNewItemImageFile] = useState(null);
   
@@ -235,7 +235,19 @@ export default function Admin() {
 
   const pendingOrders = orders.filter(o => o.status === 'PENDING');
   const activeOrders = orders.filter(o => o.status !== 'COLLECTED' && o.status !== 'CANCELLED');
-  
+
+  // Cost of one redemption: real cost_price of the menu item the prize is
+  // linked to, when the admin has set it. Null when the prize isn't linked
+  // to a menu item, or the linked item has no cost_price set yet.
+  const getRedemptionCost = (r) => {
+    const prize = loyaltyPrizes.find(p => p.id === r.prize_id);
+    if (!prize || !prize.menu_item_id) return null;
+    const menuItem = menu.find(m => String(m.id) === String(prize.menu_item_id));
+    return menuItem && menuItem.cost_price != null ? menuItem.cost_price / 100 : null;
+  };
+  const totalRedemptionValue = redemptions.reduce((sum, r) => sum + (getRedemptionCost(r) || 0), 0);
+  const redemptionsMissingCost = redemptions.filter(r => getRedemptionCost(r) == null).length;
+
   useEffect(() => {
     if (activeTab === 'promotions') {
       fetchMarketingData();
@@ -417,6 +429,9 @@ export default function Admin() {
       name: editingMenuItem.name,
       category: editingMenuItem.category,
       price: Math.round(parseFloat(editingMenuItem.price || 0) * 100),
+      cost_price: editingMenuItem.cost_price !== '' && editingMenuItem.cost_price != null
+        ? Math.round(parseFloat(editingMenuItem.cost_price) * 100)
+        : null,
       description: editingMenuItem.description || '',
       image: imageUrl
     });
@@ -539,6 +554,17 @@ export default function Admin() {
       grabfood: { gross: 0, net: 0, name: 'GrabFood', color: '#16a34a' }
     };
 
+    // Cost of one line: real cost_price from the Menu CRM when the admin has set
+    // it, otherwise fall back to the flat 40%-of-price estimate this dashboard
+    // always used. Items without a cost_price set behave exactly as before.
+    const lineCost = (orderItem, lineRevenue) => {
+      const menuItem = menu.find(m => String(m.id) === String(orderItem.id));
+      if (menuItem && menuItem.cost_price != null) {
+        return (menuItem.cost_price * (orderItem.quantity || 1)) / 100;
+      }
+      return lineRevenue * 0.40;
+    };
+
     // Top 10 Sales with Margin Calculation
     const itemStats = {};
     periodOrders.forEach(order => {
@@ -548,9 +574,13 @@ export default function Admin() {
       const channelKey = isLoyverse ? 'loyverse' : isGrab ? 'grabfood' : 'web';
 
       const orderGross = order.total / 100;
-      
-      // Assume 40% COGS flat + Platform Fee
-      const cogs = orderGross * 0.40;
+      const orderItems = order.items || [];
+
+      // COGS: sum of each line's real or estimated cost, falling back to the
+      // flat 40% of order total when an order has no item breakdown at all.
+      const cogs = orderItems.length > 0
+        ? orderItems.reduce((sum, oi) => sum + lineCost(oi, ((oi.price || 0) * (oi.quantity || 1)) / 100), 0)
+        : orderGross * 0.40;
       const platformFee = orderGross * (CHANNEL_FEES[channelKey] || 0);
       const orderNet = orderGross - cogs - platformFee;
 
@@ -563,12 +593,12 @@ export default function Admin() {
 
       // Filter for top items by channel
       if (topItemsChannelFilter === 'all' || topItemsChannelFilter === channelKey) {
-        (order.items || []).forEach(item => {
+        orderItems.forEach(item => {
           if (!itemStats[item.name]) itemStats[item.name] = { quantity: 0, revenue: 0, netProfit: 0 };
           const itemQty = item.quantity || 1;
           const itemRev = ((item.price || 0) * itemQty) / 100;
-          
-          let itemNet = itemRev - (itemRev * 0.40) - (itemRev * (CHANNEL_FEES[channelKey] || 0));
+
+          let itemNet = itemRev - lineCost(item, itemRev) - (itemRev * (CHANNEL_FEES[channelKey] || 0));
 
           itemStats[item.name].quantity += itemQty;
           itemStats[item.name].revenue += itemRev;
@@ -923,9 +953,10 @@ export default function Admin() {
         await addMenuItem({
           ...newItem,
           price: parseFloat(newItem.price),
+          cost_price: newItem.cost_price !== '' ? parseFloat(newItem.cost_price) : null,
           image: imageUrl
         });
-        setNewItem({ name: '', category: 'BBQ', price: '', image: '', description: '', inStock: true });
+        setNewItem({ name: '', category: 'BBQ', price: '', cost_price: '', image: '', description: '', inStock: true });
         setNewItemImageFile(null);
       } catch (err) {
         console.error("Full upload error:", err);
@@ -2245,6 +2276,10 @@ export default function Admin() {
                   <input type="number" step="0.10" className="price-input" placeholder="0.00" required value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} />
                 </div>
                 <div className="form-group">
+                  <label>Cost Price (RM) — optional</label>
+                  <input type="number" step="0.10" className="price-input" placeholder="e.g. 2.20" value={newItem.cost_price} onChange={e => setNewItem({...newItem, cost_price: e.target.value})} />
+                </div>
+                <div className="form-group">
                   <label>Image Upload</label>
                   <input type="file" accept="image/*" className="price-input" onChange={e => setNewItemImageFile(e.target.files[0])} />
                 </div>
@@ -2496,6 +2531,7 @@ export default function Admin() {
                           name: item.name,
                           category: item.category,
                           price: (item.price / 100).toFixed(2),
+                          cost_price: item.cost_price != null ? (item.cost_price / 100).toFixed(2) : '',
                           description: item.description || '',
                           image: item.image || ''
                         })}
@@ -3431,22 +3467,34 @@ export default function Admin() {
           <div className="admin-card">
             <h3>Pending & Fulfilled Redemptions</h3>
             <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>When customers redeem points, their requests appear here. Click "Fulfill" when you hand over the prize.</p>
+            {redemptions.length > 0 && (
+              <p style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
+                <strong>Total value given away: RM {totalRedemptionValue.toFixed(2)}</strong>
+                {redemptionsMissingCost > 0 && (
+                  <span className="text-muted"> ({redemptionsMissingCost} redemption{redemptionsMissingCost === 1 ? '' : 's'} not counted — set a cost price on the linked menu item in Menu CRM)</span>
+                )}
+              </p>
+            )}
             <div className="table-responsive"><table className="admin-table">
-              <thead><tr><th>Code</th><th>Customer</th><th>Prize</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
+              <thead><tr><th>Code</th><th>Customer</th><th>Prize</th><th>Cost</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>
                 {redemptions.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions yet -- prize redemptions will appear here once customers redeem prizes.</td></tr>
-                ) : redemptions.map(r => (
+                  <tr><td colSpan="7" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions yet -- prize redemptions will appear here once customers redeem prizes.</td></tr>
+                ) : redemptions.map(r => {
+                  const cost = getRedemptionCost(r);
+                  return (
                   <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
                     <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--munchies-yellow)' }}>{r.redemption_code}</td>
                     <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.profiles?.phone || ''}</div></td>
                     <td><strong>{r.prize_name}</strong><div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>{r.points_spent} pts</div></td>
+                    <td style={{ fontSize: '0.85rem', color: cost != null ? 'var(--text)' : 'var(--text-muted)' }}>{cost != null ? `RM ${cost.toFixed(2)}` : 'Not set'}</td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
                     <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : '#166534', color: '#fff' }}>{r.status}</span></td>
                     <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
                     {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Done</span>}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table></div>
           </div>
@@ -3796,6 +3844,24 @@ export default function Admin() {
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, price: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>COST PRICE (RM) — optional</label>
+                <input
+                  type="number"
+                  step="0.10"
+                  placeholder="e.g. 2.20"
+                  value={editingMenuItem.cost_price}
+                  onChange={(e) => setEditingMenuItem({ ...editingMenuItem, cost_price: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+                {editingMenuItem.cost_price !== '' && editingMenuItem.price && (
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Margin: RM {(parseFloat(editingMenuItem.price) - parseFloat(editingMenuItem.cost_price || 0)).toFixed(2)} per unit
+                    ({(((parseFloat(editingMenuItem.price) - parseFloat(editingMenuItem.cost_price || 0)) / parseFloat(editingMenuItem.price)) * 100).toFixed(0)}%)
+                  </p>
+                )}
               </div>
 
               <div>

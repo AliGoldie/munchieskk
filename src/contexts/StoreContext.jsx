@@ -564,6 +564,7 @@ export function StoreProvider({ children }) {
       name: item.name,
       category: item.category,
       price: Math.round(item.price * 100),
+      cost_price: item.cost_price != null && item.cost_price !== '' ? Math.round(item.cost_price * 100) : null,
       image: item.image || '/images/hero_burger.png',
       description: item.description || '',
       in_stock: true,
