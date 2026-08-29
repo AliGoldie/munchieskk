@@ -8,7 +8,7 @@ import { siteConfig } from '../config/siteConfig';
 import './Profile.css';
 
 export default function Profile() {
-  const { points, orders } = useStore();
+  const { points, orders, redemptions, fetchAdminRedemptions } = useStore();
   const { user, setUser, logout } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
   const [expandedOrderIds, setExpandedOrderIds] = useState(new Set());
@@ -23,6 +23,12 @@ export default function Profile() {
   });
   
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchAdminRedemptions();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -315,6 +321,31 @@ export default function Profile() {
             </>
           ) : (
             <p className="text-muted">No past orders yet -- your past orders will appear here once you place an order.</p>
+          )}
+        </div>
+
+        <div className="profile-card">
+          <h3>My Prize Redemptions</h3>
+          {redemptions.length > 0 ? (
+            <div className="order-list">
+              {redemptions.map(r => (
+                <div key={r.id} className="order-item">
+                  <div className="order-header">
+                    <span className="order-id" style={{ fontFamily: 'monospace', letterSpacing: '2px' }}>{r.redemption_code}</span>
+                    <span className="order-date">{new Date(r.redeemed_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="order-total" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {r.prize_name} - {r.points_spent.toLocaleString()} pts
+                    <span className={`order-status ${r.status === 'FULFILLED' ? 'completed' : ''}`}>{r.status}</span>
+                  </div>
+                  {r.status === 'PENDING' && (
+                    <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.35rem' }}>Show this code to staff to collect your prize.</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted">No prize redemptions yet -- redeem a prize from the Loyalty page and your code will show up here.</p>
           )}
         </div>
       </div>

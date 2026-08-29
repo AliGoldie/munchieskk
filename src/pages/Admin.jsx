@@ -242,6 +242,12 @@ export default function Admin() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    if (activeTab === 'redemptions') {
+      fetchAdminRedemptions();
+    }
+  }, [activeTab]);
+
   const fetchMarketingData = async () => {
     try {
       // 1. Fetch promo codes
