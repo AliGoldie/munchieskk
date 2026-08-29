@@ -1093,21 +1093,6 @@ const clearManualOverride = async (id) => {
     }));
 
     const finalTotal = Math.max(0, cartTotal - discountAmount);
-    // Generate clean Daily Order ID (e.g. MP-1708-001)
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const todayOrdersCount = orders.filter(o => {
-      const d = new Date(o.created_at || Date.now());
-      return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-    
-    let counter = todayOrdersCount + 1;
-    let orderIdStr = `MP-${day}${month}-${String(counter).padStart(3, '0')}`;
-    while (orders.some(o => o.id === orderIdStr)) {
-      counter++;
-      orderIdStr = `MP-${day}${month}-${String(counter).padStart(3, '0')}`;
-    }
 
     // Store only the fields an order actually needs on record — finalCart items are
     // full live menu_items rows (description, image, stock counters, Loyverse ids,
@@ -1123,8 +1108,10 @@ const clearManualOverride = async (id) => {
       selectedAddons: (item.selectedAddons || []).map(a => ({ id: a.id, name: a.name, price: a.price }))
     }));
 
+    // id is minted atomically by place_order() server-side — a client-side
+    // guess here would race with other customers checking out concurrently
+    // (see supabase/migrations/20260829000000_atomic_order_id_generation.sql).
     const newOrder = {
-      id: orderIdStr,
       items: orderItems,
       total: finalTotal,
       status: 'PENDING',
@@ -1166,12 +1153,15 @@ const clearManualOverride = async (id) => {
       return null;
     }
 
-    let newOrderId = newOrder.id;
-    if (data) {
-      if (typeof data === 'string') newOrderId = data;
-      else if (typeof data === 'object' && data.id) newOrderId = data.id;
-      else if (typeof data === 'number') newOrderId = String(data);
-      else if (typeof data === 'object') newOrderId = newOrder.id; // fallback if no id field
+    let newOrderId = null;
+    if (typeof data === 'string') newOrderId = data;
+    else if (typeof data === 'object' && data?.id) newOrderId = data.id;
+    else if (typeof data === 'number') newOrderId = String(data);
+
+    if (!newOrderId) {
+      console.error('place_order RPC returned no order id:', data);
+      alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
+      return null;
     }
 
     // Optimistically update stock in the UI
