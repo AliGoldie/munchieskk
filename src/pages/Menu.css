@@ -47,14 +47,17 @@
   gap: 8px;
   overflow-x: auto;
   padding: 12px;
-  background: var(--surface);
+  background-color: var(--gold);
+  background-image: url('/images/trex_pattern.png');
+  background-size: 90px 90px;
+  background-repeat: repeat;
   position: sticky;
   top: 60px;
   z-index: 99;
   margin: 0 -1rem;
   padding-left: 1rem;
   padding-right: 1rem;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-strong);
   scrollbar-width: none;
 }
 .category-bar::-webkit-scrollbar { display: none; }
@@ -69,9 +72,9 @@
   padding: 0 12px;
   height: 38px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--line);
-  background: var(--surface-raised);
-  color: var(--text-2);
+  border: 1px solid rgba(6, 6, 6, .25);
+  background: rgba(6, 6, 6, .82);
+  color: var(--text);
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -82,7 +85,8 @@
 }
 
 .category-btn:hover {
-  border-color: var(--line-control);
+  border-color: rgba(6, 6, 6, .4);
+  background: rgba(6, 6, 6, .92);
 }
 
 .category-btn.active {
