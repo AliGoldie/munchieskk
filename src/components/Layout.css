@@ -31,7 +31,10 @@
   flex-direction: column;
   min-height: 100vh;
   padding-bottom: 78px; /* space for bottom nav */
-  background: var(--surface);
+  background-color: var(--surface);
+  background-image: linear-gradient(rgba(10, 10, 10, .9), rgba(10, 10, 10, .9)), url('/images/trex_pattern.png');
+  background-size: auto, 240px 240px;
+  background-repeat: repeat, repeat;
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
