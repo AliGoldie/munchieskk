@@ -17,6 +17,13 @@
   overflow: hidden;
 }
 
+@media (min-width: 768px) {
+  .cooking-popup {
+    /* box is 70vw capped at 900px above this breakpoint (Layout.css) */
+    right: calc((100vw - min(900px, 70vw)) / 2 + 16px);
+  }
+}
+
 .cooking-popup:hover {
   transform: translateY(-2px);
 }

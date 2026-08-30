@@ -30,6 +30,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: 100%;
   max-width: 520px;
   margin: 0 auto;
   padding-bottom: 78px; /* space for bottom nav */
@@ -40,6 +41,17 @@
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   box-shadow: 0 0 80px rgba(0, 0, 0, .6);
+}
+
+/* Above mobile/tablet, the box holds a fixed 70/30 ratio against the
+   trex-pattern gutter (percentage, not a fixed px cap, so the ratio holds
+   at any screen width) up to a sane ceiling so it doesn't get absurd on
+   ultrawide monitors. */
+@media (min-width: 768px) {
+  .app-layout {
+    width: 70%;
+    max-width: 900px;
+  }
 }
 
 .app-layout h1, .app-layout h2, .app-layout h3, .app-layout h4 {
@@ -197,6 +209,13 @@
   -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid var(--line);
   z-index: 100;
+}
+
+@media (min-width: 768px) {
+  .app-layout .bottom-nav {
+    width: 70%;
+    max-width: 900px;
+  }
 }
 
 .app-layout .nav-container {
