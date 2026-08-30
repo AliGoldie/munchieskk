@@ -30,6 +30,8 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  max-width: 520px;
+  margin: 0 auto;
   padding-bottom: 78px; /* space for bottom nav */
   background-color: var(--surface);
   background-image: linear-gradient(rgba(10, 10, 10, .9), rgba(10, 10, 10, .9)), url('/images/trex_pattern.png');
@@ -37,6 +39,7 @@
   background-repeat: repeat, repeat;
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  box-shadow: 0 0 80px rgba(0, 0, 0, .6);
 }
 
 .app-layout h1, .app-layout h2, .app-layout h3, .app-layout h4 {
@@ -185,8 +188,10 @@
 .app-layout .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 100%;
+  max-width: 520px;
   background: rgba(6, 6, 6, .96);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);

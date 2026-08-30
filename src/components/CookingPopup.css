@@ -1,7 +1,7 @@
 .cooking-popup {
   position: fixed;
   bottom: 90px; /* above bottom nav */
-  right: 16px;
+  right: calc(max(0px, (100vw - 520px) / 2) + 16px); /* 16px from the boxed app's right edge, not the viewport's */
   z-index: 900;
   width: 260px;
   background: var(--surface-raised);
