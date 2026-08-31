@@ -270,7 +270,7 @@ export default function Payment() {
                 type="text"
                 placeholder="Promo Code"
                 className="price-input"
-                style={{ flex: 1, padding: '10px 12px', textTransform: 'uppercase' }}
+                style={{ flex: 1, padding: '10px 12px' }}
                 value={promoCodeInput}
                 onChange={(e) => {
                   setPromoCodeInput(e.target.value.toUpperCase());

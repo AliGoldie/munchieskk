@@ -121,6 +121,29 @@
   color: #06170f;
 }
 
+/* .price-input is Admin.css's light-theme form field (white bg, black
+   text) reused across customer pages (Profile, Payment, Signup, Login,
+   ResetPassword) as a generic input class. It only looked right by
+   accident where markup happened to wrap it in .form-group, whose
+   `.form-group input` selector out-specifies the single-class rule --
+   everywhere else (Payment's promo code, Profile's edit fields) it fell
+   through to Admin's white box. Pin it dark for every customer route. */
+.app-layout .price-input {
+  border-radius: var(--r-card);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line-control);
+  background-color: var(--surface);
+  color: var(--text);
+}
+.app-layout .price-input::placeholder {
+  color: var(--text-dim);
+}
+.app-layout .price-input:focus {
+  outline: none;
+  border-color: var(--ember);
+  box-shadow: none;
+}
+
 /* Top Header */
 .app-layout .top-header {
   background: rgba(10, 10, 10, .9);
