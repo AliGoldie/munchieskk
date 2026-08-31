@@ -464,10 +464,10 @@
 }
 
 .add-btn {
-  background: rgba(255, 255, 255, .1);
+  background: var(--ember);
   color: #fff;
-  height: 32px;
-  padding: 0 12px;
+  height: 36px;
+  padding: 0 14px;
   border-radius: var(--r-pill);
   display: flex;
   align-items: center;
@@ -476,14 +476,17 @@
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.06em;
-  border: 1px solid var(--line-control);
-  transition: background .16s ease, border-color .16s ease;
+  border: 1px solid var(--ember);
+  box-shadow: 0 6px 16px rgba(240, 78, 35, .35);
+  transition: background .16s ease, border-color .16s ease, transform .15s ease;
   white-space: nowrap;
 }
 
 .add-btn:hover {
-  background: var(--ember);
-  border-color: var(--ember);
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #0A0A0A;
+  transform: translateY(-1px);
 }
 
 .mt-2 { margin-top: var(--space-2); }
