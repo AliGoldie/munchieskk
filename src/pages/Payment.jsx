@@ -269,6 +269,7 @@ export default function Payment() {
               <input
                 type="text"
                 placeholder="Promo Code"
+                aria-label="Promo code"
                 className="price-input"
                 style={{ flex: 1, padding: '10px 12px' }}
                 value={promoCodeInput}

@@ -79,35 +79,37 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label>Email Address</label>
-            <input 
-              type="email" 
-              className="price-input" 
+            <label htmlFor="login-email">Email Address</label>
+            <input
+              id="login-email"
+              type="email"
+              className="price-input"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required 
+              required
             />
           </div>
-          
+
           <div className="form-group">
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-              <label>Password</label>
-              <a 
-                href="#" 
-                onClick={handleForgotPassword} 
+              <label htmlFor="login-password">Password</label>
+              <a
+                href="#"
+                onClick={handleForgotPassword}
                 style={{fontSize: '0.8rem', color: 'var(--gold)', fontWeight: 600, textDecoration: 'none', cursor: isResetting ? 'wait' : 'pointer', opacity: isResetting ? 0.6 : 1}}
               >
                 {isResetting ? 'Sending link...' : 'Forgot Password?'}
               </a>
             </div>
-            <input 
-              type="password" 
-              className="price-input" 
+            <input
+              id="login-password"
+              type="password"
+              className="price-input"
               placeholder="Your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required 
+              required
             />
           </div>
 

@@ -112,8 +112,9 @@ export default function ResetPassword() {
             ) : (
               <form onSubmit={handleReset} className="login-form">
                 <div className="form-group">
-                  <label>New Password</label>
+                  <label htmlFor="reset-password">New Password</label>
                   <input
+                    id="reset-password"
                     type="password"
                     className="price-input"
                     placeholder="At least 6 characters"
@@ -123,8 +124,9 @@ export default function ResetPassword() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Confirm New Password</label>
+                  <label htmlFor="reset-password-confirm">Confirm New Password</label>
                   <input
+                    id="reset-password-confirm"
                     type="password"
                     className="price-input"
                     placeholder="Re-enter new password"

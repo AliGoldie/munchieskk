@@ -136,15 +136,16 @@ export default function Profile() {
           </div>
 
           <div className="info-group" style={{ marginTop: '1rem' }}>
-            <span className="label">Full Name</span>
+            <label className="label" htmlFor="profile-name">Full Name</label>
             {isEditing ? (
-              <input 
-                type="text" 
-                name="name" 
-                className="price-input" 
-                value={userProfile.name} 
-                onChange={handleProfileChange} 
-                style={{ flex: 1, marginLeft: '1rem', padding: '4px 8px' }} 
+              <input
+                id="profile-name"
+                type="text"
+                name="name"
+                className="price-input"
+                value={userProfile.name}
+                onChange={handleProfileChange}
+                style={{ flex: 1, marginLeft: '1rem', padding: '4px 8px' }}
               />
             ) : (
               <span>{userProfile.name || 'Not set'}</span>
@@ -157,15 +158,16 @@ export default function Profile() {
           </div>
 
           <div className="info-group">
-            <span className="label">Phone</span>
+            <label className="label" htmlFor="profile-phone">Phone</label>
             {isEditing ? (
-              <input 
-                type="tel" 
-                name="phone" 
-                className="price-input" 
-                value={userProfile.phone} 
-                onChange={handleProfileChange} 
-                style={{ flex: 1, marginLeft: '1rem', padding: '4px 8px' }} 
+              <input
+                id="profile-phone"
+                type="tel"
+                name="phone"
+                className="price-input"
+                value={userProfile.phone}
+                onChange={handleProfileChange}
+                style={{ flex: 1, marginLeft: '1rem', padding: '4px 8px' }}
               />
             ) : (
               <span>{userProfile.phone || 'Not set'}</span>
@@ -173,15 +175,16 @@ export default function Profile() {
           </div>
 
           <div className="info-group">
-            <span className="label">Address</span>
+            <label className="label" htmlFor="profile-address">Address</label>
             {isEditing ? (
-              <input 
-                type="text" 
-                name="address" 
-                className="price-input" 
-                value={userProfile.address} 
-                onChange={handleProfileChange} 
-                style={{ flex: 1, marginLeft: '1rem', padding: '4px 8px' }} 
+              <input
+                id="profile-address"
+                type="text"
+                name="address"
+                className="price-input"
+                value={userProfile.address}
+                onChange={handleProfileChange}
+                style={{ flex: 1, marginLeft: '1rem', padding: '4px 8px' }}
               />
             ) : (
               <span>{userProfile.address || 'Not set'}</span>
@@ -201,6 +204,7 @@ export default function Profile() {
               <input
                 type="text"
                 readOnly
+                aria-label="Your referral link"
                 className="price-input"
                 style={{flex: 1, padding: '0.5rem', backgroundColor: 'var(--surface)', color: 'var(--text-dim)'}}
                 value={`${window.location.origin}/signup?ref=${user?.short_code || ''}`}

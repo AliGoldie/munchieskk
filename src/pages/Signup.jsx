@@ -90,31 +90,32 @@ export default function Signup() {
 
         <form onSubmit={handleInitialSubmit} className="login-form">
           <div className="form-group">
-            <label>Full Name</label>
-            <input type="text" name="name" className="price-input" value={formData.name} onChange={handleChange} required />
+            <label htmlFor="signup-name">Full Name</label>
+            <input id="signup-name" type="text" name="name" className="price-input" value={formData.name} onChange={handleChange} required />
           </div>
           <div className="form-group">
-            <label>Email Address</label>
-            <input type="email" name="email" className="price-input" value={formData.email} onChange={handleChange} required />
+            <label htmlFor="signup-email">Email Address</label>
+            <input id="signup-email" type="email" name="email" className="price-input" value={formData.email} onChange={handleChange} required />
           </div>
           <div className="form-group">
-            <label>Phone Number (Optional)</label>
-            <input type="tel" name="phone" className="price-input" value={formData.phone} onChange={handleChange} />
+            <label htmlFor="signup-phone">Phone Number (Optional)</label>
+            <input id="signup-phone" type="tel" name="phone" className="price-input" value={formData.phone} onChange={handleChange} />
           </div>
           <div className="form-group">
-            <label>Referral Code (optional)</label>
-            <input 
-              type="text" 
-              name="referralCode" 
-              className="price-input" 
+            <label htmlFor="signup-referral">Referral Code (optional)</label>
+            <input
+              id="signup-referral"
+              type="text"
+              name="referralCode"
+              className="price-input"
               placeholder="e.g. AB12CD"
-              value={formData.referralCode} 
-              onChange={handleChange} 
+              value={formData.referralCode}
+              onChange={handleChange}
             />
           </div>
           <div className="form-group">
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-              <label>Password</label>
+              <label htmlFor="signup-password">Password</label>
               <a
                 href="#"
                 onClick={handleForgotPassword}
@@ -123,7 +124,7 @@ export default function Signup() {
                 {isResetting ? 'Sending link...' : 'Forgot Password?'}
               </a>
             </div>
-            <input type="password" name="password" className="price-input" value={formData.password} onChange={handleChange} required />
+            <input id="signup-password" type="password" name="password" className="price-input" value={formData.password} onChange={handleChange} required />
           </div>
 
           <button type="submit" className="btn btn-primary w-full" disabled={isLoading}>
