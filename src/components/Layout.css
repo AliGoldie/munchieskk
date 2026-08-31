@@ -141,7 +141,7 @@
 .app-layout .price-input:focus {
   outline: none;
   border-color: var(--ember);
-  box-shadow: none;
+  box-shadow: 0 0 0 3px rgba(240, 78, 35, .25);
 }
 
 /* Top Header */
