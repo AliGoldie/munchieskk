@@ -998,8 +998,13 @@ const clearManualOverride = async (id) => {
 
   const cartTotal = cart.reduce((total, cartItem) => {
     const menuItem = menu.find(m => m.id === cartItem.id);
-    if (!menuItem) return total;
-    const priceToUse = isPromoActive(menuItem) ? menuItem.promo_price : menuItem.price;
+    // menu hasn't finished loading yet (cart rehydrates from localStorage
+    // instantly on page load, menu fetches async) or the item no longer
+    // exists in the live menu -- fall back to the price captured on the
+    // cart item itself rather than silently counting it as free.
+    const priceToUse = menuItem
+      ? (isPromoActive(menuItem) ? menuItem.promo_price : menuItem.price)
+      : cartItem.price;
     const addonsTotal = (cartItem.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0);
     return total + ((priceToUse + addonsTotal) * cartItem.quantity);
   }, 0);
