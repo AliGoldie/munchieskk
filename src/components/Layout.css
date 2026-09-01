@@ -43,6 +43,15 @@
   box-shadow: 0 0 80px rgba(0, 0, 0, .6);
 }
 
+/* On mobile the box fills the whole screen, so there's no gutter for
+   the pattern to show in like on desktop -- give the in-box texture a
+   little more presence to compensate, just on this narrow range. */
+@media (max-width: 767px) {
+  .app-layout {
+    background-image: linear-gradient(rgba(10, 10, 10, .84), rgba(10, 10, 10, .84)), url('/images/trex_pattern.png');
+  }
+}
+
 /* Above mobile/tablet, the box holds a fixed 70/30 ratio against the
    trex-pattern gutter (percentage, not a fixed px cap, so the ratio holds
    at any screen width) up to a sane ceiling so it doesn't get absurd on
