@@ -12,6 +12,7 @@ export default function Loyalty() {
   const [redeemedThisSession, setRedeemedThisSession] = useState({});
   const [redemptionResult, setRedemptionResult] = useState(null);
   const [loading, setLoading] = useState(null);
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState(5);
 
   const handleRedeem = async (prize) => {
     if (loading) return;
@@ -97,15 +98,27 @@ export default function Loyalty() {
         <div className="history-header"><History size={20} /><h3>POINT HISTORY</h3></div>
         <div className="history-list">
           {pointHistory && pointHistory.length > 0 ? (
-            pointHistory.map(item => (
-              <div key={item.id} className="history-item">
-                <div className="history-info">
-                  <p className="history-action">{item.description || item.type}</p>
-                  <p className="history-date">{item.date}</p>
+            <>
+              {pointHistory.slice(0, visibleHistoryCount).map(item => (
+                <div key={item.id} className="history-item">
+                  <div className="history-info">
+                    <p className="history-action">{item.description || item.type}</p>
+                    <p className="history-date">{item.date}</p>
+                  </div>
+                  <div className="history-pts font-bold">+{item.amount || item.pts}</div>
                 </div>
-                <div className="history-pts font-bold">+{item.amount || item.pts}</div>
-              </div>
-            ))
+              ))}
+              {pointHistory.length > visibleHistoryCount && (
+                <button
+                  type="button"
+                  className="btn btn-secondary w-full"
+                  style={{ marginTop: '1rem', fontSize: '0.9rem', padding: '10px' }}
+                  onClick={() => setVisibleHistoryCount(prev => prev + 5)}
+                >
+                  Load More
+                </button>
+              )}
+            </>
           ) : (
             <p className="text-muted text-sm p-3">No transactions recorded yet. Place orders or play Munch-Man to earn points!</p>
           )}

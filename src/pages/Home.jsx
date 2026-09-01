@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Gamepad2, Award, ChevronRight, Flame, Clock, Sparkles } from 'lucide-react';
+import { Award, ChevronRight, Flame, Clock, Sparkles } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AddonModal from '../components/AddonModal';
 import { siteConfig } from '../config/siteConfig';
@@ -9,8 +10,10 @@ import './Home.css';
 
 export default function Home() {
   const { menu, isPromoActive, addToCart, itemAddons, points, loyaltyPrizes } = useStore();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [addonModalItem, setAddonModalItem] = useState(null);
+  const firstName = user?.name?.trim()?.split(' ')[0];
 
   // Just grab some items for the grid
   const featuredItems = menu.slice(0, 4);
@@ -43,8 +46,8 @@ export default function Home() {
       {/* Greeting Section */}
       <div className="greeting-section">
         <div className="greeting-text">
-          <p className="welcome-back">WELCOME BACK</p>
-          <h1>HEY,<br/>GOURMET!</h1>
+          <p className="welcome-back">{firstName ? 'WELCOME BACK' : 'WELCOME'}</p>
+          <h1>{firstName ? <>HEY,<br/>{firstName.toUpperCase()}!</> : <>HEY,<br/>GOURMET!</>}</h1>
         </div>
         <div style={{display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center'}}>
           <div className="points-badge" style={{ cursor: 'pointer' }} onClick={() => navigate('/loyalty')}>
@@ -149,7 +152,6 @@ export default function Home() {
           <p>Play 'Munch-Man' while you wait and win free fries!</p>
           <Link to="/arcade" className="btn btn-yellow mt-2">PLAY NOW</Link>
         </div>
-        <Gamepad2 className="banner-icon" size={64} opacity={0.2} />
       </div>
 
       <div className="card banner-orange" onClick={() => navigate('/loyalty')} style={{ cursor: 'pointer' }}>
