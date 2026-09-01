@@ -14,7 +14,7 @@
 }
 
 .welcome-back {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -23,7 +23,7 @@
 }
 
 .greeting-text h1 {
-  font-size: 2.5rem;
+  font-size: 2.7rem;
   line-height: 1;
   color: var(--text);
 }
@@ -84,7 +84,7 @@
 
 .hero-spotlight-image-container {
   position: relative;
-  height: 200px;
+  height: 225px;
   width: 100%;
   cursor: pointer;
   z-index: 1;
@@ -167,7 +167,7 @@
 }
 
 .hero-spotlight-content h2 {
-  font-size: 2rem;
+  font-size: 2.15rem;
   margin-bottom: 0.5rem;
   line-height: 1.05;
   color: var(--text);
@@ -175,7 +175,7 @@
 }
 
 .hero-spotlight-content p {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-2);
   margin-bottom: 1.2rem;
   line-height: 1.5;
@@ -185,7 +185,7 @@
   display: block;
   font-family: 'Archivo', sans-serif;
   font-weight: 900;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   color: var(--gold);
 }
 
@@ -239,7 +239,7 @@
 }
 
 .section-header-clean h3 {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: 900;
   color: var(--text);
   text-transform: uppercase;
@@ -298,11 +298,11 @@
 }
 
 .cat-icon-clean {
-  font-size: 1.6rem;
+  font-size: 1.75rem;
 }
 
 .cat-title-clean {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: .02em;
@@ -439,7 +439,7 @@
 }
 
 .product-info h4 {
-  font-size: 0.95rem;
+  font-size: 1.02rem;
   margin-bottom: var(--space-2);
   color: #fff;
   text-transform: none;
@@ -454,7 +454,7 @@
 .price {
   font-family: 'Archivo', sans-serif;
   font-weight: 900;
-  font-size: 0.95rem;
+  font-size: 1.02rem;
   color: var(--gold);
 }
 

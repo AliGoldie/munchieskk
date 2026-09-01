@@ -219,6 +219,14 @@
   padding-bottom: var(--space-6);
 }
 
+/* Trims .container's mobile side padding (16px -> 12px each side) so
+   content has a bit more room on a phone screen without touching the
+   600px cap raised above for desktop. */
+.app-layout .container {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
 /* global.css's .container caps every page at 600px ("mobile first,
    app-like width") -- that was always the real bottleneck no matter how
    wide the outer box (above) or an individual page's own max-width got.
