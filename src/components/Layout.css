@@ -50,7 +50,7 @@
 @media (min-width: 768px) {
   .app-layout {
     width: 70%;
-    max-width: 900px;
+    max-width: 1280px;
   }
 }
 
@@ -237,7 +237,7 @@
 @media (min-width: 768px) {
   .app-layout .bottom-nav {
     width: 70%;
-    max-width: 900px;
+    max-width: 1280px;
   }
 }
 
