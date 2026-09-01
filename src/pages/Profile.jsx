@@ -7,10 +7,19 @@ import { supabase } from '../config/supabase';
 import { siteConfig } from '../config/siteConfig';
 import './Profile.css';
 
+const AVATAR_COLORS = [
+  { key: 'ember', hex: '#F04E23' },
+  { key: 'gold', hex: '#FFC72C' },
+  { key: 'green', hex: '#5FD68C' },
+  { key: 'purple', hex: '#C77DFF' },
+  { key: 'blue', hex: '#63A7F5' }
+];
+
 export default function Profile() {
   const { points, orders, redemptions, fetchAdminRedemptions } = useStore();
   const { user, setUser, logout } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [expandedOrderIds, setExpandedOrderIds] = useState(new Set());
   const [visibleOrdersCount, setVisibleOrdersCount] = useState(5);
 
@@ -116,6 +125,18 @@ export default function Profile() {
     }
   };
 
+  const handleAvatarSelect = async (colorKey) => {
+    if (!user?.id || isSavingAvatar || user.avatar_color === colorKey) return;
+    const previous = user.avatar_color;
+    setIsSavingAvatar(true);
+    setUser(prev => ({ ...prev, avatar_color: colorKey }));
+    const { error } = await supabase.from('profiles').update({ avatar_color: colorKey }).eq('id', user.id);
+    if (error) {
+      console.error('Failed to update avatar:', error);
+      setUser(prev => ({ ...prev, avatar_color: previous }));
+    }
+    setIsSavingAvatar(false);
+  };
 
   return (
     <div className="container profile-page">
@@ -123,6 +144,29 @@ export default function Profile() {
       
       <div className="profile-grid">
         <div className="profile-card">
+          <div className="avatar-picker">
+            <div
+              className="avatar-preview"
+              style={{ background: AVATAR_COLORS.find(c => c.key === user?.avatar_color)?.hex || AVATAR_COLORS[0].hex }}
+            >
+              <img src="/images/logo.png" alt="Your avatar" />
+            </div>
+            <div className="avatar-swatches">
+              {AVATAR_COLORS.map(c => (
+                <button
+                  key={c.key}
+                  type="button"
+                  className={`avatar-swatch ${user?.avatar_color === c.key ? 'active' : ''}`}
+                  style={{ background: c.hex }}
+                  onClick={() => handleAvatarSelect(c.key)}
+                  disabled={isSavingAvatar}
+                  aria-label={`Use ${c.key} avatar`}
+                  aria-pressed={user?.avatar_color === c.key}
+                />
+              ))}
+            </div>
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3>Personal Info</h3>
             <button 

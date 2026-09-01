@@ -100,6 +100,7 @@ export function AuthProvider({ children }) {
         role: 'user',
         points: effectivePoints,
         short_code: authUser.user_metadata?.short_code || '',
+        avatar_color: 'ember',
         created_at: authUser.created_at
       });
     } else {
@@ -112,6 +113,7 @@ export function AuthProvider({ children }) {
         role: profileData.role || 'user',
         points: effectivePoints,
         short_code: profileData.short_code || '',
+        avatar_color: profileData.avatar_color || 'ember',
         created_at: profileData.created_at || authUser.created_at
       });
     }

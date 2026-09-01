@@ -193,12 +193,12 @@ export function StoreProvider({ children }) {
         console.warn('[StoreContext] store_settings fetch exception:', e);
       }
       // 1. Fetch Menu
-      const { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*').order('created_at', { ascending: true });
+      const { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
       if (menuData) setMenu(menuData.map(item => ({...item, inStock: item.in_stock, low_stock_threshold: item.low_stock_threshold ?? 10})));
       else console.error('Menu fetch error:', menuErr?.message || 'Unknown error', menuErr);
 
       // 2. Fetch Addons
-      const { data: addonsData } = await supabase.from('addons').select('*').order('created_at', { ascending: true });
+      const { data: addonsData } = await supabase.from('addons').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
       if (addonsData) setAddons(addonsData);
 
       // 3. Fetch Item-Addon assignments
@@ -559,6 +559,10 @@ export function StoreProvider({ children }) {
   };
 
   const addMenuItem = async (item) => {
+    const categorySiblings = menu.filter(m => m.category === item.category);
+    const nextSortOrder = categorySiblings.length > 0
+      ? Math.max(...categorySiblings.map(m => m.sort_order ?? 0)) + 1
+      : 1;
     const newItem = {
       id: crypto.randomUUID(),
       name: item.name,
@@ -568,9 +572,10 @@ export function StoreProvider({ children }) {
       image: item.image || '/images/hero_burger.png',
       description: item.description || '',
       in_stock: true,
-      stock_quantity: 99
+      stock_quantity: 99,
+      sort_order: nextSortOrder
     };
-    
+
     // Optimistic UI update (makes UI instant instead of waiting for realtime)
     setMenu(prev => [...prev, { ...newItem, inStock: newItem.in_stock }]);
 
@@ -671,6 +676,42 @@ export function StoreProvider({ children }) {
     } catch (err) {
       console.error('Exception deleting menu item:', err);
       return false;
+    }
+  };
+
+  // Swaps sort_order with the adjacent item in the same category (moving
+  // across categories via this control wouldn't map to anything the
+  // customer-facing menu shows, since items are grouped by category there).
+  const moveMenuItem = async (id, direction) => {
+    const item = menu.find(m => m.id === id);
+    if (!item) return;
+    const siblings = menu
+      .filter(m => m.category === item.category)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const idx = siblings.findIndex(s => s.id === id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= siblings.length) return;
+    const other = siblings[swapIdx];
+    const aOrder = item.sort_order ?? 0;
+    const bOrder = other.sort_order ?? 0;
+
+    setMenu(prev => prev.map(m => {
+      if (m.id === item.id) return { ...m, sort_order: bOrder };
+      if (m.id === other.id) return { ...m, sort_order: aOrder };
+      return m;
+    }));
+
+    const [{ error: err1 }, { error: err2 }] = await Promise.all([
+      supabase.from('menu_items').update({ sort_order: bOrder }).eq('id', item.id),
+      supabase.from('menu_items').update({ sort_order: aOrder }).eq('id', other.id)
+    ]);
+    if (err1 || err2) {
+      console.error('Failed to reorder menu item:', err1 || err2);
+      setMenu(prev => prev.map(m => {
+        if (m.id === item.id) return { ...m, sort_order: aOrder };
+        if (m.id === other.id) return { ...m, sort_order: bOrder };
+        return m;
+      }));
     }
   };
 
@@ -829,11 +870,15 @@ const clearManualOverride = async (id) => {
   
   const addAddon = async (name, priceFloat, image = null) => {
     const cents = priceFloat === '' ? null : Math.round(parseFloat(priceFloat) * 100);
+    const nextSortOrder = addons.length > 0
+      ? Math.max(...addons.map(a => a.sort_order ?? 0)) + 1
+      : 1;
     const newAddon = {
       id: crypto.randomUUID(),
       name,
       price: cents,
-      image
+      image,
+      sort_order: nextSortOrder
     };
     
     // Insert into DB FIRST, only update UI if successful
@@ -857,6 +902,39 @@ const clearManualOverride = async (id) => {
       console.error('Failed to delete addon:', error);
       alert('Failed to delete addon: ' + error.message);
       setAddons(previousAddons);
+    }
+  };
+
+  // Add-ons aren't grouped by anything customer-facing, so this just swaps
+  // sort_order with the next/previous item in the flat list.
+  const moveAddon = async (id, direction) => {
+    const sorted = [...addons].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const idx = sorted.findIndex(a => a.id === id);
+    if (idx === -1) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+    const item = sorted[idx];
+    const other = sorted[swapIdx];
+    const aOrder = item.sort_order ?? 0;
+    const bOrder = other.sort_order ?? 0;
+
+    setAddons(prev => prev.map(a => {
+      if (a.id === item.id) return { ...a, sort_order: bOrder };
+      if (a.id === other.id) return { ...a, sort_order: aOrder };
+      return a;
+    }));
+
+    const [{ error: err1 }, { error: err2 }] = await Promise.all([
+      supabase.from('addons').update({ sort_order: bOrder }).eq('id', item.id),
+      supabase.from('addons').update({ sort_order: aOrder }).eq('id', other.id)
+    ]);
+    if (err1 || err2) {
+      console.error('Failed to reorder addon:', err1 || err2);
+      setAddons(prev => prev.map(a => {
+        if (a.id === item.id) return { ...a, sort_order: aOrder };
+        if (a.id === other.id) return { ...a, sort_order: bOrder };
+        return a;
+      }));
     }
   };
 
@@ -1394,10 +1472,10 @@ const clearManualOverride = async (id) => {
       menu, cart, cartTotal, cartCount,
       points, tier, pointHistory, orders, addons, itemAddons, customers,
       syncWarnings, removeSyncWarning,
-      toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateOrderState, acceptOrder, cancelOrder,
+      toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateOrderState, acceptOrder, cancelOrder,
       updateStock, setStockQuantity, clearManualOverride,
       isPromoActive, updatePromo,
-      addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
+      addAddon, deleteAddon, moveAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, claimShareBonus, fetchSingleOrder,
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,

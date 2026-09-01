@@ -69,10 +69,10 @@ export default function Admin() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
-    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, updateStock, setStockQuantity,
+    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateStock, setStockQuantity,
     syncWarnings, removeSyncWarning,
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
-    addons, itemAddons, addAddon, deleteAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
+    addons, itemAddons, addAddon, deleteAddon, moveAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
     loyaltyPrizes, redemptions, fetchAdminRedemptions, fulfillRedemption, addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
     isPromoActive, updatePromo,
     categoriesList, addCategory, updateCategory, deleteCategory,
@@ -2331,6 +2331,7 @@ export default function Admin() {
             <table className="admin-table">
               <thead>
                 <tr>
+                  <th>Order</th>
                   <th>Item</th>
                   <th>Category</th>
                   <th>Price (RM)</th>
@@ -2342,8 +2343,10 @@ export default function Admin() {
               <tbody>
                 {[...menu]
                   .filter(item => item.name.toLowerCase().includes(menuSearchQuery.toLowerCase()))
-                  .sort((a, b) => a.category.localeCompare(b.category))
-                  .map(item => {
+                  .sort((a, b) => a.category.localeCompare(b.category) || (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                  .map((item, idx, sortedList) => {
+                    const isFirstInCategory = idx === 0 || sortedList[idx - 1].category !== item.category;
+                    const isLastInCategory = idx === sortedList.length - 1 || sortedList[idx + 1].category !== item.category;
                   // Determine badge color based on category
                   const getCategoryColor = (cat) => {
                     const colors = {
@@ -2358,6 +2361,30 @@ export default function Admin() {
 
                   return (
                     <tr key={item.id} className={!item.inStock ? 'row-inactive' : ''}>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary"
+                            style={{ padding: '2px 8px' }}
+                            onClick={() => moveMenuItem(item.id, 'up')}
+                            disabled={isFirstInCategory}
+                            title="Move up within category"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary"
+                            style={{ padding: '2px 8px' }}
+                            onClick={() => moveMenuItem(item.id, 'down')}
+                            disabled={isLastInCategory}
+                            title="Move down within category"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                      </td>
                       <td className="font-medium">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           {item.image && (
@@ -2936,6 +2963,7 @@ export default function Admin() {
             <table className="admin-table">
               <thead>
                 <tr>
+                  <th>Order</th>
                   <th>Addon</th>
                   <th>Price</th>
                   <th>Stock / Alert</th>
@@ -2945,13 +2973,39 @@ export default function Admin() {
                 </tr>
               </thead>
               <tbody>
-                {addons.map(addon => {
+                {[...addons]
+                  .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                  .map((addon, idx, sortedList) => {
                   const currentStock = addon.stock_quantity ?? 99;
                   const lowStockThresh = addon.low_stock_threshold ?? 10;
                   const isOutOfStock = currentStock <= 0;
                   const isLowStock = currentStock <= lowStockThresh && currentStock > 0;
                   return (
                     <tr key={addon.id}>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary"
+                            style={{ padding: '2px 8px' }}
+                            onClick={() => moveAddon(addon.id, 'up')}
+                            disabled={idx === 0}
+                            title="Move up"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary"
+                            style={{ padding: '2px 8px' }}
+                            onClick={() => moveAddon(addon.id, 'down')}
+                            disabled={idx === sortedList.length - 1}
+                            title="Move down"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                      </td>
                       <td className="font-medium">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {addon.image && <img src={addon.image} alt={addon.name} style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover' }} />}
