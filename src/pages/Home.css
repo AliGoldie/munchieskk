@@ -91,11 +91,6 @@
   overflow: hidden;
 }
 
-@media (min-width: 768px) {
-  .hero-spotlight-image-container {
-    height: 260px;
-  }
-}
 
 .hero-spotlight-image-container::after {
   content: '';
@@ -491,3 +486,80 @@
 
 .mt-2 { margin-top: var(--space-2); }
 .mt-3 { margin-top: var(--space-3); }
+
+/* Desktop scale-up: the boxed layout (Layout.css) can now reach 1280px
+   wide, so mobile-sized text and a short hero strip look undersized and
+   out of proportion inside it. Scales the page's own content up rather
+   than just giving it more surrounding empty space. */
+@media (min-width: 768px) {
+  .welcome-back {
+    font-size: 0.85rem;
+  }
+
+  .greeting-text h1 {
+    font-size: 3rem;
+  }
+
+  .hero-spotlight-image-container {
+    height: 400px;
+  }
+
+  .hero-spotlight-content {
+    padding: 1.75rem 2rem 2rem;
+  }
+
+  .hero-spotlight-content h2 {
+    font-size: 2.6rem;
+  }
+
+  .hero-spotlight-content p {
+    font-size: 1.05rem;
+  }
+
+  .hero-spotlight-content .price-large {
+    font-size: 1.8rem;
+  }
+
+  .btn-sleek {
+    font-size: 1rem;
+    padding: 12px 22px;
+  }
+
+  .section-header-clean h3 {
+    font-size: 1.6rem;
+  }
+
+  .see-all-sleek {
+    font-size: 0.85rem;
+  }
+
+  .cat-card-clean {
+    padding: 18px 10px;
+  }
+
+  .cat-icon-clean {
+    font-size: 2rem;
+  }
+
+  .cat-title-clean {
+    font-size: 0.8rem;
+  }
+
+  .product-card {
+    min-height: 220px;
+  }
+
+  .product-info h4 {
+    font-size: 1.1rem;
+  }
+
+  .product-info .price {
+    font-size: 1.1rem;
+  }
+
+  .add-btn {
+    height: 42px;
+    padding: 0 18px;
+    font-size: 0.8rem;
+  }
+}

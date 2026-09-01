@@ -219,6 +219,19 @@
   padding-bottom: var(--space-6);
 }
 
+/* global.css's .container caps every page at 600px ("mobile first,
+   app-like width") -- that was always the real bottleneck no matter how
+   wide the outer box (above) or an individual page's own max-width got.
+   Raise it at desktop so pages without their own inner cap (Cart,
+   Profile, Home, Loyalty, Arcade) can actually use the wider box; pages
+   that set their own tighter max-width (Menu, Payment) keep using that
+   instead, since it's the smaller of the two. */
+@media (min-width: 768px) {
+  .app-layout .container {
+    max-width: 1200px;
+  }
+}
+
 /* Bottom Navigation */
 .app-layout .bottom-nav {
   position: fixed;
@@ -282,6 +295,44 @@
   border: none;
   transform: none;
   padding-top: 0;
+}
+
+/* Header/nav desktop scale-up — same reasoning as Home.css's block: the
+   boxed layout can reach 1280px wide, so a 60px header and 66px nav bar
+   sized for a phone screen look thin and undersized inside it. */
+@media (min-width: 768px) {
+  .app-layout .header-container {
+    height: 76px;
+  }
+  .app-layout .logo img {
+    height: 56px !important;
+  }
+  .app-layout .points-chip {
+    font-size: 14px;
+    padding: 8px 16px;
+    min-height: 38px;
+  }
+  .app-layout .cart-link svg,
+  .app-layout .points-chip svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .app-layout {
+    padding-bottom: 92px;
+  }
+  .app-layout .nav-container {
+    height: 80px;
+    padding: 10px 10px 12px;
+  }
+  .app-layout .nav-item {
+    font-size: 0.8rem;
+    gap: 6px;
+  }
+  .app-layout .nav-item svg {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 /* Admin Styles — untouched, still brutalist tokens from :root */
