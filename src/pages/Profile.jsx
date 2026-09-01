@@ -146,18 +146,20 @@ export default function Profile() {
         <div className="profile-card">
           <div className="avatar-picker">
             <div
+              key={user?.avatar_color || 'ember'}
               className="avatar-preview"
               style={{ background: AVATAR_COLORS.find(c => c.key === user?.avatar_color)?.hex || AVATAR_COLORS[0].hex }}
             >
-              <img src="/images/logo.png" alt="Your avatar" />
+              <img src="/images/Trex.png" alt="Your avatar" />
+              <span className="avatar-badge" aria-hidden="true">🍔</span>
             </div>
             <div className="avatar-swatches">
-              {AVATAR_COLORS.map(c => (
+              {AVATAR_COLORS.map((c, i) => (
                 <button
                   key={c.key}
                   type="button"
                   className={`avatar-swatch ${user?.avatar_color === c.key ? 'active' : ''}`}
-                  style={{ background: c.hex }}
+                  style={{ background: c.hex, '--stagger-i': i }}
                   onClick={() => handleAvatarSelect(c.key)}
                   disabled={isSavingAvatar}
                   aria-label={`Use ${c.key} avatar`}
