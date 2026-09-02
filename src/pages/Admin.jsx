@@ -9,53 +9,80 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ClipboardList } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Admin.css';
 
-function SyncToastItem({ warning, onDismiss }) {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onDismiss(warning.id);
-    }, 10000);
-    return () => clearTimeout(timer);
-  }, [warning.id, onDismiss]);
+// Unified toast queue (§0 shared machinery). One store, four kinds, replacing
+// the old one-off SyncToastItem -- Loyverse sync warnings now render through
+// this same stack as 'warn' kind toasts instead of a bespoke component.
+const TOAST_KIND_STYLE = {
+  info:   { bg: '#17150F', fg: '#FFC72C', border: '#17150F' },
+  new:    { bg: '#0F7A4F', fg: '#BDE5D1', border: '#0F7A4F' },
+  danger: { bg: '#8E1F1B', fg: '#F5B7B1', border: '#8E1F1B' },
+  warn:   { bg: '#8A6100', fg: '#FFE9A8', border: '#8A6100' }
+};
 
+function AdminToast({ toast, onDismiss }) {
+  const style = TOAST_KIND_STYLE[toast.kind] || TOAST_KIND_STYLE.info;
   return (
-    <div style={{
-      backgroundColor: '#fffbeb',
-      border: '1.5px solid #f59e0b',
-      borderRadius: '12px',
-      padding: '0.875rem 1rem',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-      width: '380px',
-      maxWidth: 'calc(100vw - 32px)',
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '10px',
-      pointerEvents: 'auto'
-    }}>
-      <AlertTriangle size={20} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 'bold', color: '#92400e', fontSize: '0.85rem' }}>
-          Loyverse POS Sync Warning
+    <div
+      className="admin-toast-item"
+      style={{
+        backgroundColor: style.bg,
+        color: style.fg,
+        border: `1.5px solid ${style.border}`,
+        borderRadius: '12px',
+        padding: '0.875rem 1rem',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+        width: '380px',
+        maxWidth: 'calc(100vw - 32px)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px',
+        pointerEvents: 'auto'
+      }}
+    >
+      {toast.kind === 'warn' && <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {toast.title && (
+          <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>{toast.title}</div>
+        )}
+        <div style={{ fontSize: '0.8rem', marginTop: toast.title ? '2px' : 0, lineHeight: 1.35 }}>
+          {toast.msg}
         </div>
-        <div style={{ color: '#78350f', fontSize: '0.8rem', marginTop: '2px', lineHeight: 1.35 }}>
-          Price updated on website, but failed to sync <strong>{warning.itemName}</strong> to Loyverse POS ({warning.error}). Prices may be out of sync.
-        </div>
+        {toast.undo && (
+          <button
+            onClick={() => { toast.undo(); onDismiss(toast.id); }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              textDecoration: 'underline',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+              padding: 0,
+              marginTop: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Undo
+          </button>
+        )}
       </div>
       <button
-        onClick={() => onDismiss(warning.id)}
+        onClick={() => onDismiss(toast.id)}
         style={{
           background: 'none',
           border: 'none',
-          color: '#b45309',
+          color: 'inherit',
           cursor: 'pointer',
           fontWeight: 'bold',
           fontSize: '1rem',
           padding: '0 2px',
-          lineHeight: 1
+          lineHeight: 1,
+          opacity: 0.8
         }}
         title="Dismiss"
       >
@@ -78,7 +105,83 @@ export default function Admin() {
     categoriesList, addCategory, updateCategory, deleteCategory,
     shopSettings, updateShopSettings, isShopOpenNow
   } = useStore();
-  
+
+  // ── §0 shared machinery: toast queue, audit log, roles ──────────────────
+  const [toasts, setToasts] = useState([]);
+  const toastTimersRef = useRef(new Map());
+  const [viewingAsStaff, setViewingAsStaff] = useState(false);
+  const [auditLog, setAuditLog] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const dismissToast = (id) => {
+    const timer = toastTimersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      toastTimersRef.current.delete(id);
+    }
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  // kind: 'info' | 'new' | 'danger' | 'warn'. Max 4 visible, newest at the
+  // bottom. Auto-dismisses after 6.5s (11s for 'warn' -- those carry more to
+  // read). Every destructive action should pass an `undo` closure.
+  const pushToast = ({ msg, kind = 'info', title = null, undo = null }) => {
+    const id = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    setToasts(prev => {
+      const next = [...prev, { id, msg, kind, title, undo }];
+      return next.length > 4 ? next.slice(next.length - 4) : next;
+    });
+    const timer = setTimeout(() => dismissToast(id), kind === 'warn' ? 11000 : 6500);
+    toastTimersRef.current.set(id, timer);
+    return id;
+  };
+
+  useEffect(() => {
+    const timers = toastTimersRef.current;
+    return () => { timers.forEach(t => clearTimeout(t)); };
+  }, []);
+
+  // Every mutation that matters writes one row here. admin_audit is
+  // insert+select only for admins (see the migration) -- there is no update
+  // or delete path, by design.
+  const logAudit = async (action, detail = null) => {
+    try {
+      await supabase.from('admin_audit').insert([{
+        actor_id: user?.id || null,
+        actor_role: user?.role || null,
+        action,
+        detail
+      }]);
+    } catch (e) {
+      console.error('Failed to write audit log row:', e);
+    }
+  };
+
+  const fetchAuditLog = async () => {
+    setAuditLoading(true);
+    const { data, error } = await supabase
+      .from('admin_audit')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (!error && data) setAuditLog(data);
+    setAuditLoading(false);
+  };
+
+  // The mockup fakes owner/staff with a sidebar click; production would read
+  // this from the session instead. Switching to staff view backs out of any
+  // tab staff can't see, so it never lands on a blank pane.
+  const toggleStaffView = () => {
+    setViewingAsStaff(prev => {
+      const next = !prev;
+      if (next && (activeTab === 'analytics' || activeTab === 'audit')) {
+        setActiveTab('overview');
+      }
+      return next;
+    });
+  };
+  // ── end §0 shared machinery ──────────────────────────────────────────────
+
   const [editingPrice, setEditingPrice] = useState({});
   const [editingAddonPrice, setEditingAddonPrice] = useState({});
   const [editingAddonStock, setEditingAddonStock] = useState({});
@@ -113,6 +216,10 @@ export default function Admin() {
   const [newCatColor, setNewCatColor] = useState('#ef4444');
   const [editingCat, setEditingCat] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => {
+    if (activeTab === 'audit') fetchAuditLog();
+  }, [activeTab]);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   // Local draft state for the schedule modal — avoids stale closure bugs
   const [localSchedule, setLocalSchedule] = useState(null);
@@ -1025,9 +1132,11 @@ export default function Admin() {
             <ShoppingBag size={20} /> Live Orders
             {pendingOrders.length > 0 && <span className="sidebar-badge">{pendingOrders.length}</span>}
           </button>
-          <button className={`sidebar-item ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>
-            <BarChart2 size={20} /> Analytics
-          </button>
+          {!viewingAsStaff && (
+            <button className={`sidebar-item ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>
+              <BarChart2 size={20} /> Analytics
+            </button>
+          )}
           <button className={`sidebar-item ${activeTab === 'customers' ? 'active' : ''}`} onClick={() => { setActiveTab('customers'); setSelectedCustomerId(null); }}>
             <Users size={20} /> Customers
           </button>
@@ -1053,13 +1162,36 @@ export default function Admin() {
           <button className={`sidebar-item ${activeTab === 'redemptions' ? 'active' : ''}`} onClick={() => setActiveTab('redemptions')}>
             <Ticket size={20} /> Redemptions
           </button>
+          {!viewingAsStaff && (
+            <button className={`sidebar-item ${activeTab === 'audit' ? 'active' : ''}`} onClick={() => setActiveTab('audit')}>
+              <ClipboardList size={20} /> Audit log
+            </button>
+          )}
+
+          <div style={{ flex: 1 }} />
+
+          <button
+            className="admin-role-switch"
+            title={viewingAsStaff ? 'Switch to Owner view' : 'Switch to Staff view'}
+            onClick={toggleStaffView}
+          >
+            <div className="admin-role-switch-avatar" style={{ background: viewingAsStaff ? '#8B8478' : '#17150F' }}>
+              {(user?.name || 'A').charAt(0).toUpperCase()}
+            </div>
+            <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
+              <div className="admin-role-switch-name">{user?.name || 'Admin'}</div>
+              <div className="admin-role-switch-label">
+                {viewingAsStaff ? 'Staff' : 'Owner'} · Switch to {viewingAsStaff ? 'Owner' : 'Staff'} view
+              </div>
+            </div>
+          </button>
         </aside>
 
         {/* Main Content Area */}
         <main className="admin-content">
-          {/* Stacked Loyverse Sync Warning Toasts */}
-          {syncWarnings && syncWarnings.length > 0 && (
-            <div style={{
+          {/* Unified toast stack -- admin action toasts + Loyverse sync warnings together */}
+          {(toasts.length > 0 || syncWarnings.length > 0) && (
+            <div className="admin-toast-stack" style={{
               position: 'fixed',
               bottom: '24px',
               right: '24px',
@@ -1069,9 +1201,27 @@ export default function Admin() {
               gap: '10px',
               pointerEvents: 'none'
             }}>
-              {syncWarnings.map(warning => (
-                <SyncToastItem key={warning.id} warning={warning} onDismiss={removeSyncWarning} />
+              {toasts.map(toast => (
+                <AdminToast key={toast.id} toast={toast} onDismiss={dismissToast} />
               ))}
+              {syncWarnings.map(warning => (
+                <AdminToast
+                  key={warning.id}
+                  toast={{
+                    id: warning.id,
+                    kind: 'warn',
+                    title: 'Loyverse POS Sync Warning',
+                    msg: <>Price updated on website, but failed to sync <strong>{warning.itemName}</strong> to Loyverse POS ({warning.error}). Prices may be out of sync.</>
+                  }}
+                  onDismiss={removeSyncWarning}
+                />
+              ))}
+            </div>
+          )}
+
+          {viewingAsStaff && (
+            <div className="admin-staff-banner">
+              Counter-staff view — analytics, monthly reports, audit log and margin figures are hidden.
             </div>
           )}
 
@@ -1812,7 +1962,7 @@ export default function Admin() {
             </div>
           )}
 
-          {activeTab === 'analytics' && (
+          {activeTab === 'analytics' && !viewingAsStaff && (
           <div className="admin-analytics-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Header Area */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -3569,7 +3719,34 @@ export default function Admin() {
           </div>
         )}
 
-      
+        {/* Audit log Tab -- owner only */}
+        {activeTab === 'audit' && !viewingAsStaff && (
+          <div className="admin-card">
+            <h3>Audit log</h3>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Every price change, stock adjustment, order state change, refund, promo and settings change writes a row here. Newest first.</p>
+            {auditLoading ? (
+              <p className="text-muted">Loading…</p>
+            ) : (
+              <div className="table-responsive"><table className="admin-table">
+                <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead>
+                <tbody>
+                  {auditLog.length === 0 ? (
+                    <tr><td colSpan="4" className="text-center text-muted" style={{ padding: '2rem' }}>No audit entries yet -- actions taken in this console will appear here.</td></tr>
+                  ) : auditLog.map(row => (
+                    <tr key={row.id}>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(row.created_at).toLocaleString()}</td>
+                      <td style={{ fontSize: '0.85rem' }}>{row.actor_role || 'unknown'}</td>
+                      <td style={{ fontSize: '0.85rem', fontWeight: 700 }}>{row.action}</td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{row.detail ? JSON.stringify(row.detail) : ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+            )}
+          </div>
+        )}
+
+
 </main>
 
       {/* Promo Code Modal Overlay */}

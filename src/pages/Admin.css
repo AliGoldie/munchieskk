@@ -552,6 +552,75 @@
 .col-span-8 { grid-column: span 8; }
 .col-span-12 { grid-column: span 12; }
 
+/* --- §0 shared machinery: toast queue, roles --- */
+@keyframes adminToastIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.admin-toast-item {
+  animation: adminToastIn 220ms cubic-bezier(.2,.8,.3,1);
+}
+
+.admin-role-switch {
+  margin: 0 0.5rem;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 9px;
+  background: #F5F3EF;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  width: calc(100% - 1rem);
+}
+
+.admin-role-switch:hover {
+  background: #EDEAE3;
+}
+
+.admin-role-switch-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-role-switch-name {
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #17150F;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-role-switch-label {
+  font-weight: 600;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8B8478;
+}
+
+.admin-staff-banner {
+  background: #EAF2FB;
+  border: 1px solid #B7D4EF;
+  color: #1F63A8;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
 /* --- Mobile Responsiveness (Responsive Admin Layout) --- */
 @media (max-width: 800px) {
   .admin-dashboard-layout {
