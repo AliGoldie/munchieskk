@@ -229,6 +229,15 @@
   margin-left: auto;
 }
 
+@keyframes badgeFlash {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+}
+
+.sidebar-badge.badge-flashing {
+  animation: badgeFlash 0.6s ease-in-out 3;
+}
+
 .admin-content {
   flex: 1;
   min-width: 0;

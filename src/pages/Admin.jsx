@@ -14,6 +14,9 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Admin.css';
 
+// §1 Live Orders: cancel-reason chips (docs/design/HANDOFF-ADMIN-CRM.md §1).
+const CANCEL_REASONS = ['Customer no-show', 'Item out of stock', 'Duplicate order', 'Payment failed', 'Kitchen error', 'Other'];
+
 // Unified toast queue (§0 shared machinery). One store, four kinds, replacing
 // the old one-off SyncToastItem -- Loyverse sync warnings now render through
 // this same stack as 'warn' kind toasts instead of a bespoke component.
@@ -112,6 +115,22 @@ export default function Admin() {
   const [viewingAsStaff, setViewingAsStaff] = useState(false);
   const [auditLog, setAuditLog] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
+
+  // ── §1 Live Orders: new-order sound toggle + badge flash ────────────────
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try { return localStorage.getItem('munchies_admin_sound_enabled') !== 'false'; } catch (e) { return true; }
+  });
+  const [badgeFlashing, setBadgeFlashing] = useState(false);
+  const prevPendingCountRef = useRef(0);
+
+  const toggleSound = () => {
+    setSoundEnabled(prev => {
+      const next = !prev;
+      try { localStorage.setItem('munchies_admin_sound_enabled', String(next)); } catch (e) {}
+      if (!next) stopNewOrderAlert();
+      return next;
+    });
+  };
 
   const dismissToast = (id) => {
     const timer = toastTimersRef.current.get(id);
@@ -923,14 +942,27 @@ export default function Admin() {
     };
   }, [orders]);
 
-  // Start / stop looping alert sound based on pending orders
+  // Start / stop looping alert sound based on pending orders, gated by the
+  // per-device toggle in the Live Orders toolbar.
   useEffect(() => {
-    if (pendingOrders.length > 0) {
+    if (pendingOrders.length > 0 && soundEnabled) {
       startNewOrderAlert();
     } else {
       stopNewOrderAlert();
     }
     return () => stopNewOrderAlert();
+  }, [pendingOrders.length, soundEnabled]);
+
+  // Flash the sidebar badge 3x when a new pending order actually arrives
+  // (not on every render where one is merely still pending).
+  useEffect(() => {
+    if (pendingOrders.length > prevPendingCountRef.current) {
+      setBadgeFlashing(true);
+      const t = setTimeout(() => setBadgeFlashing(false), 1800); // 3 x 600ms cycle
+      prevPendingCountRef.current = pendingOrders.length;
+      return () => clearTimeout(t);
+    }
+    prevPendingCountRef.current = pendingOrders.length;
   }, [pendingOrders.length]);
 
   // This guard must come after every Hook call above (Rules of Hooks) so that
@@ -958,12 +990,25 @@ export default function Admin() {
   };
 
   const advanceOrderState = (id, currentStatus) => {
-    if (currentStatus === 'COOKING') updateOrderState(id, 'READY');
-    else if (currentStatus === 'READY') updateOrderState(id, 'COLLECTED');
+    const nextStatus = currentStatus === 'COOKING' ? 'READY' : currentStatus === 'READY' ? 'COLLECTED' : null;
+    if (!nextStatus) return;
+    updateOrderState(id, nextStatus);
+    logAudit(`Order ${nextStatus.toLowerCase()}`, { orderId: id });
+    pushToast({
+      kind: 'new',
+      msg: `#${formatOrderId(id)} marked ${nextStatus.toLowerCase()}.`,
+      undo: () => { updateOrderState(id, currentStatus); logAudit('Order state change undone', { orderId: id, revertedTo: currentStatus }); }
+    });
   };
 
   const handleAccept = (orderId) => {
     acceptOrder(orderId);
+    logAudit('Order accepted', { orderId });
+    pushToast({
+      kind: 'new',
+      msg: `#${formatOrderId(orderId)} accepted into the kitchen.`,
+      undo: () => { updateOrderState(orderId, 'PENDING'); logAudit('Order accept undone', { orderId }); }
+    });
   };
 
   const handlePriceChange = (id, value) => setEditingPrice({ ...editingPrice, [id]: value });
@@ -1130,7 +1175,7 @@ export default function Admin() {
           </button>
           <button className={`sidebar-item ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>
             <ShoppingBag size={20} /> Live Orders
-            {pendingOrders.length > 0 && <span className="sidebar-badge">{pendingOrders.length}</span>}
+            {pendingOrders.length > 0 && <span className={`sidebar-badge${badgeFlashing ? ' badge-flashing' : ''}`}>{pendingOrders.length}</span>}
           </button>
           {!viewingAsStaff && (
             <button className={`sidebar-item ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>
@@ -2281,9 +2326,18 @@ export default function Admin() {
         <div className="admin-card">
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.5rem'}}>
             <h3 style={{margin:0}}>Live Orders</h3>
-            {pendingOrders.length > 0 && (
-              <span className="pending-badge-pill">{pendingOrders.length} NEW</span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {pendingOrders.length > 0 && (
+                <span className="pending-badge-pill">{pendingOrders.length} NEW</span>
+              )}
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={toggleSound}
+                title={soundEnabled ? 'Mute new-order alert sound on this device' : 'Unmute new-order alert sound on this device'}
+              >
+                {soundEnabled ? '🔔 Sound on' : '🔕 Sound off'}
+              </button>
+            </div>
           </div>
 
           {/* ── PENDING ORDER ALERT CARDS ── */}
@@ -2322,7 +2376,7 @@ export default function Admin() {
                     </span>
                   </button>
                   <button
-                    onClick={() => setCancellingOrder({ id: order.id, reason: '', wasteAction: 'restore' })}
+                    onClick={() => setCancellingOrder({ id: order.id, reason: '', note: '', wasteAction: 'restore', previousStatus: order.status })}
                     style={{ width: '100%', padding: '0.5rem 1rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
                   >
                     ? Cancel
@@ -2398,7 +2452,7 @@ export default function Admin() {
                         <button 
                           className="btn btn-sm btn-secondary" 
                           style={{marginLeft: '0.5rem'}}
-                          onClick={() => setCancellingOrder({ id: order.id, reason: '', wasteAction: 'restore' })}
+                          onClick={() => setCancellingOrder({ id: order.id, reason: '', note: '', wasteAction: 'restore', previousStatus: order.status })}
                         >
                           Cancel
                         </button>
@@ -4158,8 +4212,30 @@ export default function Admin() {
           <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
             <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Cancel Order</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-              <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 'bold' }}>REASON</label>
-              <input type="text" value={cancellingOrder.reason} onChange={e => setCancellingOrder({...cancellingOrder, reason: e.target.value})} placeholder="e.g. Customer no-show" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold' }}>REASON</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {CANCEL_REASONS.map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setCancellingOrder({ ...cancellingOrder, reason: r })}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '999px',
+                      border: `1px solid ${cancellingOrder.reason === r ? '#FFC72C' : 'var(--text-secondary)'}`,
+                      background: cancellingOrder.reason === r ? '#FFC72C' : '#0f172a',
+                      color: cancellingOrder.reason === r ? '#17150F' : '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div></div>
+              <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 'bold' }}>NOTE (OPTIONAL)</label>
+              <textarea value={cancellingOrder.note} onChange={e => setCancellingOrder({...cancellingOrder, note: e.target.value})} placeholder="Any extra detail..." style={{ width: '100%', minHeight: '56px', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontFamily: 'inherit', resize: 'vertical' }} /></div>
               <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold' }}>STOCK ACTION</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'restore' ? '#1e3a8a' : '#0f172a', border: '1px solid var(--text-secondary)', borderRadius: '8px', cursor: 'pointer', marginBottom: '8px' }}>
                 <input type="radio" checked={cancellingOrder.wasteAction === 'restore'} onChange={() => setCancellingOrder({...cancellingOrder, wasteAction: 'restore'})} />
@@ -4170,7 +4246,29 @@ export default function Admin() {
                 <div><div style={{ color: '#fca5a5', fontWeight: 'bold' }}>Mark as waste</div><div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Item prepped, cannot be resold.</div></div>
               </label></div>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => { if (!cancellingOrder.reason.trim()) { alert("Reason required."); return; } cancelOrder(cancellingOrder.id, cancellingOrder.reason.trim(), cancellingOrder.wasteAction, true); setCancellingOrder(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Confirm Cancel</button>
+                <button
+                  onClick={() => {
+                    if (!cancellingOrder.reason) { alert("Please pick a reason."); return; }
+                    const { id, reason, note, wasteAction, previousStatus } = cancellingOrder;
+                    cancelOrder(id, reason, wasteAction, true, note.trim() || null);
+                    logAudit('Order cancelled', { orderId: id, reason, note: note.trim() || null, wasteAction });
+                    pushToast({
+                      kind: 'danger',
+                      title: 'Order cancelled',
+                      msg: `#${formatOrderId(id)} — ${reason}`,
+                      // Reverts the order's status only -- it does not reverse
+                      // cancel_order()'s stock restore / waste_log side effect.
+                      // A full reversal would need its own RPC (symmetrical to
+                      // cancel_order) rather than a plain client-side status
+                      // flip; out of scope for this PR.
+                      undo: () => { updateOrderState(id, previousStatus); logAudit('Order cancellation undone (status only, stock/waste not reversed)', { orderId: id, revertedTo: previousStatus }); }
+                    });
+                    setCancellingOrder(null);
+                  }}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Confirm Cancel
+                </button>
                 <button onClick={() => setCancellingOrder(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Abort</button>
               </div>
             </div>
