@@ -17,6 +17,32 @@ import './Admin.css';
 // §1 Live Orders: cancel-reason chips (docs/design/HANDOFF-ADMIN-CRM.md §1).
 const CANCEL_REASONS = ['Customer no-show', 'Item out of stock', 'Duplicate order', 'Payment failed', 'Kitchen error', 'Other'];
 
+// §3 Analytics: date-range presets (docs/design/HANDOFF-ADMIN-CRM.md §3).
+// Each preset just computes a {start, end} pair for the existing
+// selectedDateRange state -- the trend chart already buckets daily whenever
+// selectedDateRange is set (see processAnalyticsData), so these presets need
+// no changes to the aggregation/bucketing logic at all.
+const DATE_RANGE_PRESETS = ['Today', '7d', '30d', 'This month'];
+function computePresetDateRange(preset) {
+  const end = new Date();
+  const toStr = (d) => d.toISOString().split('T')[0];
+  const endStr = toStr(end);
+  if (preset === 'Today') return { start: endStr, end: endStr };
+  if (preset === '7d') {
+    const s = new Date(end); s.setDate(s.getDate() - 6);
+    return { start: toStr(s), end: endStr };
+  }
+  if (preset === '30d') {
+    const s = new Date(end); s.setDate(s.getDate() - 29);
+    return { start: toStr(s), end: endStr };
+  }
+  if (preset === 'This month') {
+    const s = new Date(end.getFullYear(), end.getMonth(), 1);
+    return { start: toStr(s), end: endStr };
+  }
+  return null;
+}
+
 // §8 Menu & Add-ons: the one cost/margin line format, shared verbatim by the
 // Menu CRM row, the Add-item form's cost field, and the Edit Details modal
 // so all three always agree. Both prices are in cents.
@@ -308,7 +334,9 @@ export default function Admin() {
     updateShopSettings({ specialClosures: newClosures });
   };
   const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'monthly', 'yearly'
-  const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
+  // Defaults to the "7d" preset so the initial Analytics view and the chip
+  // row agree on what's showing, instead of loading with no chip active.
+  const [selectedDateRange, setSelectedDateRange] = useState(() => computePresetDateRange('7d'));
   const [menuSearchQuery, setMenuSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   
@@ -2251,28 +2279,43 @@ export default function Admin() {
                     </button>
                   )}
                 </div>
-                {/* Period Toggle */}
+                {/* Date range presets -- editing a date field directly (below)
+                    stops matching any preset's computed range, which is what
+                    naturally flips this to "Custom" with no extra state. */}
                 <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '4px' }}>
-                  {['daily', 'monthly', 'yearly'].map(period => (
-                    <button 
-                      key={period}
-                      onClick={() => {
-                        setAnalyticsPeriod(period);
-                        setSelectedDateRange({ start: '', end: '' }); // Clear range when using quick toggles
-                      }}
-                      style={{
-                        padding: '6px 16px', borderRadius: '6px', border: 'none',
-                        background: analyticsPeriod === period && !selectedDateRange.start ? '#fff' : 'transparent',
-                        color: analyticsPeriod === period && !selectedDateRange.start ? '#0f172a' : 'var(--text-secondary)',
-                        fontWeight: analyticsPeriod === period && !selectedDateRange.start ? '600' : '500',
-                        fontSize: '0.875rem', cursor: 'pointer',
-                        boxShadow: analyticsPeriod === period && !selectedDateRange.start ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                        transition: 'all 0.2s', textTransform: 'capitalize'
-                      }}
-                    >
-                      {period === 'daily' ? 'This Week' : period === 'monthly' ? 'This Month' : period === 'yearly' ? 'Yearly' : period}
-                    </button>
-                  ))}
+                  {(() => {
+                    const activePreset = DATE_RANGE_PRESETS.find(p => {
+                      const r = computePresetDateRange(p);
+                      return r && r.start === selectedDateRange.start && r.end === selectedDateRange.end;
+                    }) || 'Custom';
+                    return [...DATE_RANGE_PRESETS, 'Custom'].map(preset => {
+                      const isActive = activePreset === preset;
+                      return (
+                        <button
+                          key={preset}
+                          onClick={() => {
+                            setAnalyticsPeriod('daily');
+                            if (preset === 'Custom') {
+                              setSelectedDateRange({ start: '', end: '' });
+                            } else {
+                              setSelectedDateRange(computePresetDateRange(preset));
+                            }
+                          }}
+                          style={{
+                            padding: '6px 14px', borderRadius: '6px', border: 'none',
+                            background: isActive ? '#fff' : 'transparent',
+                            color: isActive ? '#0f172a' : 'var(--text-secondary)',
+                            fontWeight: isActive ? '600' : '500',
+                            fontSize: '0.875rem', cursor: 'pointer',
+                            boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {preset}
+                        </button>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </div>
@@ -2396,8 +2439,8 @@ export default function Admin() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
                   <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '3px' }}>
-                    {['all', 'web', 'loyverse'].map(filter => (
-                      <button 
+                    {['all', 'web', 'loyverse', 'grabfood'].map(filter => (
+                      <button
                         key={filter}
                         onClick={() => setTopItemsChannelFilter(filter)}
                         style={{
@@ -2405,11 +2448,11 @@ export default function Admin() {
                           background: topItemsChannelFilter === filter ? '#fff' : 'transparent',
                           color: topItemsChannelFilter === filter ? '#0f172a' : 'var(--text-secondary)',
                           fontWeight: topItemsChannelFilter === filter ? '600' : '500',
-                          fontSize: '0.75rem', cursor: 'pointer', textTransform: 'capitalize',
+                          fontSize: '0.75rem', cursor: 'pointer',
                           boxShadow: topItemsChannelFilter === filter ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                         }}
                       >
-                        {filter}
+                        {filter === 'grabfood' ? 'GrabFood' : filter === 'loyverse' ? 'Loyverse' : filter === 'web' ? 'Web' : 'All'}
                       </button>
                     ))}
                   </div>
