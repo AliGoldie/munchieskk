@@ -522,6 +522,21 @@ export default function Admin() {
   const [grabFoodShiftPercent, setGrabFoodShiftPercent] = useState(0);
   const [topItemsChannelFilter, setTopItemsChannelFilter] = useState('all'); // 'all', 'web', 'loyverse'
 
+  // §5b: Pause online ordering / customer notice
+  const [noticeMessageInput, setNoticeMessageInput] = useState('');
+  const [savingNotice, setSavingNotice] = useState(false);
+  useEffect(() => {
+    setNoticeMessageInput(shopSettings?.noticeMessage || '');
+  }, [shopSettings?.noticeMessage]);
+
+  // §5b: Waste log (writes the existing, previously-unused waste_log table)
+  const WASTE_REASONS = ['Made wrong', 'Dropped', 'End of night', 'Expired'];
+  const [wasteLog, setWasteLog] = useState([]);
+  const [wasteItemId, setWasteItemId] = useState('');
+  const [wasteQty, setWasteQty] = useState('');
+  const [wasteReason, setWasteReason] = useState(WASTE_REASONS[0]);
+  const [savingWaste, setSavingWaste] = useState(false);
+
   // Promos & Referrals State
   const [promoCodes, setPromoCodes] = useState([]);
   const [referralStats, setReferralStats] = useState([]);
@@ -560,6 +575,82 @@ export default function Admin() {
       isSystemPromo: true
     }));
   }, [menu]);
+
+  // §5b: Prep board — tonight's projected demand is the average quantity sold
+  // on this weekday over the last 8 weeks. Cancelled orders never actually
+  // moved stock, so they're excluded from "sold".
+  const prepBoardData = useMemo(() => {
+    const todayIdx = new Date().getDay();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 56);
+    const qtyByItem = {};
+    orders.forEach(o => {
+      if (o.status === 'CANCELLED') return;
+      const created = new Date(o.created_at);
+      if (created < cutoff || created.getDay() !== todayIdx) return;
+      (o.items || []).forEach(oi => {
+        if (oi.id == null) return;
+        const key = String(oi.id);
+        qtyByItem[key] = (qtyByItem[key] || 0) + (oi.quantity || 1);
+      });
+    });
+    return menu
+      .map(item => {
+        const totalSold = qtyByItem[String(item.id)] || 0;
+        const projected = Math.round(totalSold / 8);
+        const stock = item.stock_quantity ?? 0;
+        const covered = stock >= projected;
+        const prepNeeded = Math.max(0, projected - stock);
+        const fillPct = projected > 0 ? Math.min(100, Math.round((stock / projected) * 100)) : 100;
+        return { id: item.id, name: item.name, projected, stock, covered, prepNeeded, fillPct };
+      })
+      .filter(r => r.projected > 0)
+      .sort((a, b) => b.projected - a.projected)
+      .slice(0, 6);
+  }, [orders, menu]);
+
+  // §5b: Food cost tonight — (COGS + waste) / gross sales for today's
+  // orders, real cost_price per line falling back to the 40% estimate this
+  // dashboard uses everywhere else. A wasted (unsold) item has no line
+  // revenue to estimate 40% of, so its fallback is 40% of its normal
+  // selling price instead -- same ratio, applied to the closest available
+  // number.
+  const foodCostTonight = useMemo(() => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const uncostedItemIds = new Set();
+    let grossRm = 0;
+    let cogsRm = 0;
+
+    orders.forEach(o => {
+      if (o.status === 'CANCELLED') return;
+      const created = new Date(o.created_at);
+      if (created < startOfDay) return;
+      grossRm += (o.total || 0) / 100;
+      (o.items || []).forEach(oi => {
+        const lineRevenueRm = ((oi.price || 0) * (oi.quantity || 1)) / 100;
+        const menuItem = menu.find(m => String(m.id) === String(oi.id));
+        if (menuItem && menuItem.cost_price != null) {
+          cogsRm += (menuItem.cost_price * (oi.quantity || 1)) / 100;
+        } else {
+          cogsRm += lineRevenueRm * 0.40;
+          if (oi.id != null) uncostedItemIds.add(String(oi.id));
+        }
+      });
+    });
+
+    let wasteRm = 0;
+    wasteLog.forEach(w => {
+      const menuItem = menu.find(m => String(m.id) === String(w.item_id));
+      if (!menuItem) return;
+      const perUnitRm = menuItem.cost_price != null ? menuItem.cost_price / 100 : (menuItem.price * 0.40) / 100;
+      wasteRm += perUnitRm * (w.quantity || 0);
+      if (menuItem.cost_price == null) uncostedItemIds.add(String(menuItem.id));
+    });
+
+    const pct = grossRm > 0 ? ((cogsRm + wasteRm) / grossRm) * 100 : 0;
+    return { pct, grossRm, cogsRm, wasteRm, uncostedCount: uncostedItemIds.size };
+  }, [orders, menu, wasteLog]);
 
   const pendingOrders = orders.filter(o => o.status === 'PENDING');
   const activeOrders = orders.filter(o => o.status !== 'COLLECTED' && o.status !== 'CANCELLED');
@@ -602,9 +693,84 @@ export default function Admin() {
 
   useEffect(() => {
     if (activeTab === 'overview') {
+      fetchWasteLog();
       fetchStoreEvents();
     }
   }, [activeTab]);
+
+  const fetchWasteLog = async () => {
+    try {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase
+        .from('waste_log')
+        .select('*')
+        .gte('timestamp', startOfDay.toISOString())
+        .order('timestamp', { ascending: false });
+      if (error) throw error;
+      setWasteLog(data || []);
+    } catch (e) {
+      console.error('Failed to fetch waste log:', e);
+    }
+  };
+
+  const logWaste = async () => {
+    if (!wasteItemId) { alert('Select an item to log waste for.'); return; }
+    const qty = parseInt(wasteQty, 10);
+    if (!qty || qty <= 0) { alert('Enter a quantity greater than zero.'); return; }
+    setSavingWaste(true);
+    try {
+      const { error } = await supabase.from('waste_log').insert([{
+        item_id: wasteItemId,
+        quantity: qty,
+        reason: wasteReason,
+        logged_by: user?.id || null
+      }]);
+      if (error) { alert(error.message); return; }
+      const item = menu.find(m => String(m.id) === String(wasteItemId));
+      logAudit('Waste logged', { itemId: wasteItemId, itemName: item?.name || null, quantity: qty, reason: wasteReason });
+      pushToast({ msg: `${qty}x ${item?.name || 'item'} logged as waste (${wasteReason})`, kind: 'warn', title: 'Waste logged' });
+      setWasteItemId('');
+      setWasteQty('');
+      fetchWasteLog();
+    } finally {
+      setSavingWaste(false);
+    }
+  };
+
+  const removeWasteEntry = async (id) => {
+    const row = wasteLog.find(w => w.id === id);
+    const { error } = await supabase.from('waste_log').delete().eq('id', id);
+    if (error) { alert(error.message); return; }
+    const item = menu.find(m => String(m.id) === String(row?.item_id));
+    logAudit('Waste log entry removed', { id, itemName: item?.name || null, quantity: row?.quantity || null });
+    pushToast({ msg: 'Waste entry removed', kind: 'info', title: 'Waste log updated' });
+    fetchWasteLog();
+  };
+
+  // §5b: Pause online ordering + customer notice. setShopStatus() replaces
+  // the bare `updateShopSettings({ status: s })` the Quick Override buttons
+  // used to call directly -- those predate §0's toast/audit machinery and
+  // this bullet explicitly wants the status write audited.
+  const setShopStatus = (s) => {
+    if (shopSettings?.status === s) return;
+    updateShopSettings({ status: s });
+    const labels = { OPEN: 'Store opened', PAUSED: 'Online ordering paused', CLOSED: 'Store closed', SCHEDULE: 'Following weekly schedule' };
+    logAudit('Store status changed', { status: s });
+    pushToast({ msg: labels[s] || `Status set to ${s}`, kind: (s === 'CLOSED' || s === 'PAUSED') ? 'warn' : 'info', title: 'Store status' });
+  };
+
+  const saveNoticeMessage = async () => {
+    setSavingNotice(true);
+    try {
+      const trimmed = noticeMessageInput.trim();
+      await updateShopSettings({ noticeMessage: trimmed });
+      logAudit('Store notice updated', { noticeMessage: trimmed || null });
+      pushToast({ msg: trimmed ? 'Customer notice saved' : 'Customer notice cleared', kind: 'info', title: 'Store notice' });
+    } finally {
+      setSavingNotice(false);
+    }
+  };
 
   const fetchStoreEvents = async () => {
     try {
@@ -1815,7 +1981,7 @@ export default function Admin() {
                         <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>⚡ Quick Override</label>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {[['OPEN','🟢 Open Now','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close Now','#ef4444'],['SCHEDULE','📅 Use Schedule','#6366f1']].map(([s,label,col]) => (
-                            <button key={s} type="button" onClick={() => updateShopSettings({ status: s })}
+                            <button key={s} type="button" onClick={() => setShopStatus(s)}
                               style={{ flex: 1, minWidth: '110px', padding: '9px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem',
                                 background: shopSettings?.status === s ? col : '#334155', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
                           ))}
@@ -1957,7 +2123,7 @@ export default function Admin() {
                       background: shopSettings?.status === 'OPEN' ? '#16a34a' : shopSettings?.status === 'PAUSED' ? '#ca8a04' : shopSettings?.status === 'SCHEDULE' ? '#4f46e5' : '#dc2626',
                       color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                     }}>
-                      {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ PAUSED' : shopSettings?.status === 'SCHEDULE' ? '📅 SCHEDULE' : '🔴 CLOSED'}
+                      {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ ORDERS PAUSED' : shopSettings?.status === 'SCHEDULE' ? '📅 SCHEDULE' : '🔴 CLOSED'}
                     </span>
                     <button onClick={() => openScheduleModal()}
                       style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: 'var(--munchies-yellow)', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
@@ -1969,10 +2135,30 @@ export default function Admin() {
                 {/* Quick Override Buttons */}
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {[['OPEN','🟢 Open','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close','#ef4444'],['SCHEDULE','📅 Schedule','#6366f1']].map(([s,label,col]) => (
-                    <button key={s} type="button" onClick={() => updateShopSettings({ status: s })}
+                    <button key={s} type="button" onClick={() => setShopStatus(s)}
                       style={{ flex: 1, padding: '9px 4px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.78rem',
                         background: shopSettings?.status === s ? col : '#334155', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
                   ))}
+                </div>
+
+                {/* §5b: Customer notice — shown on the storefront's amber banner (that
+                    display is a separate, deliberately out-of-scope follow-up; see PR
+                    description). Editable regardless of status so an admin can draft it
+                    before pausing. */}
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: '#fbbf24', marginBottom: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    📢 Customer Notice
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <input type="text" placeholder="e.g. Back at 6pm — online ordering paused for a bit"
+                      value={noticeMessageInput}
+                      onChange={e => setNoticeMessageInput(e.target.value)}
+                      style={{ flex: 1, minWidth: '220px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.08)', color: '#fff', fontSize: '0.85rem' }} />
+                    <button type="button" disabled={savingNotice} onClick={() => saveNoticeMessage()}
+                      style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#eab308', color: '#1e293b', fontWeight: 'bold', cursor: savingNotice ? 'default' : 'pointer', opacity: savingNotice ? 0.6 : 1, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      Save
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2434,6 +2620,115 @@ export default function Admin() {
                          <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem' }}>No sales data yet -- sales data will appear here once orders are placed.</div>
                        )}
                   </div>
+                </div>
+
+              </div>
+
+              {/* §5b: Prep board / Waste log / Food cost tonight */}
+              <div className="admin-grid-3" style={{ marginTop: '1.5rem' }}>
+
+                {/* Prep Board */}
+                <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ margin: '0 0 0.25rem' }}>🍳 Prep Board</h3>
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Projected demand: average sold on this weekday, last 8 weeks
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {prepBoardData.map(row => (
+                      <div key={row.id}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{row.name}</span>
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '10px',
+                            background: row.covered ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                            color: row.covered ? '#16a34a' : '#dc2626'
+                          }}>
+                            {row.covered ? 'Covered' : `Prep ${row.prepNeeded}`}
+                          </span>
+                        </div>
+                        <div style={{ height: '6px', borderRadius: '3px', background: '#e2e8f0', overflow: 'hidden' }}>
+                          <div style={{ width: `${row.fillPct}%`, height: '100%', background: row.covered ? '#22c55e' : '#ef4444', transition: 'width 0.3s' }} />
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Stock {row.stock} / Projected {row.projected}
+                        </div>
+                      </div>
+                    ))}
+                    {prepBoardData.length === 0 && (
+                      <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '1rem 0' }}>
+                        Not enough order history yet for today's weekday.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Waste Log */}
+                <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ margin: '0 0 0.25rem' }}>🗑️ Waste Log</h3>
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Today's entries</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    <select value={wasteItemId} onChange={e => setWasteItemId(e.target.value)}
+                      style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
+                      <option value="">Select item…</option>
+                      {menu.map(item => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input type="number" min="1" placeholder="Qty" value={wasteQty}
+                        onChange={e => setWasteQty(e.target.value)}
+                        style={{ width: '70px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
+                      <button type="button" disabled={savingWaste} onClick={() => logWaste()}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: 'bold', cursor: savingWaste ? 'default' : 'pointer', opacity: savingWaste ? 0.6 : 1, fontSize: '0.8rem' }}>
+                        Log Waste
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {WASTE_REASONS.map(r => (
+                        <button key={r} type="button" onClick={() => setWasteReason(r)}
+                          style={{
+                            padding: '5px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
+                            border: wasteReason === r ? '1px solid #dc2626' : '1px solid #cbd5e1',
+                            background: wasteReason === r ? 'rgba(239,68,68,0.1)' : '#fff',
+                            color: wasteReason === r ? '#dc2626' : 'var(--text-secondary)'
+                          }}>{r}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, overflowY: 'auto', maxHeight: '220px' }}>
+                    {wasteLog.map(w => {
+                      const item = menu.find(m => String(m.id) === String(w.item_id));
+                      return (
+                        <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', borderRadius: '8px', background: '#f8fafc', fontSize: '0.8rem' }}>
+                          <span>{w.quantity}x {item?.name || 'Unknown item'} <span style={{ color: 'var(--text-muted)' }}>· {w.reason}</span></span>
+                          <button type="button" onClick={() => removeWasteEntry(w.id)}
+                            style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                        </div>
+                      );
+                    })}
+                    {wasteLog.length === 0 && (
+                      <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '1rem 0' }}>No waste logged today.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Food Cost Tonight */}
+                <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ margin: '0 0 0.25rem' }}>💵 Food Cost Tonight</h3>
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>(COGS + waste) / gross sales, today</p>
+                  <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '1rem' }}>
+                    {foodCostTonight.grossRm > 0 ? `${foodCostTonight.pct.toFixed(1)}%` : '—'}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Gross sales</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.grossRm.toFixed(2)}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>COGS</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.cogsRm.toFixed(2)}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Waste</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.wasteRm.toFixed(2)}</span></div>
+                  </div>
+                  {foodCostTonight.uncostedCount > 0 && (
+                    <p style={{ marginTop: '1rem', fontSize: '0.72rem', color: '#d97706', background: 'rgba(245,158,11,0.1)', padding: '8px 10px', borderRadius: '8px' }}>
+                      ⚠️ {foodCostTonight.uncostedCount} item{foodCostTonight.uncostedCount === 1 ? '' : 's'} tonight still estimated at 40% — set a real cost price in Menu CRM for a more accurate figure.
+                    </p>
+                  )}
                 </div>
 
               </div>
