@@ -17,6 +17,19 @@ import './Admin.css';
 // §1 Live Orders: cancel-reason chips (docs/design/HANDOFF-ADMIN-CRM.md §1).
 const CANCEL_REASONS = ['Customer no-show', 'Item out of stock', 'Duplicate order', 'Payment failed', 'Kitchen error', 'Other'];
 
+// §4 Order History: refund/void reason codes.
+const REFUND_REASONS = ['Item made wrong', 'Missing item', 'Late collection', 'Quality complaint', 'Duplicate charge', 'Goodwill'];
+
+// Same channel classification Analytics already uses (order.channel, three
+// copies inline there) -- pulled out here since §4's filter needs the exact
+// same logic; the existing Analytics copies are left as-is, out of scope.
+function getOrderChannelKey(order) {
+  const rawChannel = (order.channel || 'web').toLowerCase();
+  if (rawChannel === 'loyverse' || rawChannel === 'pos' || rawChannel === 'walkin' || rawChannel === 'walk-in') return 'loyverse';
+  if (rawChannel === 'grab' || rawChannel === 'grabfood') return 'grabfood';
+  return 'web';
+}
+
 // §2 Customers CRM: same avatar palette as Profile.jsx's picker (per the
 // brief: reuse it for the CRM detail view rather than a new colour ramp).
 const CUSTOMER_AVATAR_COLORS = {
@@ -281,7 +294,39 @@ export default function Admin() {
   const [editingLowStock, setEditingLowStock] = useState({});
   const [editingPromo, setEditingPromo] = useState({});
   const [expandedHistoryOrderIds, setExpandedHistoryOrderIds] = useState(new Set());
-  const [visibleHistoryCount, setVisibleHistoryCount] = useState(5);
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState(6);
+  const [historyChannelFilter, setHistoryChannelFilter] = useState('All');
+  const [refundingOrder, setRefundingOrder] = useState(null); // { id, total, amountMode: 'full'|'half', reason }
+
+  const refundOrder = async (orderId, amountCents, reason, isFull) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return false;
+    const patch = {
+      refund_amount: amountCents,
+      refund_reason: reason,
+      refunded_at: new Date().toISOString()
+    };
+    if (isFull) patch.status = 'CANCELLED';
+    const { error } = await supabase.from('orders').update(patch).eq('id', orderId);
+    if (error) {
+      console.error('Failed to refund order:', error);
+      alert("We couldn't complete that right now. Please try again.");
+      return false;
+    }
+    logAudit(isFull ? 'Order voided (full refund)' : 'Order refunded (partial)', { orderId, amountCents, reason });
+    pushToast({
+      kind: 'danger',
+      title: isFull ? 'Order voided' : 'Refund recorded',
+      msg: `#${formatOrderId(orderId)} — RM ${(amountCents / 100).toFixed(2)} (${reason})`,
+      undo: async () => {
+        const revertPatch = { refund_amount: null, refund_reason: null, refunded_at: null };
+        if (isFull) revertPatch.status = order.status;
+        await supabase.from('orders').update(revertPatch).eq('id', orderId);
+        logAudit('Refund undone', { orderId });
+      }
+    });
+    return true;
+  };
 
   const toggleHistoryOrderExpand = (orderId) => {
     setExpandedHistoryOrderIds(prev => {
@@ -3419,6 +3464,11 @@ export default function Admin() {
                                 <span className={`status-badge ${order.status === 'COLLECTED' ? 'in-stock' : order.status === 'CANCELLED' ? 'out-stock' : ''}`}>
                                   {order.status}
                                 </span>
+                                {order.refund_amount != null && (
+                                  <div className="text-xs" style={{ color: '#dc2626', fontWeight: 700, marginTop: '2px' }}>
+                                    {order.status === 'CANCELLED' ? 'Voided' : 'Refunded'} RM {(order.refund_amount / 100).toFixed(2)}
+                                  </div>
+                                )}
                                 {order.status === 'CANCELLED' && order.cancel_reason && (
                                   <div className="text-xs text-muted mt-1">{order.cancel_reason}</div>
                                 )}
@@ -3853,11 +3903,36 @@ export default function Admin() {
 
         {activeTab === 'history' && (
           <div className="admin-card">
-            <h3 style={{ marginBottom: '1.5rem' }}>Completed & Cancelled Orders</h3>
+            <h3 style={{ marginBottom: '1rem' }}>Completed & Cancelled Orders</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.5rem' }}>
+              {['All', 'Web', 'Loyverse', 'Grab', 'Cancelled', 'Refunded'].map(f => (
+                <button
+                  key={f}
+                  className="btn btn-sm"
+                  onClick={() => { setHistoryChannelFilter(f); setVisibleHistoryCount(6); }}
+                  style={{
+                    borderRadius: '999px',
+                    border: historyChannelFilter === f ? '1.5px solid #FFC72C' : '1px solid var(--text-secondary)',
+                    background: historyChannelFilter === f ? '#FFC72C' : 'transparent',
+                    color: historyChannelFilter === f ? '#17150F' : 'inherit',
+                    fontWeight: 700
+                  }}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
             {(() => {
-              const historyOrders = orders
+              const allHistoryOrders = orders
                 .filter(o => o.status === 'COLLECTED' || o.status === 'CANCELLED')
                 .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              const historyOrders = allHistoryOrders.filter(o => {
+                if (historyChannelFilter === 'All') return true;
+                if (historyChannelFilter === 'Cancelled') return o.status === 'CANCELLED';
+                if (historyChannelFilter === 'Refunded') return o.refund_amount != null;
+                return getOrderChannelKey(o) === historyChannelFilter.toLowerCase().replace('grab', 'grabfood');
+              });
 
               return (
                 <>
@@ -3875,21 +3950,22 @@ export default function Admin() {
                       <tbody>
                         {historyOrders.slice(0, visibleHistoryCount).map(order => {
                           const isExpanded = expandedHistoryOrderIds.has(order.id);
+                          const isRefunded = order.refund_amount != null;
                           return (
                             <Fragment key={order.id}>
-                              <tr 
+                              <tr
                                 onClick={() => toggleHistoryOrderExpand(order.id)}
                                 style={{ cursor: 'pointer', transition: 'background-color 0.15s ease' }}
                               >
                                 <td className="font-medium text-xs">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <ChevronDown 
-                                      size={14} 
-                                      style={{ 
-                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                                    <ChevronDown
+                                      size={14}
+                                      style={{
+                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                                         transition: 'transform 0.2s ease',
-                                        flexShrink: 0 
-                                      }} 
+                                        flexShrink: 0
+                                      }}
                                     />
                                     <span>#{formatOrderId(order.id)}</span>
                                   </div>
@@ -3904,6 +3980,11 @@ export default function Admin() {
                                   <span className={`status-badge ${order.status === 'COLLECTED' ? 'in-stock' : 'out-stock'}`}>
                                     {order.status}
                                   </span>
+                                  {isRefunded && (
+                                    <span className="status-badge out-stock" style={{ marginLeft: '4px', background: '#7f1d1d', color: '#fff' }}>
+                                      {order.status === 'CANCELLED' ? 'VOIDED' : 'REFUNDED'}
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
                               {isExpanded && (
@@ -3936,6 +4017,19 @@ export default function Admin() {
                                         📝 {order.notes}
                                       </div>
                                     )}
+                                    {isRefunded ? (
+                                      <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#dc2626', fontWeight: 700 }}>
+                                        Refunded RM {(order.refund_amount / 100).toFixed(2)} — {order.refund_reason} ({new Date(order.refunded_at).toLocaleDateString()})
+                                      </div>
+                                    ) : order.status === 'COLLECTED' && (
+                                      <button
+                                        className="btn btn-sm btn-secondary"
+                                        style={{ marginTop: '0.75rem' }}
+                                        onClick={(e) => { e.stopPropagation(); setRefundingOrder({ id: order.id, total: order.total, amountMode: 'full', reason: '' }); }}
+                                      >
+                                        Refund or void
+                                      </button>
+                                    )}
                                   </td>
                                 </tr>
                               )}
@@ -3950,15 +4044,20 @@ export default function Admin() {
                       </tbody>
                     </table>
                   </div>
+                  {historyOrders.length > 0 && (
+                    <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Showing {Math.min(visibleHistoryCount, historyOrders.length)} of {historyOrders.length}
+                    </div>
+                  )}
                   {historyOrders.length > visibleHistoryCount && (
-                    <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
-                      <button 
+                    <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+                      <button
                         type="button"
                         className="btn btn-secondary"
                         style={{ padding: '8px 20px', fontSize: '0.875rem' }}
-                        onClick={() => setVisibleHistoryCount(prev => prev + 5)}
+                        onClick={() => setVisibleHistoryCount(prev => prev + 6)}
                       >
-                        Load More ({historyOrders.length - visibleHistoryCount} remaining)
+                        Load 6 more · {historyOrders.length - visibleHistoryCount} remaining
                       </button>
                     </div>
                   )}
@@ -4851,6 +4950,77 @@ export default function Admin() {
           </div>
         </div>
       )}
+
+      {/* §4 Order History: refund/void modal */}
+      {refundingOrder && (() => {
+        const amountCents = refundingOrder.amountMode === 'full' ? refundingOrder.total : Math.round(refundingOrder.total / 2);
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+            <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Refund or void</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>AMOUNT</label>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    {[['full', 'Full (void)'], ['half', 'Half']].map(([mode, label]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setRefundingOrder({ ...refundingOrder, amountMode: mode })}
+                        style={{
+                          flex: 1, padding: '10px', borderRadius: '8px',
+                          border: `1px solid ${refundingOrder.amountMode === mode ? '#FFC72C' : '#334155'}`,
+                          background: refundingOrder.amountMode === mode ? '#FFC72C' : '#0f172a',
+                          color: refundingOrder.amountMode === mode ? '#17150F' : '#fff',
+                          fontWeight: 700, cursor: 'pointer'
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>RM {(amountCents / 100).toFixed(2)} of RM {(refundingOrder.total / 100).toFixed(2)}</div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>REASON</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {REFUND_REASONS.map(r => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRefundingOrder({ ...refundingOrder, reason: r })}
+                        style={{
+                          padding: '6px 12px', borderRadius: '999px',
+                          border: `1px solid ${refundingOrder.reason === r ? '#FFC72C' : '#334155'}`,
+                          background: refundingOrder.reason === r ? '#FFC72C' : '#0f172a',
+                          color: refundingOrder.reason === r ? '#17150F' : '#fff',
+                          fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer'
+                        }}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    disabled={!refundingOrder.reason}
+                    onClick={async () => {
+                      if (!refundingOrder.reason) { alert('Please pick a reason.'); return; }
+                      const ok = await refundOrder(refundingOrder.id, amountCents, refundingOrder.reason, refundingOrder.amountMode === 'full');
+                      if (ok) setRefundingOrder(null);
+                    }}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: !refundingOrder.reason ? '#475569' : '#ef4444', color: '#fff', fontWeight: 'bold', cursor: !refundingOrder.reason ? 'not-allowed' : 'pointer' }}
+                  >
+                    Confirm {refundingOrder.amountMode === 'full' ? 'Void' : 'Refund'}
+                  </button>
+                  <button onClick={() => setRefundingOrder(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Abort</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* §2 Customers CRM: "Message segment" blast composer. There's no
           WhatsApp/Push provider wired into this codebase (no API keys,
