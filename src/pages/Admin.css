@@ -763,3 +763,23 @@
     width: 100%;
   }
 }
+
+/* §8 Menu & Add-ons: photo upload progress indicators. This is an
+   indeterminate sweep/pulse, not real byte-level progress -- Supabase
+   storage's upload() call has no progress callback to hook into. */
+@keyframes uploadSweep {
+  0% { margin-left: -40%; }
+  100% { margin-left: 100%; }
+}
+.upload-progress-sweep {
+  width: 40%;
+  animation: uploadSweep 1s ease-in-out infinite;
+}
+
+@keyframes uploadPulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+.upload-pulse-overlay {
+  animation: uploadPulse 1s ease-in-out infinite;
+}
