@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,6 +19,8 @@ export default function Payment() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [bank, setBank] = useState('');
 
+  const [specialInstructions, setSpecialInstructions] = useState('');
+
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [promoStatus, setPromoStatus] = useState({ state: 'idle', message: '' }); // idle | checking | valid | invalid
   const [appliedPromoCode, setAppliedPromoCode] = useState(null);
@@ -37,15 +39,24 @@ export default function Payment() {
   const [orderMode, setOrderMode] = useState('NOW');
   const [scheduledTime, setScheduledTime] = useState(timeSlots[0]?.value || '12:00');
 
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
+  // Redirects belong in an effect, not the render body -- calling navigate()
+  // directly here (as this used to) fires a setState while React is still
+  // rendering Payment, which is exactly what "Cannot update a component
+  // while rendering a different component" warns about. Both conditions are
+  // checked in one effect, in priority order, so an unauthenticated visitor
+  // with an empty cart still lands on /login rather than /cart -- two
+  // separate effects would both fire in the same commit and the second
+  // navigate() call would silently win.
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    } else if (cart.length === 0 && !isSuccess) {
+      navigate('/cart');
+    }
+  }, [user, cart.length, isSuccess, navigate]);
 
-  if (cart.length === 0 && !isSuccess) {
-    navigate('/cart');
-    return null;
-  }
+  if (!user) return null;
+  if (cart.length === 0 && !isSuccess) return null;
 
   const handlePayment = async () => {
     if (!method) return alert('Please select a payment method.');
@@ -79,7 +90,7 @@ export default function Payment() {
         paymentDetail += ` [Scheduled for ${scheduledDisplayTime}]`;
       }
 
-      const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null, appliedPromoCode, promoDiscount, promoFreeItemId, promoFreeItemName);
+      const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null, appliedPromoCode, promoDiscount, promoFreeItemId, promoFreeItemName, specialInstructions);
 
       if (!orderId) {
         setIsProcessing(false);
@@ -343,6 +354,24 @@ export default function Payment() {
                 Remove Promo Code
               </button>
             )}
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="order-notes" style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-2)', marginBottom: '6px' }}>
+              Special requests (optional)
+            </label>
+            <textarea
+              id="order-notes"
+              placeholder="e.g. no onions, extra napkins..."
+              className="price-input w-full"
+              style={{ resize: 'vertical', minHeight: '64px', fontFamily: 'inherit' }}
+              value={specialInstructions}
+              maxLength={300}
+              onChange={(e) => setSpecialInstructions(e.target.value)}
+            />
+            <div style={{ textAlign: 'right', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              {specialInstructions.length}/300
+            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-2)', marginBottom: '8px' }}>
