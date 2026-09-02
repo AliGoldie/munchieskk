@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Award } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
@@ -16,6 +16,8 @@ const CATEGORY_COLORS = {
 };
 
 const DEFAULT_COLOR = { accent: '#8E867C', icon: '📦' };
+
+const CATEGORY_ORDER = ['BBQ', 'PREMIUM', 'PLATTERS', 'SIDES', 'DRINKS'];
 
 export default function Menu() {
   const { menu, isPromoActive } = useStore();
@@ -75,10 +77,18 @@ export default function Menu() {
     };
   }, []);
 
-  // Fixed category order
-  const CATEGORY_ORDER = ['BBQ', 'PREMIUM', 'PLATTERS', 'SIDES', 'DRINKS'];
-  const existingCategories = new Set(menu.map(item => item.category));
-  const categories = CATEGORY_ORDER.filter(cat => existingCategories.has(cat));
+  // Memoized so the array reference only changes when the actual set of
+  // categories does. Without this, every render (including the ones fired
+  // by scrolling itself, via the IntersectionObserver below calling
+  // setActiveCategory) produced a brand-new array, which re-triggered every
+  // effect keyed on [categories] -- including the hash-jump effect further
+  // down. Since the #CATEGORY hash from a Home page link is never cleared,
+  // that effect kept firing on every scroll-driven re-render and snapping
+  // the page back to the original hash target, making the page look stuck.
+  const categories = useMemo(() => {
+    const existingCategories = new Set(menu.map(item => item.category));
+    return CATEGORY_ORDER.filter(cat => existingCategories.has(cat));
+  }, [menu]);
 
   // Set initial active category
   useEffect(() => {
@@ -121,7 +131,11 @@ export default function Menu() {
     return el.getBoundingClientRect().top + window.scrollY - barOffset - 10;
   };
 
-  // Handle hash links from other pages (e.g., Home clicking on #BBQ)
+  // Handle hash links from other pages (e.g., Home clicking on #BBQ).
+  // Cleared from the URL once consumed -- otherwise it lingers and, on any
+  // future re-render of this effect, would force the page back to that
+  // section again (belt-and-suspenders alongside memoizing `categories`
+  // above, which was the actual cause of those extra re-renders).
   useEffect(() => {
     if (categories.length > 0 && window.location.hash) {
       const hash = window.location.hash.substring(1);
@@ -129,6 +143,7 @@ export default function Menu() {
         setTimeout(() => {
           const el = document.getElementById(hash);
           if (el) jumpTo(getCategoryScrollTarget(el));
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }, 100); // small delay to ensure DOM is ready
       }
     }
