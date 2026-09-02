@@ -2153,6 +2153,11 @@ export default function Admin() {
                       <span key={i}>{item.quantity}× {item.name}{i < order.items.length - 1 ? ', ' : ''}</span>
                     ))}
                   </div>
+                  {order.notes && (
+                    <div className="text-sm mt-1" style={{ color: 'var(--gold)', fontWeight: 700 }}>
+                      📝 {order.notes}
+                    </div>
+                  )}
                 </div>
               </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center' }}>
@@ -2217,6 +2222,11 @@ export default function Admin() {
                             )}
                           </div>
                         ))}
+                        {order.notes && (
+                          <div style={{ color: 'var(--gold)', fontWeight: 700, fontSize: '0.8rem' }}>
+                            📝 {order.notes}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td>
@@ -3186,6 +3196,11 @@ export default function Admin() {
                                     {(order.payment_method || order.paymentMethod) && (
                                       <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                         Payment Method: <span style={{ fontWeight: 600 }}>{order.payment_method || order.paymentMethod}</span>
+                                      </div>
+                                    )}
+                                    {order.notes && (
+                                      <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--gold)', fontWeight: 700 }}>
+                                        📝 {order.notes}
                                       </div>
                                     )}
                                   </td>

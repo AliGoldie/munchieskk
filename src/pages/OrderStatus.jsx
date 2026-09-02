@@ -246,6 +246,11 @@ export default function OrderStatus() {
                   </li>
                 ))}
               </ul>
+              {order.notes && (
+                <p className="text-sm mt-2" style={{ color: 'var(--gold)', fontWeight: 700 }}>
+                  📝 {order.notes}
+                </p>
+              )}
             </div>
           </div>
         )}

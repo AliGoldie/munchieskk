@@ -1090,7 +1090,9 @@ const clearManualOverride = async (id) => {
 
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
 
-  const placeOrder = async (paymentMethod = 'Cash', scheduledTime = null, appliedPromoCode = null, discountAmount = 0, freeItemId = null, freeItemName = null) => {
+  const placeOrder = async (paymentMethod = 'Cash', scheduledTime = null, appliedPromoCode = null, discountAmount = 0, freeItemId = null, freeItemName = null, specialInstructions = null) => {
+    const notes = specialInstructions && specialInstructions.trim() ? specialInstructions.trim().slice(0, 300) : null;
+
     if (cart.length === 0) return null;
 
     let finalCart = [...cart];
@@ -1204,7 +1206,8 @@ const clearManualOverride = async (id) => {
       customer_phone: user && user.phone ? user.phone : 'No Phone',
       user_id: user ? user.id : null,
       promo_code_used: appliedPromoCode,
-      discount_amount: discountAmount
+      discount_amount: discountAmount,
+      notes
     };
 
     // Calculate atomic add-on deductions (multiplied by cart item quantity)
@@ -1223,12 +1226,13 @@ const clearManualOverride = async (id) => {
     }));
 
     // Use atomic RPC for race-condition-free stock deduction for BOTH menu items and add-ons
-    const { data, error } = await supabase.rpc('place_order', { 
-      deductions, 
+    const { data, error } = await supabase.rpc('place_order', {
+      deductions,
       payload: newOrder,
       p_promo_code: appliedPromoCode,
       p_user_id: user ? user.id : null,
-      addon_deductions
+      addon_deductions,
+      p_notes: notes
     });
 
     if (error) {
