@@ -522,6 +522,13 @@ export default function Admin() {
   const [grabFoodShiftPercent, setGrabFoodShiftPercent] = useState(0);
   const [topItemsChannelFilter, setTopItemsChannelFilter] = useState('all'); // 'all', 'web', 'loyverse'
 
+  // Shift Handover / Cash-Up State (§6) — backed by public.shifts
+  const [shifts, setShifts] = useState([]);
+  const [openingFloatInput, setOpeningFloatInput] = useState('');
+  const [openingFloatEditValue, setOpeningFloatEditValue] = useState('');
+  const [countedInput, setCountedInput] = useState('');
+  const [savingShift, setSavingShift] = useState(false);
+
   // §5b: Pause online ordering / customer notice
   const [noticeMessageInput, setNoticeMessageInput] = useState('');
   const [savingNotice, setSavingNotice] = useState(false);
@@ -693,10 +700,133 @@ export default function Admin() {
 
   useEffect(() => {
     if (activeTab === 'overview') {
+      fetchShifts();
       fetchWasteLog();
       fetchStoreEvents();
     }
   }, [activeTab]);
+
+  const fetchShifts = async () => {
+    try {
+      const { data, error } = await supabase.from('shifts').select('*').order('opened_at', { ascending: false }).limit(20);
+      if (error) throw error;
+      setShifts(data || []);
+    } catch (e) {
+      console.error('Failed to fetch shifts:', e);
+    }
+  };
+
+  // Cents helpers — money in `shifts` and `orders.total` is stored as integer
+  // cents; the inputs on this card are plain RM strings.
+  const rmToCents = (rmString) => Math.round((parseFloat(rmString) || 0) * 100);
+  const centsToRm = (cents) => ((cents || 0) / 100).toFixed(2);
+
+  const isCashOrder = (order) => {
+    const pm = (order.payment_method || order.paymentMethod || '').toString().toLowerCase();
+    return pm === 'cash';
+  };
+
+  const currentShift = useMemo(() => shifts.find(s => !s.closed_at) || null, [shifts]);
+  // Only the most recently opened shift can be reopened, and only once no
+  // newer shift has been started -- shifts[0] (opened_at desc) being closed
+  // while there's no currentShift is exactly that condition.
+  const reopenableShift = (!currentShift && shifts[0] && shifts[0].closed_at) ? shifts[0] : null;
+
+  // Reset the opening-float draft whenever the open shift changes (a new
+  // shift opens, or the last one is reopened) so a stale typed value from a
+  // previous shift never lingers in the input.
+  useEffect(() => {
+    setOpeningFloatEditValue('');
+  }, [currentShift?.id]);
+
+  // Live cash / card+e-wallet split for the open shift, computed straight
+  // from `orders` rather than trusting anything cached -- cancelled orders
+  // never had cash collected (or had it handed back), so they're excluded.
+  // Refund/void amounts from §4 (orders.refund_*) aren't merged into main
+  // yet, so a partial refund on a still-active order isn't reflected here --
+  // whichever of §4 / §6 merges second should reconcile that.
+  const shiftSalesSummary = useMemo(() => {
+    if (!currentShift) return { cashCents: 0, cardEwalletCents: 0 };
+    const openedAtMs = new Date(currentShift.opened_at).getTime();
+    let cashCents = 0, cardEwalletCents = 0;
+    orders.forEach(o => {
+      if (o.status === 'CANCELLED') return;
+      const createdMs = new Date(o.created_at).getTime();
+      if (!(createdMs >= openedAtMs)) return;
+      if (isCashOrder(o)) cashCents += (o.total || 0);
+      else cardEwalletCents += (o.total || 0);
+    });
+    return { cashCents, cardEwalletCents };
+  }, [orders, currentShift]);
+
+  const expectedDrawerCents = currentShift ? (currentShift.opening_float || 0) + shiftSalesSummary.cashCents : 0;
+  const countedCentsPreview = countedInput !== '' ? rmToCents(countedInput) : null;
+  const varianceCentsPreview = countedCentsPreview !== null ? countedCentsPreview - expectedDrawerCents : null;
+
+  const openShift = async () => {
+    setSavingShift(true);
+    try {
+      const floatCents = rmToCents(openingFloatInput);
+      const { error } = await supabase.from('shifts').insert([{ opening_float: floatCents }]);
+      if (error) { alert(error.message); return; }
+      logAudit('Shift opened', { opening_float: floatCents });
+      pushToast({ msg: `Shift opened with RM ${centsToRm(floatCents)} float`, kind: 'new', title: 'Shift opened' });
+      setOpeningFloatInput('');
+      setCountedInput('');
+      fetchShifts();
+    } finally {
+      setSavingShift(false);
+    }
+  };
+
+  const saveOpeningFloat = async () => {
+    if (!currentShift) return;
+    const floatCents = rmToCents(openingFloatEditValue);
+    const { error } = await supabase.from('shifts').update({ opening_float: floatCents }).eq('id', currentShift.id);
+    if (error) { alert(error.message); return; }
+    logAudit('Shift opening float adjusted', { shiftId: currentShift.id, opening_float: floatCents });
+    pushToast({ msg: `Opening float updated to RM ${centsToRm(floatCents)}`, kind: 'info', title: 'Shift updated' });
+    fetchShifts();
+  };
+
+  const reopenShift = async (shiftId) => {
+    const { error } = await supabase.from('shifts').update({ closed_at: null, counted: null, expected: null, variance: null }).eq('id', shiftId);
+    if (error) { alert(error.message); return; }
+    logAudit('Shift reopened', { shiftId });
+    fetchShifts();
+  };
+
+  const closeShift = async () => {
+    if (!currentShift) return;
+    if (countedInput === '') { alert('Enter the counted drawer amount before closing the shift.'); return; }
+    const countedCents = rmToCents(countedInput);
+    const expectedCents = expectedDrawerCents;
+    const varianceCents = countedCents - expectedCents;
+    const shiftId = currentShift.id;
+    setSavingShift(true);
+    try {
+      const { error } = await supabase.from('shifts').update({
+        closed_at: new Date().toISOString(),
+        counted: countedCents,
+        expected: expectedCents,
+        variance: varianceCents,
+        closed_by: user?.id || null
+      }).eq('id', shiftId);
+      if (error) { alert(error.message); return; }
+      logAudit('Shift closed', { shiftId, counted: countedCents, expected: expectedCents, variance: varianceCents });
+      const varianceOk = Math.abs(varianceCents) <= 500;
+      pushToast({
+        msg: `Counted RM ${centsToRm(countedCents)} vs expected RM ${centsToRm(expectedCents)} (variance ${varianceCents >= 0 ? '+' : '-'}RM ${centsToRm(Math.abs(varianceCents))}${varianceOk ? '' : ' — investigate'})`,
+        kind: varianceOk ? 'info' : 'warn',
+        title: 'Shift closed',
+        undo: () => reopenShift(shiftId)
+      });
+      setCountedInput('');
+      fetchShifts();
+    } finally {
+      setSavingShift(false);
+    }
+  };
 
   const fetchWasteLog = async () => {
     try {
@@ -2160,6 +2290,125 @@ export default function Admin() {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Shift Handover / Cash-Up Card (§6) */}
+              <div className="card" style={{
+                background: '#1e293b', color: '#ffffff', padding: '1.25rem 1.5rem',
+                borderRadius: '16px', border: '2px solid rgba(255, 199, 44, 0.4)',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.3)', marginBottom: '1.5rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>💰 Shift Handover / Cash-Up</h3>
+                    <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                      {currentShift
+                        ? `Open since ${new Date(currentShift.opened_at).toLocaleString('en-MY', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
+                        : reopenableShift
+                          ? `Last shift closed ${new Date(reopenableShift.closed_at).toLocaleString('en-MY', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
+                          : 'No shift currently open'}
+                    </p>
+                  </div>
+                  <span style={{
+                    padding: '6px 16px', borderRadius: '20px', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase',
+                    background: currentShift ? '#16a34a' : '#334155', color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                  }}>
+                    {currentShift ? '🟢 SHIFT OPEN' : '⚪ NO SHIFT'}
+                  </span>
+                </div>
+                <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '0 0 1rem' }} />
+
+                {currentShift ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Opening float</label>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <input type="number" step="0.01" min="0"
+                            value={openingFloatEditValue === '' ? centsToRm(currentShift.opening_float) : openingFloatEditValue}
+                            onChange={e => setOpeningFloatEditValue(e.target.value)}
+                            style={{ width: '90px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
+                          <button type="button" onClick={() => saveOpeningFloat()}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', background: '#334155', color: '#fff', fontSize: '0.72rem', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Cash sales</label>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800 }}>RM {centsToRm(shiftSalesSummary.cashCents)}</div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Card + e-wallet</label>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800 }}>RM {centsToRm(shiftSalesSummary.cardEwalletCents)}</div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Expected drawer</label>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--munchies-yellow)' }}>RM {centsToRm(expectedDrawerCents)}</div>
+                      </div>
+                    </div>
+
+                    <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '4px 0' }} />
+
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Counted</label>
+                        <input type="number" step="0.01" min="0" placeholder="0.00"
+                          value={countedInput}
+                          onChange={e => setCountedInput(e.target.value)}
+                          style={{ width: '110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Variance</label>
+                        {varianceCentsPreview === null ? (
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '8px 0' }}>—</div>
+                        ) : (
+                          <div style={{
+                            fontSize: '0.95rem', fontWeight: 800, padding: '8px 10px', borderRadius: '8px',
+                            background: Math.abs(varianceCentsPreview) <= 500 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                            color: Math.abs(varianceCentsPreview) <= 500 ? '#4ade80' : '#f87171'
+                          }}>
+                            {varianceCentsPreview >= 0 ? '+' : '-'}RM {centsToRm(Math.abs(varianceCentsPreview))}
+                            {Math.abs(varianceCentsPreview) > 500 && ' — investigate'}
+                          </div>
+                        )}
+                      </div>
+                      <button type="button" disabled={savingShift} onClick={() => closeShift()}
+                        style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: 'bold', cursor: savingShift ? 'default' : 'pointer', opacity: savingShift ? 0.6 : 1, fontSize: '0.85rem' }}>
+                        🔒 Close Shift
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {reopenableShift && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Last shift: opening RM {centsToRm(reopenableShift.opening_float)} · counted RM {centsToRm(reopenableShift.counted)} · variance{' '}
+                          <span style={{ color: Math.abs(reopenableShift.variance || 0) <= 500 ? '#4ade80' : '#f87171', fontWeight: 700 }}>
+                            {(reopenableShift.variance || 0) >= 0 ? '+' : '-'}RM {centsToRm(Math.abs(reopenableShift.variance || 0))}
+                          </span>
+                        </div>
+                        <button type="button"
+                          onClick={async () => { await reopenShift(reopenableShift.id); pushToast({ msg: 'Shift reopened', kind: 'info', title: 'Shift reopened' }); }}
+                          style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: 'var(--munchies-yellow)', fontWeight: '700', cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                          ↩ Reopen last shift
+                        </button>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Opening float (RM)</label>
+                        <input type="number" step="0.01" min="0" placeholder="0.00"
+                          value={openingFloatInput}
+                          onChange={e => setOpeningFloatInput(e.target.value)}
+                          style={{ width: '110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }} />
+                      </div>
+                      <button type="button" disabled={savingShift} onClick={() => openShift()}
+                        style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#16a34a', color: '#fff', fontWeight: 'bold', cursor: savingShift ? 'default' : 'pointer', opacity: savingShift ? 0.6 : 1, fontSize: '0.85rem' }}>
+                        🟢 Open Shift
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Top Metrics Row */}
