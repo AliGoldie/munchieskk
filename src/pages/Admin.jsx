@@ -17,6 +17,30 @@ import './Admin.css';
 // §1 Live Orders: cancel-reason chips (docs/design/HANDOFF-ADMIN-CRM.md §1).
 const CANCEL_REASONS = ['Customer no-show', 'Item out of stock', 'Duplicate order', 'Payment failed', 'Kitchen error', 'Other'];
 
+// §8 Menu & Add-ons: the one cost/margin line format, shared verbatim by the
+// Menu CRM row, the Add-item form's cost field, and the Edit Details modal
+// so all three always agree. Both prices are in cents.
+function getCostMarginDisplay(costPriceCents, priceCents) {
+  if (costPriceCents == null || costPriceCents === '') {
+    return { text: 'Not set · est. 40%', estimated: true };
+  }
+  const cost = costPriceCents / 100;
+  const price = (priceCents || 0) / 100;
+  const marginPct = price > 0 ? ((price - cost) / price) * 100 : 0;
+  return { text: `RM ${cost.toFixed(2)} · ${marginPct.toFixed(0)}%`, estimated: false };
+}
+
+function CostMarginLine({ costPriceCents, priceCents, dark, style }) {
+  const { text, estimated } = getCostMarginDisplay(costPriceCents, priceCents);
+  const normalColor = dark ? 'rgba(255,255,255,0.55)' : 'var(--text-muted)';
+  const estimatedColor = dark ? '#fbbf24' : '#b45309';
+  return (
+    <div style={{ fontSize: '0.75rem', fontWeight: estimated ? 700 : 400, color: estimated ? estimatedColor : normalColor, marginTop: '2px', ...style }}>
+      {text}
+    </div>
+  );
+}
+
 // Unified toast queue (§0 shared machinery). One store, four kinds, replacing
 // the old one-off SyncToastItem -- Loyverse sync warnings now render through
 // this same stack as 'warn' kind toasts instead of a bespoke component.
@@ -202,6 +226,10 @@ export default function Admin() {
   // ── end §0 shared machinery ──────────────────────────────────────────────
 
   const [editingPrice, setEditingPrice] = useState({});
+  const [editingCostPrice, setEditingCostPrice] = useState({});
+  const [uploadingImageIds, setUploadingImageIds] = useState(new Set());
+  const [newItemPhotoStatus, setNewItemPhotoStatus] = useState('idle'); // 'idle' | 'uploading' | 'attached'
+  const [newItemPhotoMeta, setNewItemPhotoMeta] = useState(null); // { name, size }
   const [editingAddonPrice, setEditingAddonPrice] = useState({});
   const [editingAddonStock, setEditingAddonStock] = useState({});
   const [editingAddonLowStock, setEditingAddonLowStock] = useState({});
@@ -370,6 +398,18 @@ export default function Admin() {
     if (!prize || !prize.menu_item_id) return null;
     const menuItem = menu.find(m => String(m.id) === String(prize.menu_item_id));
     return menuItem && menuItem.cost_price != null ? menuItem.cost_price / 100 : null;
+  };
+  // §8: three distinct states for the Redemptions Cost column -- "not
+  // linked" (free-choice prize, no menu_item_id at all) and "no cost set"
+  // (linked, but that item has no cost_price) used to collapse into the
+  // same "Not set" label. Always resolved via prizes.menu_item_id, never by
+  // matching prize name to a menu item.
+  const getRedemptionCostState = (r) => {
+    const prize = loyaltyPrizes.find(p => p.id === r.prize_id);
+    if (!prize || !prize.menu_item_id) return { state: 'not_linked' };
+    const menuItem = menu.find(m => String(m.id) === String(prize.menu_item_id));
+    if (!menuItem || menuItem.cost_price == null) return { state: 'no_cost' };
+    return { state: 'costed', amount: menuItem.cost_price / 100 };
   };
   const totalRedemptionValue = redemptions.reduce((sum, r) => sum + (getRedemptionCost(r) || 0), 0);
   const redemptionsMissingCost = redemptions.filter(r => getRedemptionCost(r) == null).length;
@@ -1019,6 +1059,56 @@ export default function Admin() {
     }
   };
 
+  // §8: inline cost-price editor on the Menu CRM row -- mirrors savePrice's
+  // behavior exactly (including its lack of toast/audit; price editing next
+  // to it has never had either, and giving only the new sibling cell
+  // feedback would look like a bug rather than a feature. The whole
+  // price/cost/stock inline-edit family still owes an audit trail per §0's
+  // original "price change, stock adjust" list -- flagged as a pre-existing
+  // gap outside this section's scope, not fixed here).
+  const handleCostPriceChange = (id, value) => setEditingCostPrice({ ...editingCostPrice, [id]: value });
+  const saveCostPrice = async (id) => {
+    if (editingCostPrice[id] === undefined) return;
+    const raw = editingCostPrice[id];
+    const cents = raw === '' ? null : Math.round(parseFloat(raw) * 100);
+    await updateMenuItem(id, { cost_price: cents });
+    setEditingCostPrice({ ...editingCostPrice, [id]: undefined });
+  };
+
+  // §8: eager upload on file selection so the Add-item photo tile can show a
+  // real idle -> uploading -> attached sequence, rather than only finding
+  // out whether the upload succeeded when the whole form is submitted.
+  const handleNewItemPhotoSelect = async (file) => {
+    if (!file) return;
+    setNewItemImageFile(file);
+    setNewItemPhotoMeta({ name: file.name, size: file.size });
+    setNewItemPhotoStatus('uploading');
+    try {
+      const url = await uploadImage(file);
+      setNewItem(prev => ({ ...prev, image: url }));
+      setNewItemPhotoStatus('attached');
+    } catch (err) {
+      alert('Photo upload failed: ' + (err.message || 'unknown error'));
+      setNewItemPhotoStatus('idle');
+      setNewItemImageFile(null);
+      setNewItemPhotoMeta(null);
+    }
+  };
+
+  // §8: Menu row's coloured/photo tile -- click to upload a replacement.
+  const handleRowPhotoReplace = async (item, file) => {
+    if (!file) return;
+    setUploadingImageIds(prev => new Set(prev).add(item.id));
+    try {
+      const url = await uploadImage(file);
+      await updateMenuItem(item.id, { image: url });
+    } catch (err) {
+      alert('Photo upload failed: ' + (err.message || 'unknown error'));
+    } finally {
+      setUploadingImageIds(prev => { const next = new Set(prev); next.delete(item.id); return next; });
+    }
+  };
+
   const saveMenuItemDetails = async (id) => {
     if (!editingMenuItem || editingMenuItem.id !== id) return;
     try {
@@ -1099,20 +1189,24 @@ export default function Admin() {
   const handleAddMenuItem = async (e) => {
     e.preventDefault();
     if (newItem.name && newItem.price) {
+      if (newItemPhotoStatus === 'uploading') { alert('Please wait for the photo to finish uploading.'); return; }
       setIsUploading(true);
       try {
-        const imageUrl = newItemImageFile ? await uploadImage(newItemImageFile) : (newItem.image || '/images/hero_burger.png');
+        // Photo (if any) was already uploaded eagerly on selection -- see
+        // handleNewItemPhotoSelect -- so newItem.image is already the final URL.
         await addMenuItem({
           ...newItem,
           price: parseFloat(newItem.price),
           cost_price: newItem.cost_price !== '' ? parseFloat(newItem.cost_price) : null,
-          image: imageUrl
+          image: newItem.image || '/images/hero_burger.png'
         });
         setNewItem({ name: '', category: 'BBQ', price: '', cost_price: '', image: '', description: '', inStock: true });
         setNewItemImageFile(null);
+        setNewItemPhotoStatus('idle');
+        setNewItemPhotoMeta(null);
       } catch (err) {
         console.error("Full upload error:", err);
-        alert('Upload failed: ' + (err.message || JSON.stringify(err)));
+        alert('Failed to add item: ' + (err.message || JSON.stringify(err)));
       } finally {
         setIsUploading(false);
       }
@@ -2492,13 +2586,55 @@ export default function Admin() {
                 <div className="form-group">
                   <label>Cost Price (RM) — optional</label>
                   <input type="number" step="0.10" className="price-input" placeholder="e.g. 2.20" value={newItem.cost_price} onChange={e => setNewItem({...newItem, cost_price: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Image Upload</label>
-                  <input type="file" accept="image/*" className="price-input" onChange={e => setNewItemImageFile(e.target.files[0])} />
+                  <CostMarginLine
+                    costPriceCents={newItem.cost_price !== '' ? Math.round(parseFloat(newItem.cost_price) * 100) : null}
+                    priceCents={newItem.price ? Math.round(parseFloat(newItem.price) * 100) : 0}
+                  />
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <button type="submit" className="btn btn-primary" style={{ width: '200px' }} disabled={isUploading}>
+                  <label>Photo</label>
+                  <div
+                    onClick={() => newItemPhotoStatus !== 'uploading' && document.getElementById('new-item-photo-input').click()}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) handleNewItemPhotoSelect(f); }}
+                    style={{
+                      border: newItemPhotoStatus === 'attached' ? '2px solid #22c55e' : '2px dashed #cbd5e1',
+                      borderRadius: '10px', padding: '0.75rem 1rem', cursor: newItemPhotoStatus === 'uploading' ? 'default' : 'pointer',
+                      position: 'relative', overflow: 'hidden',
+                      background: newItemPhotoStatus === 'attached' ? 'rgba(34,197,94,0.06)' : '#f8fafc',
+                      display: 'flex', alignItems: 'center', gap: '10px', minHeight: '48px'
+                    }}
+                  >
+                    <input id="new-item-photo-input" type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={e => handleNewItemPhotoSelect(e.target.files?.[0])} />
+                    {newItemPhotoStatus === 'idle' && (
+                      <>
+                        <span style={{ fontSize: '1.2rem' }}>📷</span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Click or drag a photo here</span>
+                      </>
+                    )}
+                    {newItemPhotoStatus === 'uploading' && (
+                      <>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Uploading {newItemPhotoMeta?.name}…</span>
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', background: '#fef3c7', overflow: 'hidden' }}>
+                          <div className="upload-progress-sweep" style={{ height: '100%', background: '#f59e0b' }} />
+                        </div>
+                      </>
+                    )}
+                    {newItemPhotoStatus === 'attached' && (
+                      <>
+                        <span style={{ fontSize: '1.05rem', color: '#22c55e' }}>✅</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>{newItemPhotoMeta?.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{((newItemPhotoMeta?.size || 0) / 1024).toFixed(0)} KB</div>
+                        </div>
+                        <span style={{ fontSize: '0.78rem', color: '#3b82f6', fontWeight: 600 }}>Replace</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <button type="submit" className="btn btn-primary" style={{ width: '200px' }} disabled={isUploading || newItemPhotoStatus === 'uploading'}>
                     {isUploading ? 'Uploading...' : 'Add Item'}
                   </button>
                 </div>
@@ -2549,6 +2685,7 @@ export default function Admin() {
                   <th>Item</th>
                   <th>Category</th>
                   <th>Price (RM)</th>
+                  <th>Cost / Margin</th>
                   <th>Stock / Alert</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -2601,9 +2738,31 @@ export default function Admin() {
                       </td>
                       <td className="font-medium">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          {item.image && (
-                            <img src={item.image} alt={item.name} style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
-                          )}
+                          <div style={{ position: 'relative', width: '36px', height: '36px', flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById(`row-photo-input-${item.id}`).click()}
+                              title="Click to replace photo"
+                              style={{
+                                width: '36px', height: '36px', borderRadius: '8px', border: 'none', cursor: 'pointer', padding: 0, overflow: 'hidden',
+                                background: item.image ? 'transparent' : getCategoryColor(item.category),
+                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                              }}
+                            >
+                              {item.image ? (
+                                <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <span style={{ color: '#fff', fontWeight: 800, fontSize: '0.95rem' }}>{item.name.charAt(0).toUpperCase()}</span>
+                              )}
+                            </button>
+                            <input id={`row-photo-input-${item.id}`} type="file" accept="image/*" style={{ display: 'none' }}
+                              onChange={e => handleRowPhotoReplace(item, e.target.files?.[0])} />
+                            {uploadingImageIds.has(item.id) && (
+                              <div className="upload-pulse-overlay" style={{ position: 'absolute', inset: 0, borderRadius: '8px', background: 'rgba(245,158,11,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: '0.6rem', color: '#fff', fontWeight: 800 }}>...</span>
+                              </div>
+                            )}
+                          </div>
                           <div style={{ flex: 1, minWidth: '150px' }}>
                             {editingMenuItem && editingMenuItem.id === item.id ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '4px', paddingBottom: '4px' }}>
@@ -2681,6 +2840,26 @@ export default function Admin() {
                           </>
                         )}
                       </div>
+                    </td>
+                    <td>
+                      {editingCostPrice[item.id] !== undefined ? (
+                        <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            type="number" step="0.10"
+                            value={editingCostPrice[item.id]}
+                            onChange={(e) => handleCostPriceChange(item.id, e.target.value)}
+                            className="price-input"
+                            style={{ width: '80px', padding: '4px' }}
+                          />
+                          <button className="btn btn-sm btn-primary" onClick={() => saveCostPrice(item.id)}>Save</button>
+                          <button className="btn btn-sm btn-secondary" onClick={() => setEditingCostPrice({ ...editingCostPrice, [item.id]: undefined })}>Cancel</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <CostMarginLine costPriceCents={item.cost_price} priceCents={item.price} style={{ marginTop: 0 }} />
+                          <button className="btn btn-sm btn-secondary" onClick={() => handleCostPriceChange(item.id, item.cost_price != null ? (item.cost_price / 100).toFixed(2) : '')}>Edit</button>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -3754,13 +3933,15 @@ export default function Admin() {
                 {redemptions.length === 0 ? (
                   <tr><td colSpan="7" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions yet -- prize redemptions will appear here once customers redeem prizes.</td></tr>
                 ) : redemptions.map(r => {
-                  const cost = getRedemptionCost(r);
+                  const costState = getRedemptionCostState(r);
                   return (
                   <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
                     <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--munchies-yellow)' }}>{r.redemption_code}</td>
                     <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.profiles?.phone || ''}</div></td>
                     <td><strong>{r.prize_name}</strong><div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>{r.points_spent} pts</div></td>
-                    <td style={{ fontSize: '0.85rem', color: cost != null ? 'var(--text)' : 'var(--text-muted)' }}>{cost != null ? `RM ${cost.toFixed(2)}` : 'Not set'}</td>
+                    <td style={{ fontSize: '0.85rem', fontWeight: costState.state === 'costed' ? 400 : 700, color: costState.state === 'costed' ? 'var(--text)' : '#b45309' }}>
+                      {costState.state === 'costed' ? `RM ${costState.amount.toFixed(2)}` : costState.state === 'no_cost' ? 'No cost set' : 'Not linked'}
+                    </td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
                     <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : '#166534', color: '#fff' }}>{r.status}</span></td>
                     <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
@@ -4156,12 +4337,11 @@ export default function Admin() {
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, cost_price: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 />
-                {editingMenuItem.cost_price !== '' && editingMenuItem.price && (
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    Margin: RM {(parseFloat(editingMenuItem.price) - parseFloat(editingMenuItem.cost_price || 0)).toFixed(2)} per unit
-                    ({(((parseFloat(editingMenuItem.price) - parseFloat(editingMenuItem.cost_price || 0)) / parseFloat(editingMenuItem.price)) * 100).toFixed(0)}%)
-                  </p>
-                )}
+                <CostMarginLine
+                  dark
+                  costPriceCents={editingMenuItem.cost_price !== '' && editingMenuItem.cost_price != null ? Math.round(parseFloat(editingMenuItem.cost_price) * 100) : null}
+                  priceCents={editingMenuItem.price ? Math.round(parseFloat(editingMenuItem.price) * 100) : 0}
+                />
               </div>
 
               <div>
