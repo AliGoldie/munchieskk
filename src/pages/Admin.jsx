@@ -17,6 +17,24 @@ import './Admin.css';
 // §1 Live Orders: cancel-reason chips (docs/design/HANDOFF-ADMIN-CRM.md §1).
 const CANCEL_REASONS = ['Customer no-show', 'Item out of stock', 'Duplicate order', 'Payment failed', 'Kitchen error', 'Other'];
 
+// §2 Customers CRM: same avatar palette as Profile.jsx's picker (per the
+// brief: reuse it for the CRM detail view rather than a new colour ramp).
+const CUSTOMER_AVATAR_COLORS = {
+  ember: '#F04E23', gold: '#FFC72C', green: '#5FD68C', purple: '#C77DFF', blue: '#63A7F5'
+};
+const CUSTOMER_SEGMENTS = ['First-timer', 'At risk', 'VIP', 'Regular', 'Occasional'];
+
+// Evaluated in this order per the brief -- e.g. a 6th-order customer who
+// hasn't been back in 30 days reads as "At risk", not "Regular".
+function getCustomerSegment(orderCount, lifetimeCents, lastSeenDays) {
+  if (orderCount === 0) return 'Occasional'; // never ordered -- no churn to be "at risk" of yet
+  if (orderCount === 1) return 'First-timer';
+  if (lastSeenDays != null && lastSeenDays > 21) return 'At risk';
+  if (lifetimeCents >= 60000) return 'VIP';
+  if (orderCount >= 5) return 'Regular';
+  return 'Occasional';
+}
+
 // §3 Analytics: date-range presets (docs/design/HANDOFF-ADMIN-CRM.md §3).
 // Each preset just computes a {start, end} pair for the existing
 // selectedDateRange state -- the trend chart already buckets daily whenever
@@ -339,7 +357,76 @@ export default function Admin() {
   const [selectedDateRange, setSelectedDateRange] = useState(() => computePresetDateRange('7d'));
   const [menuSearchQuery, setMenuSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
-  
+
+  // ── §2 Customers CRM: segments, tags/note editing, blast composer ───────
+  const [customerSegmentFilter, setCustomerSegmentFilter] = useState('All');
+  const [blastComposer, setBlastComposer] = useState(null); // { channel, message } | null
+  const [tagDraft, setTagDraft] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingCustomer, setSavingCustomer] = useState(false);
+
+  const updateCustomerProfile = async (customerId, patch) => {
+    const { error } = await supabase.from('profiles').update(patch).eq('id', customerId);
+    if (error) {
+      console.error('Failed to update customer profile:', error);
+      alert("We couldn't save that right now. Please try again.");
+      return false;
+    }
+    return true;
+  };
+
+  // Lifetime spend / order count / segment all read off completed orders
+  // only -- CANCELLED orders still show in a customer's timeline (for a full
+  // picture) but shouldn't count toward spend or push someone into VIP.
+  const customersWithMeta = useMemo(() => {
+    const now = Date.now();
+    return customers.map(customer => {
+      const timelineOrders = orders
+        .filter(o => o.user_id === customer.id && o.status !== 'PENDING')
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const completedOrders = timelineOrders.filter(o => o.status !== 'CANCELLED');
+      const lifetimeCents = completedOrders.reduce((sum, o) => sum + o.total, 0);
+      const orderCount = completedOrders.length;
+      const avgCents = orderCount > 0 ? Math.round(lifetimeCents / orderCount) : 0;
+      const lastOrderMs = completedOrders.reduce((latest, o) => {
+        const t = new Date(o.created_at).getTime();
+        return t > latest ? t : latest;
+      }, 0);
+      const lastSeenDays = lastOrderMs > 0 ? Math.floor((now - lastOrderMs) / 86400000) : null;
+      const segment = getCustomerSegment(orderCount, lifetimeCents, lastSeenDays);
+      return { ...customer, timelineOrders, lifetimeCents, orderCount, avgCents, lastSeenDays, segment };
+    });
+  }, [customers, orders]);
+
+  const segmentCounts = useMemo(() => {
+    const counts = { All: customersWithMeta.length };
+    CUSTOMER_SEGMENTS.forEach(s => { counts[s] = 0; });
+    customersWithMeta.forEach(c => { counts[c.segment] = (counts[c.segment] || 0) + 1; });
+    return counts;
+  }, [customersWithMeta]);
+
+  const filteredCustomers = customerSegmentFilter === 'All'
+    ? customersWithMeta
+    : customersWithMeta.filter(c => c.segment === customerSegmentFilter);
+
+  const openCustomerDetail = (customer) => {
+    setSelectedCustomerId(customer.id);
+    setTagDraft(customer.tags || []);
+    setTagInput('');
+    setNoteDraft(customer.note || '');
+  };
+
+  const saveCustomerTagsAndNote = async (customerId) => {
+    setSavingCustomer(true);
+    const ok = await updateCustomerProfile(customerId, { tags: tagDraft, note: noteDraft.trim() || null });
+    setSavingCustomer(false);
+    if (ok) {
+      logAudit('Customer note/tags saved', { customerId, tags: tagDraft, note: noteDraft.trim() || null });
+      pushToast({ kind: 'new', msg: 'Customer profile saved.' });
+    }
+  };
+
   // New Addon State
   const [newAddonName, setNewAddonName] = useState('');
   const [newAddonPrice, setNewAddonPrice] = useState('');
@@ -3132,12 +3219,38 @@ export default function Admin() {
           <div className="admin-card">
             {!selectedCustomerId ? (
               <>
-                <h3 style={{ marginBottom: '1.5rem' }}>Customer Details</h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  <h3 style={{ margin: 0 }}>Customer Details</h3>
+                  <button className="btn btn-sm btn-primary" onClick={() => setBlastComposer({ channel: 'WhatsApp', message: '' })}>
+                    Message segment
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.25rem' }}>
+                  {['All', ...CUSTOMER_SEGMENTS].map(seg => (
+                    <button
+                      key={seg}
+                      className="btn btn-sm"
+                      onClick={() => setCustomerSegmentFilter(seg)}
+                      style={{
+                        borderRadius: '999px',
+                        border: customerSegmentFilter === seg ? '1.5px solid #FFC72C' : '1px solid var(--text-secondary)',
+                        background: customerSegmentFilter === seg ? '#FFC72C' : 'transparent',
+                        color: customerSegmentFilter === seg ? '#17150F' : 'inherit',
+                        fontWeight: 700
+                      }}
+                    >
+                      {seg} ({segmentCounts[seg] || 0})
+                    </button>
+                  ))}
+                </div>
+
                 <div className="table-responsive">
                   <table className="admin-table">
                     <thead>
                       <tr>
                         <th>Name</th>
+                        <th>Segment</th>
                         <th>Points</th>
                         <th>Total Orders</th>
                         <th>Lifetime Spend (RM)</th>
@@ -3145,56 +3258,131 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {customers.map(customer => {
-                        const customerOrders = orders.filter(o => o.user_id === customer.id && o.status !== 'PENDING');
-                        const totalSpendCents = customerOrders.reduce((sum, o) => sum + o.total, 0);
-                        return (
-                          <tr key={customer.id}>
-                            <td className="font-medium">
-                              {customer.name || customer.email || 'Unnamed'}
-                              <div className="text-xs text-muted mt-1 font-normal">{customer.phone || 'No Phone'}</div>
-                            </td>
-                            <td className="text-primary font-bold">{customer.points || 0} pts</td>
-                            <td>{customerOrders.length}</td>
-                            <td className="font-bold text-success">{(totalSpendCents / 100).toFixed(2)}</td>
-                            <td>
-                              <button className="btn btn-sm btn-secondary" onClick={() => setSelectedCustomerId(customer.id)}>View</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {filteredCustomers.length === 0 ? (
+                        <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No customers in this segment.</td></tr>
+                      ) : filteredCustomers.map(customer => (
+                        <tr key={customer.id}>
+                          <td className="font-medium" style={{ cursor: 'pointer' }} onClick={() => openCustomerDetail(customer)}>
+                            {customer.name || customer.email || 'Unnamed'}
+                            <div className="text-xs text-muted mt-1 font-normal">{customer.phone || 'No Phone'}</div>
+                          </td>
+                          <td><span className="status-badge in-stock">{customer.segment}</span></td>
+                          <td className="text-primary font-bold">{customer.points || 0} pts</td>
+                          <td>{customer.orderCount}</td>
+                          <td className="font-bold text-success">{(customer.lifetimeCents / 100).toFixed(2)}</td>
+                          <td>
+                            <button className="btn btn-sm btn-secondary" onClick={() => openCustomerDetail(customer)}>View</button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </>
             ) : (() => {
-              const customer = customers.find(c => c.id === selectedCustomerId);
+              const customer = customersWithMeta.find(c => c.id === selectedCustomerId);
               if (!customer) return <p>Customer not found</p>;
-              const customerOrders = orders.filter(o => o.user_id === customer.id && o.status !== 'PENDING');
-              const totalSpendCents = customerOrders.reduce((sum, o) => sum + o.total, 0);
+              const avatarHex = CUSTOMER_AVATAR_COLORS[customer.avatar_color] || CUSTOMER_AVATAR_COLORS.ember;
+              const initial = (customer.name || customer.email || '?').charAt(0).toUpperCase();
 
               return (
                 <div>
                   <button className="btn btn-sm btn-secondary" style={{ marginBottom: '1.5rem' }} onClick={() => setSelectedCustomerId(null)}>
                     ← Back to Customers
                   </button>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1.5rem' }}>
+                    <div style={{ width: '52px', height: '52px', borderRadius: '999px', background: avatarHex, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.3rem', flexShrink: 0 }}>
+                      {initial}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>{customer.name || customer.email || 'Unnamed'}</div>
+                      <span className="status-badge in-stock">{customer.segment}</span>
+                    </div>
+                  </div>
+
                   <div className="admin-grid-auto-200" style={{ marginBottom: '2rem' }}>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
-                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Customer Name</h4>
-                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>{customer.name || customer.email || 'Unnamed'}</p>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Lifetime Spend</h4>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>RM {(customer.lifetimeCents / 100).toFixed(2)}</p>
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
-                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Lifetime Spend</h4>
-                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>RM {(totalSpendCents / 100).toFixed(2)}</p>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Orders</h4>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>{customer.orderCount}</p>
+                    </div>
+                    <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Avg Order</h4>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>RM {(customer.avgCents / 100).toFixed(2)}</p>
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
                       <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Points</h4>
                       <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#2563eb' }}>{customer.points || 0}</p>
                     </div>
+                    <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Last Seen</h4>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>{customer.lastSeenDays == null ? 'Never ordered' : `${customer.lastSeenDays}d ago`}</p>
+                    </div>
                   </div>
 
-                  <h4 style={{ marginBottom: '1rem' }}>Order History</h4>
-                  {customerOrders.length > 0 ? (
+                  <div className="admin-grid-auto-200" style={{ marginBottom: '2rem', alignItems: 'start' }}>
+                    <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
+                      <h4 style={{ margin: '0 0 8px', color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Tags</h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                        {tagDraft.map((tag, i) => (
+                          <span key={i} className="status-badge in-stock" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            {tag}
+                            <button type="button" onClick={() => setTagDraft(tagDraft.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 800, padding: 0 }}>×</button>
+                          </span>
+                        ))}
+                        {tagDraft.length === 0 && <span className="text-muted" style={{ fontSize: '0.8rem' }}>No tags yet.</span>}
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input
+                          type="text"
+                          className="price-input"
+                          placeholder="Add a tag…"
+                          value={tagInput}
+                          onChange={e => setTagInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && tagInput.trim()) {
+                              e.preventDefault();
+                              if (!tagDraft.includes(tagInput.trim())) setTagDraft([...tagDraft, tagInput.trim()]);
+                              setTagInput('');
+                            }
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => { if (tagInput.trim() && !tagDraft.includes(tagInput.trim())) { setTagDraft([...tagDraft, tagInput.trim()]); setTagInput(''); } }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                    <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
+                      <h4 style={{ margin: '0 0 8px', color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Counter Note</h4>
+                      <textarea
+                        className="price-input"
+                        style={{ width: '100%', minHeight: '72px', fontFamily: 'inherit', resize: 'vertical' }}
+                        placeholder="Allergies, usual order, anything the counter should know…"
+                        value={noteDraft}
+                        onChange={e => setNoteDraft(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    style={{ marginBottom: '2rem' }}
+                    disabled={savingCustomer}
+                    onClick={() => saveCustomerTagsAndNote(customer.id)}
+                  >
+                    {savingCustomer ? 'Saving…' : 'Save tags & note'}
+                  </button>
+
+                  <h4 style={{ marginBottom: '1rem' }}>Order Timeline</h4>
+                  {customer.timelineOrders.length > 0 ? (
                     <div className="table-responsive">
                       <table className="admin-table">
                         <thead>
@@ -3207,8 +3395,8 @@ export default function Admin() {
                           </tr>
                         </thead>
                         <tbody>
-                          {customerOrders.map(order => (
-                            <tr key={order.id}>
+                          {customer.timelineOrders.map(order => (
+                            <tr key={order.id} style={{ opacity: order.status === 'CANCELLED' ? 0.6 : 1 }}>
                               <td className="font-medium text-xs">{order.id}</td>
                               <td className="text-xs text-muted">{new Date(order.created_at).toLocaleDateString()}</td>
                               <td>
@@ -3227,10 +3415,13 @@ export default function Admin() {
                               </td>
                               <td className="font-bold">{(order.total / 100).toFixed(2)}</td>
                               <td>
-                                <span className="font-medium">#{formatOrderId(order.id)}</span>
-                                <span className={`status-badge ${order.status === 'COLLECTED' ? 'in-stock' : 'out-stock'}`}>
+                                <span className="font-medium">#{formatOrderId(order.id)}</span>{' '}
+                                <span className={`status-badge ${order.status === 'COLLECTED' ? 'in-stock' : order.status === 'CANCELLED' ? 'out-stock' : ''}`}>
                                   {order.status}
                                 </span>
+                                {order.status === 'CANCELLED' && order.cancel_reason && (
+                                  <div className="text-xs text-muted mt-1">{order.cancel_reason}</div>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -3238,7 +3429,7 @@ export default function Admin() {
                       </table>
                     </div>
                   ) : (
-                    <p className="text-muted">No completed orders yet -- completed orders will appear here once orders are fulfilled.</p>
+                    <p className="text-muted">No orders yet -- orders will appear here once this customer checks out.</p>
                   )}
                 </div>
               );
@@ -4660,6 +4851,81 @@ export default function Admin() {
           </div>
         </div>
       )}
+
+      {/* §2 Customers CRM: "Message segment" blast composer. There's no
+          WhatsApp/Push provider wired into this codebase (no API keys,
+          no send function) -- "Send" logs the composed blast to the audit
+          trail rather than claiming to deliver anything. Wiring a real
+          provider is a separate, explicit integration task. */}
+      {blastComposer && (() => {
+        const recipients = customerSegmentFilter === 'All' ? customersWithMeta : customersWithMeta.filter(c => c.segment === customerSegmentFilter);
+        const sampleName = recipients[0]?.name || 'Customer';
+        const preview = blastComposer.message.trim()
+          ? blastComposer.message.replaceAll('{name}', sampleName)
+          : <span className="text-muted">Preview appears here as you type…</span>;
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+            <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '480px', border: '1px solid #334155' }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Message segment</h3>
+              <p style={{ margin: '0 0 1.2rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+                Sending to <strong>{customerSegmentFilter}</strong> — {recipients.length} customer{recipients.length === 1 ? '' : 's'}.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>CHANNEL</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {['WhatsApp', 'Push'].map(ch => (
+                      <button
+                        key={ch}
+                        type="button"
+                        onClick={() => setBlastComposer({ ...blastComposer, channel: ch })}
+                        style={{
+                          flex: 1, padding: '10px', borderRadius: '8px',
+                          border: `1px solid ${blastComposer.channel === ch ? '#FFC72C' : '#334155'}`,
+                          background: blastComposer.channel === ch ? '#FFC72C' : '#0f172a',
+                          color: blastComposer.channel === ch ? '#17150F' : '#fff',
+                          fontWeight: 700, cursor: 'pointer'
+                        }}
+                      >
+                        {ch}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>MESSAGE — use {'{name}'} for the customer's name</label>
+                  <textarea
+                    value={blastComposer.message}
+                    onChange={e => setBlastComposer({ ...blastComposer, message: e.target.value })}
+                    placeholder="Hey {name}, we miss you! Come back for..."
+                    style={{ width: '100%', minHeight: '80px', padding: '10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', fontFamily: 'inherit', resize: 'vertical' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>CUSTOMER SEES</label>
+                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', fontSize: '0.85rem', color: '#e2e8f0' }}>
+                    {preview}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    disabled={!blastComposer.message.trim() || recipients.length === 0}
+                    onClick={() => {
+                      logAudit('Marketing blast sent', { segment: customerSegmentFilter, channel: blastComposer.channel, message: blastComposer.message.trim(), recipientCount: recipients.length });
+                      pushToast({ kind: 'new', msg: `Blast logged for ${recipients.length} customer${recipients.length === 1 ? '' : 's'} (${blastComposer.channel}).` });
+                      setBlastComposer(null);
+                    }}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: !blastComposer.message.trim() || recipients.length === 0 ? '#475569' : '#FFC72C', color: '#17150F', fontWeight: 'bold', cursor: !blastComposer.message.trim() || recipients.length === 0 ? 'not-allowed' : 'pointer' }}
+                  >
+                    Send
+                  </button>
+                  <button onClick={() => setBlastComposer(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
     </div>
   );
