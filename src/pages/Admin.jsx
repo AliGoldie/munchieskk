@@ -273,11 +273,41 @@ export default function Admin() {
     updateShopSettings(prev => ({
       weeklySchedule: { ...(prev.weeklySchedule || {}), [day]: dayUpdated }
     }));
+    logAudit('Schedule updated', { day, ...patch });
+    // Only toast the discrete open/closed toggle, not every open/close time
+    // input change -- a dragged or typed time value fires onChange several
+    // times per edit, and a toast per keystroke would be spammy. All changes
+    // still land in the audit log above.
+    if ('enabled' in patch) {
+      pushToast({
+        msg: `${day} is now ${patch.enabled ? 'open' : 'closed'} on the weekly schedule`,
+        kind: 'info',
+        title: 'Schedule saved'
+      });
+    }
   };
 
   const saveClosures = (newClosures) => {
+    const previous = localClosures || [];
     setLocalClosures(newClosures);
     updateShopSettings({ specialClosures: newClosures });
+    if (newClosures.length > previous.length) {
+      const added = newClosures.find(c => !previous.some(p => p.date === c.date));
+      logAudit('Special closure added', added || { closures: newClosures });
+      pushToast({
+        msg: added ? `${added.date} marked closed (${added.reason})` : 'Closure added',
+        kind: 'warn',
+        title: 'Schedule saved'
+      });
+    } else if (newClosures.length < previous.length) {
+      const removed = previous.find(p => !newClosures.some(c => c.date === p.date));
+      logAudit('Special closure removed', removed || { closures: newClosures });
+      pushToast({
+        msg: removed ? `${removed.date} closure removed` : 'Closure removed',
+        kind: 'info',
+        title: 'Schedule saved'
+      });
+    }
   };
   const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'monthly', 'yearly'
   const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
@@ -315,30 +345,11 @@ export default function Admin() {
     max_total_uses: '', max_uses_per_user: '', starts_at: '', ends_at: '', stackable_with_item_promos: false
   });
 
-  // Notes & Upcoming Events State
-  const [eventsNotes, setEventsNotes] = useState(() => {
-    try {
-      const saved = localStorage.getItem('munchies_admin_events_notes');
-      return saved ? JSON.parse(saved) : [
-        {
-          id: 'evt-1',
-          date: new Date().toISOString().split('T')[0],
-          title: '🔥 CZ CHIX Promotion Starts',
-          type: 'promo',
-          description: 'Special 5,000 PTS prize vault unlock & win bonus.'
-        },
-        {
-          id: 'evt-2',
-          date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-          title: '📦 Weekly Ingredient Restock',
-          type: 'event',
-          description: 'Restock Mushy2 burger patties & Solero ice creams.'
-        }
-      ];
-    } catch (e) {
-      return [];
-    }
-  });
+  // Notes & Upcoming Events State — backed by public.store_events (see
+  // 20260902000006_add_store_events.sql). Used to live in localStorage under
+  // munchies_admin_events_notes; fetchStoreEvents() migrates any leftover
+  // entries from that key into the table once, then drops the key.
+  const [eventsNotes, setEventsNotes] = useState([]);
 
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [selectedEventDate, setSelectedEventDate] = useState(new Date().toISOString().split('T')[0]);
@@ -385,6 +396,53 @@ export default function Admin() {
       fetchAdminRedemptions();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'overview') {
+      fetchStoreEvents();
+    }
+  }, [activeTab]);
+
+  const fetchStoreEvents = async () => {
+    try {
+      const { data, error } = await supabase.from('store_events').select('*').order('date', { ascending: true });
+      if (error) throw error;
+      let rows = data || [];
+
+      // One-time migration from the old localStorage diary (see comment on
+      // the eventsNotes state above). Only runs while the table is still
+      // empty, to avoid re-inserting on every browser that had the old key.
+      const legacy = localStorage.getItem('munchies_admin_events_notes');
+      if (legacy) {
+        if (rows.length === 0) {
+          try {
+            const legacyEvents = JSON.parse(legacy);
+            if (Array.isArray(legacyEvents) && legacyEvents.length > 0) {
+              const payload = legacyEvents.map(e => ({
+                date: e.date,
+                title: e.title,
+                type: e.type || 'event',
+                description: e.description || null,
+                created_by: user?.id || null
+              }));
+              const { data: inserted, error: insertError } = await supabase.from('store_events').insert(payload).select('*');
+              if (!insertError && inserted) {
+                rows = inserted;
+                logAudit('Diary migrated from local storage', { count: inserted.length });
+              }
+            }
+          } catch (e) {
+            console.error('Failed to migrate legacy diary events:', e);
+          }
+        }
+        localStorage.removeItem('munchies_admin_events_notes');
+      }
+
+      setEventsNotes(rows);
+    } catch (e) {
+      console.error('Failed to fetch store events:', e);
+    }
+  };
 
   const fetchMarketingData = async () => {
     try {
@@ -483,10 +541,6 @@ export default function Admin() {
     fetchMarketingData();
   };
 
-  const saveEventsNotes = (newEvents) => {
-    setEventsNotes(newEvents);
-    localStorage.setItem('munchies_admin_events_notes', JSON.stringify(newEvents));
-  };
 
   const handleOpenAddEventModal = (dateStr = null) => {
     const targetDate = dateStr || new Date().toISOString().split('T')[0];
@@ -507,36 +561,45 @@ export default function Admin() {
     setIsEventModalOpen(true);
   };
 
-  const handleSaveEvent = (e) => {
+  const handleSaveEvent = async (e) => {
     e.preventDefault();
-    if (!eventFormData.title.trim()) return;
+    const title = eventFormData.title.trim();
+    if (!title) return;
 
     if (eventFormData.id) {
-      const updated = eventsNotes.map(item => item.id === eventFormData.id ? {
-        ...item,
+      const { error } = await supabase.from('store_events').update({
         date: selectedEventDate,
-        title: eventFormData.title,
+        title,
         type: eventFormData.type,
-        description: eventFormData.description
-      } : item);
-      saveEventsNotes(updated);
+        description: eventFormData.description.trim() || null
+      }).eq('id', eventFormData.id);
+      if (error) { alert(error.message); return; }
+      logAudit('Diary entry updated', { id: eventFormData.id, title });
+      pushToast({ msg: `"${title}" updated`, kind: 'info', title: 'Diary entry saved' });
     } else {
-      const newEvt = {
-        id: 'evt-' + Date.now(),
+      const { data, error } = await supabase.from('store_events').insert([{
         date: selectedEventDate,
-        title: eventFormData.title,
+        title,
         type: eventFormData.type,
-        description: eventFormData.description
-      };
-      saveEventsNotes([newEvt, ...eventsNotes]);
+        description: eventFormData.description.trim() || null,
+        created_by: user?.id || null
+      }]).select('*').single();
+      if (error) { alert(error.message); return; }
+      logAudit('Diary entry added', { id: data?.id, title });
+      pushToast({ msg: `"${title}" added to the diary`, kind: 'new', title: 'Diary entry saved' });
     }
     setIsEventModalOpen(false);
+    fetchStoreEvents();
   };
 
-  const handleDeleteEvent = (id) => {
-    const filtered = eventsNotes.filter(item => item.id !== id);
-    saveEventsNotes(filtered);
+  const handleDeleteEvent = async (id) => {
+    const evt = eventsNotes.find(item => item.id === id);
+    const { error } = await supabase.from('store_events').delete().eq('id', id);
+    if (error) { alert(error.message); return; }
+    logAudit('Diary entry deleted', { id, title: evt?.title || null });
+    pushToast({ msg: `"${evt?.title || 'Entry'}" removed`, kind: 'warn', title: 'Diary entry deleted' });
     setIsEventModalOpen(false);
+    fetchStoreEvents();
   };
 
   const handleSaveMenuItemDetails = async (e) => {
