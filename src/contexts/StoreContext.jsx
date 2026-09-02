@@ -817,6 +817,22 @@ const clearManualOverride = async (id) => {
     }
   };
 
+  // Customer-facing "I collected my food" action. This can't reuse
+  // updateOrderState: that does a raw client-side table UPDATE, which only
+  // "Admins can update orders" (is_admin()) is allowed to perform -- a real
+  // customer's own update matches 0 rows under RLS and silently no-ops. The
+  // collect_order() RPC runs as SECURITY DEFINER and checks ownership +
+  // that the order is actually READY before flipping it to COLLECTED.
+  const collectOrder = async (orderId) => {
+    const { data, error } = await supabase.rpc('collect_order', { p_order_id: orderId });
+    if (error || !data) {
+      console.error('Failed to collect order:', error);
+      alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
+      return false;
+    }
+    return true;
+  };
+
   const cancelOrder = async (orderId, reason, wasteAction = 'restore', isAdmin = false) => {
     const order = orders.find(o => o.id === orderId);
     if (!order || order.status === 'COLLECTED' || order.status === 'CANCELLED') return;
@@ -1476,7 +1492,7 @@ const clearManualOverride = async (id) => {
       menu, cart, cartTotal, cartCount,
       points, tier, pointHistory, orders, addons, itemAddons, customers,
       syncWarnings, removeSyncWarning,
-      toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateOrderState, acceptOrder, cancelOrder,
+      toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateOrderState, collectOrder, acceptOrder, cancelOrder,
       updateStock, setStockQuantity, clearManualOverride,
       isPromoActive, updatePromo,
       addAddon, deleteAddon, moveAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,

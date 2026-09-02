@@ -8,7 +8,7 @@ import './OrderStatus.css';
 
 export default function OrderStatus() {
   const { id } = useParams();
-  const { fetchSingleOrder, updateOrderState, claimShareBonus, cancelOrder } = useStore();
+  const { fetchSingleOrder, collectOrder, claimShareBonus, cancelOrder } = useStore();
   const [order, setOrder] = useState(null);
   // True until the first fetch attempt completes (success or failure).
   // Prevents the Navigate guard from firing before the fetch resolves.
@@ -73,8 +73,11 @@ export default function OrderStatus() {
   if (!orderLoading && !order) return <Navigate to="/" replace />;
   if (orderLoading && !order) return null; // render nothing while first fetch is pending
 
-  const handleCollect = () => {
-    updateOrderState(id, 'COLLECTED');
+  const handleCollect = async () => {
+    const ok = await collectOrder(id);
+    if (!ok) return;
+    // Reflect it immediately rather than waiting up to 5s for the next poll.
+    setOrder(prev => (prev ? { ...prev, status: 'COLLECTED' } : prev));
     localStorage.removeItem('munchies_active_order');
     setShowReviewPrompt(true);
   };
