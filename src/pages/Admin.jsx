@@ -337,11 +337,14 @@ export default function Admin() {
   const [referralStats, setReferralStats] = useState([]);
   const [activePromoSubTab, setActivePromoSubTab] = useState('codes'); // 'codes', 'referrals', 'items'
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
-  const [promoFormData, setPromoFormData] = useState({
-    code: '', name: '', type: 'percent_off', value: '', 
-    applies_to_item_id: '', min_spend: '', free_item_id: '', 
-    max_total_uses: '', max_uses_per_user: '', starts_at: '', ends_at: '', stackable_with_item_promos: false
-  });
+  const [savingPromo, setSavingPromo] = useState(false);
+  const EMPTY_PROMO_FORM = {
+    id: null, code: '', name: '', type: 'percent_off', value: '',
+    applies_to_item_id: '', min_spend: '', free_item_id: '',
+    max_total_uses: '', max_uses_per_user: '', starts_at: '', ends_at: '',
+    stackable_with_item_promos: false, active: true
+  };
+  const [promoFormData, setPromoFormData] = useState(EMPTY_PROMO_FORM);
 
   // Notes & Upcoming Events State
   const [eventsNotes, setEventsNotes] = useState(() => {
@@ -478,8 +481,60 @@ export default function Admin() {
     }
   };
 
+  const openCreatePromoModal = () => {
+    setPromoFormData(EMPTY_PROMO_FORM);
+    setIsPromoModalOpen(true);
+  };
+
+  const openEditPromoModal = (promo) => {
+    setPromoFormData({
+      id: promo.id,
+      code: promo.code || '',
+      name: promo.name || '',
+      type: promo.type || 'percent_off',
+      value: promo.value != null ? String(promo.value) : '',
+      applies_to_item_id: promo.applies_to_item_id || '',
+      min_spend: promo.min_spend != null ? String(promo.min_spend) : '',
+      free_item_id: promo.free_item_id || '',
+      max_total_uses: promo.max_total_uses != null ? String(promo.max_total_uses) : '',
+      max_uses_per_user: promo.max_uses_per_user != null ? String(promo.max_uses_per_user) : '',
+      starts_at: promo.starts_at ? promo.starts_at.slice(0, 16) : '',
+      ends_at: promo.ends_at ? promo.ends_at.slice(0, 16) : '',
+      stackable_with_item_promos: !!promo.stackable_with_item_promos,
+      active: promo.active !== false
+    });
+    setIsPromoModalOpen(true);
+  };
+
+  // "Customer sees" live preview -- a plain-English render of exactly what
+  // this promo currently does, so the admin can sanity-check it before
+  // saving rather than reverse-engineering their own field choices later.
+  const buildPromoPreview = (f) => {
+    if (!f.code.trim()) return null;
+    const codeStr = f.code.trim().toUpperCase();
+    let benefit = null;
+    let condition = '';
+    if (f.type === 'percent_off') {
+      benefit = f.value ? `${f.value}% off your order` : null;
+      if (f.min_spend) condition = ` on orders over RM ${(parseInt(f.min_spend, 10) / 100).toFixed(2)}`;
+    } else if (f.type === 'flat_off') {
+      benefit = f.value ? `RM ${(parseInt(f.value, 10) / 100).toFixed(2)} off your order` : null;
+      if (f.min_spend) condition = ` on orders over RM ${(parseInt(f.min_spend, 10) / 100).toFixed(2)}`;
+    } else if (f.type === 'bogo') {
+      const item = menu.find(m => String(m.id) === String(f.applies_to_item_id));
+      benefit = item ? `a free ${item.name} when one is already in your cart` : null;
+    } else if (f.type === 'spend_threshold_free_item') {
+      const item = menu.find(m => String(m.id) === String(f.free_item_id));
+      benefit = item ? `a free ${item.name}` : null;
+      if (f.min_spend) condition = ` when you spend RM ${(parseInt(f.min_spend, 10) / 100).toFixed(2)} or more`;
+    }
+    if (!benefit) return null;
+    return `Use code ${codeStr} for ${benefit}${condition}.`;
+  };
+
   const handleSavePromoCode = async (e) => {
     e.preventDefault();
+    setSavingPromo(true);
     try {
       const payload = {
         code: promoFormData.code.trim().toUpperCase(),
@@ -493,33 +548,94 @@ export default function Admin() {
         max_uses_per_user: promoFormData.max_uses_per_user ? parseInt(promoFormData.max_uses_per_user, 10) : null,
         starts_at: promoFormData.starts_at || null,
         ends_at: promoFormData.ends_at || null,
-        stackable_with_item_promos: promoFormData.stackable_with_item_promos
+        stackable_with_item_promos: promoFormData.stackable_with_item_promos,
+        active: promoFormData.active
       };
-      const { error } = await supabase.from('promo_codes').insert([payload]);
-      if (error) {
-        alert(error.message);
-        return;
+
+      if (promoFormData.id) {
+        const previous = promoCodes.find(p => p.id === promoFormData.id);
+        const { error } = await supabase.from('promo_codes').update(payload).eq('id', promoFormData.id);
+        if (error) { alert(error.message); return; }
+        logAudit('Promo code updated', { id: promoFormData.id, code: payload.code });
+        pushToast({
+          msg: `${payload.code} updated`,
+          kind: 'info',
+          title: 'Promo saved',
+          undo: previous ? () => revertPromoCode(promoFormData.id, previous) : null
+        });
+      } else {
+        const { data, error } = await supabase.from('promo_codes').insert([payload]).select('*').single();
+        if (error) { alert(error.message); return; }
+        logAudit('Promo code created', { id: data?.id, code: payload.code, type: payload.type });
+        pushToast({
+          msg: `${payload.code} is ready to use`,
+          kind: 'new',
+          title: 'Promo created',
+          undo: data?.id ? () => deletePromoCode(data.id, { silent: true }) : null
+        });
       }
+
       setIsPromoModalOpen(false);
-      setPromoFormData({
-        code: '', name: '', type: 'percent_off', value: '', 
-        applies_to_item_id: '', min_spend: '', free_item_id: '', 
-        max_total_uses: '', max_uses_per_user: '', starts_at: '', ends_at: '', stackable_with_item_promos: false
-      });
+      setPromoFormData(EMPTY_PROMO_FORM);
       fetchMarketingData();
     } catch (e) {
-      alert('Error creating promo code');
+      alert('Error saving promo code');
+    } finally {
+      setSavingPromo(false);
     }
   };
 
-  const togglePromoCodeActive = async (id, currentStatus) => {
-    await supabase.from('promo_codes').update({ active: !currentStatus }).eq('id', id);
+  const revertPromoCode = async (id, previous) => {
+    const { error } = await supabase.from('promo_codes').update({
+      code: previous.code, name: previous.name, type: previous.type, value: previous.value,
+      applies_to_item_id: previous.applies_to_item_id, min_spend: previous.min_spend,
+      free_item_id: previous.free_item_id, max_total_uses: previous.max_total_uses,
+      max_uses_per_user: previous.max_uses_per_user, starts_at: previous.starts_at,
+      ends_at: previous.ends_at, stackable_with_item_promos: previous.stackable_with_item_promos,
+      active: previous.active
+    }).eq('id', id);
+    if (error) { alert(error.message); return; }
+    logAudit('Promo code update undone', { id, code: previous.code });
     fetchMarketingData();
   };
 
-  const deletePromoCode = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this promo code? This cannot be undone.')) return;
-    await supabase.from('promo_codes').delete().eq('id', id);
+  const togglePromoCodeActive = async (id, currentStatus) => {
+    const nextActive = !currentStatus;
+    const { error } = await supabase.from('promo_codes').update({ active: nextActive }).eq('id', id);
+    if (error) { alert(error.message); return; }
+    const promo = promoCodes.find(p => p.id === id);
+    logAudit(nextActive ? 'Promo code activated' : 'Promo code deactivated', { id, code: promo?.code || null });
+    pushToast({
+      msg: `${promo?.code || 'Promo'} is now ${nextActive ? 'active' : 'inactive'}`,
+      kind: 'info',
+      title: 'Promo updated',
+      undo: () => togglePromoCodeActive(id, nextActive)
+    });
+    fetchMarketingData();
+  };
+
+  const deletePromoCode = async (id, opts = {}) => {
+    if (!opts.silent && !window.confirm('Are you sure you want to delete this promo code? This cannot be undone.')) return;
+    const promo = promoCodes.find(p => p.id === id);
+    const { error } = await supabase.from('promo_codes').delete().eq('id', id);
+    if (error) { alert(error.message); return; }
+    logAudit('Promo code deleted', { id, code: promo?.code || null });
+    if (!opts.silent) {
+      pushToast({
+        msg: `${promo?.code || 'Promo'} deleted`,
+        kind: 'danger',
+        title: 'Promo deleted',
+        undo: promo ? () => restorePromoCode(promo) : null
+      });
+    }
+    fetchMarketingData();
+  };
+
+  const restorePromoCode = async (promo) => {
+    const { id, timesRedeemed, totalDiscountGiven, totalRevenue, ...payload } = promo;
+    const { error } = await supabase.from('promo_codes').insert([payload]);
+    if (error) { alert(error.message); return; }
+    logAudit('Promo code deletion undone', { code: promo.code });
     fetchMarketingData();
   };
 
@@ -3647,7 +3763,7 @@ export default function Admin() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h4 style={{ margin: 0 }}>Active Cart Promo Codes</h4>
-                  <button className="btn btn-primary btn-sm" onClick={() => setIsPromoModalOpen(true)}>+ New Promo Code</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => openCreatePromoModal()}>+ New Promo Code</button>
                 </div>
                 <div className="table-responsive">
                   <table className="admin-table">
@@ -3702,7 +3818,14 @@ export default function Admin() {
                               >
                                 {promo.active ? 'ACTIVE' : 'INACTIVE'}
                               </button>
-                              <button 
+                              <button
+                                onClick={() => openEditPromoModal(promo)}
+                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: '4px', color: 'var(--text-secondary)' }}
+                                title="Edit Promo Code"
+                              >
+                                ✏️
+                              </button>
+                              <button
                                 onClick={() => deletePromoCode(promo.id)}
                                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '4px', color: '#ef4444' }}
                                 title="Delete Promo Code"
@@ -3999,9 +4122,9 @@ export default function Admin() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🎟️ Create Promo Code
+                {promoFormData.id ? '✏️ Edit Promo Code' : '🎟️ Create Promo Code'}
               </h3>
-              <button type="button" onClick={() => setIsPromoModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+              <button type="button" onClick={() => { setIsPromoModalOpen(false); setPromoFormData(EMPTY_PROMO_FORM); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
 
             <form onSubmit={handleSavePromoCode} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -4030,17 +4153,27 @@ export default function Admin() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>PROMO TYPE</label>
-                <select
-                  value={promoFormData.type}
-                  onChange={(e) => setPromoFormData({ ...promoFormData, type: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
-                >
-                  <option value="percent_off">Percent Off (%)</option>
-                  <option value="flat_off">Flat Amount Off (RM)</option>
-                  <option value="bogo">Buy One Get One (BOGO)</option>
-                  <option value="spend_threshold_free_item">Free Item on Min Spend</option>
-                </select>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold' }}>PROMO TYPE</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    ['percent_off', 'Percent off'],
+                    ['flat_off', 'RM off'],
+                    ['bogo', 'BOGO'],
+                    ['spend_threshold_free_item', 'Free item']
+                  ].map(([val, label]) => (
+                    <button key={val} type="button" onClick={() => setPromoFormData({ ...promoFormData, type: val })}
+                      style={{
+                        padding: '8px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                        border: promoFormData.type === val ? '1px solid #2563eb' : '1px solid var(--text-secondary)',
+                        background: promoFormData.type === val ? '#2563eb' : 'transparent',
+                        color: promoFormData.type === val ? '#fff' : 'var(--text-secondary)'
+                      }}>{label}</button>
+                  ))}
+                </div>
+                {/* BOGO isn't in the brief's 3 named chips (Percent off / RM off / Free
+                    item) but is a real, DB-validated promo type (validate_and_apply_promo
+                    handles it) -- kept as a 4th chip rather than silently dropping a
+                    working feature. */}
               </div>
 
               {(promoFormData.type === 'percent_off' || promoFormData.type === 'flat_off') && (
@@ -4056,6 +4189,17 @@ export default function Admin() {
                   />
                   <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
                     {promoFormData.type === 'flat_off' ? 'Enter in cents (e.g. 500 = RM 5.00)' : 'Enter whole percentage (e.g. 15 = 15%)'}
+                  </small>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', margin: '10px 0 4px', fontWeight: 'bold' }}>MINIMUM SPEND (Optional)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 5000 (for RM 50.00)"
+                    value={promoFormData.min_spend}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, min_spend: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                  <small style={{ color: '#fbbf24', fontSize: '0.72rem', marginTop: '4px', display: 'block' }}>
+                    ⚠️ Saved and shown to you here, but not yet enforced at checkout for this promo type — flagged as a follow-up.
                   </small>
                 </div>
               )}
@@ -4156,19 +4300,37 @@ export default function Admin() {
               </div>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e2e8f0', fontSize: '0.85rem' }}>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={promoFormData.stackable_with_item_promos}
                   onChange={(e) => setPromoFormData({ ...promoFormData, stackable_with_item_promos: e.target.checked })}
                 />
                 Stackable with individual item promotions?
               </label>
 
+              <div onClick={() => setPromoFormData({ ...promoFormData, active: !promoFormData.active })}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#e2e8f0' }}>Active</span>
+                <div style={{ width: '40px', height: '22px', borderRadius: '11px', flexShrink: 0,
+                  background: promoFormData.active ? '#22c55e' : 'var(--text-secondary)', position: 'relative', transition: 'background 0.2s' }}>
+                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: '3px', transition: 'left 0.2s', left: promoFormData.active ? '21px' : '3px' }} />
+                </div>
+              </div>
+
+              {buildPromoPreview(promoFormData) && (
+                <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.35)' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>👁️ Customer sees</div>
+                  <div style={{ fontSize: '0.85rem', color: '#e2e8f0' }}>{buildPromoPreview(promoFormData)}</div>
+                </div>
+              )}
+
               <button
                 type="submit"
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}
+                disabled={savingPromo}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 'bold', cursor: savingPromo ? 'default' : 'pointer', opacity: savingPromo ? 0.6 : 1, marginTop: '8px' }}
               >
-                Create Promo Code
+                {savingPromo ? 'Saving…' : promoFormData.id ? 'Save Changes' : 'Create Promo Code'}
               </button>
             </form>
           </div>
