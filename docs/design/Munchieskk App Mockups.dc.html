@@ -16,8 +16,7 @@
 <meta name="ext-resource-dependency" content="public/images/BigG.jpg">
 <meta name="ext-resource-dependency" content="public/images/premium_platter.jpg">
 <meta name="ext-resource-dependency" content="public/images/cheese_fries.png">
-<meta name="ext-resource-dependency" content="public/images/iced_lemon_tea.png">
-<meta name="ext-resource-dependency" content="public/images/shake_match.png">
+<meta name="ext-resource-dependency" content="public/images/best_seller_hero.jpg">
 <style>
   body{margin:0;background:#f4f1ea;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
   h1,h2,h3,h4{font-family:'Kanit',sans-serif;font-weight:800;text-transform:uppercase;line-height:1.1;margin:0}
@@ -76,7 +75,7 @@
           <div style="position:relative;background:#1c1c1e;border-radius:20px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.2)">
             <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:#FFC72C;border-radius:50%;opacity:.85"></div>
             <div style="position:relative;height:170px;z-index:1">
-              <image-slot id="home-hero" shape="rect" src="public/images/sumandak burger.jpg" placeholder="Sumandak Burger hero photo"></image-slot>
+              <image-slot id="home-hero" shape="rect" src="public/images/best_seller_hero.jpg" placeholder="Sumandak Burger hero photo"></image-slot>
               <div style="position:absolute;top:12px;left:12px;background:#FFC72C;color:#8B4513;font-weight:800;font-size:10.5px;padding:5px 10px;border-radius:20px;display:flex;align-items:center;gap:4px;white-space:nowrap;pointer-events:none">🔥 BEST SELLER</div>
             </div>
             <div style="position:relative;z-index:1;padding:18px">
@@ -157,7 +156,7 @@
 
           <div style="position:relative;background:#161922;border:3px solid #1a1a1a;border-radius:20px;box-shadow:4px 4px 0 0 #1a1a1a;overflow:hidden;margin-bottom:24px">
             <div style="position:relative;height:150px">
-              <image-slot id="menu-hero" shape="rect" src="public/images/sumandak burger.jpg" placeholder="Sumandak Burger photo"></image-slot>
+              <image-slot id="menu-hero" shape="rect" src="public/images/best_seller_hero.jpg" placeholder="Sumandak Burger photo"></image-slot>
               <span style="position:absolute;top:12px;left:12px;background:#ef4444;color:#fff;border:2px solid #1a1a1a;font-family:Kanit;font-weight:900;font-size:10.5px;padding:3px 9px;border-radius:6px;transform:rotate(-3deg);white-space:nowrap;pointer-events:none">MUST TRY!</span>
             </div>
             <div style="padding:18px;color:#fff">
@@ -267,7 +266,7 @@
           <div>
             <h4 style="font-size:12px;color:#1a1a1a;margin-bottom:10px">📍 Pickup Store</h4>
             <div style="display:flex;gap:8px">
-              <sc-for list="{{ stores }}" as="store" hint-placeholder-count="2">
+              <sc-for list="{{ stores }}" as="store" hint-placeholder-count="1">
                 <button onClick="{{ store.onClick }}" style="flex:1;padding:10px;border-radius:12px;border:2px solid {{ store.borderColor }};background:{{ store.bg }};text-align:left;cursor:pointer">
                   <div style="font-weight:800;font-size:11.5px;color:#1a1a1a">{{ store.name }}</div>
                   <div style="font-size:9.5px;color:#64748b;font-weight:500;margin-top:2px">{{ store.hours }}</div>
@@ -684,9 +683,9 @@ class Component extends DCLogic {
       { name: 'Monster Fries', priceStr: '14.90', desc: 'Crispy fries loaded with beef strips & nacho cheese.', imgId: 'monster-fries', src: 'public/images/monsta_fries.jpg' },
       { name: 'Cheese Fries', priceStr: '12.90', desc: 'Classic fries smothered in melted cheese sauce.', imgId: 'cheese-fries', src: 'public/images/cheese_fries.png' },
     ] },
-    { key: 'DRINKS', name: 'DRINKS', title: 'Drinks', icon: '🥤', accent: '#2E7DD6', tint: '#E6F0FF', deep: '#1A4C8B', items: [
-      { name: 'Iced Lemon Tea', priceStr: '6.00', desc: 'Refreshing house-brewed iced lemon tea.', imgId: 'lemon-tea', src: 'public/images/iced_lemon_tea.png' },
-      { name: 'Shake Match', priceStr: '9.90', desc: 'Thick matcha milkshake, topped with whipped cream.', imgId: 'shake', src: 'public/images/shake_match.png' },
+    { key: 'DRINKS', name: 'DRINKS', title: 'Drinks & Desserts', icon: '🥤', accent: '#2E7DD6', tint: '#E6F0FF', deep: '#1A4C8B', items: [
+      { name: 'Ice BB', priceStr: '5.00', desc: 'Our house cold favourite — simple, icy, gone in a minute.', imgId: 'ice-bb', src: '' },
+      { name: 'Solero Split', priceStr: '4.50', desc: 'Classic fruity ice cream split. The way to end a burger.', imgId: 'solero-split', src: '' },
     ] },
   ];
   addonsData = [
@@ -696,7 +695,6 @@ class Component extends DCLogic {
   ];
   storesData = [
     { name: 'Penampang', hours: 'Daily · 6PM–12AM' },
-    { name: 'Menggatal', hours: 'Delivery/pickup varies' },
   ];
   slotsData = ['6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM'];
   paymentData = [
@@ -708,7 +706,7 @@ class Component extends DCLogic {
   ];
   prizesData = [
     { name: 'Free Regular Fries', cost: 300 },
-    { name: 'Free Iced Lemon Tea', cost: 400 },
+    { name: 'Free Solero Split', cost: 400 },
     { name: 'Free Burger of Choice', cost: 500 },
   ];
   historyData = [

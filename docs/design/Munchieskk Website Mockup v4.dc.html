@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#0A0A0A;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;color:#F6F1E7;overflow-x:hidden}
+  img{max-width:100%}
+  h1,h2,h3,h4{font-family:'Archivo',sans-serif;font-weight:900;line-height:.96;margin:0;letter-spacing:-.02em;word-spacing:.1em}
+  a{color:#F04E23;text-decoration:none}
+  a:hover{color:#FFC72C}
+  ::selection{background:#F04E23;color:#fff}
+  .js-rv-armed [data-rv]{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+  .js-rv-armed [data-rv].in{opacity:1;transform:none}
+  @keyframes v4-kb{0%{transform:scale(1.14) translate3d(-1.5%,1%,0)}50%{transform:scale(1.3) translate3d(1.5%,-1.5%,0)}100%{transform:scale(1.14) translate3d(-1.5%,1%,0)}}
+  @keyframes v4-kb2{0%{transform:scale(1.26) translate3d(2%,-1%,0)}50%{transform:scale(1.1) translate3d(-2%,1.5%,0)}100%{transform:scale(1.26) translate3d(2%,-1%,0)}}
+  @keyframes v4-ember{0%,100%{opacity:.32}50%{opacity:.72}}
+  @keyframes v4-marquee{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(-50%,0,0)}}
+  @media (prefers-reduced-motion: reduce){
+    .js-rv-armed [data-rv]{opacity:1!important;transform:none!important;transition:none!important}
+    *{animation:none!important}
+  }
+</style>
+</helmet>
+
+<div style="max-width:1440px;margin:0 auto;background:#0A0A0A;position:relative;overflow:hidden">
+
+<div style="position:fixed;top:0;left:0;right:0;height:3px;z-index:90;background:rgba(255,255,255,.08)">
+  <div ref="{{ barRef }}" style="height:100%;width:0%;background:linear-gradient(90deg,#FFC72C,#F04E23);box-shadow:0 0 14px rgba(240,78,35,.8)"></div>
+</div>
+
+<div style="background:#0A0A0A;color:#8E867C;font-size:12px;font-weight:600;letter-spacing:.06em;padding:11px clamp(18px,4vw,48px);display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap;text-transform:uppercase">
+  <span>Pickup only · Penampang, Sabah · 6PM – 12AM daily</span>
+  <span style="color:#FFC72C">100% Halal · Flame-cooked to order</span>
+</div>
+
+<nav ref="{{ navRef }}" style="position:sticky;top:0;z-index:80;display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;padding:14px clamp(18px,4vw,48px);background:rgba(10,10,10,.86);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.09)">
+  <a href="#top" style="display:flex;align-items:center;gap:11px">
+    <img src="public/images/logo.png" alt="Munchies KK" style="width:42px;height:42px;border-radius:50%;object-fit:cover;display:block">
+    <span style="font-family:Archivo;font-weight:900;font-size:19px;color:#F6F1E7;letter-spacing:-.04em">MUNCHIES<span style="color:#F04E23">KK</span></span>
+  </a>
+  <div style="order:3;flex:1 1 100%;display:flex;gap:clamp(14px,3vw,32px);flex-wrap:wrap;font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase">
+    <a href="#menu" style="color:#B8B0A6;white-space:nowrap;transition:color .16s ease" style-hover="color:#FFC72C">Menu</a>
+    <a href="#craft" style="color:#B8B0A6;white-space:nowrap;transition:color .16s ease" style-hover="color:#FFC72C">The Grill</a>
+    <a href="#rewards" style="color:#B8B0A6;white-space:nowrap;transition:color .16s ease" style-hover="color:#FFC72C">Rewards</a>
+    <a href="#visit" style="color:#B8B0A6;white-space:nowrap;transition:color .16s ease" style-hover="color:#FFC72C">Visit</a>
+  </div>
+  <a href="#order" style="display:inline-flex;align-items:center;white-space:nowrap;background:#F04E23;color:#fff;border-radius:999px;padding:12px 26px;font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:background .16s ease,transform .16s ease,box-shadow .2s ease" style-hover="background:#FFC72C;color:#0A0A0A;transform:translateY(-1px);box-shadow:0 8px 26px rgba(255,199,44,.35)">Order pickup</a>
+</nav>
+
+<!-- HERO — cinematic video-style plate -->
+<section id="top" style="position:relative;min-height:min(660px,86vh);display:flex;align-items:flex-end;overflow:hidden;background:#120C08">
+  <div style="position:absolute;inset:0;overflow:hidden">
+    <div style="position:absolute;inset:-6%;background:#120C08 url('public/images/best_seller_hero.jpg') 50% 46%/cover no-repeat;animation:v4-kb 26s ease-in-out infinite;will-change:transform"></div>
+  </div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,10,.72) 0%,rgba(10,10,10,.28) 38%,rgba(10,10,10,.94) 100%)"></div>
+  <div style="position:absolute;inset:0;background:radial-gradient(90% 60% at 12% 78%,rgba(240,78,35,.42) 0%,rgba(240,78,35,0) 62%);animation:v4-ember 5.5s ease-in-out infinite;mix-blend-mode:screen"></div>
+  <div ref="{{ grainRef }}" style="position:absolute;inset:0;opacity:.16;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.11) 0px,rgba(255,255,255,.11) 1px,transparent 1px,transparent 3px);pointer-events:none"></div>
+  <div style="position:relative;z-index:2;padding:clamp(72px,10vw,110px) clamp(18px,4vw,48px) clamp(44px,6vw,62px);width:100%;box-sizing:border-box">
+    <div data-rv style="display:inline-flex;align-items:center;gap:9px;background:rgba(255,199,44,.14);border:1px solid rgba(255,199,44,.5);color:#FFC72C;border-radius:999px;padding:7px 16px;font-size:11.5px;font-weight:800;letter-spacing:.12em;margin-bottom:24px;white-space:nowrap;text-transform:uppercase;backdrop-filter:blur(6px)">Best seller · RM 19.90</div>
+    <h1 data-rv data-rv-delay="70" style="font-size:clamp(48px,10.5vw,132px);color:#fff;max-width:1000px;text-shadow:0 14px 60px rgba(0,0,0,.7)">FLAME<br>MEETS<span style="color:#F04E23"> SAMBAL.</span></h1>
+    <p data-rv data-rv-delay="140" style="font-size:clamp(16px,1.5vw,19px);line-height:1.6;color:#D6CEC3;font-weight:500;max-width:480px;margin:26px 0 34px">The Sumandak Burger — double hand-pressed beef, our own sambal tuhau, cheddar off the flame. Cooked when you order it.</p>
+    <div data-rv data-rv-delay="200" style="display:flex;gap:12px;flex-wrap:wrap">
+      <a href="#order" style="display:inline-flex;align-items:center;white-space:nowrap;background:#F04E23;color:#fff;border-radius:999px;padding:18px 36px;font-size:14px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;transition:background .16s ease,transform .16s ease,box-shadow .2s ease;box-shadow:0 12px 34px rgba(240,78,35,.42)" style-hover="background:#FFC72C;color:#0A0A0A;transform:translateY(-3px);box-shadow:0 16px 44px rgba(255,199,44,.45)">Order for pickup</a>
+      <a href="#menu" style="display:inline-flex;align-items:center;white-space:nowrap;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:18px 34px;font-size:14px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;backdrop-filter:blur(8px);transition:background .16s ease,transform .16s ease" style-hover="background:rgba(255,255,255,.18);color:#fff;transform:translateY(-3px)">See the menu</a>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<sc-if value="{{ marqueeOn }}" hint-placeholder-val="{{ true }}">
+<div style="background:#F04E23;overflow:hidden;padding:15px 0;border-top:1px solid rgba(0,0,0,.25);border-bottom:1px solid rgba(0,0,0,.25)">
+  <div style="display:flex;width:200%;animation:v4-marquee 26s linear infinite;will-change:transform">
+    <div style="display:flex;gap:44px;width:50%;flex:none;font-family:Archivo;font-weight:900;font-size:17px;letter-spacing:.06em;color:#fff;white-space:nowrap;padding-right:44px">
+      <span>HAND-PRESSED DAILY</span><span style="color:#FFC72C">✦</span><span>SAUCES FROM SCRATCH</span><span style="color:#FFC72C">✦</span><span>100% HALAL</span><span style="color:#FFC72C">✦</span><span>PICKUP ONLY</span><span style="color:#FFC72C">✦</span><span>COOKED TO ORDER</span><span style="color:#FFC72C">✦</span>
+    </div>
+    <div style="display:flex;gap:44px;width:50%;flex:none;font-family:Archivo;font-weight:900;font-size:17px;letter-spacing:.06em;color:#fff;white-space:nowrap;padding-right:44px">
+      <span>HAND-PRESSED DAILY</span><span style="color:#FFC72C">✦</span><span>SAUCES FROM SCRATCH</span><span style="color:#FFC72C">✦</span><span>100% HALAL</span><span style="color:#FFC72C">✦</span><span>PICKUP ONLY</span><span style="color:#FFC72C">✦</span><span>COOKED TO ORDER</span><span style="color:#FFC72C">✦</span>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- VALUE STRIP -->
+<section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:rgba(255,255,255,.09)">
+  <sc-for list="{{ promises }}" as="p" hint-placeholder-count="4">
+    <div data-rv style="background:#0F0E0C;padding:30px 30px">
+      <div style="font-family:Archivo;font-weight:900;font-size:14px;color:#FFC72C;margin-bottom:8px;letter-spacing:.02em;text-transform:uppercase">{{ p.title }}</div>
+      <div style="font-size:13.5px;color:#8E867C;font-weight:500;line-height:1.55">{{ p.body }}</div>
+    </div>
+  </sc-for>
+</section>
+
+<!-- MENU -->
+<section id="menu" style="padding:clamp(60px,8vw,96px) clamp(18px,4vw,48px) clamp(64px,9vw,104px);background:#0A0A0A">
+  <div data-rv style="display:flex;justify-content:space-between;align-items:flex-end;gap:36px;flex-wrap:wrap;margin-bottom:40px">
+    <div>
+      <div style="font-size:11.5px;font-weight:800;letter-spacing:.16em;color:#F04E23;margin-bottom:14px;text-transform:uppercase">The lineup</div>
+      <h2 style="font-size:clamp(42px,7vw,76px);color:#fff">OUR MENU</h2>
+    </div>
+    <p style="font-size:15.5px;color:#8E867C;font-weight:500;line-height:1.65;max-width:360px;margin:0">Every patty pressed in-house, every sauce cooked from scratch. Pick a category.</p>
+  </div>
+
+  <div data-rv style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:36px">
+    <sc-for list="{{ filters }}" as="f" hint-placeholder-count="6">
+      <button onClick="{{ f.onClick }}" style="display:inline-flex;align-items:center;white-space:nowrap;padding:11px 22px;border-radius:999px;border:1px solid {{ f.border }};background:{{ f.bg }};color:{{ f.color }};font-family:Archivo;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease">{{ f.label }}</button>
+    </sc-for>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:clamp(12px,2vw,20px)">
+    <sc-for list="{{ visibleItems }}" as="item" hint-placeholder-count="8">
+      <div data-rv style="display:flex;flex-direction:column;background:#131110;border:1px solid rgba(255,255,255,.09);border-radius:6px;overflow:hidden;transition:transform .25s cubic-bezier(.16,1,.3,1),box-shadow .25s ease,border-color .25s ease" style-hover="transform:translateY(-6px);box-shadow:0 22px 50px rgba(0,0,0,.7);border-color:rgba(240,78,35,.55)">
+        <div style="flex:none;position:relative;height:186px;background:#0A0A0A;overflow:hidden">
+          <sc-if value="{{ item.img }}">
+            <div role="img" aria-label="{{ item.name }}" style="position:absolute;inset:0;background:{{ item.bg }}"></div>
+          </sc-if>
+          <sc-if value="{{ item.noImg }}">
+            <div style="box-sizing:border-box;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;padding:0 16px;background:#171412">
+              <span style="font-family:Archivo;font-weight:900;font-size:21px;color:{{ item.accent }}">{{ item.name }}</span>
+              <span style="font-size:10px;font-weight:700;letter-spacing:.12em;color:#8A8378">PHOTO COMING SOON</span>
+            </div>
+          </sc-if>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(10,10,10,.88) 100%)"></div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;padding:18px 18px 20px">
+          <div style="font-size:10px;font-weight:800;letter-spacing:.14em;color:{{ item.accent }};margin-bottom:9px;white-space:nowrap">{{ item.catLabel }}</div>
+          <h3 style="font-size:19px;margin-bottom:8px;color:#fff;letter-spacing:-.02em">{{ item.name }}</h3>
+          <p style="font-size:13px;color:#8E867C;font-weight:500;line-height:1.5;margin:0 0 16px">{{ item.desc }}</p>
+          <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <span style="font-family:Archivo;font-weight:900;font-size:17px;color:#FFC72C;white-space:nowrap">RM {{ item.price }}</span>
+            <a href="#order" style="display:inline-flex;align-items:center;white-space:nowrap;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:8px 18px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;transition:background .16s ease,color .16s ease" style-hover="background:#F04E23;border-color:#F04E23;color:#fff">Add</a>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- CRAFT — three video-style tiles -->
+<section id="craft" style="padding:0 0 0;background:#0A0A0A">
+  <div data-rv style="padding:0 clamp(18px,4vw,48px) 44px;max-width:760px">
+    <div style="font-size:11.5px;font-weight:800;letter-spacing:.16em;color:#F04E23;margin-bottom:14px;text-transform:uppercase">The grill</div>
+    <h2 style="font-size:clamp(40px,6.5vw,72px);color:#fff">THREE THINGS<br>WE WON'T RUSH.</h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:2px;background:#0A0A0A">
+    <sc-for list="{{ craftSteps }}" as="step" hint-placeholder-count="3">
+      <div data-rv style="position:relative;min-height:clamp(400px,52vw,520px);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;background:#0F0D0C">
+        <div style="position:absolute;inset:0;overflow:hidden">
+          <div style="position:absolute;inset:-8%;background:{{ step.bg }};animation:{{ step.anim }} 30s ease-in-out infinite;will-change:transform"></div>
+        </div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,10,.35) 0%,rgba(10,10,10,.55) 45%,rgba(10,10,10,.96) 100%)"></div>
+        <div style="position:absolute;inset:0;opacity:.12;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.14) 0px,rgba(255,255,255,.14) 1px,transparent 1px,transparent 3px);pointer-events:none"></div>
+        <div style="position:relative;z-index:2;padding:clamp(28px,4vw,40px) clamp(22px,3.5vw,32px) clamp(28px,4vw,38px)">
+          <div style="font-family:Archivo;font-weight:900;font-size:clamp(42px,6vw,56px);color:rgba(255,199,44,.9);line-height:1;margin-bottom:16px">{{ step.n }}</div>
+          <h3 style="font-size:clamp(25px,3.4vw,30px);margin-bottom:12px;color:#fff">{{ step.title }}</h3>
+          <p style="font-size:14.5px;color:#C6BEB4;font-weight:500;line-height:1.65;margin:0">{{ step.body }}</p>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- REWARDS -->
+<section id="rewards" style="padding:clamp(64px,9vw,104px) clamp(18px,4vw,48px);background:#0A0A0A;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:clamp(32px,5vw,56px);align-items:center">
+  <div data-rv>
+    <div style="font-size:11.5px;font-weight:800;letter-spacing:.16em;color:#F04E23;margin-bottom:14px;text-transform:uppercase">Rewards</div>
+    <h2 style="font-size:clamp(38px,6vw,64px);color:#fff">A POINT FOR<br>EVERY RINGGIT.</h2>
+    <p style="font-size:16px;color:#8E867C;font-weight:500;line-height:1.65;margin:22px 0 30px;max-width:440px">Collect points on every pickup order, then redeem them on the things you already order. Play Munch Man in our arcade for bonus points.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:430px">
+      <sc-for list="{{ rewards }}" as="r" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:14px;background:#131110;border:1px solid rgba(255,255,255,.09);border-radius:6px;padding:16px 20px;transition:border-color .16s ease,background .16s ease" style-hover="border-color:rgba(255,199,44,.6);background:#181514">
+          <span style="flex:none;font-family:Archivo;font-weight:900;font-size:13px;color:#0A0A0A;background:#FFC72C;border-radius:999px;padding:6px 14px;white-space:nowrap">{{ r.cost }} PTS</span>
+          <span style="font-size:14.5px;font-weight:600;color:#F6F1E7">{{ r.name }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div data-rv data-rv-delay="90" style="position:relative;border-radius:6px;overflow:hidden;min-height:clamp(380px,50vw,460px);display:flex;align-items:flex-end;background:#0F0D0C">
+    <div style="position:absolute;inset:0;overflow:hidden">
+      <div style="position:absolute;inset:-8%;background:#0F0D0C url('public/images/munchman_game.jpg') 50% 45%/cover no-repeat;animation:v4-kb2 34s ease-in-out infinite;will-change:transform"></div>
+    </div>
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,10,.4) 0%,rgba(10,10,10,.72) 50%,rgba(10,10,10,.97) 100%)"></div>
+    <div style="position:absolute;inset:0;background:radial-gradient(70% 50% at 80% 20%,rgba(240,78,35,.35) 0%,rgba(240,78,35,0) 65%);animation:v4-ember 6.5s ease-in-out infinite;mix-blend-mode:screen"></div>
+    <div style="position:relative;z-index:2;padding:clamp(26px,4vw,40px) clamp(22px,3.5vw,36px)">
+      <div style="display:inline-block;background:#FFC72C;color:#0A0A0A;border-radius:999px;padding:6px 14px;font-size:11px;font-weight:800;letter-spacing:.11em;margin-bottom:18px;white-space:nowrap;text-transform:uppercase">Weekly prize</div>
+      <h3 style="font-size:clamp(30px,4.5vw,40px);color:#fff">WIN A FREE<br>CZ CHIX SET</h3>
+      <p style="font-size:14.5px;color:#C6BEB4;font-weight:500;line-height:1.6;margin:14px 0 24px;max-width:340px">Rank in the weekly top 10 on Munch Man and it's yours.</p>
+      <a href="#order" style="display:inline-flex;align-items:center;white-space:nowrap;background:#F04E23;color:#fff;border-radius:999px;padding:14px 28px;font-size:12.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;transition:background .16s ease,transform .16s ease" style-hover="background:#FFC72C;color:#0A0A0A;transform:translateY(-2px)">Play now</a>
+    </div>
+  </div>
+</section>
+
+<!-- VISIT — full-bleed video plate -->
+<section id="visit" style="position:relative;overflow:hidden;background:#0C0A09;padding:clamp(64px,9vw,104px) clamp(18px,4vw,48px)">
+  <div style="position:absolute;inset:0;overflow:hidden">
+    <div style="position:absolute;inset:-8%;background:#0C0A09 url('public/images/premium_platter.jpg') 50% 50%/cover no-repeat;animation:v4-kb 38s ease-in-out infinite;will-change:transform"></div>
+  </div>
+  <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,6,6,.97) 0%,rgba(6,6,6,.86) 46%,rgba(6,6,6,.45) 100%)"></div>
+  <div style="position:relative;z-index:2;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:clamp(30px,4vw,48px);align-items:center">
+    <div data-rv>
+      <div style="font-size:11.5px;font-weight:800;letter-spacing:.16em;color:#FFC72C;margin-bottom:14px;text-transform:uppercase">Pickup only</div>
+      <h2 style="font-size:clamp(44px,7vw,70px);color:#fff">COME<br>GET IT.</h2>
+      <p style="font-size:16px;color:#C6BEB4;font-weight:500;line-height:1.65;margin:22px 0 30px;max-width:430px">Order ahead, choose any pickup time within opening hours, and collect it straight off the grill. No delivery — we'd rather hand it to you hot.</p>
+      <sc-for list="{{ stores }}" as="s" hint-placeholder-count="1">
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:24px 26px;max-width:430px;backdrop-filter:blur(10px)">
+          <h3 style="font-size:22px;color:#fff">{{ s.name }}</h3>
+          <div style="font-size:14px;color:#A79F95;font-weight:500;line-height:1.55;margin:10px 0 12px">{{ s.address }}</div>
+          <div style="font-size:13px;font-weight:800;color:#FFC72C;letter-spacing:.06em">{{ s.hours }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div data-rv data-rv-delay="90" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden;margin-top:28px;background:#0A0A0A">
+        <div style="position:absolute;inset:-8%;background:#0A0A0A url('public/images/monsta_fries.jpg') 50% 50%/cover no-repeat;animation:v4-kb2 28s ease-in-out infinite;will-change:transform"></div>
+      </div>
+      <div style="position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden;background:#0A0A0A">
+        <div style="position:absolute;inset:-8%;background:#0A0A0A url('public/images/cheese_fries.png') 50% 50%/cover no-repeat;animation:v4-kb 32s ease-in-out infinite;will-change:transform"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ORDER CTA -->
+<section id="order" style="position:relative;overflow:hidden;background:#C4210A;padding:clamp(70px,10vw,112px) clamp(18px,4vw,48px);text-align:center">
+  <div style="position:absolute;inset:0;overflow:hidden;opacity:.4">
+    <div style="position:absolute;inset:-10%;background:#C4210A url('public/images/sumandak burger.jpg') 50% 42%/cover no-repeat;animation:v4-kb2 30s ease-in-out infinite;will-change:transform"></div>
+  </div>
+  <div style="position:absolute;inset:0;background:radial-gradient(70% 90% at 50% 100%,rgba(255,199,44,.4) 0%,rgba(255,199,44,0) 60%);animation:v4-ember 5s ease-in-out infinite;mix-blend-mode:screen"></div>
+  <div style="position:relative;z-index:2">
+    <h2 data-rv style="font-size:clamp(48px,11vw,106px);color:#fff;text-shadow:0 12px 44px rgba(0,0,0,.45)">HUNGRY YET?</h2>
+    <p data-rv data-rv-delay="70" style="font-size:17px;color:#FFE3D7;font-weight:600;letter-spacing:.04em;margin:20px 0 34px;text-transform:uppercase">Pick your time. We'll fire it fresh.</p>
+    <div data-rv data-rv-delay="140" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="#top" style="display:inline-flex;align-items:center;white-space:nowrap;background:#0A0A0A;color:#fff;border-radius:999px;padding:19px 40px;font-size:14px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;transition:background .16s ease,transform .16s ease" style-hover="background:#FFC72C;color:#0A0A0A;transform:translateY(-3px)">Order pickup</a>
+      <a href="#menu" style="display:inline-flex;align-items:center;white-space:nowrap;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55);border-radius:999px;padding:19px 38px;font-size:14px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;transition:background .16s ease,border-color .16s ease" style-hover="background:rgba(255,255,255,.14);border-color:#fff;color:#fff">Browse menu</a>
+    </div>
+  </div>
+</section>
+
+<footer style="background:#000;padding:32px clamp(18px,4vw,48px);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+  <span style="font-family:Archivo;font-weight:900;font-size:17px;color:#fff;letter-spacing:-.03em">MUNCHIES<span style="color:#F04E23">KK</span></span>
+  <span style="font-size:12px;color:#8A8378;font-weight:500">© 2026 Munchies KK · Penampang, Sabah · Halal</span>
+  <div style="display:flex;gap:22px;font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">
+    <a href="#" style="color:#B8B0A6" style-hover="color:#FFC72C">Instagram</a>
+    <a href="#" style="color:#B8B0A6" style-hover="color:#FFC72C">TikTok</a>
+    <a href="#" style="color:#B8B0A6" style-hover="color:#FFC72C">WhatsApp</a>
+  </div>
+</footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440},&quot;showMarquee&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Treatment&quot;},&quot;filmGrain&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Treatment&quot;},&quot;cinematicScrim&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.72,&quot;min&quot;:0.3,&quot;max&quot;:0.95,&quot;step&quot;:0.01,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Treatment&quot;}}">
+class Component extends DCLogic {
+  state = { filter: 'ALL' };
+
+  CATS = {
+    BBQ:      { accent: '#F0862A', label: 'BBQ' },
+    PREMIUM:  { accent: '#C77DFF', label: 'PREMIUM' },
+    PLATTERS: { accent: '#FFC72C', label: 'PLATTERS' },
+    SIDES:    { accent: '#5FD68C', label: 'SIDES' },
+    DRINKS:   { accent: '#63A7F5', label: 'DRINKS & DESSERTS' },
+  };
+
+  itemsData = [
+    { name: 'Sumandak Burger', cat: 'PREMIUM', price: '19.90', img: 'public/images/sumandak_promo.png', crop: '51% 72.6%/auto 189%', desc: 'Beef patty, sambal tuhau, fried egg, fresh greens.' },
+    { name: 'Mushy² Burger', cat: 'PREMIUM', price: '18.90', img: 'public/images/mushy2.jpg', desc: 'Beef patty under a rich creamy mushroom sauce.' },
+    { name: 'Mamacita Burger', cat: 'PREMIUM', price: '18.90', img: 'public/images/mamacita.jpg', desc: 'Fresh salsa, tangy kick, hand-pressed beef.' },
+    { name: 'Big G Burger', cat: 'PREMIUM', price: '21.90', img: 'public/images/BigG.jpg', desc: 'Double beef, double cheese, house sauce.' },
+    { name: 'BBQ Chicken Burger', cat: 'BBQ', price: '17.90', img: 'public/images/bbq_chicken.jpg', desc: 'Grilled chicken thigh, smoky BBQ glaze, slaw.' },
+    { name: 'BBQ Lamb Burger', cat: 'BBQ', price: '22.90', img: 'public/images/bbq_lamb.jpg', desc: 'Char-grilled lamb, BBQ sauce, caramelised onions.' },
+    { name: 'CZ Chix Set', cat: 'BBQ', price: '20.90', img: 'public/images/cz_chix_burger.png', desc: 'Crispy chicken burger with fries and a drink.' },
+    { name: 'Premium Platter', cat: 'PLATTERS', price: '45.00', img: 'public/images/premium_platter.jpg', desc: 'Two burgers, meatballs and loaded fries.' },
+    { name: 'Monster Fries', cat: 'SIDES', price: '14.90', img: 'public/images/monsta_fries.jpg', desc: 'Fries loaded with beef strips and nacho cheese.' },
+    { name: 'Cheese Fries', cat: 'SIDES', price: '12.90', img: 'public/images/cheese_fries.png', desc: 'Classic fries smothered in melted cheese sauce.' },
+    { name: 'Ice BB', cat: 'DRINKS', price: '5.00', img: 'public/images/ice_bb.jpg', crop: '50% 44%/cover', desc: 'Iced bandung blended with a scoop of vanilla on top.' },
+    { name: 'Solero Split', cat: 'DRINKS', price: '7.00', img: 'public/images/solero_split.jpg', crop: '50% 66%/cover', desc: 'Green soda float with lime and two scoops of vanilla.' },
+  ];
+
+  promisesData = [
+    { title: 'Hand-pressed daily', body: 'Patties made the same day they hit the grill.' },
+    { title: 'Sauces from scratch', body: 'Sambal tuhau, mushroom, salsa — never bottled.' },
+    { title: '100% halal', body: 'Fully certified, every ingredient in the kitchen.' },
+    { title: 'Pickup only', body: 'Choose your minute; collect it straight off the flame.' },
+  ];
+
+  craftStepsData = [
+    { n: '01', title: 'WE PRESS IT', body: 'Every patty is hand-pressed in our kitchen the same day it is cooked. No frozen pucks, no fillers.', bg: "#0F0D0C url('public/images/bbq_chicken.jpg') 50% 50%/cover no-repeat", anim: 'v4-kb' },
+    { n: '02', title: 'WE COOK THE SAUCE', body: 'Sambal tuhau, creamy mushroom, mamacita salsa — all made here from scratch, zero shortcuts.', bg: "#0F0D0C url('public/images/mamacita.jpg') 50% 50%/cover no-repeat", anim: 'v4-kb2' },
+    { n: '03', title: 'YOU COLLECT IT HOT', body: 'Pickup only, by design. You choose the minute, we hand it over straight off the flame.', bg: "#0F0D0C url('public/images/bbq_lamb.jpg') 50% 50%/cover no-repeat", anim: 'v4-kb' },
+  ];
+
+  rewardsData = [
+    { cost: 300, name: 'Free regular fries' },
+    { cost: 400, name: 'Free Solero Split' },
+    { cost: 500, name: 'Free burger of your choice' },
+  ];
+
+  storesData = [
+    { name: 'Penampang', address: 'Lorong Goldie, Jln Nosoob Hungab, Kg. Tunoh, 89500 Kota Kinabalu, Sabah', hours: 'DAILY · 6:00 PM – 12:00 AM' },
+  ];
+
+  reveal(el) {
+    if (el.classList.contains('in')) return;
+    const d = parseInt(el.getAttribute('data-rv-delay') || '0', 10);
+    setTimeout(() => el.classList.add('in'), d);
+  }
+
+  componentDidMount() {
+    this.applyTreatments();
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.documentElement.classList.add('js-rv-armed');
+    this._io = new IntersectionObserver(es => {
+      es.forEach(e => { if (e.isIntersecting) { this.reveal(e.target); this._io.unobserve(e.target); } });
+    }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+    this._sweep = () => {
+      const h = window.innerHeight || 800;
+      document.querySelectorAll('[data-rv]:not(.in)').forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (r.top < h * 0.94 && r.bottom > 0) this.reveal(el);
+      });
+      const doc = document.documentElement;
+      const max = Math.max(1, doc.scrollHeight - window.innerHeight);
+      const p = Math.min(1, Math.max(0, window.scrollY / max));
+      if (this._bar) this._bar.style.width = (p * 100).toFixed(2) + '%';
+      if (this._nav) {
+        this._nav.style.boxShadow = p > 0.02 ? '0 14px 40px rgba(0,0,0,.75)' : 'none';
+        this._nav.style.background = p > 0.02 ? 'rgba(6,6,6,.94)' : 'rgba(10,10,10,.86)';
+      }
+    };
+    this._scan = () => {
+      document.querySelectorAll('[data-rv]:not(.in)').forEach(el => this._io.observe(el));
+      this._sweep();
+    };
+    requestAnimationFrame(() => this._scan());
+    window.addEventListener('scroll', this._sweep, { passive: true });
+    this._timer = setInterval(this._scan, 700);
+    this._safety = setTimeout(() => document.querySelectorAll('[data-rv]:not(.in)').forEach(el => el.classList.add('in')), 2500);
+  }
+
+  applyTreatments() {
+    const scrim = this.props.cinematicScrim ?? 0.72;
+    document.documentElement.style.setProperty('--v4-scrim', String(scrim));
+    if (this._grain) this._grain.style.opacity = (this.props.filmGrain ?? true) ? '0.16' : '0';
+  }
+
+  componentDidUpdate() { this.applyTreatments(); if (this._scan) this._scan(); }
+
+  componentWillUnmount() {
+    if (this._io) this._io.disconnect();
+    if (this._timer) clearInterval(this._timer);
+    if (this._safety) clearTimeout(this._safety);
+    if (this._sweep) window.removeEventListener('scroll', this._sweep);
+  }
+
+  renderVals() {
+    const f = this.state.filter;
+    const keys = ['ALL', ...Object.keys(this.CATS)];
+    return {
+      barRef: el => { this._bar = el; },
+      navRef: el => { this._nav = el; },
+      grainRef: el => { this._grain = el; if (el) this.applyTreatments(); },
+      marqueeOn: this.props.showMarquee ?? true,
+      filters: keys.map(k => {
+        const active = k === f;
+        return {
+          label: k === 'ALL' ? 'All items' : this.CATS[k].label,
+          bg: active ? '#F04E23' : 'transparent',
+          color: active ? '#fff' : '#B8B0A6',
+          border: active ? '#F04E23' : 'rgba(255,255,255,.2)',
+          onClick: () => this.setState({ filter: k }),
+        };
+      }),
+      visibleItems: this.itemsData
+        .filter(i => f === 'ALL' || i.cat === f)
+        .map(i => ({ ...i, bg: i.crop ? `#0A0A0A url('${i.img}') ${i.crop} no-repeat` : (i.img ? `#0A0A0A url('${i.img}') center/cover no-repeat` : null), accent: this.CATS[i.cat].accent, catLabel: this.CATS[i.cat].label, noImg: !i.img })),
+      promises: this.promisesData,
+      craftSteps: this.craftStepsData,
+      rewards: this.rewardsData,
+      stores: this.storesData,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
