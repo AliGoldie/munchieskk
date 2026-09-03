@@ -30,6 +30,25 @@ function getOrderChannelKey(order) {
   return 'web';
 }
 
+// Audit log Detail column: `admin_audit.detail` stores raw values as
+// logged (e.g. money in integer cents, matching orders.total elsewhere in
+// this schema), which reads as a confusing bare number like 10000 rather
+// than RM 100.00. Only these known money-cents keys get reformatted --
+// everything else (ids, counts, quantities, reasons, names, dates) is left
+// exactly as logged.
+const AUDIT_MONEY_KEYS = new Set(['amountCents', 'opening_float', 'counted', 'expected', 'variance']);
+function formatAuditDetail(detail) {
+  if (!detail || typeof detail !== 'object') return '';
+  const parts = Object.entries(detail).map(([key, value]) => {
+    if (AUDIT_MONEY_KEYS.has(key) && typeof value === 'number') {
+      const sign = value < 0 ? '-' : '';
+      return `${key}: ${sign}RM ${(Math.abs(value) / 100).toFixed(2)}`;
+    }
+    return `${key}: ${JSON.stringify(value)}`;
+  });
+  return parts.join(', ');
+}
+
 // §2 Customers CRM: same avatar palette as Profile.jsx's picker (per the
 // brief: reuse it for the CRM detail view rather than a new colour ramp).
 const CUSTOMER_AVATAR_COLORS = {
@@ -5053,7 +5072,7 @@ export default function Admin() {
                       <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(row.created_at).toLocaleString()}</td>
                       <td style={{ fontSize: '0.85rem' }}>{row.actor_role || 'unknown'}</td>
                       <td style={{ fontSize: '0.85rem', fontWeight: 700 }}>{row.action}</td>
-                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{row.detail ? JSON.stringify(row.detail) : ''}</td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatAuditDetail(row.detail)}</td>
                     </tr>
                   ))}
                 </tbody>
