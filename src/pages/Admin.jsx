@@ -1551,17 +1551,27 @@ export default function Admin() {
   const { topItemsData, trendData, hourlyTrendData, kpi, channelSales, channelStats, CHANNEL_FEES } = processAnalyticsData();
 
   const customerInsights = useMemo(() => {
-    // Only consider pickup orders
-    const pickupOrders = orders.filter(o => o.order_type === 'pickup');
-    
-    // Group by customer_name (fallback to customer_id if missing name)
+    // Orders that actually count as a completed sale -- PENDING hasn't
+    // happened yet and CANCELLED never did, same rule customersWithMeta
+    // uses above. This used to filter on `order_type === 'pickup'`, a field
+    // nothing in this codebase has ever set (a leftover from before the
+    // shop went pickup-only), so it silently matched zero orders no matter
+    // how much real order history existed.
+    const validOrders = orders.filter(o => o.status !== 'PENDING' && o.status !== 'CANCELLED');
+
+    // Group by the real customer account when there is one (a name string
+    // isn't a stable identity -- two guests can share a name, and the same
+    // customer can be recorded slightly differently across orders); fall
+    // back to customer_name for guest checkouts with no account.
     const customersMap = {};
-    
-    pickupOrders.forEach(o => {
-      const customerKey = o.customer_name?.trim() || o.customer_id || 'Unknown Guest';
+
+    validOrders.forEach(o => {
+      const customerKey = o.user_id || o.customer_name?.trim() || 'Unknown Guest';
       if (!customersMap[customerKey]) {
         customersMap[customerKey] = {
-          name: customerKey,
+          // Grouped by user_id when there is one, but always displayed by
+          // name -- an id isn't something an admin can recognize a customer by.
+          name: o.customer_name?.trim() || 'Guest',
           orders: [],
           totalSpend: 0,
           itemsCount: {}
