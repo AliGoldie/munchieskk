@@ -14,6 +14,23 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Admin.css';
 
+// Stored timestamps (order created_at, shift opened_at, etc.) are UTC and
+// were being rendered with the *viewing device's* timezone via bare
+// toLocaleString()/toLocaleDateString() -- fine on a phone set to Malaysia
+// time, wrong on any browser/device set to something else (UTC cloud
+// browsers, a traveling admin, a misconfigured phone). MunchiesKK has one
+// physical location, so every timestamp is pinned to the store's own
+// timezone instead of trusting the viewer's device.
+const STORE_TIMEZONE = 'Asia/Kuala_Lumpur';
+function formatStoreDateTime(dateInput, opts = {}) {
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  return d.toLocaleString('en-MY', { timeZone: STORE_TIMEZONE, ...opts });
+}
+function formatStoreDate(dateInput, opts = {}) {
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  return d.toLocaleDateString('en-MY', { timeZone: STORE_TIMEZONE, ...opts });
+}
+
 // §1 Live Orders: cancel-reason chips (docs/design/HANDOFF-ADMIN-CRM.md §1).
 const CANCEL_REASONS = ['Customer no-show', 'Item out of stock', 'Duplicate order', 'Payment failed', 'Kitchen error', 'Other'];
 
@@ -1887,14 +1904,14 @@ export default function Admin() {
 
   const handleGeneratePDF = () => {
     const doc = new jsPDF();
-    const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-    
+    const currentMonth = formatStoreDateTime(new Date(), { month: 'long', year: 'numeric' });
+
     doc.setFontSize(20);
     doc.text(`Monthly Report: ${currentMonth}`, 14, 22);
-    
+
     doc.setFontSize(11);
     doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`Generated on: ${formatStoreDateTime(new Date())}`, 14, 30);
     
     const tableData = [
       ['Total Orders', orders.length.toString()],
@@ -1916,7 +1933,7 @@ export default function Admin() {
       o.id.substring(0, 8),
       o.status,
       `RM ${(o.total / 100).toFixed(2)}`,
-      new Date(o.created_at).toLocaleDateString()
+      formatStoreDate(o.created_at)
     ]);
 
     doc.text('Recent Orders', 14, doc.lastAutoTable.finalY + 15);
@@ -2340,9 +2357,9 @@ export default function Admin() {
                     <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>💰 Shift Handover / Cash-Up</h3>
                     <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                       {currentShift
-                        ? `Open since ${new Date(currentShift.opened_at).toLocaleString('en-MY', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
+                        ? `Open since ${formatStoreDateTime(currentShift.opened_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
                         : reopenableShift
-                          ? `Last shift closed ${new Date(reopenableShift.closed_at).toLocaleString('en-MY', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
+                          ? `Last shift closed ${formatStoreDateTime(reopenableShift.closed_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
                           : 'No shift currently open'}
                     </p>
                   </div>
@@ -2697,7 +2714,7 @@ export default function Admin() {
                   <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
                      <div style={{ flex: 1, border: '1px solid #fee2e2', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff5f5' }}>
                         <div style={{ color: '#ef4444', marginBottom: '8px' }}><Archive size={32} /></div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{new Date().toLocaleString('default', { month: 'short' })} Report</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{formatStoreDateTime(new Date(), { month: 'short' })} Report</div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date().getFullYear()}</div>
                      </div>
                      <div style={{ flex: 1, border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} className="hover-bg-slate">
@@ -4087,7 +4104,7 @@ export default function Admin() {
                           {customer.timelineOrders.map(order => (
                             <tr key={order.id} style={{ opacity: order.status === 'CANCELLED' ? 0.6 : 1 }}>
                               <td className="font-medium text-xs">{order.id}</td>
-                              <td className="text-xs text-muted">{new Date(order.created_at).toLocaleDateString()}</td>
+                              <td className="text-xs text-muted">{formatStoreDate(order.created_at)}</td>
                               <td>
                                 <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.875rem' }}>
                                   {order.items.map((item, i) => (
@@ -4614,7 +4631,7 @@ export default function Admin() {
                                     <span>#{formatOrderId(order.id)}</span>
                                   </div>
                                 </td>
-                                <td className="text-xs text-muted">{new Date(order.created_at).toLocaleString()}</td>
+                                <td className="text-xs text-muted">{formatStoreDateTime(order.created_at)}</td>
                                 <td>
                                   <div className="font-bold text-sm">{order.customer_name || 'Guest'}</div>
                                   {order.customer_phone && order.customer_phone !== 'No Phone' && <div className="text-xs text-muted">📞 {order.customer_phone}</div>}
@@ -4663,7 +4680,7 @@ export default function Admin() {
                                     )}
                                     {isRefunded ? (
                                       <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#dc2626', fontWeight: 700 }}>
-                                        Refunded RM {(order.refund_amount / 100).toFixed(2)} — {order.refund_reason} ({new Date(order.refunded_at).toLocaleDateString()})
+                                        Refunded RM {(order.refund_amount / 100).toFixed(2)} — {order.refund_reason} ({formatStoreDate(order.refunded_at)})
                                       </div>
                                     ) : order.status === 'COLLECTED' && (
                                       <button
@@ -4812,7 +4829,7 @@ export default function Admin() {
                             </div>
                           </td>
                           <td className="text-muted text-xs">
-                            {new Date(promo.created_at).toLocaleDateString()}
+                            {formatStoreDate(promo.created_at)}
                           </td>
                         </tr>
                       ))}
@@ -4919,7 +4936,7 @@ export default function Admin() {
                             />
                           ) : (
                             <span className="text-sm">
-                              {item.promo_start ? new Date(item.promo_start).toLocaleString() : '—'}
+                              {item.promo_start ? formatStoreDateTime(item.promo_start) : '—'}
                             </span>
                           )}
                         </td>
@@ -4934,7 +4951,7 @@ export default function Admin() {
                             />
                           ) : (
                             <span className="text-sm">
-                              {item.promo_end ? new Date(item.promo_end).toLocaleString() : '—'}
+                              {item.promo_end ? formatStoreDateTime(item.promo_end) : '—'}
                             </span>
                           )}
                         </td>
@@ -5042,7 +5059,7 @@ export default function Admin() {
                     <td style={{ fontSize: '0.85rem', fontWeight: costState.state === 'costed' ? 400 : 700, color: costState.state === 'costed' ? 'var(--text)' : '#b45309' }}>
                       {costState.state === 'costed' ? `RM ${costState.amount.toFixed(2)}` : costState.state === 'no_cost' ? 'No cost set' : 'Not linked'}
                     </td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
+                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatStoreDateTime(r.redeemed_at)}</td>
                     <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : '#166534', color: '#fff' }}>{r.status}</span></td>
                     <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
                     {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Done</span>}</td>
@@ -5069,7 +5086,7 @@ export default function Admin() {
                     <tr><td colSpan="4" className="text-center text-muted" style={{ padding: '2rem' }}>No audit entries yet -- actions taken in this console will appear here.</td></tr>
                   ) : auditLog.map(row => (
                     <tr key={row.id}>
-                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(row.created_at).toLocaleString()}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatStoreDateTime(row.created_at)}</td>
                       <td style={{ fontSize: '0.85rem' }}>{row.actor_role || 'unknown'}</td>
                       <td style={{ fontSize: '0.85rem', fontWeight: 700 }}>{row.action}</td>
                       <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatAuditDetail(row.detail)}</td>
