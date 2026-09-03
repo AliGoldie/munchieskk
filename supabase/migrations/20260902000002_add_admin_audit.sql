@@ -15,8 +15,10 @@ CREATE TABLE IF NOT EXISTS public.admin_audit (
 
 ALTER TABLE public.admin_audit ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can insert audit rows" ON public.admin_audit;
 CREATE POLICY "Admins can insert audit rows" ON public.admin_audit
   FOR INSERT WITH CHECK (public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can view audit rows" ON public.admin_audit;
 CREATE POLICY "Admins can view audit rows" ON public.admin_audit
   FOR SELECT USING (public.is_admin());

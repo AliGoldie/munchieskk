@@ -19,11 +19,14 @@ CREATE TABLE IF NOT EXISTS public.shifts (
 
 ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can view shifts" ON public.shifts;
 CREATE POLICY "Admins can view shifts" ON public.shifts
   FOR SELECT USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can insert shifts" ON public.shifts;
 CREATE POLICY "Admins can insert shifts" ON public.shifts
   FOR INSERT WITH CHECK (public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can update shifts" ON public.shifts;
 CREATE POLICY "Admins can update shifts" ON public.shifts
   FOR UPDATE USING (public.is_admin()) WITH CHECK (public.is_admin());
