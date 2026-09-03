@@ -742,9 +742,9 @@ export default function Admin() {
   // Live cash / card+e-wallet split for the open shift, computed straight
   // from `orders` rather than trusting anything cached -- cancelled orders
   // never had cash collected (or had it handed back), so they're excluded.
-  // Refund/void amounts from §4 (orders.refund_*) aren't merged into main
-  // yet, so a partial refund on a still-active order isn't reflected here --
-  // whichever of §4 / §6 merges second should reconcile that.
+  // A partial refund on a still-active (non-cancelled) order reduces what's
+  // actually in the drawer, so it's netted out of the order's total below --
+  // reconciled now that §4's orders.refund_* columns are on main.
   const shiftSalesSummary = useMemo(() => {
     if (!currentShift) return { cashCents: 0, cardEwalletCents: 0 };
     const openedAtMs = new Date(currentShift.opened_at).getTime();
@@ -753,8 +753,9 @@ export default function Admin() {
       if (o.status === 'CANCELLED') return;
       const createdMs = new Date(o.created_at).getTime();
       if (!(createdMs >= openedAtMs)) return;
-      if (isCashOrder(o)) cashCents += (o.total || 0);
-      else cardEwalletCents += (o.total || 0);
+      const netCents = (o.total || 0) - (o.refund_amount || 0);
+      if (isCashOrder(o)) cashCents += netCents;
+      else cardEwalletCents += netCents;
     });
     return { cashCents, cardEwalletCents };
   }, [orders, currentShift]);
@@ -1374,14 +1375,21 @@ export default function Admin() {
       const isGrab = rawChannel === 'grab' || rawChannel === 'grabfood';
       const channelKey = isLoyverse ? 'loyverse' : isGrab ? 'grabfood' : 'web';
 
-      const orderGross = order.total / 100;
+      // Net of any refund/void (§4) -- a fully voided order's refund_amount
+      // equals its total, so this also correctly zeroes out CANCELLED orders'
+      // contribution to gross/net without a separate status filter.
+      const preRefundGross = order.total / 100;
+      const orderGross = (order.total - (order.refund_amount || 0)) / 100;
       const orderItems = order.items || [];
 
       // COGS: sum of each line's real or estimated cost, falling back to the
-      // flat 40% of order total when an order has no item breakdown at all.
+      // flat 40% of the ORIGINAL order total (not the post-refund gross) when
+      // an order has no item breakdown at all -- the ingredients were still
+      // used regardless of what the customer was refunded, so the cost was
+      // still incurred. Only revenue (orderGross above) drops on a refund.
       const cogs = orderItems.length > 0
         ? orderItems.reduce((sum, oi) => sum + lineCost(oi, ((oi.price || 0) * (oi.quantity || 1)) / 100), 0)
-        : orderGross * 0.40;
+        : preRefundGross * 0.40;
       const platformFee = orderGross * (CHANNEL_FEES[channelKey] || 0);
       const orderNet = orderGross - cogs - platformFee;
 
