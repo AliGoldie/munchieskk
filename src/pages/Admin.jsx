@@ -5192,9 +5192,7 @@ export default function Admin() {
                     onChange={(e) => setPromoFormData({ ...promoFormData, min_spend: e.target.value })}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                   />
-                  <small style={{ color: '#fbbf24', fontSize: '0.72rem', marginTop: '4px', display: 'block' }}>
-                    ⚠️ Saved and shown to you here, but not yet enforced at checkout for this promo type — flagged as a follow-up.
-                  </small>
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Enter in cents (e.g. 5000 = RM 50.00). Enforced at checkout.</small>
                 </div>
               )}
 
