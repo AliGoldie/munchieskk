@@ -3630,7 +3630,7 @@ export default function Admin() {
             />
           </div>
           <div className="table-responsive">
-            <table className="admin-table">
+            <table className="admin-table sticky-actions">
               <thead>
                 <tr>
                   <th>Order</th>
@@ -4414,7 +4414,7 @@ export default function Admin() {
           </form>
 
           <div className="table-responsive">
-            <table className="admin-table">
+            <table className="admin-table sticky-actions">
               <thead>
                 <tr>
                   <th>Order</th>

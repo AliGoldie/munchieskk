@@ -100,6 +100,26 @@
   border-bottom-right-radius: 8px;
 }
 
+/* Wide tables (Menu Inventory, Add-ons CRM) scroll horizontally past their
+   final Actions column, so its button could be scrolled out of view with
+   no visible cue -- pin it to the right edge of the scroll area instead. */
+.admin-table.sticky-actions th:last-child,
+.admin-table.sticky-actions td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+}
+
+.admin-table.sticky-actions td:last-child {
+  background-color: #ffffff;
+  box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.12);
+}
+
+.admin-table.sticky-actions th:last-child {
+  background-color: #ffffff;
+  z-index: 3;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
