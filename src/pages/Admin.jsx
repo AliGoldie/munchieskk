@@ -219,7 +219,7 @@ export default function Admin() {
     menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateStock, setStockQuantity,
     syncWarnings, removeSyncWarning,
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
-    addons, itemAddons, addAddon, deleteAddon, moveAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
+    addons, itemAddons, addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
     loyaltyPrizes, redemptions, fetchAdminRedemptions, fulfillRedemption, addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
     isPromoActive, updatePromo,
     categoriesList, addCategory, updateCategory, deleteCategory,
@@ -378,6 +378,8 @@ export default function Admin() {
 
   // Menu Item Detail Editing State
   const [editingMenuItem, setEditingMenuItem] = useState(null);
+  const [editingAddon, setEditingAddon] = useState(null);
+  const [editingAddonImageFile, setEditingAddonImageFile] = useState(null);
   const [assignPickerAddonId, setAssignPickerAddonId] = useState(null);
   const [cancellingOrder, setCancellingOrder] = useState(null);
   const [editingMenuItemImageFile, setEditingMenuItemImageFile] = useState(null);
@@ -1278,6 +1280,29 @@ export default function Admin() {
     setIsUploading(false);
     setEditingMenuItem(null);
     setEditingMenuItemImageFile(null);
+  };
+
+  const handleSaveAddonDetails = async (e) => {
+    e.preventDefault();
+    if (!editingAddon) return;
+
+    setIsUploading(true);
+    let imageUrl = editingAddon.image;
+
+    if (editingAddonImageFile) {
+      const uploaded = await uploadImage(editingAddonImageFile);
+      if (uploaded) imageUrl = uploaded;
+    }
+
+    await updateAddon(editingAddon.id, {
+      name: editingAddon.name,
+      price: editingAddon.price === '' ? null : Math.round(parseFloat(editingAddon.price) * 100),
+      image: imageUrl
+    });
+
+    setIsUploading(false);
+    setEditingAddon(null);
+    setEditingAddonImageFile(null);
   };
 
   const handleCreateCategory = (e) => {
@@ -4511,7 +4536,21 @@ export default function Admin() {
                         })()}
                       </td>
                       <td>
-                        <button className="pill-action-btn pill-red" onClick={() => deleteAddon(addon.id)}><Trash2 size={12} /> Delete</button>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            type="button"
+                            className="pill-action-btn pill-blue"
+                            onClick={() => setEditingAddon({
+                              id: addon.id,
+                              name: addon.name,
+                              price: addon.price != null ? (addon.price / 100).toFixed(2) : '',
+                              image: addon.image || ''
+                            })}
+                          >
+                            <Pencil size={12} /> Edit
+                          </button>
+                          <button className="pill-action-btn pill-red" onClick={() => deleteAddon(addon.id)}><Trash2 size={12} /> Delete</button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -5547,6 +5586,83 @@ export default function Admin() {
           </div>
         );
       })()}
+
+      {/* Edit Add-on Modal */}
+      {editingAddon && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '420px',
+            borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ✏️ Edit Add-on
+              </h3>
+              <button type="button" onClick={() => { setEditingAddon(null); setEditingAddonImageFile(null); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <form onSubmit={handleSaveAddonDetails} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>ADDON NAME</label>
+                <input
+                  type="text"
+                  required
+                  value={editingAddon.name}
+                  onChange={(e) => setEditingAddon({ ...editingAddon, name: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>PRICE (RM)</label>
+                <input
+                  type="number"
+                  step="0.10"
+                  placeholder="Leave blank for TBD"
+                  value={editingAddon.price}
+                  onChange={(e) => setEditingAddon({ ...editingAddon, price: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>UPDATE ADDON IMAGE</label>
+                {editingAddon.image && !editingAddonImageFile && (
+                  <img src={editingAddon.image} alt={editingAddon.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px' }} />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setEditingAddonImageFile(e.target.files?.[0] || null)}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button
+                  type="submit"
+                  disabled={isUploading}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#22c55e', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  {isUploading ? 'Saving...' : 'Save Add-on Changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEditingAddon(null); setEditingAddonImageFile(null); }}
+                  style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
         {/* Cancellation Modal */}
       {cancellingOrder && (

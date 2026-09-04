@@ -971,6 +971,18 @@ const clearManualOverride = async (id) => {
     }
   };
   
+  // Generic addon field updater (name/image today) -- mirrors updateMenuItem.
+  const updateAddon = async (id, fields) => {
+    const previousAddons = addons;
+    setAddons(prev => prev.map(a => a.id === id ? { ...a, ...fields } : a));
+    const { error } = await supabase.from('addons').update(fields).eq('id', id);
+    if (error) {
+      console.error('Failed to update addon:', error);
+      alert('Failed to update addon: ' + error.message);
+      setAddons(previousAddons);
+    }
+  };
+
   const toggleItemAddon = async (itemId, addonId) => {
     const currentList = itemAddons[itemId] || [];
     const isLinked = currentList.includes(addonId);
@@ -1496,7 +1508,7 @@ const clearManualOverride = async (id) => {
       toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateOrderState, collectOrder, acceptOrder, cancelOrder,
       updateStock, setStockQuantity, clearManualOverride,
       isPromoActive, updatePromo,
-      addAddon, deleteAddon, moveAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
+      addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, claimShareBonus, fetchSingleOrder,
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
