@@ -9,53 +9,200 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ClipboardList } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Admin.css';
 
-function SyncToastItem({ warning, onDismiss }) {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onDismiss(warning.id);
-    }, 10000);
-    return () => clearTimeout(timer);
-  }, [warning.id, onDismiss]);
+// Stored timestamps (order created_at, shift opened_at, etc.) are UTC and
+// were being rendered with the *viewing device's* timezone via bare
+// toLocaleString()/toLocaleDateString() -- fine on a phone set to Malaysia
+// time, wrong on any browser/device set to something else (UTC cloud
+// browsers, a traveling admin, a misconfigured phone). MunchiesKK has one
+// physical location, so every timestamp is pinned to the store's own
+// timezone instead of trusting the viewer's device.
+const STORE_TIMEZONE = 'Asia/Kuala_Lumpur';
+function formatStoreDateTime(dateInput, opts = {}) {
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  return d.toLocaleString('en-MY', { timeZone: STORE_TIMEZONE, ...opts });
+}
+function formatStoreDate(dateInput, opts = {}) {
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  return d.toLocaleDateString('en-MY', { timeZone: STORE_TIMEZONE, ...opts });
+}
 
+// §1 Live Orders: cancel-reason chips (docs/design/HANDOFF-ADMIN-CRM.md §1).
+const CANCEL_REASONS = ['Customer no-show', 'Item out of stock', 'Duplicate order', 'Payment failed', 'Kitchen error', 'Other'];
+
+// §4 Order History: refund/void reason codes.
+const REFUND_REASONS = ['Item made wrong', 'Missing item', 'Late collection', 'Quality complaint', 'Duplicate charge', 'Goodwill'];
+
+// Same channel classification Analytics already uses (order.channel, three
+// copies inline there) -- pulled out here since §4's filter needs the exact
+// same logic; the existing Analytics copies are left as-is, out of scope.
+function getOrderChannelKey(order) {
+  const rawChannel = (order.channel || 'web').toLowerCase();
+  if (rawChannel === 'loyverse' || rawChannel === 'pos' || rawChannel === 'walkin' || rawChannel === 'walk-in') return 'loyverse';
+  if (rawChannel === 'grab' || rawChannel === 'grabfood') return 'grabfood';
+  return 'web';
+}
+
+// Audit log Detail column: `admin_audit.detail` stores raw values as
+// logged (e.g. money in integer cents, matching orders.total elsewhere in
+// this schema), which reads as a confusing bare number like 10000 rather
+// than RM 100.00. Only these known money-cents keys get reformatted --
+// everything else (ids, counts, quantities, reasons, names, dates) is left
+// exactly as logged.
+const AUDIT_MONEY_KEYS = new Set(['amountCents', 'opening_float', 'counted', 'expected', 'variance']);
+function formatAuditDetail(detail) {
+  if (!detail || typeof detail !== 'object') return '';
+  const parts = Object.entries(detail).map(([key, value]) => {
+    if (AUDIT_MONEY_KEYS.has(key) && typeof value === 'number') {
+      const sign = value < 0 ? '-' : '';
+      return `${key}: ${sign}RM ${(Math.abs(value) / 100).toFixed(2)}`;
+    }
+    return `${key}: ${JSON.stringify(value)}`;
+  });
+  return parts.join(', ');
+}
+
+// §2 Customers CRM: same avatar palette as Profile.jsx's picker (per the
+// brief: reuse it for the CRM detail view rather than a new colour ramp).
+const CUSTOMER_AVATAR_COLORS = {
+  ember: '#F04E23', gold: '#FFC72C', green: '#5FD68C', purple: '#C77DFF', blue: '#63A7F5'
+};
+const CUSTOMER_SEGMENTS = ['First-timer', 'At risk', 'VIP', 'Regular', 'Occasional'];
+
+// Evaluated in this order per the brief -- e.g. a 6th-order customer who
+// hasn't been back in 30 days reads as "At risk", not "Regular".
+function getCustomerSegment(orderCount, lifetimeCents, lastSeenDays) {
+  if (orderCount === 0) return 'Occasional'; // never ordered -- no churn to be "at risk" of yet
+  if (orderCount === 1) return 'First-timer';
+  if (lastSeenDays != null && lastSeenDays > 21) return 'At risk';
+  if (lifetimeCents >= 60000) return 'VIP';
+  if (orderCount >= 5) return 'Regular';
+  return 'Occasional';
+}
+
+// §3 Analytics: date-range presets (docs/design/HANDOFF-ADMIN-CRM.md §3).
+// Each preset just computes a {start, end} pair for the existing
+// selectedDateRange state -- the trend chart already buckets daily whenever
+// selectedDateRange is set (see processAnalyticsData), so these presets need
+// no changes to the aggregation/bucketing logic at all.
+const DATE_RANGE_PRESETS = ['Today', '7d', '30d', 'This month'];
+function computePresetDateRange(preset) {
+  const end = new Date();
+  const toStr = (d) => d.toISOString().split('T')[0];
+  const endStr = toStr(end);
+  if (preset === 'Today') return { start: endStr, end: endStr };
+  if (preset === '7d') {
+    const s = new Date(end); s.setDate(s.getDate() - 6);
+    return { start: toStr(s), end: endStr };
+  }
+  if (preset === '30d') {
+    const s = new Date(end); s.setDate(s.getDate() - 29);
+    return { start: toStr(s), end: endStr };
+  }
+  if (preset === 'This month') {
+    const s = new Date(end.getFullYear(), end.getMonth(), 1);
+    return { start: toStr(s), end: endStr };
+  }
+  return null;
+}
+
+// §8 Menu & Add-ons: the one cost/margin line format, shared verbatim by the
+// Menu CRM row, the Add-item form's cost field, and the Edit Details modal
+// so all three always agree. Both prices are in cents.
+function getCostMarginDisplay(costPriceCents, priceCents) {
+  if (costPriceCents == null || costPriceCents === '') {
+    return { text: 'Not set · est. 40%', estimated: true };
+  }
+  const cost = costPriceCents / 100;
+  const price = (priceCents || 0) / 100;
+  const marginPct = price > 0 ? ((price - cost) / price) * 100 : 0;
+  return { text: `RM ${cost.toFixed(2)} · ${marginPct.toFixed(0)}%`, estimated: false };
+}
+
+function CostMarginLine({ costPriceCents, priceCents, dark, style }) {
+  const { text, estimated } = getCostMarginDisplay(costPriceCents, priceCents);
+  const normalColor = dark ? 'rgba(255,255,255,0.55)' : 'var(--text-muted)';
+  const estimatedColor = dark ? '#fbbf24' : '#b45309';
   return (
-    <div style={{
-      backgroundColor: '#fffbeb',
-      border: '1.5px solid #f59e0b',
-      borderRadius: '12px',
-      padding: '0.875rem 1rem',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-      width: '380px',
-      maxWidth: 'calc(100vw - 32px)',
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '10px',
-      pointerEvents: 'auto'
-    }}>
-      <AlertTriangle size={20} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 'bold', color: '#92400e', fontSize: '0.85rem' }}>
-          Loyverse POS Sync Warning
+    <div style={{ fontSize: '0.75rem', fontWeight: estimated ? 700 : 400, color: estimated ? estimatedColor : normalColor, marginTop: '2px', ...style }}>
+      {text}
+    </div>
+  );
+}
+
+// Unified toast queue (§0 shared machinery). One store, four kinds, replacing
+// the old one-off SyncToastItem -- Loyverse sync warnings now render through
+// this same stack as 'warn' kind toasts instead of a bespoke component.
+const TOAST_KIND_STYLE = {
+  info:   { bg: '#17150F', fg: '#FFC72C', border: '#17150F' },
+  new:    { bg: '#0F7A4F', fg: '#BDE5D1', border: '#0F7A4F' },
+  danger: { bg: '#8E1F1B', fg: '#F5B7B1', border: '#8E1F1B' },
+  warn:   { bg: '#8A6100', fg: '#FFE9A8', border: '#8A6100' }
+};
+
+function AdminToast({ toast, onDismiss }) {
+  const style = TOAST_KIND_STYLE[toast.kind] || TOAST_KIND_STYLE.info;
+  return (
+    <div
+      className="admin-toast-item"
+      style={{
+        backgroundColor: style.bg,
+        color: style.fg,
+        border: `1.5px solid ${style.border}`,
+        borderRadius: '12px',
+        padding: '0.875rem 1rem',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+        width: '380px',
+        maxWidth: 'calc(100vw - 32px)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px',
+        pointerEvents: 'auto'
+      }}
+    >
+      {toast.kind === 'warn' && <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {toast.title && (
+          <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>{toast.title}</div>
+        )}
+        <div style={{ fontSize: '0.8rem', marginTop: toast.title ? '2px' : 0, lineHeight: 1.35 }}>
+          {toast.msg}
         </div>
-        <div style={{ color: '#78350f', fontSize: '0.8rem', marginTop: '2px', lineHeight: 1.35 }}>
-          Price updated on website, but failed to sync <strong>{warning.itemName}</strong> to Loyverse POS ({warning.error}). Prices may be out of sync.
-        </div>
+        {toast.undo && (
+          <button
+            onClick={() => { toast.undo(); onDismiss(toast.id); }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              textDecoration: 'underline',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+              padding: 0,
+              marginTop: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Undo
+          </button>
+        )}
       </div>
       <button
-        onClick={() => onDismiss(warning.id)}
+        onClick={() => onDismiss(toast.id)}
         style={{
           background: 'none',
           border: 'none',
-          color: '#b45309',
+          color: 'inherit',
           cursor: 'pointer',
           fontWeight: 'bold',
           fontSize: '1rem',
           padding: '0 2px',
-          lineHeight: 1
+          lineHeight: 1,
+          opacity: 0.8
         }}
         title="Dismiss"
       >
@@ -78,8 +225,104 @@ export default function Admin() {
     categoriesList, addCategory, updateCategory, deleteCategory,
     shopSettings, updateShopSettings, isShopOpenNow
   } = useStore();
-  
+
+  // ── §0 shared machinery: toast queue, audit log, roles ──────────────────
+  const [toasts, setToasts] = useState([]);
+  const toastTimersRef = useRef(new Map());
+  const [viewingAsStaff, setViewingAsStaff] = useState(false);
+  const [auditLog, setAuditLog] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  // ── §1 Live Orders: new-order sound toggle + badge flash ────────────────
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try { return localStorage.getItem('munchies_admin_sound_enabled') !== 'false'; } catch (e) { return true; }
+  });
+  const [badgeFlashing, setBadgeFlashing] = useState(false);
+  const prevPendingCountRef = useRef(0);
+
+  const toggleSound = () => {
+    setSoundEnabled(prev => {
+      const next = !prev;
+      try { localStorage.setItem('munchies_admin_sound_enabled', String(next)); } catch (e) {}
+      if (!next) stopNewOrderAlert();
+      return next;
+    });
+  };
+
+  const dismissToast = (id) => {
+    const timer = toastTimersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      toastTimersRef.current.delete(id);
+    }
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  // kind: 'info' | 'new' | 'danger' | 'warn'. Max 4 visible, newest at the
+  // bottom. Auto-dismisses after 6.5s (11s for 'warn' -- those carry more to
+  // read). Every destructive action should pass an `undo` closure.
+  const pushToast = ({ msg, kind = 'info', title = null, undo = null }) => {
+    const id = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    setToasts(prev => {
+      const next = [...prev, { id, msg, kind, title, undo }];
+      return next.length > 4 ? next.slice(next.length - 4) : next;
+    });
+    const timer = setTimeout(() => dismissToast(id), kind === 'warn' ? 11000 : 6500);
+    toastTimersRef.current.set(id, timer);
+    return id;
+  };
+
+  useEffect(() => {
+    const timers = toastTimersRef.current;
+    return () => { timers.forEach(t => clearTimeout(t)); };
+  }, []);
+
+  // Every mutation that matters writes one row here. admin_audit is
+  // insert+select only for admins (see the migration) -- there is no update
+  // or delete path, by design.
+  const logAudit = async (action, detail = null) => {
+    try {
+      await supabase.from('admin_audit').insert([{
+        actor_id: user?.id || null,
+        actor_role: user?.role || null,
+        action,
+        detail
+      }]);
+    } catch (e) {
+      console.error('Failed to write audit log row:', e);
+    }
+  };
+
+  const fetchAuditLog = async () => {
+    setAuditLoading(true);
+    const { data, error } = await supabase
+      .from('admin_audit')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (!error && data) setAuditLog(data);
+    setAuditLoading(false);
+  };
+
+  // The mockup fakes owner/staff with a sidebar click; production would read
+  // this from the session instead. Switching to staff view backs out of any
+  // tab staff can't see, so it never lands on a blank pane.
+  const toggleStaffView = () => {
+    setViewingAsStaff(prev => {
+      const next = !prev;
+      if (next && (activeTab === 'analytics' || activeTab === 'audit')) {
+        setActiveTab('overview');
+      }
+      return next;
+    });
+  };
+  // ── end §0 shared machinery ──────────────────────────────────────────────
+
   const [editingPrice, setEditingPrice] = useState({});
+  const [editingCostPrice, setEditingCostPrice] = useState({});
+  const [uploadingImageIds, setUploadingImageIds] = useState(new Set());
+  const [newItemPhotoStatus, setNewItemPhotoStatus] = useState('idle'); // 'idle' | 'uploading' | 'attached'
+  const [newItemPhotoMeta, setNewItemPhotoMeta] = useState(null); // { name, size }
   const [editingAddonPrice, setEditingAddonPrice] = useState({});
   const [editingAddonStock, setEditingAddonStock] = useState({});
   const [editingAddonLowStock, setEditingAddonLowStock] = useState({});
@@ -87,7 +330,39 @@ export default function Admin() {
   const [editingLowStock, setEditingLowStock] = useState({});
   const [editingPromo, setEditingPromo] = useState({});
   const [expandedHistoryOrderIds, setExpandedHistoryOrderIds] = useState(new Set());
-  const [visibleHistoryCount, setVisibleHistoryCount] = useState(5);
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState(6);
+  const [historyChannelFilter, setHistoryChannelFilter] = useState('All');
+  const [refundingOrder, setRefundingOrder] = useState(null); // { id, total, amountMode: 'full'|'half', reason }
+
+  const refundOrder = async (orderId, amountCents, reason, isFull) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return false;
+    const patch = {
+      refund_amount: amountCents,
+      refund_reason: reason,
+      refunded_at: new Date().toISOString()
+    };
+    if (isFull) patch.status = 'CANCELLED';
+    const { error } = await supabase.from('orders').update(patch).eq('id', orderId);
+    if (error) {
+      console.error('Failed to refund order:', error);
+      alert("We couldn't complete that right now. Please try again.");
+      return false;
+    }
+    logAudit(isFull ? 'Order voided (full refund)' : 'Order refunded (partial)', { orderId, amountCents, reason });
+    pushToast({
+      kind: 'danger',
+      title: isFull ? 'Order voided' : 'Refund recorded',
+      msg: `#${formatOrderId(orderId)} — RM ${(amountCents / 100).toFixed(2)} (${reason})`,
+      undo: async () => {
+        const revertPatch = { refund_amount: null, refund_reason: null, refunded_at: null };
+        if (isFull) revertPatch.status = order.status;
+        await supabase.from('orders').update(revertPatch).eq('id', orderId);
+        logAudit('Refund undone', { orderId });
+      }
+    });
+    return true;
+  };
 
   const toggleHistoryOrderExpand = (orderId) => {
     setExpandedHistoryOrderIds(prev => {
@@ -113,6 +388,10 @@ export default function Admin() {
   const [newCatColor, setNewCatColor] = useState('#ef4444');
   const [editingCat, setEditingCat] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => {
+    if (activeTab === 'audit') fetchAuditLog();
+  }, [activeTab]);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   // Local draft state for the schedule modal — avoids stale closure bugs
   const [localSchedule, setLocalSchedule] = useState(null);
@@ -147,17 +426,118 @@ export default function Admin() {
     updateShopSettings(prev => ({
       weeklySchedule: { ...(prev.weeklySchedule || {}), [day]: dayUpdated }
     }));
+    logAudit('Schedule updated', { day, ...patch });
+    // Only toast the discrete open/closed toggle, not every open/close time
+    // input change -- a dragged or typed time value fires onChange several
+    // times per edit, and a toast per keystroke would be spammy. All changes
+    // still land in the audit log above.
+    if ('enabled' in patch) {
+      pushToast({
+        msg: `${day} is now ${patch.enabled ? 'open' : 'closed'} on the weekly schedule`,
+        kind: 'info',
+        title: 'Schedule saved'
+      });
+    }
   };
 
   const saveClosures = (newClosures) => {
+    const previous = localClosures || [];
     setLocalClosures(newClosures);
     updateShopSettings({ specialClosures: newClosures });
+    if (newClosures.length > previous.length) {
+      const added = newClosures.find(c => !previous.some(p => p.date === c.date));
+      logAudit('Special closure added', added || { closures: newClosures });
+      pushToast({
+        msg: added ? `${added.date} marked closed (${added.reason})` : 'Closure added',
+        kind: 'warn',
+        title: 'Schedule saved'
+      });
+    } else if (newClosures.length < previous.length) {
+      const removed = previous.find(p => !newClosures.some(c => c.date === p.date));
+      logAudit('Special closure removed', removed || { closures: newClosures });
+      pushToast({
+        msg: removed ? `${removed.date} closure removed` : 'Closure removed',
+        kind: 'info',
+        title: 'Schedule saved'
+      });
+    }
   };
   const [analyticsPeriod, setAnalyticsPeriod] = useState('daily'); // 'daily', 'monthly', 'yearly'
-  const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
+  // Defaults to the "7d" preset so the initial Analytics view and the chip
+  // row agree on what's showing, instead of loading with no chip active.
+  const [selectedDateRange, setSelectedDateRange] = useState(() => computePresetDateRange('7d'));
   const [menuSearchQuery, setMenuSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
-  
+
+  // ── §2 Customers CRM: segments, tags/note editing, blast composer ───────
+  const [customerSegmentFilter, setCustomerSegmentFilter] = useState('All');
+  const [blastComposer, setBlastComposer] = useState(null); // { channel, message } | null
+  const [tagDraft, setTagDraft] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingCustomer, setSavingCustomer] = useState(false);
+
+  const updateCustomerProfile = async (customerId, patch) => {
+    const { error } = await supabase.from('profiles').update(patch).eq('id', customerId);
+    if (error) {
+      console.error('Failed to update customer profile:', error);
+      alert("We couldn't save that right now. Please try again.");
+      return false;
+    }
+    return true;
+  };
+
+  // Lifetime spend / order count / segment all read off completed orders
+  // only -- CANCELLED orders still show in a customer's timeline (for a full
+  // picture) but shouldn't count toward spend or push someone into VIP.
+  const customersWithMeta = useMemo(() => {
+    const now = Date.now();
+    return customers.map(customer => {
+      const timelineOrders = orders
+        .filter(o => o.user_id === customer.id && o.status !== 'PENDING')
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const completedOrders = timelineOrders.filter(o => o.status !== 'CANCELLED');
+      const lifetimeCents = completedOrders.reduce((sum, o) => sum + o.total, 0);
+      const orderCount = completedOrders.length;
+      const avgCents = orderCount > 0 ? Math.round(lifetimeCents / orderCount) : 0;
+      const lastOrderMs = completedOrders.reduce((latest, o) => {
+        const t = new Date(o.created_at).getTime();
+        return t > latest ? t : latest;
+      }, 0);
+      const lastSeenDays = lastOrderMs > 0 ? Math.floor((now - lastOrderMs) / 86400000) : null;
+      const segment = getCustomerSegment(orderCount, lifetimeCents, lastSeenDays);
+      return { ...customer, timelineOrders, lifetimeCents, orderCount, avgCents, lastSeenDays, segment };
+    });
+  }, [customers, orders]);
+
+  const segmentCounts = useMemo(() => {
+    const counts = { All: customersWithMeta.length };
+    CUSTOMER_SEGMENTS.forEach(s => { counts[s] = 0; });
+    customersWithMeta.forEach(c => { counts[c.segment] = (counts[c.segment] || 0) + 1; });
+    return counts;
+  }, [customersWithMeta]);
+
+  const filteredCustomers = customerSegmentFilter === 'All'
+    ? customersWithMeta
+    : customersWithMeta.filter(c => c.segment === customerSegmentFilter);
+
+  const openCustomerDetail = (customer) => {
+    setSelectedCustomerId(customer.id);
+    setTagDraft(customer.tags || []);
+    setTagInput('');
+    setNoteDraft(customer.note || '');
+  };
+
+  const saveCustomerTagsAndNote = async (customerId) => {
+    setSavingCustomer(true);
+    const ok = await updateCustomerProfile(customerId, { tags: tagDraft, note: noteDraft.trim() || null });
+    setSavingCustomer(false);
+    if (ok) {
+      logAudit('Customer note/tags saved', { customerId, tags: tagDraft, note: noteDraft.trim() || null });
+      pushToast({ kind: 'new', msg: 'Customer profile saved.' });
+    }
+  };
+
   // New Addon State
   const [newAddonName, setNewAddonName] = useState('');
   const [newAddonPrice, setNewAddonPrice] = useState('');
@@ -178,41 +558,47 @@ export default function Admin() {
   const [grabFoodShiftPercent, setGrabFoodShiftPercent] = useState(0);
   const [topItemsChannelFilter, setTopItemsChannelFilter] = useState('all'); // 'all', 'web', 'loyverse'
 
+  // Shift Handover / Cash-Up State (§6) — backed by public.shifts
+  const [shifts, setShifts] = useState([]);
+  const [openingFloatInput, setOpeningFloatInput] = useState('');
+  const [openingFloatEditValue, setOpeningFloatEditValue] = useState('');
+  const [countedInput, setCountedInput] = useState('');
+  const [savingShift, setSavingShift] = useState(false);
+
+  // §5b: Pause online ordering / customer notice
+  const [noticeMessageInput, setNoticeMessageInput] = useState('');
+  const [savingNotice, setSavingNotice] = useState(false);
+  useEffect(() => {
+    setNoticeMessageInput(shopSettings?.noticeMessage || '');
+  }, [shopSettings?.noticeMessage]);
+
+  // §5b: Waste log (writes the existing, previously-unused waste_log table)
+  const WASTE_REASONS = ['Made wrong', 'Dropped', 'End of night', 'Expired'];
+  const [wasteLog, setWasteLog] = useState([]);
+  const [wasteItemId, setWasteItemId] = useState('');
+  const [wasteQty, setWasteQty] = useState('');
+  const [wasteReason, setWasteReason] = useState(WASTE_REASONS[0]);
+  const [savingWaste, setSavingWaste] = useState(false);
+
   // Promos & Referrals State
   const [promoCodes, setPromoCodes] = useState([]);
   const [referralStats, setReferralStats] = useState([]);
   const [activePromoSubTab, setActivePromoSubTab] = useState('codes'); // 'codes', 'referrals', 'items'
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
-  const [promoFormData, setPromoFormData] = useState({
-    code: '', name: '', type: 'percent_off', value: '', 
-    applies_to_item_id: '', min_spend: '', free_item_id: '', 
-    max_total_uses: '', max_uses_per_user: '', starts_at: '', ends_at: '', stackable_with_item_promos: false
-  });
+  const [savingPromo, setSavingPromo] = useState(false);
+  const EMPTY_PROMO_FORM = {
+    id: null, code: '', name: '', type: 'percent_off', value: '',
+    applies_to_item_id: '', min_spend: '', free_item_id: '',
+    max_total_uses: '', max_uses_per_user: '', starts_at: '', ends_at: '',
+    stackable_with_item_promos: false, active: true
+  };
+  const [promoFormData, setPromoFormData] = useState(EMPTY_PROMO_FORM);
 
-  // Notes & Upcoming Events State
-  const [eventsNotes, setEventsNotes] = useState(() => {
-    try {
-      const saved = localStorage.getItem('munchies_admin_events_notes');
-      return saved ? JSON.parse(saved) : [
-        {
-          id: 'evt-1',
-          date: new Date().toISOString().split('T')[0],
-          title: '🔥 CZ CHIX Promotion Starts',
-          type: 'promo',
-          description: 'Special 5,000 PTS prize vault unlock & win bonus.'
-        },
-        {
-          id: 'evt-2',
-          date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-          title: '📦 Weekly Ingredient Restock',
-          type: 'event',
-          description: 'Restock Mushy2 burger patties & Solero ice creams.'
-        }
-      ];
-    } catch (e) {
-      return [];
-    }
-  });
+  // Notes & Upcoming Events State — backed by public.store_events (see
+  // 20260902000006_add_store_events.sql). Used to live in localStorage under
+  // munchies_admin_events_notes; fetchStoreEvents() migrates any leftover
+  // entries from that key into the table once, then drops the key.
+  const [eventsNotes, setEventsNotes] = useState([]);
 
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [selectedEventDate, setSelectedEventDate] = useState(new Date().toISOString().split('T')[0]);
@@ -233,6 +619,82 @@ export default function Admin() {
     }));
   }, [menu]);
 
+  // §5b: Prep board — tonight's projected demand is the average quantity sold
+  // on this weekday over the last 8 weeks. Cancelled orders never actually
+  // moved stock, so they're excluded from "sold".
+  const prepBoardData = useMemo(() => {
+    const todayIdx = new Date().getDay();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 56);
+    const qtyByItem = {};
+    orders.forEach(o => {
+      if (o.status === 'CANCELLED') return;
+      const created = new Date(o.created_at);
+      if (created < cutoff || created.getDay() !== todayIdx) return;
+      (o.items || []).forEach(oi => {
+        if (oi.id == null) return;
+        const key = String(oi.id);
+        qtyByItem[key] = (qtyByItem[key] || 0) + (oi.quantity || 1);
+      });
+    });
+    return menu
+      .map(item => {
+        const totalSold = qtyByItem[String(item.id)] || 0;
+        const projected = Math.round(totalSold / 8);
+        const stock = item.stock_quantity ?? 0;
+        const covered = stock >= projected;
+        const prepNeeded = Math.max(0, projected - stock);
+        const fillPct = projected > 0 ? Math.min(100, Math.round((stock / projected) * 100)) : 100;
+        return { id: item.id, name: item.name, projected, stock, covered, prepNeeded, fillPct };
+      })
+      .filter(r => r.projected > 0)
+      .sort((a, b) => b.projected - a.projected)
+      .slice(0, 6);
+  }, [orders, menu]);
+
+  // §5b: Food cost tonight — (COGS + waste) / gross sales for today's
+  // orders, real cost_price per line falling back to the 40% estimate this
+  // dashboard uses everywhere else. A wasted (unsold) item has no line
+  // revenue to estimate 40% of, so its fallback is 40% of its normal
+  // selling price instead -- same ratio, applied to the closest available
+  // number.
+  const foodCostTonight = useMemo(() => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const uncostedItemIds = new Set();
+    let grossRm = 0;
+    let cogsRm = 0;
+
+    orders.forEach(o => {
+      if (o.status === 'CANCELLED') return;
+      const created = new Date(o.created_at);
+      if (created < startOfDay) return;
+      grossRm += (o.total || 0) / 100;
+      (o.items || []).forEach(oi => {
+        const lineRevenueRm = ((oi.price || 0) * (oi.quantity || 1)) / 100;
+        const menuItem = menu.find(m => String(m.id) === String(oi.id));
+        if (menuItem && menuItem.cost_price != null) {
+          cogsRm += (menuItem.cost_price * (oi.quantity || 1)) / 100;
+        } else {
+          cogsRm += lineRevenueRm * 0.40;
+          if (oi.id != null) uncostedItemIds.add(String(oi.id));
+        }
+      });
+    });
+
+    let wasteRm = 0;
+    wasteLog.forEach(w => {
+      const menuItem = menu.find(m => String(m.id) === String(w.item_id));
+      if (!menuItem) return;
+      const perUnitRm = menuItem.cost_price != null ? menuItem.cost_price / 100 : (menuItem.price * 0.40) / 100;
+      wasteRm += perUnitRm * (w.quantity || 0);
+      if (menuItem.cost_price == null) uncostedItemIds.add(String(menuItem.id));
+    });
+
+    const pct = grossRm > 0 ? ((cogsRm + wasteRm) / grossRm) * 100 : 0;
+    return { pct, grossRm, cogsRm, wasteRm, uncostedCount: uncostedItemIds.size };
+  }, [orders, menu, wasteLog]);
+
   const pendingOrders = orders.filter(o => o.status === 'PENDING');
   const activeOrders = orders.filter(o => o.status !== 'COLLECTED' && o.status !== 'CANCELLED');
 
@@ -244,6 +706,18 @@ export default function Admin() {
     if (!prize || !prize.menu_item_id) return null;
     const menuItem = menu.find(m => String(m.id) === String(prize.menu_item_id));
     return menuItem && menuItem.cost_price != null ? menuItem.cost_price / 100 : null;
+  };
+  // §8: three distinct states for the Redemptions Cost column -- "not
+  // linked" (free-choice prize, no menu_item_id at all) and "no cost set"
+  // (linked, but that item has no cost_price) used to collapse into the
+  // same "Not set" label. Always resolved via prizes.menu_item_id, never by
+  // matching prize name to a menu item.
+  const getRedemptionCostState = (r) => {
+    const prize = loyaltyPrizes.find(p => p.id === r.prize_id);
+    if (!prize || !prize.menu_item_id) return { state: 'not_linked' };
+    const menuItem = menu.find(m => String(m.id) === String(prize.menu_item_id));
+    if (!menuItem || menuItem.cost_price == null) return { state: 'no_cost' };
+    return { state: 'costed', amount: menuItem.cost_price / 100 };
   };
   const totalRedemptionValue = redemptions.reduce((sum, r) => sum + (getRedemptionCost(r) || 0), 0);
   const redemptionsMissingCost = redemptions.filter(r => getRedemptionCost(r) == null).length;
@@ -259,6 +733,252 @@ export default function Admin() {
       fetchAdminRedemptions();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'overview') {
+      fetchShifts();
+      fetchWasteLog();
+      fetchStoreEvents();
+    }
+  }, [activeTab]);
+
+  const fetchShifts = async () => {
+    try {
+      const { data, error } = await supabase.from('shifts').select('*').order('opened_at', { ascending: false }).limit(20);
+      if (error) throw error;
+      setShifts(data || []);
+    } catch (e) {
+      console.error('Failed to fetch shifts:', e);
+    }
+  };
+
+  // Cents helpers — money in `shifts` and `orders.total` is stored as integer
+  // cents; the inputs on this card are plain RM strings.
+  const rmToCents = (rmString) => Math.round((parseFloat(rmString) || 0) * 100);
+  const centsToRm = (cents) => ((cents || 0) / 100).toFixed(2);
+
+  const isCashOrder = (order) => {
+    const pm = (order.payment_method || order.paymentMethod || '').toString().toLowerCase();
+    return pm === 'cash';
+  };
+
+  const currentShift = useMemo(() => shifts.find(s => !s.closed_at) || null, [shifts]);
+  // Only the most recently opened shift can be reopened, and only once no
+  // newer shift has been started -- shifts[0] (opened_at desc) being closed
+  // while there's no currentShift is exactly that condition.
+  const reopenableShift = (!currentShift && shifts[0] && shifts[0].closed_at) ? shifts[0] : null;
+
+  // Reset the opening-float draft whenever the open shift changes (a new
+  // shift opens, or the last one is reopened) so a stale typed value from a
+  // previous shift never lingers in the input.
+  useEffect(() => {
+    setOpeningFloatEditValue('');
+  }, [currentShift?.id]);
+
+  // Live cash / card+e-wallet split for the open shift, computed straight
+  // from `orders` rather than trusting anything cached -- cancelled orders
+  // never had cash collected (or had it handed back), so they're excluded.
+  // A partial refund on a still-active (non-cancelled) order reduces what's
+  // actually in the drawer, so it's netted out of the order's total below --
+  // reconciled now that §4's orders.refund_* columns are on main.
+  const shiftSalesSummary = useMemo(() => {
+    if (!currentShift) return { cashCents: 0, cardEwalletCents: 0 };
+    const openedAtMs = new Date(currentShift.opened_at).getTime();
+    let cashCents = 0, cardEwalletCents = 0;
+    orders.forEach(o => {
+      if (o.status === 'CANCELLED') return;
+      const createdMs = new Date(o.created_at).getTime();
+      if (!(createdMs >= openedAtMs)) return;
+      const netCents = (o.total || 0) - (o.refund_amount || 0);
+      if (isCashOrder(o)) cashCents += netCents;
+      else cardEwalletCents += netCents;
+    });
+    return { cashCents, cardEwalletCents };
+  }, [orders, currentShift]);
+
+  const expectedDrawerCents = currentShift ? (currentShift.opening_float || 0) + shiftSalesSummary.cashCents : 0;
+  const countedCentsPreview = countedInput !== '' ? rmToCents(countedInput) : null;
+  const varianceCentsPreview = countedCentsPreview !== null ? countedCentsPreview - expectedDrawerCents : null;
+
+  const openShift = async () => {
+    setSavingShift(true);
+    try {
+      const floatCents = rmToCents(openingFloatInput);
+      const { error } = await supabase.from('shifts').insert([{ opening_float: floatCents }]);
+      if (error) { alert(error.message); return; }
+      logAudit('Shift opened', { opening_float: floatCents });
+      pushToast({ msg: `Shift opened with RM ${centsToRm(floatCents)} float`, kind: 'new', title: 'Shift opened' });
+      setOpeningFloatInput('');
+      setCountedInput('');
+      fetchShifts();
+    } finally {
+      setSavingShift(false);
+    }
+  };
+
+  const saveOpeningFloat = async () => {
+    if (!currentShift) return;
+    const floatCents = rmToCents(openingFloatEditValue);
+    const { error } = await supabase.from('shifts').update({ opening_float: floatCents }).eq('id', currentShift.id);
+    if (error) { alert(error.message); return; }
+    logAudit('Shift opening float adjusted', { shiftId: currentShift.id, opening_float: floatCents });
+    pushToast({ msg: `Opening float updated to RM ${centsToRm(floatCents)}`, kind: 'info', title: 'Shift updated' });
+    fetchShifts();
+  };
+
+  const reopenShift = async (shiftId) => {
+    const { error } = await supabase.from('shifts').update({ closed_at: null, counted: null, expected: null, variance: null }).eq('id', shiftId);
+    if (error) { alert(error.message); return; }
+    logAudit('Shift reopened', { shiftId });
+    fetchShifts();
+  };
+
+  const closeShift = async () => {
+    if (!currentShift) return;
+    if (countedInput === '') { alert('Enter the counted drawer amount before closing the shift.'); return; }
+    const countedCents = rmToCents(countedInput);
+    const expectedCents = expectedDrawerCents;
+    const varianceCents = countedCents - expectedCents;
+    const shiftId = currentShift.id;
+    setSavingShift(true);
+    try {
+      const { error } = await supabase.from('shifts').update({
+        closed_at: new Date().toISOString(),
+        counted: countedCents,
+        expected: expectedCents,
+        variance: varianceCents,
+        closed_by: user?.id || null
+      }).eq('id', shiftId);
+      if (error) { alert(error.message); return; }
+      logAudit('Shift closed', { shiftId, counted: countedCents, expected: expectedCents, variance: varianceCents });
+      const varianceOk = Math.abs(varianceCents) <= 500;
+      pushToast({
+        msg: `Counted RM ${centsToRm(countedCents)} vs expected RM ${centsToRm(expectedCents)} (variance ${varianceCents >= 0 ? '+' : '-'}RM ${centsToRm(Math.abs(varianceCents))}${varianceOk ? '' : ' — investigate'})`,
+        kind: varianceOk ? 'info' : 'warn',
+        title: 'Shift closed',
+        undo: () => reopenShift(shiftId)
+      });
+      setCountedInput('');
+      fetchShifts();
+    } finally {
+      setSavingShift(false);
+    }
+  };
+
+  const fetchWasteLog = async () => {
+    try {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase
+        .from('waste_log')
+        .select('*')
+        .gte('timestamp', startOfDay.toISOString())
+        .order('timestamp', { ascending: false });
+      if (error) throw error;
+      setWasteLog(data || []);
+    } catch (e) {
+      console.error('Failed to fetch waste log:', e);
+    }
+  };
+
+  const logWaste = async () => {
+    if (!wasteItemId) { alert('Select an item to log waste for.'); return; }
+    const qty = parseInt(wasteQty, 10);
+    if (!qty || qty <= 0) { alert('Enter a quantity greater than zero.'); return; }
+    setSavingWaste(true);
+    try {
+      const { error } = await supabase.from('waste_log').insert([{
+        item_id: wasteItemId,
+        quantity: qty,
+        reason: wasteReason,
+        logged_by: user?.id || null
+      }]);
+      if (error) { alert(error.message); return; }
+      const item = menu.find(m => String(m.id) === String(wasteItemId));
+      logAudit('Waste logged', { itemId: wasteItemId, itemName: item?.name || null, quantity: qty, reason: wasteReason });
+      pushToast({ msg: `${qty}x ${item?.name || 'item'} logged as waste (${wasteReason})`, kind: 'warn', title: 'Waste logged' });
+      setWasteItemId('');
+      setWasteQty('');
+      fetchWasteLog();
+    } finally {
+      setSavingWaste(false);
+    }
+  };
+
+  const removeWasteEntry = async (id) => {
+    const row = wasteLog.find(w => w.id === id);
+    const { error } = await supabase.from('waste_log').delete().eq('id', id);
+    if (error) { alert(error.message); return; }
+    const item = menu.find(m => String(m.id) === String(row?.item_id));
+    logAudit('Waste log entry removed', { id, itemName: item?.name || null, quantity: row?.quantity || null });
+    pushToast({ msg: 'Waste entry removed', kind: 'info', title: 'Waste log updated' });
+    fetchWasteLog();
+  };
+
+  // §5b: Pause online ordering + customer notice. setShopStatus() replaces
+  // the bare `updateShopSettings({ status: s })` the Quick Override buttons
+  // used to call directly -- those predate §0's toast/audit machinery and
+  // this bullet explicitly wants the status write audited.
+  const setShopStatus = (s) => {
+    if (shopSettings?.status === s) return;
+    updateShopSettings({ status: s });
+    const labels = { OPEN: 'Store opened', PAUSED: 'Online ordering paused', CLOSED: 'Store closed', SCHEDULE: 'Following weekly schedule' };
+    logAudit('Store status changed', { status: s });
+    pushToast({ msg: labels[s] || `Status set to ${s}`, kind: (s === 'CLOSED' || s === 'PAUSED') ? 'warn' : 'info', title: 'Store status' });
+  };
+
+  const saveNoticeMessage = async () => {
+    setSavingNotice(true);
+    try {
+      const trimmed = noticeMessageInput.trim();
+      await updateShopSettings({ noticeMessage: trimmed });
+      logAudit('Store notice updated', { noticeMessage: trimmed || null });
+      pushToast({ msg: trimmed ? 'Customer notice saved' : 'Customer notice cleared', kind: 'info', title: 'Store notice' });
+    } finally {
+      setSavingNotice(false);
+    }
+  };
+
+  const fetchStoreEvents = async () => {
+    try {
+      const { data, error } = await supabase.from('store_events').select('*').order('date', { ascending: true });
+      if (error) throw error;
+      let rows = data || [];
+
+      // One-time migration from the old localStorage diary (see comment on
+      // the eventsNotes state above). Only runs while the table is still
+      // empty, to avoid re-inserting on every browser that had the old key.
+      const legacy = localStorage.getItem('munchies_admin_events_notes');
+      if (legacy) {
+        if (rows.length === 0) {
+          try {
+            const legacyEvents = JSON.parse(legacy);
+            if (Array.isArray(legacyEvents) && legacyEvents.length > 0) {
+              const payload = legacyEvents.map(e => ({
+                date: e.date,
+                title: e.title,
+                type: e.type || 'event',
+                description: e.description || null,
+                created_by: user?.id || null
+              }));
+              const { data: inserted, error: insertError } = await supabase.from('store_events').insert(payload).select('*');
+              if (!insertError && inserted) {
+                rows = inserted;
+                logAudit('Diary migrated from local storage', { count: inserted.length });
+              }
+            }
+          } catch (e) {
+            console.error('Failed to migrate legacy diary events:', e);
+          }
+        }
+        localStorage.removeItem('munchies_admin_events_notes');
+      }
+
+      setEventsNotes(rows);
+    } catch (e) {
+      console.error('Failed to fetch store events:', e);
+    }
+  };
 
   const fetchMarketingData = async () => {
     try {
@@ -312,8 +1032,60 @@ export default function Admin() {
     }
   };
 
+  const openCreatePromoModal = () => {
+    setPromoFormData(EMPTY_PROMO_FORM);
+    setIsPromoModalOpen(true);
+  };
+
+  const openEditPromoModal = (promo) => {
+    setPromoFormData({
+      id: promo.id,
+      code: promo.code || '',
+      name: promo.name || '',
+      type: promo.type || 'percent_off',
+      value: promo.value != null ? String(promo.value) : '',
+      applies_to_item_id: promo.applies_to_item_id || '',
+      min_spend: promo.min_spend != null ? String(promo.min_spend) : '',
+      free_item_id: promo.free_item_id || '',
+      max_total_uses: promo.max_total_uses != null ? String(promo.max_total_uses) : '',
+      max_uses_per_user: promo.max_uses_per_user != null ? String(promo.max_uses_per_user) : '',
+      starts_at: promo.starts_at ? promo.starts_at.slice(0, 16) : '',
+      ends_at: promo.ends_at ? promo.ends_at.slice(0, 16) : '',
+      stackable_with_item_promos: !!promo.stackable_with_item_promos,
+      active: promo.active !== false
+    });
+    setIsPromoModalOpen(true);
+  };
+
+  // "Customer sees" live preview -- a plain-English render of exactly what
+  // this promo currently does, so the admin can sanity-check it before
+  // saving rather than reverse-engineering their own field choices later.
+  const buildPromoPreview = (f) => {
+    if (!f.code.trim()) return null;
+    const codeStr = f.code.trim().toUpperCase();
+    let benefit = null;
+    let condition = '';
+    if (f.type === 'percent_off') {
+      benefit = f.value ? `${f.value}% off your order` : null;
+      if (f.min_spend) condition = ` on orders over RM ${(parseInt(f.min_spend, 10) / 100).toFixed(2)}`;
+    } else if (f.type === 'flat_off') {
+      benefit = f.value ? `RM ${(parseInt(f.value, 10) / 100).toFixed(2)} off your order` : null;
+      if (f.min_spend) condition = ` on orders over RM ${(parseInt(f.min_spend, 10) / 100).toFixed(2)}`;
+    } else if (f.type === 'bogo') {
+      const item = menu.find(m => String(m.id) === String(f.applies_to_item_id));
+      benefit = item ? `a free ${item.name} when one is already in your cart` : null;
+    } else if (f.type === 'spend_threshold_free_item') {
+      const item = menu.find(m => String(m.id) === String(f.free_item_id));
+      benefit = item ? `a free ${item.name}` : null;
+      if (f.min_spend) condition = ` when you spend RM ${(parseInt(f.min_spend, 10) / 100).toFixed(2)} or more`;
+    }
+    if (!benefit) return null;
+    return `Use code ${codeStr} for ${benefit}${condition}.`;
+  };
+
   const handleSavePromoCode = async (e) => {
     e.preventDefault();
+    setSavingPromo(true);
     try {
       const payload = {
         code: promoFormData.code.trim().toUpperCase(),
@@ -327,40 +1099,97 @@ export default function Admin() {
         max_uses_per_user: promoFormData.max_uses_per_user ? parseInt(promoFormData.max_uses_per_user, 10) : null,
         starts_at: promoFormData.starts_at || null,
         ends_at: promoFormData.ends_at || null,
-        stackable_with_item_promos: promoFormData.stackable_with_item_promos
+        stackable_with_item_promos: promoFormData.stackable_with_item_promos,
+        active: promoFormData.active
       };
-      const { error } = await supabase.from('promo_codes').insert([payload]);
-      if (error) {
-        alert(error.message);
-        return;
+
+      if (promoFormData.id) {
+        const previous = promoCodes.find(p => p.id === promoFormData.id);
+        const { error } = await supabase.from('promo_codes').update(payload).eq('id', promoFormData.id);
+        if (error) { alert(error.message); return; }
+        logAudit('Promo code updated', { id: promoFormData.id, code: payload.code });
+        pushToast({
+          msg: `${payload.code} updated`,
+          kind: 'info',
+          title: 'Promo saved',
+          undo: previous ? () => revertPromoCode(promoFormData.id, previous) : null
+        });
+      } else {
+        const { data, error } = await supabase.from('promo_codes').insert([payload]).select('*').single();
+        if (error) { alert(error.message); return; }
+        logAudit('Promo code created', { id: data?.id, code: payload.code, type: payload.type });
+        pushToast({
+          msg: `${payload.code} is ready to use`,
+          kind: 'new',
+          title: 'Promo created',
+          undo: data?.id ? () => deletePromoCode(data.id, { silent: true }) : null
+        });
       }
+
       setIsPromoModalOpen(false);
-      setPromoFormData({
-        code: '', name: '', type: 'percent_off', value: '', 
-        applies_to_item_id: '', min_spend: '', free_item_id: '', 
-        max_total_uses: '', max_uses_per_user: '', starts_at: '', ends_at: '', stackable_with_item_promos: false
-      });
+      setPromoFormData(EMPTY_PROMO_FORM);
       fetchMarketingData();
     } catch (e) {
-      alert('Error creating promo code');
+      alert('Error saving promo code');
+    } finally {
+      setSavingPromo(false);
     }
   };
 
+  const revertPromoCode = async (id, previous) => {
+    const { error } = await supabase.from('promo_codes').update({
+      code: previous.code, name: previous.name, type: previous.type, value: previous.value,
+      applies_to_item_id: previous.applies_to_item_id, min_spend: previous.min_spend,
+      free_item_id: previous.free_item_id, max_total_uses: previous.max_total_uses,
+      max_uses_per_user: previous.max_uses_per_user, starts_at: previous.starts_at,
+      ends_at: previous.ends_at, stackable_with_item_promos: previous.stackable_with_item_promos,
+      active: previous.active
+    }).eq('id', id);
+    if (error) { alert(error.message); return; }
+    logAudit('Promo code update undone', { id, code: previous.code });
+    fetchMarketingData();
+  };
+
   const togglePromoCodeActive = async (id, currentStatus) => {
-    await supabase.from('promo_codes').update({ active: !currentStatus }).eq('id', id);
+    const nextActive = !currentStatus;
+    const { error } = await supabase.from('promo_codes').update({ active: nextActive }).eq('id', id);
+    if (error) { alert(error.message); return; }
+    const promo = promoCodes.find(p => p.id === id);
+    logAudit(nextActive ? 'Promo code activated' : 'Promo code deactivated', { id, code: promo?.code || null });
+    pushToast({
+      msg: `${promo?.code || 'Promo'} is now ${nextActive ? 'active' : 'inactive'}`,
+      kind: 'info',
+      title: 'Promo updated',
+      undo: () => togglePromoCodeActive(id, nextActive)
+    });
     fetchMarketingData();
   };
 
-  const deletePromoCode = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this promo code? This cannot be undone.')) return;
-    await supabase.from('promo_codes').delete().eq('id', id);
+  const deletePromoCode = async (id, opts = {}) => {
+    if (!opts.silent && !window.confirm('Are you sure you want to delete this promo code? This cannot be undone.')) return;
+    const promo = promoCodes.find(p => p.id === id);
+    const { error } = await supabase.from('promo_codes').delete().eq('id', id);
+    if (error) { alert(error.message); return; }
+    logAudit('Promo code deleted', { id, code: promo?.code || null });
+    if (!opts.silent) {
+      pushToast({
+        msg: `${promo?.code || 'Promo'} deleted`,
+        kind: 'danger',
+        title: 'Promo deleted',
+        undo: promo ? () => restorePromoCode(promo) : null
+      });
+    }
     fetchMarketingData();
   };
 
-  const saveEventsNotes = (newEvents) => {
-    setEventsNotes(newEvents);
-    localStorage.setItem('munchies_admin_events_notes', JSON.stringify(newEvents));
+  const restorePromoCode = async (promo) => {
+    const { id, timesRedeemed, totalDiscountGiven, totalRevenue, ...payload } = promo;
+    const { error } = await supabase.from('promo_codes').insert([payload]);
+    if (error) { alert(error.message); return; }
+    logAudit('Promo code deletion undone', { code: promo.code });
+    fetchMarketingData();
   };
+
 
   const handleOpenAddEventModal = (dateStr = null) => {
     const targetDate = dateStr || new Date().toISOString().split('T')[0];
@@ -381,36 +1210,45 @@ export default function Admin() {
     setIsEventModalOpen(true);
   };
 
-  const handleSaveEvent = (e) => {
+  const handleSaveEvent = async (e) => {
     e.preventDefault();
-    if (!eventFormData.title.trim()) return;
+    const title = eventFormData.title.trim();
+    if (!title) return;
 
     if (eventFormData.id) {
-      const updated = eventsNotes.map(item => item.id === eventFormData.id ? {
-        ...item,
+      const { error } = await supabase.from('store_events').update({
         date: selectedEventDate,
-        title: eventFormData.title,
+        title,
         type: eventFormData.type,
-        description: eventFormData.description
-      } : item);
-      saveEventsNotes(updated);
+        description: eventFormData.description.trim() || null
+      }).eq('id', eventFormData.id);
+      if (error) { alert(error.message); return; }
+      logAudit('Diary entry updated', { id: eventFormData.id, title });
+      pushToast({ msg: `"${title}" updated`, kind: 'info', title: 'Diary entry saved' });
     } else {
-      const newEvt = {
-        id: 'evt-' + Date.now(),
+      const { data, error } = await supabase.from('store_events').insert([{
         date: selectedEventDate,
-        title: eventFormData.title,
+        title,
         type: eventFormData.type,
-        description: eventFormData.description
-      };
-      saveEventsNotes([newEvt, ...eventsNotes]);
+        description: eventFormData.description.trim() || null,
+        created_by: user?.id || null
+      }]).select('*').single();
+      if (error) { alert(error.message); return; }
+      logAudit('Diary entry added', { id: data?.id, title });
+      pushToast({ msg: `"${title}" added to the diary`, kind: 'new', title: 'Diary entry saved' });
     }
     setIsEventModalOpen(false);
+    fetchStoreEvents();
   };
 
-  const handleDeleteEvent = (id) => {
-    const filtered = eventsNotes.filter(item => item.id !== id);
-    saveEventsNotes(filtered);
+  const handleDeleteEvent = async (id) => {
+    const evt = eventsNotes.find(item => item.id === id);
+    const { error } = await supabase.from('store_events').delete().eq('id', id);
+    if (error) { alert(error.message); return; }
+    logAudit('Diary entry deleted', { id, title: evt?.title || null });
+    pushToast({ msg: `"${evt?.title || 'Entry'}" removed`, kind: 'warn', title: 'Diary entry deleted' });
     setIsEventModalOpen(false);
+    fetchStoreEvents();
   };
 
   const handleSaveMenuItemDetails = async (e) => {
@@ -573,14 +1411,21 @@ export default function Admin() {
       const isGrab = rawChannel === 'grab' || rawChannel === 'grabfood';
       const channelKey = isLoyverse ? 'loyverse' : isGrab ? 'grabfood' : 'web';
 
-      const orderGross = order.total / 100;
+      // Net of any refund/void (§4) -- a fully voided order's refund_amount
+      // equals its total, so this also correctly zeroes out CANCELLED orders'
+      // contribution to gross/net without a separate status filter.
+      const preRefundGross = order.total / 100;
+      const orderGross = (order.total - (order.refund_amount || 0)) / 100;
       const orderItems = order.items || [];
 
       // COGS: sum of each line's real or estimated cost, falling back to the
-      // flat 40% of order total when an order has no item breakdown at all.
+      // flat 40% of the ORIGINAL order total (not the post-refund gross) when
+      // an order has no item breakdown at all -- the ingredients were still
+      // used regardless of what the customer was refunded, so the cost was
+      // still incurred. Only revenue (orderGross above) drops on a refund.
       const cogs = orderItems.length > 0
         ? orderItems.reduce((sum, oi) => sum + lineCost(oi, ((oi.price || 0) * (oi.quantity || 1)) / 100), 0)
-        : orderGross * 0.40;
+        : preRefundGross * 0.40;
       const platformFee = orderGross * (CHANNEL_FEES[channelKey] || 0);
       const orderNet = orderGross - cogs - platformFee;
 
@@ -742,17 +1587,27 @@ export default function Admin() {
   const { topItemsData, trendData, hourlyTrendData, kpi, channelSales, channelStats, CHANNEL_FEES } = processAnalyticsData();
 
   const customerInsights = useMemo(() => {
-    // Only consider pickup orders
-    const pickupOrders = orders.filter(o => o.order_type === 'pickup');
-    
-    // Group by customer_name (fallback to customer_id if missing name)
+    // Orders that actually count as a completed sale -- PENDING hasn't
+    // happened yet and CANCELLED never did, same rule customersWithMeta
+    // uses above. This used to filter on `order_type === 'pickup'`, a field
+    // nothing in this codebase has ever set (a leftover from before the
+    // shop went pickup-only), so it silently matched zero orders no matter
+    // how much real order history existed.
+    const validOrders = orders.filter(o => o.status !== 'PENDING' && o.status !== 'CANCELLED');
+
+    // Group by the real customer account when there is one (a name string
+    // isn't a stable identity -- two guests can share a name, and the same
+    // customer can be recorded slightly differently across orders); fall
+    // back to customer_name for guest checkouts with no account.
     const customersMap = {};
-    
-    pickupOrders.forEach(o => {
-      const customerKey = o.customer_name?.trim() || o.customer_id || 'Unknown Guest';
+
+    validOrders.forEach(o => {
+      const customerKey = o.user_id || o.customer_name?.trim() || 'Unknown Guest';
       if (!customersMap[customerKey]) {
         customersMap[customerKey] = {
-          name: customerKey,
+          // Grouped by user_id when there is one, but always displayed by
+          // name -- an id isn't something an admin can recognize a customer by.
+          name: o.customer_name?.trim() || 'Guest',
           orders: [],
           totalSpend: 0,
           itemsCount: {}
@@ -816,14 +1671,27 @@ export default function Admin() {
     };
   }, [orders]);
 
-  // Start / stop looping alert sound based on pending orders
+  // Start / stop looping alert sound based on pending orders, gated by the
+  // per-device toggle in the Live Orders toolbar.
   useEffect(() => {
-    if (pendingOrders.length > 0) {
+    if (pendingOrders.length > 0 && soundEnabled) {
       startNewOrderAlert();
     } else {
       stopNewOrderAlert();
     }
     return () => stopNewOrderAlert();
+  }, [pendingOrders.length, soundEnabled]);
+
+  // Flash the sidebar badge 3x when a new pending order actually arrives
+  // (not on every render where one is merely still pending).
+  useEffect(() => {
+    if (pendingOrders.length > prevPendingCountRef.current) {
+      setBadgeFlashing(true);
+      const t = setTimeout(() => setBadgeFlashing(false), 1800); // 3 x 600ms cycle
+      prevPendingCountRef.current = pendingOrders.length;
+      return () => clearTimeout(t);
+    }
+    prevPendingCountRef.current = pendingOrders.length;
   }, [pendingOrders.length]);
 
   // This guard must come after every Hook call above (Rules of Hooks) so that
@@ -851,12 +1719,25 @@ export default function Admin() {
   };
 
   const advanceOrderState = (id, currentStatus) => {
-    if (currentStatus === 'COOKING') updateOrderState(id, 'READY');
-    else if (currentStatus === 'READY') updateOrderState(id, 'COLLECTED');
+    const nextStatus = currentStatus === 'COOKING' ? 'READY' : currentStatus === 'READY' ? 'COLLECTED' : null;
+    if (!nextStatus) return;
+    updateOrderState(id, nextStatus);
+    logAudit(`Order ${nextStatus.toLowerCase()}`, { orderId: id });
+    pushToast({
+      kind: 'new',
+      msg: `#${formatOrderId(id)} marked ${nextStatus.toLowerCase()}.`,
+      undo: () => { updateOrderState(id, currentStatus); logAudit('Order state change undone', { orderId: id, revertedTo: currentStatus }); }
+    });
   };
 
   const handleAccept = (orderId) => {
     acceptOrder(orderId);
+    logAudit('Order accepted', { orderId });
+    pushToast({
+      kind: 'new',
+      msg: `#${formatOrderId(orderId)} accepted into the kitchen.`,
+      undo: () => { updateOrderState(orderId, 'PENDING'); logAudit('Order accept undone', { orderId }); }
+    });
   };
 
   const handlePriceChange = (id, value) => setEditingPrice({ ...editingPrice, [id]: value });
@@ -864,6 +1745,56 @@ export default function Admin() {
     if (editingPrice[id] !== undefined && editingPrice[id] !== '') {
       updatePrice(id, parseFloat(editingPrice[id]));
       setEditingPrice({ ...editingPrice, [id]: undefined });
+    }
+  };
+
+  // §8: inline cost-price editor on the Menu CRM row -- mirrors savePrice's
+  // behavior exactly (including its lack of toast/audit; price editing next
+  // to it has never had either, and giving only the new sibling cell
+  // feedback would look like a bug rather than a feature. The whole
+  // price/cost/stock inline-edit family still owes an audit trail per §0's
+  // original "price change, stock adjust" list -- flagged as a pre-existing
+  // gap outside this section's scope, not fixed here).
+  const handleCostPriceChange = (id, value) => setEditingCostPrice({ ...editingCostPrice, [id]: value });
+  const saveCostPrice = async (id) => {
+    if (editingCostPrice[id] === undefined) return;
+    const raw = editingCostPrice[id];
+    const cents = raw === '' ? null : Math.round(parseFloat(raw) * 100);
+    await updateMenuItem(id, { cost_price: cents });
+    setEditingCostPrice({ ...editingCostPrice, [id]: undefined });
+  };
+
+  // §8: eager upload on file selection so the Add-item photo tile can show a
+  // real idle -> uploading -> attached sequence, rather than only finding
+  // out whether the upload succeeded when the whole form is submitted.
+  const handleNewItemPhotoSelect = async (file) => {
+    if (!file) return;
+    setNewItemImageFile(file);
+    setNewItemPhotoMeta({ name: file.name, size: file.size });
+    setNewItemPhotoStatus('uploading');
+    try {
+      const url = await uploadImage(file);
+      setNewItem(prev => ({ ...prev, image: url }));
+      setNewItemPhotoStatus('attached');
+    } catch (err) {
+      alert('Photo upload failed: ' + (err.message || 'unknown error'));
+      setNewItemPhotoStatus('idle');
+      setNewItemImageFile(null);
+      setNewItemPhotoMeta(null);
+    }
+  };
+
+  // §8: Menu row's coloured/photo tile -- click to upload a replacement.
+  const handleRowPhotoReplace = async (item, file) => {
+    if (!file) return;
+    setUploadingImageIds(prev => new Set(prev).add(item.id));
+    try {
+      const url = await uploadImage(file);
+      await updateMenuItem(item.id, { image: url });
+    } catch (err) {
+      alert('Photo upload failed: ' + (err.message || 'unknown error'));
+    } finally {
+      setUploadingImageIds(prev => { const next = new Set(prev); next.delete(item.id); return next; });
     }
   };
 
@@ -947,20 +1878,24 @@ export default function Admin() {
   const handleAddMenuItem = async (e) => {
     e.preventDefault();
     if (newItem.name && newItem.price) {
+      if (newItemPhotoStatus === 'uploading') { alert('Please wait for the photo to finish uploading.'); return; }
       setIsUploading(true);
       try {
-        const imageUrl = newItemImageFile ? await uploadImage(newItemImageFile) : (newItem.image || '/images/hero_burger.png');
+        // Photo (if any) was already uploaded eagerly on selection -- see
+        // handleNewItemPhotoSelect -- so newItem.image is already the final URL.
         await addMenuItem({
           ...newItem,
           price: parseFloat(newItem.price),
           cost_price: newItem.cost_price !== '' ? parseFloat(newItem.cost_price) : null,
-          image: imageUrl
+          image: newItem.image || '/images/hero_burger.png'
         });
         setNewItem({ name: '', category: 'BBQ', price: '', cost_price: '', image: '', description: '', inStock: true });
         setNewItemImageFile(null);
+        setNewItemPhotoStatus('idle');
+        setNewItemPhotoMeta(null);
       } catch (err) {
         console.error("Full upload error:", err);
-        alert('Upload failed: ' + (err.message || JSON.stringify(err)));
+        alert('Failed to add item: ' + (err.message || JSON.stringify(err)));
       } finally {
         setIsUploading(false);
       }
@@ -969,14 +1904,14 @@ export default function Admin() {
 
   const handleGeneratePDF = () => {
     const doc = new jsPDF();
-    const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-    
+    const currentMonth = formatStoreDateTime(new Date(), { month: 'long', year: 'numeric' });
+
     doc.setFontSize(20);
     doc.text(`Monthly Report: ${currentMonth}`, 14, 22);
-    
+
     doc.setFontSize(11);
     doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`Generated on: ${formatStoreDateTime(new Date())}`, 14, 30);
     
     const tableData = [
       ['Total Orders', orders.length.toString()],
@@ -998,7 +1933,7 @@ export default function Admin() {
       o.id.substring(0, 8),
       o.status,
       `RM ${(o.total / 100).toFixed(2)}`,
-      new Date(o.created_at).toLocaleDateString()
+      formatStoreDate(o.created_at)
     ]);
 
     doc.text('Recent Orders', 14, doc.lastAutoTable.finalY + 15);
@@ -1023,11 +1958,13 @@ export default function Admin() {
           </button>
           <button className={`sidebar-item ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>
             <ShoppingBag size={20} /> Live Orders
-            {pendingOrders.length > 0 && <span className="sidebar-badge">{pendingOrders.length}</span>}
+            {pendingOrders.length > 0 && <span className={`sidebar-badge${badgeFlashing ? ' badge-flashing' : ''}`}>{pendingOrders.length}</span>}
           </button>
-          <button className={`sidebar-item ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>
-            <BarChart2 size={20} /> Analytics
-          </button>
+          {!viewingAsStaff && (
+            <button className={`sidebar-item ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>
+              <BarChart2 size={20} /> Analytics
+            </button>
+          )}
           <button className={`sidebar-item ${activeTab === 'customers' ? 'active' : ''}`} onClick={() => { setActiveTab('customers'); setSelectedCustomerId(null); }}>
             <Users size={20} /> Customers
           </button>
@@ -1053,13 +1990,36 @@ export default function Admin() {
           <button className={`sidebar-item ${activeTab === 'redemptions' ? 'active' : ''}`} onClick={() => setActiveTab('redemptions')}>
             <Ticket size={20} /> Redemptions
           </button>
+          {!viewingAsStaff && (
+            <button className={`sidebar-item ${activeTab === 'audit' ? 'active' : ''}`} onClick={() => setActiveTab('audit')}>
+              <ClipboardList size={20} /> Audit log
+            </button>
+          )}
+
+          <div style={{ flex: 1 }} />
+
+          <button
+            className="admin-role-switch"
+            title={viewingAsStaff ? 'Switch to Owner view' : 'Switch to Staff view'}
+            onClick={toggleStaffView}
+          >
+            <div className="admin-role-switch-avatar" style={{ background: viewingAsStaff ? '#8B8478' : '#17150F' }}>
+              {(user?.name || 'A').charAt(0).toUpperCase()}
+            </div>
+            <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
+              <div className="admin-role-switch-name">{user?.name || 'Admin'}</div>
+              <div className="admin-role-switch-label">
+                {viewingAsStaff ? 'Staff' : 'Owner'} · Switch to {viewingAsStaff ? 'Owner' : 'Staff'} view
+              </div>
+            </div>
+          </button>
         </aside>
 
         {/* Main Content Area */}
         <main className="admin-content">
-          {/* Stacked Loyverse Sync Warning Toasts */}
-          {syncWarnings && syncWarnings.length > 0 && (
-            <div style={{
+          {/* Unified toast stack -- admin action toasts + Loyverse sync warnings together */}
+          {(toasts.length > 0 || syncWarnings.length > 0) && (
+            <div className="admin-toast-stack" style={{
               position: 'fixed',
               bottom: '24px',
               right: '24px',
@@ -1069,9 +2029,27 @@ export default function Admin() {
               gap: '10px',
               pointerEvents: 'none'
             }}>
-              {syncWarnings.map(warning => (
-                <SyncToastItem key={warning.id} warning={warning} onDismiss={removeSyncWarning} />
+              {toasts.map(toast => (
+                <AdminToast key={toast.id} toast={toast} onDismiss={dismissToast} />
               ))}
+              {syncWarnings.map(warning => (
+                <AdminToast
+                  key={warning.id}
+                  toast={{
+                    id: warning.id,
+                    kind: 'warn',
+                    title: 'Loyverse POS Sync Warning',
+                    msg: <>Price updated on website, but failed to sync <strong>{warning.itemName}</strong> to Loyverse POS ({warning.error}). Prices may be out of sync.</>
+                  }}
+                  onDismiss={removeSyncWarning}
+                />
+              ))}
+            </div>
+          )}
+
+          {viewingAsStaff && (
+            <div className="admin-staff-banner">
+              Counter-staff view — analytics, monthly reports, audit log and margin figures are hidden.
             </div>
           )}
 
@@ -1187,7 +2165,7 @@ export default function Admin() {
                         <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>⚡ Quick Override</label>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {[['OPEN','🟢 Open Now','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close Now','#ef4444'],['SCHEDULE','📅 Use Schedule','#6366f1']].map(([s,label,col]) => (
-                            <button key={s} type="button" onClick={() => updateShopSettings({ status: s })}
+                            <button key={s} type="button" onClick={() => setShopStatus(s)}
                               style={{ flex: 1, minWidth: '110px', padding: '9px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem',
                                 background: shopSettings?.status === s ? col : '#334155', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
                           ))}
@@ -1329,7 +2307,7 @@ export default function Admin() {
                       background: shopSettings?.status === 'OPEN' ? '#16a34a' : shopSettings?.status === 'PAUSED' ? '#ca8a04' : shopSettings?.status === 'SCHEDULE' ? '#4f46e5' : '#dc2626',
                       color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                     }}>
-                      {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ PAUSED' : shopSettings?.status === 'SCHEDULE' ? '📅 SCHEDULE' : '🔴 CLOSED'}
+                      {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ ORDERS PAUSED' : shopSettings?.status === 'SCHEDULE' ? '📅 SCHEDULE' : '🔴 CLOSED'}
                     </span>
                     <button onClick={() => openScheduleModal()}
                       style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: 'var(--munchies-yellow)', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
@@ -1341,11 +2319,150 @@ export default function Admin() {
                 {/* Quick Override Buttons */}
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {[['OPEN','🟢 Open','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close','#ef4444'],['SCHEDULE','📅 Schedule','#6366f1']].map(([s,label,col]) => (
-                    <button key={s} type="button" onClick={() => updateShopSettings({ status: s })}
+                    <button key={s} type="button" onClick={() => setShopStatus(s)}
                       style={{ flex: 1, padding: '9px 4px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.78rem',
                         background: shopSettings?.status === s ? col : '#334155', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
                   ))}
                 </div>
+
+                {/* §5b: Customer notice — shown on the storefront's amber banner (that
+                    display is a separate, deliberately out-of-scope follow-up; see PR
+                    description). Editable regardless of status so an admin can draft it
+                    before pausing. */}
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: '#fbbf24', marginBottom: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    📢 Customer Notice
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <input type="text" placeholder="e.g. Back at 6pm — online ordering paused for a bit"
+                      value={noticeMessageInput}
+                      onChange={e => setNoticeMessageInput(e.target.value)}
+                      style={{ flex: 1, minWidth: '220px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.08)', color: '#fff', fontSize: '0.85rem' }} />
+                    <button type="button" disabled={savingNotice} onClick={() => saveNoticeMessage()}
+                      style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#eab308', color: '#1e293b', fontWeight: 'bold', cursor: savingNotice ? 'default' : 'pointer', opacity: savingNotice ? 0.6 : 1, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shift Handover / Cash-Up Card (§6) */}
+              <div className="card" style={{
+                background: '#1e293b', color: '#ffffff', padding: '1.25rem 1.5rem',
+                borderRadius: '16px', border: '2px solid rgba(255, 199, 44, 0.4)',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.3)', marginBottom: '1.5rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>💰 Shift Handover / Cash-Up</h3>
+                    <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                      {currentShift
+                        ? `Open since ${formatStoreDateTime(currentShift.opened_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
+                        : reopenableShift
+                          ? `Last shift closed ${formatStoreDateTime(reopenableShift.closed_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
+                          : 'No shift currently open'}
+                    </p>
+                  </div>
+                  <span style={{
+                    padding: '6px 16px', borderRadius: '20px', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase',
+                    background: currentShift ? '#16a34a' : '#334155', color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                  }}>
+                    {currentShift ? '🟢 SHIFT OPEN' : '⚪ NO SHIFT'}
+                  </span>
+                </div>
+                <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '0 0 1rem' }} />
+
+                {currentShift ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Opening float</label>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <input type="number" step="0.01" min="0"
+                            value={openingFloatEditValue === '' ? centsToRm(currentShift.opening_float) : openingFloatEditValue}
+                            onChange={e => setOpeningFloatEditValue(e.target.value)}
+                            style={{ width: '90px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
+                          <button type="button" onClick={() => saveOpeningFloat()}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', background: '#334155', color: '#fff', fontSize: '0.72rem', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Cash sales</label>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800 }}>RM {centsToRm(shiftSalesSummary.cashCents)}</div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Card + e-wallet</label>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800 }}>RM {centsToRm(shiftSalesSummary.cardEwalletCents)}</div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Expected drawer</label>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--munchies-yellow)' }}>RM {centsToRm(expectedDrawerCents)}</div>
+                      </div>
+                    </div>
+
+                    <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '4px 0' }} />
+
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Counted</label>
+                        <input type="number" step="0.01" min="0" placeholder="0.00"
+                          value={countedInput}
+                          onChange={e => setCountedInput(e.target.value)}
+                          style={{ width: '110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Variance</label>
+                        {varianceCentsPreview === null ? (
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '8px 0' }}>—</div>
+                        ) : (
+                          <div style={{
+                            fontSize: '0.95rem', fontWeight: 800, padding: '8px 10px', borderRadius: '8px',
+                            background: Math.abs(varianceCentsPreview) <= 500 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                            color: Math.abs(varianceCentsPreview) <= 500 ? '#4ade80' : '#f87171'
+                          }}>
+                            {varianceCentsPreview >= 0 ? '+' : '-'}RM {centsToRm(Math.abs(varianceCentsPreview))}
+                            {Math.abs(varianceCentsPreview) > 500 && ' — investigate'}
+                          </div>
+                        )}
+                      </div>
+                      <button type="button" disabled={savingShift} onClick={() => closeShift()}
+                        style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: 'bold', cursor: savingShift ? 'default' : 'pointer', opacity: savingShift ? 0.6 : 1, fontSize: '0.85rem' }}>
+                        🔒 Close Shift
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {reopenableShift && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Last shift: opening RM {centsToRm(reopenableShift.opening_float)} · counted RM {centsToRm(reopenableShift.counted)} · variance{' '}
+                          <span style={{ color: Math.abs(reopenableShift.variance || 0) <= 500 ? '#4ade80' : '#f87171', fontWeight: 700 }}>
+                            {(reopenableShift.variance || 0) >= 0 ? '+' : '-'}RM {centsToRm(Math.abs(reopenableShift.variance || 0))}
+                          </span>
+                        </div>
+                        <button type="button"
+                          onClick={async () => { await reopenShift(reopenableShift.id); pushToast({ msg: 'Shift reopened', kind: 'info', title: 'Shift reopened' }); }}
+                          style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: 'var(--munchies-yellow)', fontWeight: '700', cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                          ↩ Reopen last shift
+                        </button>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Opening float (RM)</label>
+                        <input type="number" step="0.01" min="0" placeholder="0.00"
+                          value={openingFloatInput}
+                          onChange={e => setOpeningFloatInput(e.target.value)}
+                          style={{ width: '110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }} />
+                      </div>
+                      <button type="button" disabled={savingShift} onClick={() => openShift()}
+                        style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#16a34a', color: '#fff', fontWeight: 'bold', cursor: savingShift ? 'default' : 'pointer', opacity: savingShift ? 0.6 : 1, fontSize: '0.85rem' }}>
+                        🟢 Open Shift
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Top Metrics Row */}
@@ -1597,7 +2714,7 @@ export default function Admin() {
                   <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
                      <div style={{ flex: 1, border: '1px solid #fee2e2', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff5f5' }}>
                         <div style={{ color: '#ef4444', marginBottom: '8px' }}><Archive size={32} /></div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{new Date().toLocaleString('default', { month: 'short' })} Report</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{formatStoreDateTime(new Date(), { month: 'short' })} Report</div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date().getFullYear()}</div>
                      </div>
                      <div style={{ flex: 1, border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} className="hover-bg-slate">
@@ -1809,10 +2926,119 @@ export default function Admin() {
                 </div>
 
               </div>
+
+              {/* §5b: Prep board / Waste log / Food cost tonight */}
+              <div className="admin-grid-3" style={{ marginTop: '1.5rem' }}>
+
+                {/* Prep Board */}
+                <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ margin: '0 0 0.25rem' }}>🍳 Prep Board</h3>
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Projected demand: average sold on this weekday, last 8 weeks
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {prepBoardData.map(row => (
+                      <div key={row.id}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{row.name}</span>
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '10px',
+                            background: row.covered ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                            color: row.covered ? '#16a34a' : '#dc2626'
+                          }}>
+                            {row.covered ? 'Covered' : `Prep ${row.prepNeeded}`}
+                          </span>
+                        </div>
+                        <div style={{ height: '6px', borderRadius: '3px', background: '#e2e8f0', overflow: 'hidden' }}>
+                          <div style={{ width: `${row.fillPct}%`, height: '100%', background: row.covered ? '#22c55e' : '#ef4444', transition: 'width 0.3s' }} />
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Stock {row.stock} / Projected {row.projected}
+                        </div>
+                      </div>
+                    ))}
+                    {prepBoardData.length === 0 && (
+                      <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '1rem 0' }}>
+                        Not enough order history yet for today's weekday.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Waste Log */}
+                <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ margin: '0 0 0.25rem' }}>🗑️ Waste Log</h3>
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Today's entries</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    <select value={wasteItemId} onChange={e => setWasteItemId(e.target.value)}
+                      style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
+                      <option value="">Select item…</option>
+                      {menu.map(item => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input type="number" min="1" placeholder="Qty" value={wasteQty}
+                        onChange={e => setWasteQty(e.target.value)}
+                        style={{ width: '70px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
+                      <button type="button" disabled={savingWaste} onClick={() => logWaste()}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: 'bold', cursor: savingWaste ? 'default' : 'pointer', opacity: savingWaste ? 0.6 : 1, fontSize: '0.8rem' }}>
+                        Log Waste
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {WASTE_REASONS.map(r => (
+                        <button key={r} type="button" onClick={() => setWasteReason(r)}
+                          style={{
+                            padding: '5px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
+                            border: wasteReason === r ? '1px solid #dc2626' : '1px solid #cbd5e1',
+                            background: wasteReason === r ? 'rgba(239,68,68,0.1)' : '#fff',
+                            color: wasteReason === r ? '#dc2626' : 'var(--text-secondary)'
+                          }}>{r}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, overflowY: 'auto', maxHeight: '220px' }}>
+                    {wasteLog.map(w => {
+                      const item = menu.find(m => String(m.id) === String(w.item_id));
+                      return (
+                        <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', borderRadius: '8px', background: '#f8fafc', fontSize: '0.8rem' }}>
+                          <span>{w.quantity}x {item?.name || 'Unknown item'} <span style={{ color: 'var(--text-muted)' }}>· {w.reason}</span></span>
+                          <button type="button" onClick={() => removeWasteEntry(w.id)}
+                            style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                        </div>
+                      );
+                    })}
+                    {wasteLog.length === 0 && (
+                      <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '1rem 0' }}>No waste logged today.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Food Cost Tonight */}
+                <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ margin: '0 0 0.25rem' }}>💵 Food Cost Tonight</h3>
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>(COGS + waste) / gross sales, today</p>
+                  <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '1rem' }}>
+                    {foodCostTonight.grossRm > 0 ? `${foodCostTonight.pct.toFixed(1)}%` : '—'}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Gross sales</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.grossRm.toFixed(2)}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>COGS</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.cogsRm.toFixed(2)}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Waste</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.wasteRm.toFixed(2)}</span></div>
+                  </div>
+                  {foodCostTonight.uncostedCount > 0 && (
+                    <p style={{ marginTop: '1rem', fontSize: '0.72rem', color: '#d97706', background: 'rgba(245,158,11,0.1)', padding: '8px 10px', borderRadius: '8px' }}>
+                      ⚠️ {foodCostTonight.uncostedCount} item{foodCostTonight.uncostedCount === 1 ? '' : 's'} tonight still estimated at 40% — set a real cost price in Menu CRM for a more accurate figure.
+                    </p>
+                  )}
+                </div>
+
+              </div>
             </div>
           )}
 
-          {activeTab === 'analytics' && (
+          {activeTab === 'analytics' && !viewingAsStaff && (
           <div className="admin-analytics-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Header Area */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -1846,28 +3072,43 @@ export default function Admin() {
                     </button>
                   )}
                 </div>
-                {/* Period Toggle */}
+                {/* Date range presets -- editing a date field directly (below)
+                    stops matching any preset's computed range, which is what
+                    naturally flips this to "Custom" with no extra state. */}
                 <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '4px' }}>
-                  {['daily', 'monthly', 'yearly'].map(period => (
-                    <button 
-                      key={period}
-                      onClick={() => {
-                        setAnalyticsPeriod(period);
-                        setSelectedDateRange({ start: '', end: '' }); // Clear range when using quick toggles
-                      }}
-                      style={{
-                        padding: '6px 16px', borderRadius: '6px', border: 'none',
-                        background: analyticsPeriod === period && !selectedDateRange.start ? '#fff' : 'transparent',
-                        color: analyticsPeriod === period && !selectedDateRange.start ? '#0f172a' : 'var(--text-secondary)',
-                        fontWeight: analyticsPeriod === period && !selectedDateRange.start ? '600' : '500',
-                        fontSize: '0.875rem', cursor: 'pointer',
-                        boxShadow: analyticsPeriod === period && !selectedDateRange.start ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                        transition: 'all 0.2s', textTransform: 'capitalize'
-                      }}
-                    >
-                      {period === 'daily' ? 'This Week' : period === 'monthly' ? 'This Month' : period === 'yearly' ? 'Yearly' : period}
-                    </button>
-                  ))}
+                  {(() => {
+                    const activePreset = DATE_RANGE_PRESETS.find(p => {
+                      const r = computePresetDateRange(p);
+                      return r && r.start === selectedDateRange.start && r.end === selectedDateRange.end;
+                    }) || 'Custom';
+                    return [...DATE_RANGE_PRESETS, 'Custom'].map(preset => {
+                      const isActive = activePreset === preset;
+                      return (
+                        <button
+                          key={preset}
+                          onClick={() => {
+                            setAnalyticsPeriod('daily');
+                            if (preset === 'Custom') {
+                              setSelectedDateRange({ start: '', end: '' });
+                            } else {
+                              setSelectedDateRange(computePresetDateRange(preset));
+                            }
+                          }}
+                          style={{
+                            padding: '6px 14px', borderRadius: '6px', border: 'none',
+                            background: isActive ? '#fff' : 'transparent',
+                            color: isActive ? '#0f172a' : 'var(--text-secondary)',
+                            fontWeight: isActive ? '600' : '500',
+                            fontSize: '0.875rem', cursor: 'pointer',
+                            boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {preset}
+                        </button>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </div>
@@ -1991,8 +3232,8 @@ export default function Admin() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
                   <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '3px' }}>
-                    {['all', 'web', 'loyverse'].map(filter => (
-                      <button 
+                    {['all', 'web', 'loyverse', 'grabfood'].map(filter => (
+                      <button
                         key={filter}
                         onClick={() => setTopItemsChannelFilter(filter)}
                         style={{
@@ -2000,11 +3241,11 @@ export default function Admin() {
                           background: topItemsChannelFilter === filter ? '#fff' : 'transparent',
                           color: topItemsChannelFilter === filter ? '#0f172a' : 'var(--text-secondary)',
                           fontWeight: topItemsChannelFilter === filter ? '600' : '500',
-                          fontSize: '0.75rem', cursor: 'pointer', textTransform: 'capitalize',
+                          fontSize: '0.75rem', cursor: 'pointer',
                           boxShadow: topItemsChannelFilter === filter ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                         }}
                       >
-                        {filter}
+                        {filter === 'grabfood' ? 'GrabFood' : filter === 'loyverse' ? 'Loyverse' : filter === 'web' ? 'Web' : 'All'}
                       </button>
                     ))}
                   </div>
@@ -2131,9 +3372,18 @@ export default function Admin() {
         <div className="admin-card">
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.5rem'}}>
             <h3 style={{margin:0}}>Live Orders</h3>
-            {pendingOrders.length > 0 && (
-              <span className="pending-badge-pill">{pendingOrders.length} NEW</span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {pendingOrders.length > 0 && (
+                <span className="pending-badge-pill">{pendingOrders.length} NEW</span>
+              )}
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={toggleSound}
+                title={soundEnabled ? 'Mute new-order alert sound on this device' : 'Unmute new-order alert sound on this device'}
+              >
+                {soundEnabled ? '🔔 Sound on' : '🔕 Sound off'}
+              </button>
+            </div>
           </div>
 
           {/* ── PENDING ORDER ALERT CARDS ── */}
@@ -2172,7 +3422,7 @@ export default function Admin() {
                     </span>
                   </button>
                   <button
-                    onClick={() => setCancellingOrder({ id: order.id, reason: '', wasteAction: 'restore' })}
+                    onClick={() => setCancellingOrder({ id: order.id, reason: '', note: '', wasteAction: 'restore', previousStatus: order.status })}
                     style={{ width: '100%', padding: '0.5rem 1rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
                   >
                     ? Cancel
@@ -2248,7 +3498,7 @@ export default function Admin() {
                         <button 
                           className="btn btn-sm btn-secondary" 
                           style={{marginLeft: '0.5rem'}}
-                          onClick={() => setCancellingOrder({ id: order.id, reason: '', wasteAction: 'restore' })}
+                          onClick={() => setCancellingOrder({ id: order.id, reason: '', note: '', wasteAction: 'restore', previousStatus: order.status })}
                         >
                           Cancel
                         </button>
@@ -2288,13 +3538,55 @@ export default function Admin() {
                 <div className="form-group">
                   <label>Cost Price (RM) — optional</label>
                   <input type="number" step="0.10" className="price-input" placeholder="e.g. 2.20" value={newItem.cost_price} onChange={e => setNewItem({...newItem, cost_price: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Image Upload</label>
-                  <input type="file" accept="image/*" className="price-input" onChange={e => setNewItemImageFile(e.target.files[0])} />
+                  <CostMarginLine
+                    costPriceCents={newItem.cost_price !== '' ? Math.round(parseFloat(newItem.cost_price) * 100) : null}
+                    priceCents={newItem.price ? Math.round(parseFloat(newItem.price) * 100) : 0}
+                  />
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <button type="submit" className="btn btn-primary" style={{ width: '200px' }} disabled={isUploading}>
+                  <label>Photo</label>
+                  <div
+                    onClick={() => newItemPhotoStatus !== 'uploading' && document.getElementById('new-item-photo-input').click()}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) handleNewItemPhotoSelect(f); }}
+                    style={{
+                      border: newItemPhotoStatus === 'attached' ? '2px solid #22c55e' : '2px dashed #cbd5e1',
+                      borderRadius: '10px', padding: '0.75rem 1rem', cursor: newItemPhotoStatus === 'uploading' ? 'default' : 'pointer',
+                      position: 'relative', overflow: 'hidden',
+                      background: newItemPhotoStatus === 'attached' ? 'rgba(34,197,94,0.06)' : '#f8fafc',
+                      display: 'flex', alignItems: 'center', gap: '10px', minHeight: '48px'
+                    }}
+                  >
+                    <input id="new-item-photo-input" type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={e => handleNewItemPhotoSelect(e.target.files?.[0])} />
+                    {newItemPhotoStatus === 'idle' && (
+                      <>
+                        <span style={{ fontSize: '1.2rem' }}>📷</span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Click or drag a photo here</span>
+                      </>
+                    )}
+                    {newItemPhotoStatus === 'uploading' && (
+                      <>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Uploading {newItemPhotoMeta?.name}…</span>
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', background: '#fef3c7', overflow: 'hidden' }}>
+                          <div className="upload-progress-sweep" style={{ height: '100%', background: '#f59e0b' }} />
+                        </div>
+                      </>
+                    )}
+                    {newItemPhotoStatus === 'attached' && (
+                      <>
+                        <span style={{ fontSize: '1.05rem', color: '#22c55e' }}>✅</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>{newItemPhotoMeta?.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{((newItemPhotoMeta?.size || 0) / 1024).toFixed(0)} KB</div>
+                        </div>
+                        <span style={{ fontSize: '0.78rem', color: '#3b82f6', fontWeight: 600 }}>Replace</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <button type="submit" className="btn btn-primary" style={{ width: '200px' }} disabled={isUploading || newItemPhotoStatus === 'uploading'}>
                     {isUploading ? 'Uploading...' : 'Add Item'}
                   </button>
                 </div>
@@ -2345,6 +3637,7 @@ export default function Admin() {
                   <th>Item</th>
                   <th>Category</th>
                   <th>Price (RM)</th>
+                  <th>Cost / Margin</th>
                   <th>Stock / Alert</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -2397,9 +3690,31 @@ export default function Admin() {
                       </td>
                       <td className="font-medium">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          {item.image && (
-                            <img src={item.image} alt={item.name} style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
-                          )}
+                          <div style={{ position: 'relative', width: '36px', height: '36px', flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById(`row-photo-input-${item.id}`).click()}
+                              title="Click to replace photo"
+                              style={{
+                                width: '36px', height: '36px', borderRadius: '8px', border: 'none', cursor: 'pointer', padding: 0, overflow: 'hidden',
+                                background: item.image ? 'transparent' : getCategoryColor(item.category),
+                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                              }}
+                            >
+                              {item.image ? (
+                                <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <span style={{ color: '#fff', fontWeight: 800, fontSize: '0.95rem' }}>{item.name.charAt(0).toUpperCase()}</span>
+                              )}
+                            </button>
+                            <input id={`row-photo-input-${item.id}`} type="file" accept="image/*" style={{ display: 'none' }}
+                              onChange={e => handleRowPhotoReplace(item, e.target.files?.[0])} />
+                            {uploadingImageIds.has(item.id) && (
+                              <div className="upload-pulse-overlay" style={{ position: 'absolute', inset: 0, borderRadius: '8px', background: 'rgba(245,158,11,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: '0.6rem', color: '#fff', fontWeight: 800 }}>...</span>
+                              </div>
+                            )}
+                          </div>
                           <div style={{ flex: 1, minWidth: '150px' }}>
                             {editingMenuItem && editingMenuItem.id === item.id ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '4px', paddingBottom: '4px' }}>
@@ -2477,6 +3792,26 @@ export default function Admin() {
                           </>
                         )}
                       </div>
+                    </td>
+                    <td>
+                      {editingCostPrice[item.id] !== undefined ? (
+                        <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            type="number" step="0.10"
+                            value={editingCostPrice[item.id]}
+                            onChange={(e) => handleCostPriceChange(item.id, e.target.value)}
+                            className="price-input"
+                            style={{ width: '80px', padding: '4px' }}
+                          />
+                          <button className="btn btn-sm btn-primary" onClick={() => saveCostPrice(item.id)}>Save</button>
+                          <button className="btn btn-sm btn-secondary" onClick={() => setEditingCostPrice({ ...editingCostPrice, [item.id]: undefined })}>Cancel</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <CostMarginLine costPriceCents={item.cost_price} priceCents={item.price} style={{ marginTop: 0 }} />
+                          <button className="btn btn-sm btn-secondary" onClick={() => handleCostPriceChange(item.id, item.cost_price != null ? (item.cost_price / 100).toFixed(2) : '')}>Edit</button>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -2590,12 +3925,38 @@ export default function Admin() {
           <div className="admin-card">
             {!selectedCustomerId ? (
               <>
-                <h3 style={{ marginBottom: '1.5rem' }}>Customer Details</h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  <h3 style={{ margin: 0 }}>Customer Details</h3>
+                  <button className="btn btn-sm btn-primary" onClick={() => setBlastComposer({ channel: 'WhatsApp', message: '' })}>
+                    Message segment
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.25rem' }}>
+                  {['All', ...CUSTOMER_SEGMENTS].map(seg => (
+                    <button
+                      key={seg}
+                      className="btn btn-sm"
+                      onClick={() => setCustomerSegmentFilter(seg)}
+                      style={{
+                        borderRadius: '999px',
+                        border: customerSegmentFilter === seg ? '1.5px solid #FFC72C' : '1px solid var(--text-secondary)',
+                        background: customerSegmentFilter === seg ? '#FFC72C' : 'transparent',
+                        color: customerSegmentFilter === seg ? '#17150F' : 'inherit',
+                        fontWeight: 700
+                      }}
+                    >
+                      {seg} ({segmentCounts[seg] || 0})
+                    </button>
+                  ))}
+                </div>
+
                 <div className="table-responsive">
                   <table className="admin-table">
                     <thead>
                       <tr>
                         <th>Name</th>
+                        <th>Segment</th>
                         <th>Points</th>
                         <th>Total Orders</th>
                         <th>Lifetime Spend (RM)</th>
@@ -2603,56 +3964,131 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {customers.map(customer => {
-                        const customerOrders = orders.filter(o => o.user_id === customer.id && o.status !== 'PENDING');
-                        const totalSpendCents = customerOrders.reduce((sum, o) => sum + o.total, 0);
-                        return (
-                          <tr key={customer.id}>
-                            <td className="font-medium">
-                              {customer.name || customer.email || 'Unnamed'}
-                              <div className="text-xs text-muted mt-1 font-normal">{customer.phone || 'No Phone'}</div>
-                            </td>
-                            <td className="text-primary font-bold">{customer.points || 0} pts</td>
-                            <td>{customerOrders.length}</td>
-                            <td className="font-bold text-success">{(totalSpendCents / 100).toFixed(2)}</td>
-                            <td>
-                              <button className="btn btn-sm btn-secondary" onClick={() => setSelectedCustomerId(customer.id)}>View</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {filteredCustomers.length === 0 ? (
+                        <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No customers in this segment.</td></tr>
+                      ) : filteredCustomers.map(customer => (
+                        <tr key={customer.id}>
+                          <td className="font-medium" style={{ cursor: 'pointer' }} onClick={() => openCustomerDetail(customer)}>
+                            {customer.name || customer.email || 'Unnamed'}
+                            <div className="text-xs text-muted mt-1 font-normal">{customer.phone || 'No Phone'}</div>
+                          </td>
+                          <td><span className="status-badge in-stock">{customer.segment}</span></td>
+                          <td className="text-primary font-bold">{customer.points || 0} pts</td>
+                          <td>{customer.orderCount}</td>
+                          <td className="font-bold text-success">{(customer.lifetimeCents / 100).toFixed(2)}</td>
+                          <td>
+                            <button className="btn btn-sm btn-secondary" onClick={() => openCustomerDetail(customer)}>View</button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </>
             ) : (() => {
-              const customer = customers.find(c => c.id === selectedCustomerId);
+              const customer = customersWithMeta.find(c => c.id === selectedCustomerId);
               if (!customer) return <p>Customer not found</p>;
-              const customerOrders = orders.filter(o => o.user_id === customer.id && o.status !== 'PENDING');
-              const totalSpendCents = customerOrders.reduce((sum, o) => sum + o.total, 0);
+              const avatarHex = CUSTOMER_AVATAR_COLORS[customer.avatar_color] || CUSTOMER_AVATAR_COLORS.ember;
+              const initial = (customer.name || customer.email || '?').charAt(0).toUpperCase();
 
               return (
                 <div>
                   <button className="btn btn-sm btn-secondary" style={{ marginBottom: '1.5rem' }} onClick={() => setSelectedCustomerId(null)}>
                     ← Back to Customers
                   </button>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1.5rem' }}>
+                    <div style={{ width: '52px', height: '52px', borderRadius: '999px', background: avatarHex, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.3rem', flexShrink: 0 }}>
+                      {initial}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>{customer.name || customer.email || 'Unnamed'}</div>
+                      <span className="status-badge in-stock">{customer.segment}</span>
+                    </div>
+                  </div>
+
                   <div className="admin-grid-auto-200" style={{ marginBottom: '2rem' }}>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
-                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Customer Name</h4>
-                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>{customer.name || customer.email || 'Unnamed'}</p>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Lifetime Spend</h4>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>RM {(customer.lifetimeCents / 100).toFixed(2)}</p>
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
-                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Lifetime Spend</h4>
-                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>RM {(totalSpendCents / 100).toFixed(2)}</p>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Orders</h4>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>{customer.orderCount}</p>
+                    </div>
+                    <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Avg Order</h4>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>RM {(customer.avgCents / 100).toFixed(2)}</p>
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
                       <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Points</h4>
                       <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#2563eb' }}>{customer.points || 0}</p>
                     </div>
+                    <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Last Seen</h4>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>{customer.lastSeenDays == null ? 'Never ordered' : `${customer.lastSeenDays}d ago`}</p>
+                    </div>
                   </div>
 
-                  <h4 style={{ marginBottom: '1rem' }}>Order History</h4>
-                  {customerOrders.length > 0 ? (
+                  <div className="admin-grid-auto-200" style={{ marginBottom: '2rem', alignItems: 'start' }}>
+                    <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
+                      <h4 style={{ margin: '0 0 8px', color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Tags</h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                        {tagDraft.map((tag, i) => (
+                          <span key={i} className="status-badge in-stock" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            {tag}
+                            <button type="button" onClick={() => setTagDraft(tagDraft.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 800, padding: 0 }}>×</button>
+                          </span>
+                        ))}
+                        {tagDraft.length === 0 && <span className="text-muted" style={{ fontSize: '0.8rem' }}>No tags yet.</span>}
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input
+                          type="text"
+                          className="price-input"
+                          placeholder="Add a tag…"
+                          value={tagInput}
+                          onChange={e => setTagInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && tagInput.trim()) {
+                              e.preventDefault();
+                              if (!tagDraft.includes(tagInput.trim())) setTagDraft([...tagDraft, tagInput.trim()]);
+                              setTagInput('');
+                            }
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => { if (tagInput.trim() && !tagDraft.includes(tagInput.trim())) { setTagDraft([...tagDraft, tagInput.trim()]); setTagInput(''); } }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                    <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
+                      <h4 style={{ margin: '0 0 8px', color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Counter Note</h4>
+                      <textarea
+                        className="price-input"
+                        style={{ width: '100%', minHeight: '72px', fontFamily: 'inherit', resize: 'vertical' }}
+                        placeholder="Allergies, usual order, anything the counter should know…"
+                        value={noteDraft}
+                        onChange={e => setNoteDraft(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    style={{ marginBottom: '2rem' }}
+                    disabled={savingCustomer}
+                    onClick={() => saveCustomerTagsAndNote(customer.id)}
+                  >
+                    {savingCustomer ? 'Saving…' : 'Save tags & note'}
+                  </button>
+
+                  <h4 style={{ marginBottom: '1rem' }}>Order Timeline</h4>
+                  {customer.timelineOrders.length > 0 ? (
                     <div className="table-responsive">
                       <table className="admin-table">
                         <thead>
@@ -2665,10 +4101,10 @@ export default function Admin() {
                           </tr>
                         </thead>
                         <tbody>
-                          {customerOrders.map(order => (
-                            <tr key={order.id}>
+                          {customer.timelineOrders.map(order => (
+                            <tr key={order.id} style={{ opacity: order.status === 'CANCELLED' ? 0.6 : 1 }}>
                               <td className="font-medium text-xs">{order.id}</td>
-                              <td className="text-xs text-muted">{new Date(order.created_at).toLocaleDateString()}</td>
+                              <td className="text-xs text-muted">{formatStoreDate(order.created_at)}</td>
                               <td>
                                 <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.875rem' }}>
                                   {order.items.map((item, i) => (
@@ -2685,10 +4121,18 @@ export default function Admin() {
                               </td>
                               <td className="font-bold">{(order.total / 100).toFixed(2)}</td>
                               <td>
-                                <span className="font-medium">#{formatOrderId(order.id)}</span>
-                                <span className={`status-badge ${order.status === 'COLLECTED' ? 'in-stock' : 'out-stock'}`}>
+                                <span className="font-medium">#{formatOrderId(order.id)}</span>{' '}
+                                <span className={`status-badge ${order.status === 'COLLECTED' ? 'in-stock' : order.status === 'CANCELLED' ? 'out-stock' : ''}`}>
                                   {order.status}
                                 </span>
+                                {order.refund_amount != null && (
+                                  <div className="text-xs" style={{ color: '#dc2626', fontWeight: 700, marginTop: '2px' }}>
+                                    {order.status === 'CANCELLED' ? 'Voided' : 'Refunded'} RM {(order.refund_amount / 100).toFixed(2)}
+                                  </div>
+                                )}
+                                {order.status === 'CANCELLED' && order.cancel_reason && (
+                                  <div className="text-xs text-muted mt-1">{order.cancel_reason}</div>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -2696,7 +4140,7 @@ export default function Admin() {
                       </table>
                     </div>
                   ) : (
-                    <p className="text-muted">No completed orders yet -- completed orders will appear here once orders are fulfilled.</p>
+                    <p className="text-muted">No orders yet -- orders will appear here once this customer checks out.</p>
                   )}
                 </div>
               );
@@ -3120,11 +4564,36 @@ export default function Admin() {
 
         {activeTab === 'history' && (
           <div className="admin-card">
-            <h3 style={{ marginBottom: '1.5rem' }}>Completed & Cancelled Orders</h3>
+            <h3 style={{ marginBottom: '1rem' }}>Completed & Cancelled Orders</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.5rem' }}>
+              {['All', 'Web', 'Loyverse', 'Grab', 'Cancelled', 'Refunded'].map(f => (
+                <button
+                  key={f}
+                  className="btn btn-sm"
+                  onClick={() => { setHistoryChannelFilter(f); setVisibleHistoryCount(6); }}
+                  style={{
+                    borderRadius: '999px',
+                    border: historyChannelFilter === f ? '1.5px solid #FFC72C' : '1px solid var(--text-secondary)',
+                    background: historyChannelFilter === f ? '#FFC72C' : 'transparent',
+                    color: historyChannelFilter === f ? '#17150F' : 'inherit',
+                    fontWeight: 700
+                  }}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
             {(() => {
-              const historyOrders = orders
+              const allHistoryOrders = orders
                 .filter(o => o.status === 'COLLECTED' || o.status === 'CANCELLED')
                 .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              const historyOrders = allHistoryOrders.filter(o => {
+                if (historyChannelFilter === 'All') return true;
+                if (historyChannelFilter === 'Cancelled') return o.status === 'CANCELLED';
+                if (historyChannelFilter === 'Refunded') return o.refund_amount != null;
+                return getOrderChannelKey(o) === historyChannelFilter.toLowerCase().replace('grab', 'grabfood');
+              });
 
               return (
                 <>
@@ -3142,26 +4611,27 @@ export default function Admin() {
                       <tbody>
                         {historyOrders.slice(0, visibleHistoryCount).map(order => {
                           const isExpanded = expandedHistoryOrderIds.has(order.id);
+                          const isRefunded = order.refund_amount != null;
                           return (
                             <Fragment key={order.id}>
-                              <tr 
+                              <tr
                                 onClick={() => toggleHistoryOrderExpand(order.id)}
                                 style={{ cursor: 'pointer', transition: 'background-color 0.15s ease' }}
                               >
                                 <td className="font-medium text-xs">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <ChevronDown 
-                                      size={14} 
-                                      style={{ 
-                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                                    <ChevronDown
+                                      size={14}
+                                      style={{
+                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                                         transition: 'transform 0.2s ease',
-                                        flexShrink: 0 
-                                      }} 
+                                        flexShrink: 0
+                                      }}
                                     />
                                     <span>#{formatOrderId(order.id)}</span>
                                   </div>
                                 </td>
-                                <td className="text-xs text-muted">{new Date(order.created_at).toLocaleString()}</td>
+                                <td className="text-xs text-muted">{formatStoreDateTime(order.created_at)}</td>
                                 <td>
                                   <div className="font-bold text-sm">{order.customer_name || 'Guest'}</div>
                                   {order.customer_phone && order.customer_phone !== 'No Phone' && <div className="text-xs text-muted">📞 {order.customer_phone}</div>}
@@ -3171,6 +4641,11 @@ export default function Admin() {
                                   <span className={`status-badge ${order.status === 'COLLECTED' ? 'in-stock' : 'out-stock'}`}>
                                     {order.status}
                                   </span>
+                                  {isRefunded && (
+                                    <span className="status-badge out-stock" style={{ marginLeft: '4px', background: '#7f1d1d', color: '#fff' }}>
+                                      {order.status === 'CANCELLED' ? 'VOIDED' : 'REFUNDED'}
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
                               {isExpanded && (
@@ -3203,6 +4678,19 @@ export default function Admin() {
                                         📝 {order.notes}
                                       </div>
                                     )}
+                                    {isRefunded ? (
+                                      <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#dc2626', fontWeight: 700 }}>
+                                        Refunded RM {(order.refund_amount / 100).toFixed(2)} — {order.refund_reason} ({formatStoreDate(order.refunded_at)})
+                                      </div>
+                                    ) : order.status === 'COLLECTED' && (
+                                      <button
+                                        className="btn btn-sm btn-secondary"
+                                        style={{ marginTop: '0.75rem' }}
+                                        onClick={(e) => { e.stopPropagation(); setRefundingOrder({ id: order.id, total: order.total, amountMode: 'full', reason: '' }); }}
+                                      >
+                                        Refund or void
+                                      </button>
+                                    )}
                                   </td>
                                 </tr>
                               )}
@@ -3217,15 +4705,20 @@ export default function Admin() {
                       </tbody>
                     </table>
                   </div>
+                  {historyOrders.length > 0 && (
+                    <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Showing {Math.min(visibleHistoryCount, historyOrders.length)} of {historyOrders.length}
+                    </div>
+                  )}
                   {historyOrders.length > visibleHistoryCount && (
-                    <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
-                      <button 
+                    <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+                      <button
                         type="button"
                         className="btn btn-secondary"
                         style={{ padding: '8px 20px', fontSize: '0.875rem' }}
-                        onClick={() => setVisibleHistoryCount(prev => prev + 5)}
+                        onClick={() => setVisibleHistoryCount(prev => prev + 6)}
                       >
-                        Load More ({historyOrders.length - visibleHistoryCount} remaining)
+                        Load 6 more · {historyOrders.length - visibleHistoryCount} remaining
                       </button>
                     </div>
                   )}
@@ -3264,7 +4757,7 @@ export default function Admin() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h4 style={{ margin: 0 }}>Active Cart Promo Codes</h4>
-                  <button className="btn btn-primary btn-sm" onClick={() => setIsPromoModalOpen(true)}>+ New Promo Code</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => openCreatePromoModal()}>+ New Promo Code</button>
                 </div>
                 <div className="table-responsive">
                   <table className="admin-table">
@@ -3319,7 +4812,14 @@ export default function Admin() {
                               >
                                 {promo.active ? 'ACTIVE' : 'INACTIVE'}
                               </button>
-                              <button 
+                              <button
+                                onClick={() => openEditPromoModal(promo)}
+                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: '4px', color: 'var(--text-secondary)' }}
+                                title="Edit Promo Code"
+                              >
+                                ✏️
+                              </button>
+                              <button
                                 onClick={() => deletePromoCode(promo.id)}
                                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '4px', color: '#ef4444' }}
                                 title="Delete Promo Code"
@@ -3329,7 +4829,7 @@ export default function Admin() {
                             </div>
                           </td>
                           <td className="text-muted text-xs">
-                            {new Date(promo.created_at).toLocaleDateString()}
+                            {formatStoreDate(promo.created_at)}
                           </td>
                         </tr>
                       ))}
@@ -3436,7 +4936,7 @@ export default function Admin() {
                             />
                           ) : (
                             <span className="text-sm">
-                              {item.promo_start ? new Date(item.promo_start).toLocaleString() : '—'}
+                              {item.promo_start ? formatStoreDateTime(item.promo_start) : '—'}
                             </span>
                           )}
                         </td>
@@ -3451,7 +4951,7 @@ export default function Admin() {
                             />
                           ) : (
                             <span className="text-sm">
-                              {item.promo_end ? new Date(item.promo_end).toLocaleString() : '—'}
+                              {item.promo_end ? formatStoreDateTime(item.promo_end) : '—'}
                             </span>
                           )}
                         </td>
@@ -3550,14 +5050,16 @@ export default function Admin() {
                 {redemptions.length === 0 ? (
                   <tr><td colSpan="7" className="text-center text-muted" style={{ padding: '2rem' }}>No redemptions yet -- prize redemptions will appear here once customers redeem prizes.</td></tr>
                 ) : redemptions.map(r => {
-                  const cost = getRedemptionCost(r);
+                  const costState = getRedemptionCostState(r);
                   return (
                   <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
                     <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--munchies-yellow)' }}>{r.redemption_code}</td>
                     <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.profiles?.phone || ''}</div></td>
                     <td><strong>{r.prize_name}</strong><div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>{r.points_spent} pts</div></td>
-                    <td style={{ fontSize: '0.85rem', color: cost != null ? 'var(--text)' : 'var(--text-muted)' }}>{cost != null ? `RM ${cost.toFixed(2)}` : 'Not set'}</td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(r.redeemed_at).toLocaleString()}</td>
+                    <td style={{ fontSize: '0.85rem', fontWeight: costState.state === 'costed' ? 400 : 700, color: costState.state === 'costed' ? 'var(--text)' : '#b45309' }}>
+                      {costState.state === 'costed' ? `RM ${costState.amount.toFixed(2)}` : costState.state === 'no_cost' ? 'No cost set' : 'Not linked'}
+                    </td>
+                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatStoreDateTime(r.redeemed_at)}</td>
                     <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : '#166534', color: '#fff' }}>{r.status}</span></td>
                     <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
                     {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Done</span>}</td>
@@ -3569,7 +5071,34 @@ export default function Admin() {
           </div>
         )}
 
-      
+        {/* Audit log Tab -- owner only */}
+        {activeTab === 'audit' && !viewingAsStaff && (
+          <div className="admin-card">
+            <h3>Audit log</h3>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Every price change, stock adjustment, order state change, refund, promo and settings change writes a row here. Newest first.</p>
+            {auditLoading ? (
+              <p className="text-muted">Loading…</p>
+            ) : (
+              <div className="table-responsive"><table className="admin-table">
+                <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead>
+                <tbody>
+                  {auditLog.length === 0 ? (
+                    <tr><td colSpan="4" className="text-center text-muted" style={{ padding: '2rem' }}>No audit entries yet -- actions taken in this console will appear here.</td></tr>
+                  ) : auditLog.map(row => (
+                    <tr key={row.id}>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatStoreDateTime(row.created_at)}</td>
+                      <td style={{ fontSize: '0.85rem' }}>{row.actor_role || 'unknown'}</td>
+                      <td style={{ fontSize: '0.85rem', fontWeight: 700 }}>{row.action}</td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatAuditDetail(row.detail)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+            )}
+          </div>
+        )}
+
+
 </main>
 
       {/* Promo Code Modal Overlay */}
@@ -3587,9 +5116,9 @@ export default function Admin() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🎟️ Create Promo Code
+                {promoFormData.id ? '✏️ Edit Promo Code' : '🎟️ Create Promo Code'}
               </h3>
-              <button type="button" onClick={() => setIsPromoModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+              <button type="button" onClick={() => { setIsPromoModalOpen(false); setPromoFormData(EMPTY_PROMO_FORM); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
 
             <form onSubmit={handleSavePromoCode} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -3618,17 +5147,27 @@ export default function Admin() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>PROMO TYPE</label>
-                <select
-                  value={promoFormData.type}
-                  onChange={(e) => setPromoFormData({ ...promoFormData, type: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
-                >
-                  <option value="percent_off">Percent Off (%)</option>
-                  <option value="flat_off">Flat Amount Off (RM)</option>
-                  <option value="bogo">Buy One Get One (BOGO)</option>
-                  <option value="spend_threshold_free_item">Free Item on Min Spend</option>
-                </select>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold' }}>PROMO TYPE</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    ['percent_off', 'Percent off'],
+                    ['flat_off', 'RM off'],
+                    ['bogo', 'BOGO'],
+                    ['spend_threshold_free_item', 'Free item']
+                  ].map(([val, label]) => (
+                    <button key={val} type="button" onClick={() => setPromoFormData({ ...promoFormData, type: val })}
+                      style={{
+                        padding: '8px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                        border: promoFormData.type === val ? '1px solid #2563eb' : '1px solid var(--text-secondary)',
+                        background: promoFormData.type === val ? '#2563eb' : 'transparent',
+                        color: promoFormData.type === val ? '#fff' : 'var(--text-secondary)'
+                      }}>{label}</button>
+                  ))}
+                </div>
+                {/* BOGO isn't in the brief's 3 named chips (Percent off / RM off / Free
+                    item) but is a real, DB-validated promo type (validate_and_apply_promo
+                    handles it) -- kept as a 4th chip rather than silently dropping a
+                    working feature. */}
               </div>
 
               {(promoFormData.type === 'percent_off' || promoFormData.type === 'flat_off') && (
@@ -3645,6 +5184,15 @@ export default function Admin() {
                   <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
                     {promoFormData.type === 'flat_off' ? 'Enter in cents (e.g. 500 = RM 5.00)' : 'Enter whole percentage (e.g. 15 = 15%)'}
                   </small>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', margin: '10px 0 4px', fontWeight: 'bold' }}>MINIMUM SPEND (Optional)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 5000 (for RM 50.00)"
+                    value={promoFormData.min_spend}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, min_spend: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  />
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Enter in cents (e.g. 5000 = RM 50.00). Enforced at checkout.</small>
                 </div>
               )}
 
@@ -3744,19 +5292,37 @@ export default function Admin() {
               </div>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e2e8f0', fontSize: '0.85rem' }}>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={promoFormData.stackable_with_item_promos}
                   onChange={(e) => setPromoFormData({ ...promoFormData, stackable_with_item_promos: e.target.checked })}
                 />
                 Stackable with individual item promotions?
               </label>
 
+              <div onClick={() => setPromoFormData({ ...promoFormData, active: !promoFormData.active })}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#e2e8f0' }}>Active</span>
+                <div style={{ width: '40px', height: '22px', borderRadius: '11px', flexShrink: 0,
+                  background: promoFormData.active ? '#22c55e' : 'var(--text-secondary)', position: 'relative', transition: 'background 0.2s' }}>
+                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: '3px', transition: 'left 0.2s', left: promoFormData.active ? '21px' : '3px' }} />
+                </div>
+              </div>
+
+              {buildPromoPreview(promoFormData) && (
+                <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.35)' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>👁️ Customer sees</div>
+                  <div style={{ fontSize: '0.85rem', color: '#e2e8f0' }}>{buildPromoPreview(promoFormData)}</div>
+                </div>
+              )}
+
               <button
                 type="submit"
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}
+                disabled={savingPromo}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 'bold', cursor: savingPromo ? 'default' : 'pointer', opacity: savingPromo ? 0.6 : 1, marginTop: '8px' }}
               >
-                Create Promo Code
+                {savingPromo ? 'Saving…' : promoFormData.id ? 'Save Changes' : 'Create Promo Code'}
               </button>
             </form>
           </div>
@@ -3925,12 +5491,11 @@ export default function Admin() {
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, cost_price: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 />
-                {editingMenuItem.cost_price !== '' && editingMenuItem.price && (
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    Margin: RM {(parseFloat(editingMenuItem.price) - parseFloat(editingMenuItem.cost_price || 0)).toFixed(2)} per unit
-                    ({(((parseFloat(editingMenuItem.price) - parseFloat(editingMenuItem.cost_price || 0)) / parseFloat(editingMenuItem.price)) * 100).toFixed(0)}%)
-                  </p>
-                )}
+                <CostMarginLine
+                  dark
+                  costPriceCents={editingMenuItem.cost_price !== '' && editingMenuItem.cost_price != null ? Math.round(parseFloat(editingMenuItem.cost_price) * 100) : null}
+                  priceCents={editingMenuItem.price ? Math.round(parseFloat(editingMenuItem.price) * 100) : 0}
+                />
               </div>
 
               <div>
@@ -3981,8 +5546,30 @@ export default function Admin() {
           <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
             <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Cancel Order</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-              <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 'bold' }}>REASON</label>
-              <input type="text" value={cancellingOrder.reason} onChange={e => setCancellingOrder({...cancellingOrder, reason: e.target.value})} placeholder="e.g. Customer no-show" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold' }}>REASON</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {CANCEL_REASONS.map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setCancellingOrder({ ...cancellingOrder, reason: r })}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '999px',
+                      border: `1px solid ${cancellingOrder.reason === r ? '#FFC72C' : 'var(--text-secondary)'}`,
+                      background: cancellingOrder.reason === r ? '#FFC72C' : '#0f172a',
+                      color: cancellingOrder.reason === r ? '#17150F' : '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div></div>
+              <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 'bold' }}>NOTE (OPTIONAL)</label>
+              <textarea value={cancellingOrder.note} onChange={e => setCancellingOrder({...cancellingOrder, note: e.target.value})} placeholder="Any extra detail..." style={{ width: '100%', minHeight: '56px', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontFamily: 'inherit', resize: 'vertical' }} /></div>
               <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold' }}>STOCK ACTION</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'restore' ? '#1e3a8a' : '#0f172a', border: '1px solid var(--text-secondary)', borderRadius: '8px', cursor: 'pointer', marginBottom: '8px' }}>
                 <input type="radio" checked={cancellingOrder.wasteAction === 'restore'} onChange={() => setCancellingOrder({...cancellingOrder, wasteAction: 'restore'})} />
@@ -3993,13 +5580,181 @@ export default function Admin() {
                 <div><div style={{ color: '#fca5a5', fontWeight: 'bold' }}>Mark as waste</div><div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Item prepped, cannot be resold.</div></div>
               </label></div>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => { if (!cancellingOrder.reason.trim()) { alert("Reason required."); return; } cancelOrder(cancellingOrder.id, cancellingOrder.reason.trim(), cancellingOrder.wasteAction, true); setCancellingOrder(null); }} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Confirm Cancel</button>
+                <button
+                  onClick={() => {
+                    if (!cancellingOrder.reason) { alert("Please pick a reason."); return; }
+                    const { id, reason, note, wasteAction, previousStatus } = cancellingOrder;
+                    cancelOrder(id, reason, wasteAction, true, note.trim() || null);
+                    logAudit('Order cancelled', { orderId: id, reason, note: note.trim() || null, wasteAction });
+                    pushToast({
+                      kind: 'danger',
+                      title: 'Order cancelled',
+                      msg: `#${formatOrderId(id)} — ${reason}`,
+                      // Reverts the order's status only -- it does not reverse
+                      // cancel_order()'s stock restore / waste_log side effect.
+                      // A full reversal would need its own RPC (symmetrical to
+                      // cancel_order) rather than a plain client-side status
+                      // flip; out of scope for this PR.
+                      undo: () => { updateOrderState(id, previousStatus); logAudit('Order cancellation undone (status only, stock/waste not reversed)', { orderId: id, revertedTo: previousStatus }); }
+                    });
+                    setCancellingOrder(null);
+                  }}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Confirm Cancel
+                </button>
                 <button onClick={() => setCancellingOrder(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Abort</button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* §4 Order History: refund/void modal */}
+      {refundingOrder && (() => {
+        const amountCents = refundingOrder.amountMode === 'full' ? refundingOrder.total : Math.round(refundingOrder.total / 2);
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+            <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Refund or void</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>AMOUNT</label>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    {[['full', 'Full (void)'], ['half', 'Half']].map(([mode, label]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setRefundingOrder({ ...refundingOrder, amountMode: mode })}
+                        style={{
+                          flex: 1, padding: '10px', borderRadius: '8px',
+                          border: `1px solid ${refundingOrder.amountMode === mode ? '#FFC72C' : '#334155'}`,
+                          background: refundingOrder.amountMode === mode ? '#FFC72C' : '#0f172a',
+                          color: refundingOrder.amountMode === mode ? '#17150F' : '#fff',
+                          fontWeight: 700, cursor: 'pointer'
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>RM {(amountCents / 100).toFixed(2)} of RM {(refundingOrder.total / 100).toFixed(2)}</div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>REASON</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {REFUND_REASONS.map(r => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRefundingOrder({ ...refundingOrder, reason: r })}
+                        style={{
+                          padding: '6px 12px', borderRadius: '999px',
+                          border: `1px solid ${refundingOrder.reason === r ? '#FFC72C' : '#334155'}`,
+                          background: refundingOrder.reason === r ? '#FFC72C' : '#0f172a',
+                          color: refundingOrder.reason === r ? '#17150F' : '#fff',
+                          fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer'
+                        }}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    disabled={!refundingOrder.reason}
+                    onClick={async () => {
+                      if (!refundingOrder.reason) { alert('Please pick a reason.'); return; }
+                      const ok = await refundOrder(refundingOrder.id, amountCents, refundingOrder.reason, refundingOrder.amountMode === 'full');
+                      if (ok) setRefundingOrder(null);
+                    }}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: !refundingOrder.reason ? '#475569' : '#ef4444', color: '#fff', fontWeight: 'bold', cursor: !refundingOrder.reason ? 'not-allowed' : 'pointer' }}
+                  >
+                    Confirm {refundingOrder.amountMode === 'full' ? 'Void' : 'Refund'}
+                  </button>
+                  <button onClick={() => setRefundingOrder(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Abort</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* §2 Customers CRM: "Message segment" blast composer. There's no
+          WhatsApp/Push provider wired into this codebase (no API keys,
+          no send function) -- "Send" logs the composed blast to the audit
+          trail rather than claiming to deliver anything. Wiring a real
+          provider is a separate, explicit integration task. */}
+      {blastComposer && (() => {
+        const recipients = customerSegmentFilter === 'All' ? customersWithMeta : customersWithMeta.filter(c => c.segment === customerSegmentFilter);
+        const sampleName = recipients[0]?.name || 'Customer';
+        const preview = blastComposer.message.trim()
+          ? blastComposer.message.replaceAll('{name}', sampleName)
+          : <span className="text-muted">Preview appears here as you type…</span>;
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+            <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '480px', border: '1px solid #334155' }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Message segment</h3>
+              <p style={{ margin: '0 0 1.2rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+                Sending to <strong>{customerSegmentFilter}</strong> — {recipients.length} customer{recipients.length === 1 ? '' : 's'}.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>CHANNEL</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {['WhatsApp', 'Push'].map(ch => (
+                      <button
+                        key={ch}
+                        type="button"
+                        onClick={() => setBlastComposer({ ...blastComposer, channel: ch })}
+                        style={{
+                          flex: 1, padding: '10px', borderRadius: '8px',
+                          border: `1px solid ${blastComposer.channel === ch ? '#FFC72C' : '#334155'}`,
+                          background: blastComposer.channel === ch ? '#FFC72C' : '#0f172a',
+                          color: blastComposer.channel === ch ? '#17150F' : '#fff',
+                          fontWeight: 700, cursor: 'pointer'
+                        }}
+                      >
+                        {ch}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>MESSAGE — use {'{name}'} for the customer's name</label>
+                  <textarea
+                    value={blastComposer.message}
+                    onChange={e => setBlastComposer({ ...blastComposer, message: e.target.value })}
+                    placeholder="Hey {name}, we miss you! Come back for..."
+                    style={{ width: '100%', minHeight: '80px', padding: '10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', fontFamily: 'inherit', resize: 'vertical' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>CUSTOMER SEES</label>
+                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', fontSize: '0.85rem', color: '#e2e8f0' }}>
+                    {preview}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    disabled={!blastComposer.message.trim() || recipients.length === 0}
+                    onClick={() => {
+                      logAudit('Marketing blast sent', { segment: customerSegmentFilter, channel: blastComposer.channel, message: blastComposer.message.trim(), recipientCount: recipients.length });
+                      pushToast({ kind: 'new', msg: `Blast logged for ${recipients.length} customer${recipients.length === 1 ? '' : 's'} (${blastComposer.channel}).` });
+                      setBlastComposer(null);
+                    }}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: !blastComposer.message.trim() || recipients.length === 0 ? '#475569' : '#FFC72C', color: '#17150F', fontWeight: 'bold', cursor: !blastComposer.message.trim() || recipients.length === 0 ? 'not-allowed' : 'pointer' }}
+                  >
+                    Send
+                  </button>
+                  <button onClick={() => setBlastComposer(null)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
     </div>
   );

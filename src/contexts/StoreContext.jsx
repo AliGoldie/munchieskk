@@ -833,18 +833,19 @@ const clearManualOverride = async (id) => {
     return true;
   };
 
-  const cancelOrder = async (orderId, reason, wasteAction = 'restore', isAdmin = false) => {
+  const cancelOrder = async (orderId, reason, wasteAction = 'restore', isAdmin = false, note = null) => {
     const order = orders.find(o => o.id === orderId);
     if (!order || order.status === 'COLLECTED' || order.status === 'CANCELLED') return;
 
     // Optimistic update
-    setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED', cancellation_reason: reason, cancel_reason: reason } : o));
+    setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED', cancellation_reason: reason, cancel_reason: reason, cancel_note: note } : o));
 
     // 1. Try atomic RPC first
     const { error: rpcError } = await supabase.rpc('cancel_order', {
       p_order_id: orderId,
       p_reason: reason,
-      p_waste_action: wasteAction // 'restore' or 'waste'
+      p_waste_action: wasteAction, // 'restore' or 'waste'
+      p_note: note
     });
 
     // 2. Error handling: Admin sees technical detail, customers see calm masked message

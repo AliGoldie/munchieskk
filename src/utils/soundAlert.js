@@ -54,8 +54,8 @@ function _playAlertBeep() {
     if (_alertCtx.state === 'suspended') {
       _alertCtx.resume();
     }
-    // Two-tone urgent beep: high then low
-    [[880, 0], [660, 0.18]].forEach(([freq, delay]) => {
+    // Two-tone urgent beep: 880Hz then 1180Hz, 0.22s each (docs/design/HANDOFF-ADMIN-CRM.md §0)
+    [[880, 0], [1180, 0.22]].forEach(([freq, delay]) => {
       const osc = _alertCtx.createOscillator();
       const gain = _alertCtx.createGain();
       osc.connect(gain);
@@ -66,7 +66,7 @@ function _playAlertBeep() {
       gain.gain.linearRampToValueAtTime(0.35, _alertCtx.currentTime + delay + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.001, _alertCtx.currentTime + delay + 0.22);
       osc.start(_alertCtx.currentTime + delay);
-      osc.stop(_alertCtx.currentTime + delay + 0.25);
+      osc.stop(_alertCtx.currentTime + delay + 0.22);
     });
   } catch (e) {
     console.warn('Alert sound error:', e);

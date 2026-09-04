@@ -27,6 +27,12 @@ dist-ssr
 supabase/.temp
 supabase/.branches
 
+# Playwright test artifacts
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # Secrets
 .env
 loyverse token.txt
