@@ -378,6 +378,7 @@ export default function Admin() {
 
   // Menu Item Detail Editing State
   const [editingMenuItem, setEditingMenuItem] = useState(null);
+  const [assignPickerAddonId, setAssignPickerAddonId] = useState(null);
   const [cancellingOrder, setCancellingOrder] = useState(null);
   const [editingMenuItemImageFile, setEditingMenuItemImageFile] = useState(null);
 
@@ -4496,18 +4497,18 @@ export default function Admin() {
                         </span>
                       </td>
                       <td>
-                        <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxWidth: '400px'}}>
-                          {menu.map(m => (
-                            <label key={m.id} style={{fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px'}}>
-                              <input 
-                                type="checkbox" 
-                                checked={itemAddons[m.id]?.includes(addon.id) || false}
-                                onChange={() => toggleItemAddon(m.id, addon.id)}
-                              />
-                              {m.name}
-                            </label>
-                          ))}
-                        </div>
+                        {(() => {
+                          const assignedCount = menu.filter(m => itemAddons[m.id]?.includes(addon.id)).length;
+                          return (
+                            <button
+                              type="button"
+                              className="pill-action-btn pill-blue"
+                              onClick={() => setAssignPickerAddonId(addon.id)}
+                            >
+                              {assignedCount > 0 ? `${assignedCount} item${assignedCount === 1 ? '' : 's'}` : 'None assigned'}
+                            </button>
+                          );
+                        })()}
                       </td>
                       <td>
                         <button className="pill-action-btn pill-red" onClick={() => deleteAddon(addon.id)}><Trash2 size={12} /> Delete</button>
@@ -5498,6 +5499,54 @@ export default function Admin() {
           </div>
         </div>
       )}
+
+      {/* Assign Add-on to Items Modal -- was an inline checkbox list of every
+          menu item shown in the table cell itself, stretching that row to
+          ~590px tall (and every other cell in the row along with it). Now a
+          compact "N items" summary that opens this picker instead. */}
+      {assignPickerAddonId && (() => {
+        const addon = addons.find(a => a.id === assignPickerAddonId);
+        if (!addon) return null;
+        return (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
+          }}>
+            <div style={{
+              background: '#1e293b', color: '#fff', width: '100%', maxWidth: '420px',
+              borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)', maxHeight: '80vh', display: 'flex', flexDirection: 'column'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.1rem' }}>
+                  Assign "{addon.name}" to items
+                </h3>
+                <button type="button" onClick={() => setAssignPickerAddonId(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
+              </div>
+              <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {menu.map(m => (
+                  <label key={m.id} style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={itemAddons[m.id]?.includes(addon.id) || false}
+                      onChange={() => toggleItemAddon(m.id, addon.id)}
+                    />
+                    {m.name}
+                  </label>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssignPickerAddonId(null)}
+                style={{ marginTop: '1rem', padding: '10px', borderRadius: '8px', border: 'none', background: 'var(--munchies-yellow)', color: '#17150F', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
         {/* Cancellation Modal */}
       {cancellingOrder && (
