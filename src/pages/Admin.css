@@ -129,6 +129,121 @@
   font-weight: 700;
 }
 
+/* Compact icon-only ghost button -- used inline next to a value (price,
+   cost, reorder) instead of a bulky bordered "Edit" text button. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #e5e9f5;
+  background: #fff;
+  color: #7c8bb3;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+.icon-btn:hover:not(:disabled) {
+  background: #f4f7fe;
+  border-color: #a3aed1;
+  color: #2b3674;
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Reorder chevrons stack tightly, same icon-btn look but shorter */
+.reorder-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.reorder-stack .icon-btn {
+  height: 20px;
+}
+
+/* Soft "pill" action button -- tinted background + matching text color
+   instead of a solid saturated fill, for the row-level primary action
+   (Edit Details, Delete). */
+.pill-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+.pill-action-btn:hover {
+  filter: brightness(0.96);
+}
+.pill-action-btn.pill-blue {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+.pill-action-btn.pill-red {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+/* Availability toggle switch -- replaces the old status-badge + separate
+   "Mark Sold Out"/"Restock" button with one compact control. */
+.stock-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.stock-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.stock-toggle-track {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  position: relative;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+.stock-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+.stock-toggle input:checked + .stock-toggle-track {
+  background: #00b074;
+}
+.stock-toggle input:checked + .stock-toggle-track::after {
+  transform: translateX(16px);
+}
+.stock-toggle-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .status-badge.in-stock, .status-badge.completed {
   background-color: rgba(0, 176, 116, 0.1);
   color: #00b074;

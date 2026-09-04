@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Admin.css';
@@ -3636,7 +3636,16 @@ export default function Admin() {
               <tbody>
                 {[...menu]
                   .filter(item => item.name.toLowerCase().includes(menuSearchQuery.toLowerCase()))
-                  .sort((a, b) => a.category.localeCompare(b.category) || (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                  .sort((a, b) => {
+                    // Group in the same order customers see on the Menu page
+                    // (categoriesList's own order), not alphabetically --
+                    // alphabetical put DRINKS second instead of last.
+                    const categoryRank = (code) => {
+                      const idx = categoriesList.findIndex(c => c.code === code);
+                      return idx === -1 ? categoriesList.length : idx;
+                    };
+                    return categoryRank(a.category) - categoryRank(b.category) || (a.sort_order ?? 0) - (b.sort_order ?? 0);
+                  })
                   .map((item, idx, sortedList) => {
                     const isFirstInCategory = idx === 0 || sortedList[idx - 1].category !== item.category;
                     const isLastInCategory = idx === sortedList.length - 1 || sortedList[idx + 1].category !== item.category;
@@ -3655,26 +3664,24 @@ export default function Admin() {
                   return (
                     <tr key={item.id} className={!item.inStock ? 'row-inactive' : ''}>
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div className="reorder-stack">
                           <button
                             type="button"
-                            className="btn btn-sm btn-secondary"
-                            style={{ padding: '2px 8px' }}
+                            className="icon-btn"
                             onClick={() => moveMenuItem(item.id, 'up')}
                             disabled={isFirstInCategory}
                             title="Move up within category"
                           >
-                            ▲
+                            <ChevronUp size={14} />
                           </button>
                           <button
                             type="button"
-                            className="btn btn-sm btn-secondary"
-                            style={{ padding: '2px 8px' }}
+                            className="icon-btn"
                             onClick={() => moveMenuItem(item.id, 'down')}
                             disabled={isLastInCategory}
                             title="Move down within category"
                           >
-                            ▼
+                            <ChevronDown size={14} />
                           </button>
                         </div>
                       </td>
@@ -3743,7 +3750,7 @@ export default function Admin() {
                         ) : (
                           <>
                             <span>RM {(item.price / 100).toFixed(2)}</span>
-                            <button className="btn btn-sm btn-secondary" onClick={() => handlePriceChange(item.id, (item.price / 100).toFixed(2))}>Edit</button>
+                            <button className="icon-btn" title="Edit price" onClick={() => handlePriceChange(item.id, (item.price / 100).toFixed(2))}><Pencil size={12} /></button>
                           </>
                         )}
                       </div>
@@ -3764,7 +3771,7 @@ export default function Admin() {
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <CostMarginLine costPriceCents={item.cost_price} priceCents={item.price} style={{ marginTop: 0 }} />
-                          <button className="btn btn-sm btn-secondary" onClick={() => handleCostPriceChange(item.id, item.cost_price != null ? (item.cost_price / 100).toFixed(2) : '')}>Edit</button>
+                          <button className="icon-btn" title="Edit cost price" onClick={() => handleCostPriceChange(item.id, item.cost_price != null ? (item.cost_price / 100).toFixed(2) : '')}><Pencil size={12} /></button>
                         </div>
                       )}
                     </td>
@@ -3834,25 +3841,25 @@ export default function Admin() {
                       </div>
                     </td>
                     <td>
-                      <div className="flex items-center gap-3">
-                        {(item.stock_quantity ?? 0) > 0 && (item.inStock === false || item.in_stock === false) ? (
-                          <span className="status-badge" style={{ backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #f59e0b', whiteSpace: 'nowrap' }}>
-                            Manually marked sold out ({item.stock_quantity} in stock)
-                          </span>
-                        ) : (
-                          <span className={`status-badge ${item.inStock ? 'in-stock' : 'out-stock'}`}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label className="stock-toggle" title={item.inStock ? 'Mark sold out' : 'Restock'}>
+                          <input type="checkbox" checked={!!item.inStock} onChange={() => toggleStock(item.id)} />
+                          <span className="stock-toggle-track"></span>
+                          <span className="stock-toggle-label" style={{ color: item.inStock ? '#00b074' : '#ff5b5b' }}>
                             {item.inStock ? 'In Stock' : 'Sold Out'}
                           </span>
+                        </label>
+                        {(item.stock_quantity ?? 0) > 0 && (item.inStock === false || item.in_stock === false) && (
+                          <span style={{ fontSize: '0.65rem', color: '#b45309', whiteSpace: 'nowrap' }}>
+                            {item.stock_quantity} left, manually off
+                          </span>
                         )}
-                        <button className={`btn btn-sm ${item.inStock ? 'btn-danger' : 'btn-success'}`} onClick={() => toggleStock(item.id)}>
-                          {item.inStock ? 'Mark Sold Out' : 'Restock'}
-                        </button>
                       </div>
                     </td>
                     <td>
                       <button
                         type="button"
-                        className="btn btn-sm btn-secondary"
+                        className="pill-action-btn pill-blue"
                         onClick={() => setEditingMenuItem({
                           id: item.id,
                           name: item.name,
@@ -3862,9 +3869,8 @@ export default function Admin() {
                           description: item.description || '',
                           image: item.image || ''
                         })}
-                        style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold' }}
                       >
-                        ✏️ Edit Details
+                        <Pencil size={12} /> Edit
                       </button>
                     </td>
                   </tr>
@@ -4392,26 +4398,24 @@ export default function Admin() {
                   return (
                     <tr key={addon.id}>
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div className="reorder-stack">
                           <button
                             type="button"
-                            className="btn btn-sm btn-secondary"
-                            style={{ padding: '2px 8px' }}
+                            className="icon-btn"
                             onClick={() => moveAddon(addon.id, 'up')}
                             disabled={idx === 0}
                             title="Move up"
                           >
-                            ▲
+                            <ChevronUp size={14} />
                           </button>
                           <button
                             type="button"
-                            className="btn btn-sm btn-secondary"
-                            style={{ padding: '2px 8px' }}
+                            className="icon-btn"
                             onClick={() => moveAddon(addon.id, 'down')}
                             disabled={idx === sortedList.length - 1}
                             title="Move down"
                           >
-                            ▼
+                            <ChevronDown size={14} />
                           </button>
                         </div>
                       </td>
@@ -4443,7 +4447,7 @@ export default function Admin() {
                           ) : (
                             <>
                               <span>{addon.price === null ? 'TBD' : `RM ${(addon.price / 100).toFixed(2)}`}</span>
-                              <button className="btn btn-sm btn-secondary" onClick={() => handleAddonPriceChange(addon.id, addon.price === null ? '' : (addon.price / 100).toFixed(2))}>Edit</button>
+                              <button className="icon-btn" title="Edit price" onClick={() => handleAddonPriceChange(addon.id, addon.price === null ? '' : (addon.price / 100).toFixed(2))}><Pencil size={12} /></button>
                             </>
                           )}
                         </div>
@@ -4506,7 +4510,7 @@ export default function Admin() {
                         </div>
                       </td>
                       <td>
-                        <button className="btn btn-sm btn-danger" onClick={() => deleteAddon(addon.id)}>Delete</button>
+                        <button className="pill-action-btn pill-red" onClick={() => deleteAddon(addon.id)}><Trash2 size={12} /> Delete</button>
                       </td>
                     </tr>
                   );
