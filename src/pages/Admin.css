@@ -153,6 +153,16 @@
   padding: 0.6rem 1.2rem;
 }
 
+/* .btn-sm's own padding/font-size (global.css) loses to the rule above on
+   specificity, so every "small" button in Admin was silently rendering at
+   full size -- this is what actually made table-row buttons (Edit, Mark
+   Sold Out, Edit Details, Delete...) look oversized. */
+.admin-page .btn-sm {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  border-radius: 8px;
+}
+
 .admin-page .btn-primary {
   background-color: #00b074;
   color: white;
