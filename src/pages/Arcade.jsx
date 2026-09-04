@@ -77,10 +77,12 @@ export default function Arcade() {
         <Award size={24} className="rank-icon" color="var(--ember)" />
         <p className="rank-label">GLOBAL RANK</p>
         <h2 className="rank-number">
-          {globalRank ? `#${globalRank}` : '...'}
+          {globalRank ? `#${globalRank}` : user ? '...' : '—'}
         </h2>
         <span className="rank-sub">
-          {rankPercentile ? `top ${rankPercentile}% this week` : 'calculating rank...'}
+          {rankPercentile
+            ? `top ${rankPercentile}% this week`
+            : user ? 'calculating rank...' : 'Log in to see your rank'}
         </span>
       </div>
 
