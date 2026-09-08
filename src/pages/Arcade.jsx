@@ -4,12 +4,14 @@ import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import MunchManModal from '../components/MunchManModal';
+import TrexRunnerModal from '../components/TrexRunnerModal';
 import './Arcade.css';
 
 export default function Arcade() {
   const { points } = useStore();
   const { user } = useAuth();
   const [isMunchManOpen, setIsMunchManOpen] = useState(false);
+  const [isTrexRunnerOpen, setIsTrexRunnerOpen] = useState(false);
   const [globalRank, setGlobalRank] = useState(null);
   const [rankPercentile, setRankPercentile] = useState(null);
 
@@ -44,6 +46,17 @@ export default function Arcade() {
       img: '/images/munchman_game.jpg',
       bgClass: 'game-bg-yellow',
       onClick: () => setIsMunchManOpen(true)
+    },
+    {
+      id: 2,
+      title: 'T-REX RUNNER',
+      desc: 'Jump your T-Rex over kitchen chaos and grab burgers along the way. One hit ends the run -- how far can you get?',
+      difficulty: 'EASY',
+      rating: 4.7,
+      time: 'Endless',
+      img: '/images/trex_runner_game.jpg',
+      bgClass: 'game-bg-blue',
+      onClick: () => setIsTrexRunnerOpen(true)
     }
   ];
 
@@ -130,9 +143,14 @@ export default function Arcade() {
         ))}
       </div>
 
-      <MunchManModal 
-        isOpen={isMunchManOpen} 
-        onClose={() => setIsMunchManOpen(false)} 
+      <MunchManModal
+        isOpen={isMunchManOpen}
+        onClose={() => setIsMunchManOpen(false)}
+      />
+
+      <TrexRunnerModal
+        isOpen={isTrexRunnerOpen}
+        onClose={() => setIsTrexRunnerOpen(false)}
       />
 
     </div>
