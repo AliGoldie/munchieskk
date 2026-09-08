@@ -242,6 +242,8 @@ export function StoreProvider({ children }) {
         } else if (payload.eventType === 'UPDATE') {
           console.log('[REALTIME STOCK UPDATE]', payload.new.name, 'New Stock:', payload.new.stock_quantity);
           setMenu(prev => prev.map(item => String(item.id) === String(payload.new.id) ? { ...payload.new, inStock: payload.new.in_stock, low_stock_threshold: payload.new.low_stock_threshold ?? 10 } : item));
+        } else if (payload.eventType === 'DELETE') {
+          setMenu(prev => prev.filter(item => String(item.id) !== String(payload.old.id)));
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'addons' }, payload => {
@@ -665,16 +667,23 @@ export function StoreProvider({ children }) {
 
   
   const deleteMenuItem = async (id) => {
+    const previousMenu = menu;
+    // Optimistic UI update -- the realtime subscription's DELETE handler
+    // would eventually catch this too, but don't make the admin wait on a
+    // round-trip for something they just confirmed.
+    setMenu(prev => prev.filter(item => item.id !== id));
     try {
       const { error } = await supabase.from('menu_items').delete().eq('id', id);
       if (error) {
         console.error('Failed to delete menu item:', error);
         alert('Error deleting item: ' + error.message);
+        setMenu(previousMenu);
         return false;
       }
       return true;
     } catch (err) {
       console.error('Exception deleting menu item:', err);
+      setMenu(previousMenu);
       return false;
     }
   };

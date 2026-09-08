@@ -3883,21 +3883,34 @@ export default function Admin() {
                       </div>
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        className="pill-action-btn pill-blue"
-                        onClick={() => setEditingMenuItem({
-                          id: item.id,
-                          name: item.name,
-                          category: item.category,
-                          price: (item.price / 100).toFixed(2),
-                          cost_price: item.cost_price != null ? (item.cost_price / 100).toFixed(2) : '',
-                          description: item.description || '',
-                          image: item.image || ''
-                        })}
-                      >
-                        <Pencil size={12} /> Edit
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          className="pill-action-btn pill-blue"
+                          onClick={() => setEditingMenuItem({
+                            id: item.id,
+                            name: item.name,
+                            category: item.category,
+                            price: (item.price / 100).toFixed(2),
+                            cost_price: item.cost_price != null ? (item.cost_price / 100).toFixed(2) : '',
+                            description: item.description || '',
+                            image: item.image || ''
+                          })}
+                        >
+                          <Pencil size={12} /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="pill-action-btn pill-red"
+                          onClick={() => {
+                            if (window.confirm(`Delete "${item.name}"? This cannot be undone.`)) {
+                              deleteMenuItem(item.id);
+                            }
+                          }}
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
