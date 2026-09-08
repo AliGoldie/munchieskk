@@ -156,6 +156,18 @@
   cursor: not-allowed;
 }
 
+/* Delete is destructive, so it gets a red tint instead of the neutral
+   .icon-btn gray -- same compact size, just visually distinct. */
+.icon-btn-danger {
+  border-color: #fecaca;
+  color: #dc2626;
+}
+.icon-btn-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #b91c1c;
+}
+
 /* Reorder chevrons stack tightly, same icon-btn look but shorter */
 .reorder-stack {
   display: flex;

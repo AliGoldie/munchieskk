@@ -3901,14 +3901,15 @@ export default function Admin() {
                         </button>
                         <button
                           type="button"
-                          className="pill-action-btn pill-red"
+                          className="icon-btn icon-btn-danger"
+                          title="Delete item"
                           onClick={() => {
                             if (window.confirm(`Delete "${item.name}"? This cannot be undone.`)) {
                               deleteMenuItem(item.id);
                             }
                           }}
                         >
-                          <Trash2 size={12} /> Delete
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>
@@ -4562,7 +4563,17 @@ export default function Admin() {
                           >
                             <Pencil size={12} /> Edit
                           </button>
-                          <button className="pill-action-btn pill-red" onClick={() => deleteAddon(addon.id)}><Trash2 size={12} /> Delete</button>
+                          <button
+                            className="icon-btn icon-btn-danger"
+                            title="Delete add-on"
+                            onClick={() => {
+                              if (window.confirm(`Delete "${addon.name}"? This cannot be undone.`)) {
+                                deleteAddon(addon.id);
+                              }
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </td>
                     </tr>
