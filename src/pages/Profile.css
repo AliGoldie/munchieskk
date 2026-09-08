@@ -38,6 +38,44 @@
   text-transform: uppercase;
 }
 
+.profile-guest-card {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-card);
+  padding: var(--space-8) var(--space-6);
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.profile-guest-card .avatar-preview {
+  margin-bottom: var(--space-4);
+  cursor: default;
+}
+
+.profile-guest-card h3 {
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+  font-size: 1.15rem;
+  margin-bottom: var(--space-2);
+}
+
+.profile-guest-card p {
+  margin-bottom: var(--space-5);
+}
+
+.profile-guest-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
 .avatar-picker {
   display: flex;
   align-items: center;

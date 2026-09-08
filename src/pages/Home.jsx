@@ -50,13 +50,20 @@ export default function Home() {
           <h1>{firstName ? <>HEY,<br/>{firstName.toUpperCase()}!</> : <>HEY,<br/>GOURMET!</>}</h1>
         </div>
         <div style={{display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center'}}>
-          <div className="points-badge" style={{ cursor: 'pointer' }} onClick={() => navigate('/loyalty')}>
-            <Award size={16} />
-            <div className="points-info">
-              <span className="points-val">{(points || 0).toLocaleString()}</span>
-              <span className="points-lbl">Pts</span>
+          {user ? (
+            <div className="points-badge" style={{ cursor: 'pointer' }} onClick={() => navigate('/loyalty')}>
+              <Award size={16} />
+              <div className="points-info">
+                <span className="points-val">{(points || 0).toLocaleString()}</span>
+                <span className="points-lbl">Pts</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="points-badge" style={{ cursor: 'pointer' }} onClick={() => navigate('/login')}>
+              <Award size={16} />
+              <span className="points-lbl" style={{ fontSize: '0.7rem' }}>Login to earn Pts</span>
+            </div>
+          )}
           <a 
             href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappGreeting)}`}
             target="_blank" rel="noopener noreferrer"

@@ -138,10 +138,30 @@ export default function Profile() {
     setIsSavingAvatar(false);
   };
 
+  if (!user) {
+    return (
+      <div className="container profile-page">
+        <h1>My Profile</h1>
+        <div className="profile-guest-card">
+          <div className="avatar-preview" style={{ background: AVATAR_COLORS[0].hex }}>
+            <img src="/images/Trex.png" alt="" />
+            <span className="avatar-badge" aria-hidden="true">🍔</span>
+          </div>
+          <h3>Log in to see your profile</h3>
+          <p className="text-muted">Save your details, track orders, pick your avatar, and start earning loyalty points.</p>
+          <div className="profile-guest-actions">
+            <a href="/login" className="btn btn-primary w-full">Log In</a>
+            <a href="/signup" className="btn btn-outline w-full">Sign Up</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container profile-page">
       <h1>My Profile</h1>
-      
+
       <div className="profile-grid">
         <div className="profile-card">
           <div className="avatar-picker">
