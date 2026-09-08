@@ -94,7 +94,7 @@ export default function Arcade() {
             <div className="points-star-circle">
               <Star size={16} fill="#ffffff" color="#ffffff" />
             </div>
-            <span>{points || 0} PTS</span>
+            <span>{user ? `${points || 0} PTS` : 'Log in to earn'}</span>
           </div>
         </div>
       </div>
