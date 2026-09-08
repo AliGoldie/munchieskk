@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Lock, Trophy, Flame, Volume2, VolumeX } from 'lucide-react';
+import { X, Lock, Trophy, Flame, Volume2, VolumeX, Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import MunchManRulesModal from './MunchManRulesModal';
@@ -31,6 +31,8 @@ export default function MunchManModal({ isOpen, onClose }) {
 
   // Reward state
   const [rewardMsg, setRewardMsg] = useState(null);
+  const [breakdown, setBreakdown] = useState(null);
+  const [rankInfo, setRankInfo] = useState(null);
 
   const gameStateRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -253,6 +255,8 @@ export default function MunchManModal({ isOpen, onClose }) {
       dots: [],
       totalDots: 0,
       dotsEaten: 0,
+      pelletsEaten: 0,
+      ghostsEaten: 0,
       pellets: [],
       player: {
         x: PLAYER_START.c * CELL,
@@ -308,6 +312,8 @@ export default function MunchManModal({ isOpen, onClose }) {
 
       state.totalDots = totalCount;
       state.dotsEaten = 0;
+      state.pelletsEaten = 0;
+      state.ghostsEaten = 0;
 
       state.player = {
         x: PLAYER_START.c * CELL,
@@ -421,6 +427,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         if (!p.eaten && p.r === r && p.c === c) {
           p.eaten = true;
           state.score += 50;
+          state.pelletsEaten++;
           setScore(state.score);
           sfxPower();
           if (p.type === 'speed') {
@@ -450,6 +457,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         if (gc.r === pc.r && gc.c === pc.c) {
           if (g.scared) {
             state.score += 200;
+            state.ghostsEaten++;
             setScore(state.score);
             g.x = g.spawn.c * CELL;
             g.y = g.spawn.r * CELL;
@@ -496,6 +504,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       setGameWon(win);
       setGameReason(reason);
       setGameStarted(false);
+      setBreakdown({ dots: state.dotsEaten, pellets: state.pelletsEaten, ghosts: state.ghostsEaten });
 
       const liveUser = userRef.current;
       if (liveUser && liveUser.id) {
@@ -541,6 +550,15 @@ export default function MunchManModal({ isOpen, onClose }) {
           } catch (err) {
             await writeFallbackPoints();
           }
+        }
+
+        try {
+          const { data: rankData, error: rankError } = await supabase.rpc('get_user_rank');
+          if (!rankError && rankData && rankData.rank) {
+            setRankInfo(rankData);
+          }
+        } catch (err) {
+          console.warn('Could not fetch rank:', err);
         }
       }
     }
@@ -850,6 +868,8 @@ export default function MunchManModal({ isOpen, onClose }) {
 
   const executeStartGameSession = async () => {
     setRewardMsg(null);
+    setBreakdown(null);
+    setRankInfo(null);
 
     if (user) {
       try {
@@ -1066,6 +1086,27 @@ export default function MunchManModal({ isOpen, onClose }) {
                           <Trophy size={16} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
                           {rewardMsg}
                         </div>
+                      )}
+
+                      {breakdown && (breakdown.dots > 0 || breakdown.pellets > 0 || breakdown.ghosts > 0) && (
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'center',
+                          gap: 14,
+                          fontSize: 12,
+                          color: '#ccc',
+                          marginBottom: 10
+                        }}>
+                          <span>🍔 x{breakdown.dots}</span>
+                          <span>⚡ x{breakdown.pellets}</span>
+                          <span>👻 x{breakdown.ghosts}</span>
+                        </div>
+                      )}
+
+                      {rankInfo && rankInfo.rank && (
+                        <p style={{ fontSize: 13, color: 'var(--munchies-yellow)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 0, marginBottom: 6 }}>
+                          <Award size={14} /> You'd rank #{rankInfo.rank} of {rankInfo.total} (top {rankInfo.percentile}%)
+                        </p>
                       )}
 
                       <p style={{ fontSize: 12, color: '#aaa', marginTop: 0 }}>
