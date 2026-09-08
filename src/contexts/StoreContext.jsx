@@ -894,8 +894,9 @@ const clearManualOverride = async (id) => {
     return publicUrlData.publicUrl;
   };
   
-  const addAddon = async (name, priceFloat, image = null) => {
+  const addAddon = async (name, priceFloat, image = null, costPriceFloat = '') => {
     const cents = priceFloat === '' ? null : Math.round(parseFloat(priceFloat) * 100);
+    const costCents = costPriceFloat === '' || costPriceFloat == null ? null : Math.round(parseFloat(costPriceFloat) * 100);
     const nextSortOrder = addons.length > 0
       ? Math.max(...addons.map(a => a.sort_order ?? 0)) + 1
       : 1;
@@ -903,6 +904,7 @@ const clearManualOverride = async (id) => {
       id: crypto.randomUUID(),
       name,
       price: cents,
+      cost_price: costCents,
       image,
       sort_order: nextSortOrder
     };

@@ -324,6 +324,7 @@ export default function Admin() {
   const [newItemPhotoStatus, setNewItemPhotoStatus] = useState('idle'); // 'idle' | 'uploading' | 'attached'
   const [newItemPhotoMeta, setNewItemPhotoMeta] = useState(null); // { name, size }
   const [editingAddonPrice, setEditingAddonPrice] = useState({});
+  const [editingAddonCostPrice, setEditingAddonCostPrice] = useState({});
   const [editingAddonStock, setEditingAddonStock] = useState({});
   const [editingAddonLowStock, setEditingAddonLowStock] = useState({});
   const [editingStock, setEditingStock] = useState({});
@@ -544,6 +545,7 @@ export default function Admin() {
   // New Addon State
   const [newAddonName, setNewAddonName] = useState('');
   const [newAddonPrice, setNewAddonPrice] = useState('');
+  const [newAddonCostPrice, setNewAddonCostPrice] = useState('');
   const [newAddonImageFile, setNewAddonImageFile] = useState(null);
 
   // New Menu Item State
@@ -1297,6 +1299,7 @@ export default function Admin() {
     await updateAddon(editingAddon.id, {
       name: editingAddon.name,
       price: editingAddon.price === '' ? null : Math.round(parseFloat(editingAddon.price) * 100),
+      cost_price: editingAddon.cost_price === '' || editingAddon.cost_price == null ? null : Math.round(parseFloat(editingAddon.cost_price) * 100),
       image: imageUrl
     });
 
@@ -1421,12 +1424,34 @@ export default function Admin() {
     // Cost of one line: real cost_price from the Menu CRM when the admin has set
     // it, otherwise fall back to the flat 40%-of-price estimate this dashboard
     // always used. Items without a cost_price set behave exactly as before.
+    // Deliberately excludes add-on cost -- see lineCostWithAddons below for
+    // why that has to live separately.
     const lineCost = (orderItem, lineRevenue) => {
       const menuItem = menu.find(m => String(m.id) === String(orderItem.id));
       if (menuItem && menuItem.cost_price != null) {
         return (menuItem.cost_price * (orderItem.quantity || 1)) / 100;
       }
       return lineRevenue * 0.40;
+    };
+
+    // Order-level COGS needs add-on cost included: add-on revenue is already
+    // baked into order.total (and so into orderGross below), so without this
+    // every add-on sale was booked as pure profit with nothing subtracted for
+    // what it actually cost to buy. Real cost_price per add-on when the admin
+    // has set it, else the same 40%-of-its-own-price estimate as everything
+    // else. Kept separate from lineCost (used by the Top 10 per-item
+    // breakdown further down) since that view's revenue side never included
+    // add-ons either -- adding only the cost here would understate those
+    // items' margin against revenue they were never credited with.
+    const lineCostWithAddons = (orderItem, lineRevenue) => {
+      const qty = orderItem.quantity || 1;
+      const addonCost = (orderItem.selectedAddons || []).reduce((sum, sa) => {
+        const addonDef = addons.find(a => String(a.id) === String(sa.id));
+        const addonPriceCents = sa.price ?? addonDef?.price ?? 0;
+        const addonCostCents = addonDef && addonDef.cost_price != null ? addonDef.cost_price : addonPriceCents * 0.40;
+        return sum + (addonCostCents * qty) / 100;
+      }, 0);
+      return lineCost(orderItem, lineRevenue) + addonCost;
     };
 
     // Top 10 Sales with Margin Calculation
@@ -1450,7 +1475,7 @@ export default function Admin() {
       // used regardless of what the customer was refunded, so the cost was
       // still incurred. Only revenue (orderGross above) drops on a refund.
       const cogs = orderItems.length > 0
-        ? orderItems.reduce((sum, oi) => sum + lineCost(oi, ((oi.price || 0) * (oi.quantity || 1)) / 100), 0)
+        ? orderItems.reduce((sum, oi) => sum + lineCostWithAddons(oi, ((oi.price || 0) * (oi.quantity || 1)) / 100), 0)
         : preRefundGross * 0.40;
       const platformFee = orderGross * (CHANNEL_FEES[channelKey] || 0);
       const orderNet = orderGross - cogs - platformFee;
@@ -1871,6 +1896,14 @@ export default function Admin() {
       setEditingAddonPrice({ ...editingAddonPrice, [id]: undefined });
     }
   };
+  const handleAddonCostPriceChange = (id, value) => setEditingAddonCostPrice({ ...editingAddonCostPrice, [id]: value });
+  const saveAddonCostPrice = async (id) => {
+    if (editingAddonCostPrice[id] === undefined) return;
+    const raw = editingAddonCostPrice[id];
+    const cents = raw === '' ? null : Math.round(parseFloat(raw) * 100);
+    await updateAddon(id, { cost_price: cents });
+    setEditingAddonCostPrice({ ...editingAddonCostPrice, [id]: undefined });
+  };
 
   const handleAddAddon = async (e) => {
     e.preventDefault();
@@ -1878,9 +1911,10 @@ export default function Admin() {
       setIsUploading(true);
       try {
         const imageUrl = newAddonImageFile ? await uploadImage(newAddonImageFile) : null;
-        await addAddon(newAddonName, newAddonPrice, imageUrl);
+        await addAddon(newAddonName, newAddonPrice, imageUrl, newAddonCostPrice);
         setNewAddonName('');
         setNewAddonPrice('');
+        setNewAddonCostPrice('');
         setNewAddonImageFile(null);
       } catch (err) {
         console.error("Full upload error:", err);
@@ -4396,7 +4430,7 @@ export default function Admin() {
         <div className="admin-card">
           <h3>Add-ons CRM</h3>
           
-          <form onSubmit={handleAddAddon} className="new-item-form" style={{ gridTemplateColumns: '1fr 1fr 1fr auto', alignItems: 'end' }}>
+          <form onSubmit={handleAddAddon} className="new-item-form" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr auto', alignItems: 'end' }}>
             <div className="form-group">
               <label>Addon Name</label>
               <input type="text" placeholder="e.g. Extra Cheese" required value={newAddonName} onChange={e => setNewAddonName(e.target.value)} className="price-input" />
@@ -4404,6 +4438,10 @@ export default function Admin() {
             <div className="form-group">
               <label>Price (RM)</label>
               <input type="number" step="0.10" placeholder="Leave blank for TBD" value={newAddonPrice} onChange={e => setNewAddonPrice(e.target.value)} className="price-input" />
+            </div>
+            <div className="form-group">
+              <label>Cost Price (RM) — optional</label>
+              <input type="number" step="0.10" placeholder="e.g. 1.20" value={newAddonCostPrice} onChange={e => setNewAddonCostPrice(e.target.value)} className="price-input" />
             </div>
             <div className="form-group">
               <label>Image Upload</label>
@@ -4421,6 +4459,7 @@ export default function Admin() {
                   <th>Order</th>
                   <th>Addon</th>
                   <th>Price</th>
+                  <th>Cost / Margin</th>
                   <th>Stock / Alert</th>
                   <th>Status</th>
                   <th>Assign to Items</th>
@@ -4493,6 +4532,26 @@ export default function Admin() {
                         </div>
                       </td>
                       <td>
+                        {editingAddonCostPrice[addon.id] !== undefined ? (
+                          <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <input
+                              type="number" step="0.10"
+                              value={editingAddonCostPrice[addon.id]}
+                              onChange={(e) => handleAddonCostPriceChange(addon.id, e.target.value)}
+                              className="price-input"
+                              style={{ width: '80px', padding: '4px' }}
+                            />
+                            <button className="btn btn-sm btn-primary" onClick={() => saveAddonCostPrice(addon.id)}>Save</button>
+                            <button className="btn btn-sm btn-secondary" onClick={() => setEditingAddonCostPrice({ ...editingAddonCostPrice, [addon.id]: undefined })}>Cancel</button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <CostMarginLine costPriceCents={addon.cost_price} priceCents={addon.price} style={{ marginTop: 0 }} />
+                            <button className="icon-btn" title="Edit cost price" onClick={() => handleAddonCostPriceChange(addon.id, addon.cost_price != null ? (addon.cost_price / 100).toFixed(2) : '')}><Pencil size={12} /></button>
+                          </div>
+                        )}
+                      </td>
+                      <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                           <div className="qty-control">
                             <button
@@ -4558,6 +4617,7 @@ export default function Admin() {
                               id: addon.id,
                               name: addon.name,
                               price: addon.price != null ? (addon.price / 100).toFixed(2) : '',
+                              cost_price: addon.cost_price != null ? (addon.cost_price / 100).toFixed(2) : '',
                               image: addon.image || ''
                             })}
                           >
@@ -5652,6 +5712,24 @@ export default function Admin() {
                   onChange={(e) => setEditingAddon({ ...editingAddon, price: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>COST PRICE (RM) — optional</label>
+                <input
+                  type="number"
+                  step="0.10"
+                  placeholder="e.g. 1.20"
+                  value={editingAddon.cost_price}
+                  onChange={(e) => setEditingAddon({ ...editingAddon, cost_price: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                />
+                {editingAddon.cost_price !== '' && editingAddon.price && (
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Margin: RM {(parseFloat(editingAddon.price) - parseFloat(editingAddon.cost_price || 0)).toFixed(2)} per unit
+                    ({(((parseFloat(editingAddon.price) - parseFloat(editingAddon.cost_price || 0)) / parseFloat(editingAddon.price)) * 100).toFixed(0)}%)
+                  </p>
+                )}
               </div>
 
               <div>
