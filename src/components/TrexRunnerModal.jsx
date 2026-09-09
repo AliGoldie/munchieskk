@@ -143,14 +143,15 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // Brought back up a bit from the last pass -- that cut (15/26) plus the
-    // low obstacle chance below combined to make hazards take 80+ real
-    // seconds to show up at all, which read as "too slow" and "no
-    // obstacles" even though gaps (unavoidable at every segment boundary)
-    // kept appearing the whole time.
-    const BASE_SPEED = 22;
-    const MAX_SPEED = 38;
-    const SPEED_RAMP = 0.11;
+    // Pushed up solidly -- reported as "boring and slow" at 22/38. The
+    // earlier "too fast" reports were real, but in hindsight likely driven
+    // mostly by the jump feeling rushed and hazards stacking unfairly close
+    // together, both fixed independently since (floatier jump arc above;
+    // grace period + min obstacle spacing below) -- so raw speed can come
+    // back up without reintroducing either of those specific problems.
+    const BASE_SPEED = 42;
+    const MAX_SPEED = 72;
+    const SPEED_RAMP = 0.22;
     const TERRAIN_LOOKAHEAD = 260;
     // No obstacles or tier changes on the first few segments -- a clear
     // runway to get a feel for the controls before anything shows up.
