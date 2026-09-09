@@ -143,11 +143,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // 65/115 was close -- "slightly faster" this time, so a modest ~20%
-    // nudge rather than another big jump.
-    const BASE_SPEED = 78;
-    const MAX_SPEED = 138;
-    const SPEED_RAMP = 0.42;
+    // Another explicit +20% on top of the last nudge (78/138 -> 94/166).
+    const BASE_SPEED = 94;
+    const MAX_SPEED = 166;
+    const SPEED_RAMP = 0.5;
     const TERRAIN_LOOKAHEAD = 260;
     // No obstacles or tier changes on the first few segments -- a clear
     // runway to get a feel for the controls before anything shows up.
