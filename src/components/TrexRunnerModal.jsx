@@ -132,18 +132,24 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // scroll feel frantic, since there's so little time to react once
     // you're committed. Lower gravity + lower jump velocity means a longer,
     // calmer hang time while still comfortably clearing the raised tier.
-    const GRAVITY = 0.5;
-    const JUMP_VELOCITY = -10.5;
+    //
+    // All of the below are in px/second (and px/second^2 for acceleration),
+    // not px/frame -- update() multiplies by the real elapsed time each
+    // frame (see loop()). This is the actual fix for "still too fast" after
+    // two rounds of just shrinking the numbers: a plain px-per-frame model
+    // runs faster in real time on a 90Hz/120Hz display than on 60Hz, since
+    // it just does more frames per second, so no amount of lowering the
+    // per-frame constant fixes it for a high-refresh-rate phone. Delta-time
+    // scaling makes the game run at the same real-world speed regardless of
+    // the device's refresh rate.
+    const GRAVITY = 1800;
+    const JUMP_VELOCITY = -630;
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // Cut again on top of the first speed reduction -- still too fast at
-    // 2.1/3.8. At 1.2 base, a hazard spawning at the right edge takes
-    // roughly 4.5+ seconds to reach the player, a real reaction window
-    // instead of a reflex test.
-    const BASE_SPEED = 1.2;
-    const MAX_SPEED = 2.1;
-    const SPEED_RAMP = 0.0001;
+    const BASE_SPEED = 72;
+    const MAX_SPEED = 126;
+    const SPEED_RAMP = 0.36;
     const TERRAIN_LOOKAHEAD = 260;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
@@ -166,8 +172,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       score: 0,
       burgersCollected: 0,
       speed: BASE_SPEED,
-      collectTimer: 130,
-      frameCount: 0,
+      collectTimer: 2.2,
+      elapsed: 0,
+      scoreThrottle: 0,
+      lastTime: null,
       running: false,
       animFrameId: null
     };
@@ -180,8 +188,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
 
     function maxJumpDistance() {
-      const airFrames = (2 * Math.abs(JUMP_VELOCITY)) / GRAVITY;
-      return state.speed * airFrames;
+      const airTime = (2 * Math.abs(JUMP_VELOCITY)) / GRAVITY;
+      return state.speed * airTime;
     }
 
     // Builds the next platform segment after the given x, optionally
@@ -232,8 +240,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.score = 0;
       state.burgersCollected = 0;
       state.speed = BASE_SPEED;
-      state.collectTimer = 130;
-      state.frameCount = 0;
+      state.collectTimer = 2.2;
+      state.elapsed = 0;
+      state.scoreThrottle = 0;
+      state.lastTime = null;
       state.running = false;
       ensureTerrain();
     }
@@ -295,26 +305,31 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
     }
 
-    function update() {
-      state.frameCount++;
-      state.speed = Math.min(MAX_SPEED, state.speed + SPEED_RAMP);
-      state.distance += state.speed;
+    function update(dt) {
+      state.elapsed += dt;
+      state.speed = Math.min(MAX_SPEED, state.speed + SPEED_RAMP * dt);
+      state.distance += state.speed * dt;
       state.score = Math.floor(state.distance / 8) + state.burgersCollected * 5;
-      if (state.frameCount % 6 === 0) setScore(state.score);
+      state.scoreThrottle += dt;
+      if (state.scoreThrottle >= 0.1) {
+        state.scoreThrottle = 0;
+        setScore(state.score);
+      }
 
       // Scroll the world -- terrain, obstacles and collectibles all move
       // left in screen space, same approach the flat-runner version used
       // for obstacles, just now applied to platform segments too.
+      const moveBy = state.speed * dt;
       for (const seg of state.terrain) {
-        seg.xStart -= state.speed;
-        seg.xEnd -= state.speed;
+        seg.xStart -= moveBy;
+        seg.xEnd -= moveBy;
       }
       state.terrain = state.terrain.filter(seg => seg.xEnd > -5);
       ensureTerrain();
 
       const prevBottom = state.player.y + PLAYER_H;
-      state.player.vy += GRAVITY;
-      state.player.y += state.player.vy;
+      state.player.vy += GRAVITY * dt;
+      state.player.y += state.player.vy * dt;
       const newBottom = state.player.y + PLAYER_H;
 
       const centerX = PLAYER_X + PLAYER_W / 2;
@@ -349,10 +364,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         return;
       }
 
-      state.collectTimer--;
+      state.collectTimer -= dt;
       if (state.collectTimer <= 0) {
         spawnCollectible();
-        state.collectTimer = 150 + Math.random() * 120;
+        state.collectTimer = 2.5 + Math.random() * 2;
       }
 
       const hitboxX = PLAYER_X + 5;
@@ -362,7 +377,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
       for (let i = state.obstacles.length - 1; i >= 0; i--) {
         const o = state.obstacles[i];
-        o.x -= state.speed;
+        o.x -= moveBy;
         if (o.x + o.w < 0) {
           state.obstacles.splice(i, 1);
           continue;
@@ -376,7 +391,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
       for (let i = state.collectibles.length - 1; i >= 0; i--) {
         const c = state.collectibles[i];
-        c.x -= state.speed;
+        c.x -= moveBy;
         if (c.x + c.size * 2 < 0) {
           state.collectibles.splice(i, 1);
           continue;
@@ -450,7 +465,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     function drawPlayer() {
       const cx = PLAYER_X + PLAYER_W / 2;
       const cy = state.player.y + PLAYER_H / 2;
-      const bob = state.player.onGround && state.running ? Math.abs(Math.sin(state.frameCount / 6)) * 2 : 0;
+      const bob = state.player.onGround && state.running ? Math.abs(Math.sin(state.elapsed * 10)) * 2 : 0;
 
       ctx.save();
       ctx.translate(cx, cy - bob);
@@ -474,9 +489,16 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       drawPlayer();
     }
 
-    function loop() {
+    function loop(timestamp) {
       try {
-        if (state.running) update();
+        if (state.lastTime == null) state.lastTime = timestamp;
+        // Cap dt so a paused/backgrounded tab (or a slow device hiccup)
+        // doesn't dump a huge time jump into physics on the next frame --
+        // without this, resuming after a few seconds away could tunnel the
+        // player straight through a platform or obstacle.
+        const dt = Math.min((timestamp - state.lastTime) / 1000, 0.05);
+        state.lastTime = timestamp;
+        if (state.running) update(dt);
         draw();
       } catch (err) {
         console.error('T-Rex Runner frame error:', err);
