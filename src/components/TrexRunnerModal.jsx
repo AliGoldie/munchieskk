@@ -122,15 +122,24 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     canvas.width = W;
     canvas.height = H;
 
-    const GROUND_Y = H - 26;
-    const GRAVITY = 0.85;
-    const JUMP_VELOCITY = -12.5;
+    // Two platform tiers instead of one flat lane -- LOW is the original
+    // ground height, HIGH is a raised platform the player has to actually
+    // jump up onto. Gaps between segments are real pits: no segment under
+    // you when you fall past the canvas bottom ends the run.
+    const LOW_Y = H - 26;
+    const HIGH_Y = LOW_Y - 62;
+    const GRAVITY = 0.72;
+    const JUMP_VELOCITY = -12.8;
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    const BASE_SPEED = 3.2;
-    const MAX_SPEED = 7.5;
-    const SPEED_RAMP = 0.0006;
+    // Much slower than the original flat-runner version -- speed was the
+    // single biggest complaint, and now that difficulty comes from platform
+    // layout instead of raw scroll speed, it doesn't need to climb far.
+    const BASE_SPEED = 2.1;
+    const MAX_SPEED = 3.8;
+    const SPEED_RAMP = 0.00018;
+    const TERRAIN_LOOKAHEAD = 260;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
 
@@ -144,14 +153,14 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     ];
 
     const state = {
-      player: { y: GROUND_Y - PLAYER_H, vy: 0, onGround: true },
+      player: { y: LOW_Y - PLAYER_H, vy: 0, onGround: true },
+      terrain: [],
       obstacles: [],
       collectibles: [],
       distance: 0,
       score: 0,
       burgersCollected: 0,
       speed: BASE_SPEED,
-      spawnTimer: 70,
       collectTimer: 130,
       frameCount: 0,
       running: false,
@@ -159,18 +168,69 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     };
     gameStateRef.current = state;
 
+    // Difficulty ramps the platform layout (wider pits, more tier changes)
+    // rather than relying on scroll speed alone to feel harder over time.
+    function difficulty() {
+      return Math.min(1, state.distance / 6000);
+    }
+
+    function maxJumpDistance() {
+      const airFrames = (2 * Math.abs(JUMP_VELOCITY)) / GRAVITY;
+      return state.speed * airFrames;
+    }
+
+    // Builds the next platform segment after the given x, optionally
+    // changing tier, with a gap sized to always be clearable at the
+    // current speed (scaled down for a tier-up jump, which needs less
+    // forward distance than a same-height jump).
+    function nextSegment(afterX, prevTier) {
+      const diff = difficulty();
+      const jumpDist = maxJumpDistance();
+      const changeTierChance = 0.14 + diff * 0.18;
+      const nextTier = Math.random() < changeTierChance
+        ? (prevTier === 'low' ? 'high' : 'low')
+        : prevTier;
+
+      const gapFrac = nextTier === prevTier
+        ? 0.4 + Math.random() * (0.3 + diff * 0.1)
+        : 0.22 + Math.random() * 0.28;
+      const gap = Math.max(36, jumpDist * gapFrac);
+      const segW = 110 + Math.random() * 140;
+      const xStart = afterX + gap;
+      const xEnd = xStart + segW;
+
+      return { xStart, xEnd, tier: nextTier, y: nextTier === 'high' ? HIGH_Y : LOW_Y };
+    }
+
+    function ensureTerrain() {
+      while (state.terrain.length === 0 || state.terrain[state.terrain.length - 1].xEnd < W + TERRAIN_LOOKAHEAD) {
+        const last = state.terrain[state.terrain.length - 1];
+        const seg = last ? nextSegment(last.xEnd, last.tier) : { xStart: -20, xEnd: W * 0.65, tier: 'low', y: LOW_Y };
+        state.terrain.push(seg);
+
+        // Occasionally drop an obstacle onto a fresh segment (skip the
+        // starting segment and anything too narrow to place one fairly).
+        if (last && seg.xEnd - seg.xStart > 130 && Math.random() < 0.5) {
+          const v = OBSTACLE_VARIANTS[Math.floor(Math.random() * OBSTACLE_VARIANTS.length)];
+          const ox = seg.xStart + 34 + Math.random() * (seg.xEnd - seg.xStart - 68);
+          state.obstacles.push({ x: ox, w: v.w, h: v.h, tierY: seg.y });
+        }
+      }
+    }
+
     function resetGame() {
-      state.player = { y: GROUND_Y - PLAYER_H, vy: 0, onGround: true };
+      state.player = { y: LOW_Y - PLAYER_H, vy: 0, onGround: true };
+      state.terrain = [];
       state.obstacles = [];
       state.collectibles = [];
       state.distance = 0;
       state.score = 0;
       state.burgersCollected = 0;
       state.speed = BASE_SPEED;
-      state.spawnTimer = 70;
       state.collectTimer = 130;
       state.frameCount = 0;
       state.running = false;
+      ensureTerrain();
     }
 
     function jump() {
@@ -181,14 +241,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
     jumpRef.current = jump;
 
-    function spawnObstacle() {
-      const v = OBSTACLE_VARIANTS[Math.floor(Math.random() * OBSTACLE_VARIANTS.length)];
-      state.obstacles.push({ x: W + 10, w: v.w, h: v.h });
-    }
-
     function spawnCollectible() {
-      const hopHeight = 34 + Math.random() * 26;
-      state.collectibles.push({ x: W + 10, y: GROUND_Y - PLAYER_H - hopHeight, size: 9 });
+      const lastTierY = state.terrain.length > 0 ? state.terrain[state.terrain.length - 1].y : LOW_Y;
+      const hopHeight = 30 + Math.random() * 34;
+      state.collectibles.push({ x: W + TERRAIN_LOOKAHEAD, y: lastTierY - PLAYER_H - hopHeight, size: 9 });
     }
 
     function overlap(ax, ay, aw, ah, bx, by, bw, bh) {
@@ -241,19 +297,51 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.score = Math.floor(state.distance / 8) + state.burgersCollected * 5;
       if (state.frameCount % 6 === 0) setScore(state.score);
 
+      // Scroll the world -- terrain, obstacles and collectibles all move
+      // left in screen space, same approach the flat-runner version used
+      // for obstacles, just now applied to platform segments too.
+      for (const seg of state.terrain) {
+        seg.xStart -= state.speed;
+        seg.xEnd -= state.speed;
+      }
+      state.terrain = state.terrain.filter(seg => seg.xEnd > -5);
+      ensureTerrain();
+
+      const prevBottom = state.player.y + PLAYER_H;
       state.player.vy += GRAVITY;
       state.player.y += state.player.vy;
-      const floorY = GROUND_Y - PLAYER_H;
-      if (state.player.y >= floorY) {
-        state.player.y = floorY;
-        state.player.vy = 0;
-        state.player.onGround = true;
+      const newBottom = state.player.y + PLAYER_H;
+
+      const centerX = PLAYER_X + PLAYER_W / 2;
+      let landed = false;
+      let hitWall = false;
+      for (const seg of state.terrain) {
+        if (centerX >= seg.xStart && centerX <= seg.xEnd) {
+          if (newBottom >= seg.y) {
+            if (prevBottom <= seg.y + 1) {
+              state.player.y = seg.y - PLAYER_H;
+              state.player.vy = 0;
+              landed = true;
+            } else {
+              hitWall = true;
+            }
+          }
+          break;
+        }
       }
 
-      state.spawnTimer--;
-      if (state.spawnTimer <= 0) {
-        spawnObstacle();
-        state.spawnTimer = 60 + Math.random() * 50;
+      if (hitWall) {
+        endGame();
+        return;
+      }
+
+      state.player.onGround = landed;
+
+      // Fell into a pit -- no platform under the player and they've
+      // dropped past the bottom of the canvas.
+      if (!landed && state.player.y > H) {
+        endGame();
+        return;
       }
 
       state.collectTimer--;
@@ -274,7 +362,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           state.obstacles.splice(i, 1);
           continue;
         }
-        const obY = GROUND_Y - o.h;
+        const obY = o.tierY - o.h;
         if (overlap(hitboxX, hitboxY, hitboxW, hitboxH, o.x, obY, o.w, o.h)) {
           endGame();
           return;
@@ -303,30 +391,36 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       grad.addColorStop(1, '#0a0f1d');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
+    }
 
-      ctx.fillStyle = '#111827';
-      ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
-      ctx.strokeStyle = 'rgba(255, 199, 44, 0.35)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, GROUND_Y);
-      ctx.lineTo(W, GROUND_Y);
-      ctx.stroke();
+    function drawTerrain() {
+      for (const seg of state.terrain) {
+        const w = seg.xEnd - seg.xStart;
+        if (w <= 0) continue;
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(seg.xStart, seg.y, w, H - seg.y);
+        ctx.strokeStyle = 'rgba(255, 199, 44, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(seg.xStart, seg.y);
+        ctx.lineTo(seg.xEnd, seg.y);
+        ctx.stroke();
 
-      const dashOffset = -(state.distance % 40);
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([16, 24]);
-      ctx.lineDashOffset = dashOffset;
-      ctx.beginPath();
-      ctx.moveTo(0, GROUND_Y + 10);
-      ctx.lineTo(W, GROUND_Y + 10);
-      ctx.stroke();
-      ctx.setLineDash([]);
+        const dashOffset = -(state.distance % 40);
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([16, 24]);
+        ctx.lineDashOffset = dashOffset;
+        ctx.beginPath();
+        ctx.moveTo(seg.xStart, seg.y + 10);
+        ctx.lineTo(seg.xEnd, seg.y + 10);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
 
     function drawObstacle(o) {
-      const y = GROUND_Y - o.h;
+      const y = o.tierY - o.h;
       ctx.fillStyle = '#C23B15';
       ctx.beginPath();
       ctx.roundRect(o.x, y, o.w, o.h, 4);
@@ -369,6 +463,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     function draw() {
       drawBackground();
+      drawTerrain();
       state.obstacles.forEach(drawObstacle);
       state.collectibles.forEach(c => drawMiniBurger(c.x, c.y, c.size));
       drawPlayer();
@@ -463,7 +558,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                 {!gameOver ? (
                   <>
                     <h2>Ready to Run?</h2>
-                    <p>Tap, click, or press Space to jump your T-Rex over kitchen chaos. Grab floating burgers for bonus points -- one hit and it's game over!</p>
+                    <p>Tap, click, or press Space to jump your T-Rex between raised platforms and over pits. Grab floating burgers for bonus points -- missing a jump or hitting an obstacle ends the run!</p>
                     {user && bestScore > 0 && (
                       <p style={{ fontSize: 12, color: 'var(--munchies-yellow)', marginTop: -12 }}>Your Best: {bestScore}</p>
                     )}

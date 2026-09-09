@@ -50,7 +50,7 @@ export default function Arcade() {
     {
       id: 2,
       title: 'T-REX RUNNER',
-      desc: 'Jump your T-Rex over kitchen chaos and grab burgers along the way. One hit ends the run -- how far can you get?',
+      desc: 'Leap your T-Rex across raised platforms and pits, dodging kitchen chaos and grabbing burgers along the way. How far can you get?',
       difficulty: 'EASY',
       rating: 4.7,
       time: 'Endless',
