@@ -147,9 +147,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    const BASE_SPEED = 72;
-    const MAX_SPEED = 126;
-    const SPEED_RAMP = 0.36;
+    // Cut hard again -- delta-time fixed the refresh-rate bug but the pace
+    // itself was still too high. At 40 base, a hazard spawning at the
+    // canvas edge takes ~8 seconds real time to reach the player.
+    const BASE_SPEED = 40;
+    const MAX_SPEED = 70;
+    const SPEED_RAMP = 0.2;
     const TERRAIN_LOOKAHEAD = 260;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
