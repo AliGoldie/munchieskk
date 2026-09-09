@@ -143,10 +143,14 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // Halved again per direct request ("half slower than usual").
-    const BASE_SPEED = 15;
-    const MAX_SPEED = 26;
-    const SPEED_RAMP = 0.075;
+    // Brought back up a bit from the last pass -- that cut (15/26) plus the
+    // low obstacle chance below combined to make hazards take 80+ real
+    // seconds to show up at all, which read as "too slow" and "no
+    // obstacles" even though gaps (unavoidable at every segment boundary)
+    // kept appearing the whole time.
+    const BASE_SPEED = 22;
+    const MAX_SPEED = 38;
+    const SPEED_RAMP = 0.11;
     const TERRAIN_LOOKAHEAD = 260;
     // No obstacles or tier changes on the first few segments -- a clear
     // runway to get a feel for the controls before anything shows up.
@@ -235,8 +239,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         // flat, and a minimum real-world spacing from the last obstacle
         // stops back-to-back hazards from stacking into an unfair chain
         // regardless of how the per-segment RNG lands.
+        //
+        // Previous values (12% -> 50%) were too low -- combined with the
+        // slower speed from the last pass, obstacles took 80+ real seconds
+        // to show up at all, which read as "no obstacles, just holes."
         const inGrace = state.segmentsGenerated <= GRACE_SEGMENTS;
-        const obstacleChance = 0.12 + difficulty() * 0.38;
+        const obstacleChance = 0.4 + difficulty() * 0.35;
         if (last && !inGrace && seg.xEnd - seg.xStart > 130 && Math.random() < obstacleChance) {
           const v = OBSTACLE_VARIANTS[Math.floor(Math.random() * OBSTACLE_VARIANTS.length)];
           const ox = seg.xStart + 34 + Math.random() * (seg.xEnd - seg.xStart - 68);
