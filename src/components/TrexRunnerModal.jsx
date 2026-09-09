@@ -133,13 +133,17 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // frame (see loop()), so the game runs the same real-world speed
     // regardless of the device's refresh rate.
     //
-    // Jump feel: direct feedback was that the jump itself felt rushed, not
-    // just the scroll. Halving JUMP_VELOCITY and quartering GRAVITY from the
-    // previous pass doubles hang time (0.7s -> 1.4s) while keeping the same
-    // apex height (~110px, still comfortably clears the raised tier) --
-    // same peak, much gentler launch and much longer float.
-    const GRAVITY = 450;
-    const JUMP_VELOCITY = -315;
+    // Jump feel, take 2: the floaty 1.4s hang time was tuned back when
+    // scroll speed was ~15-30px/s. Speed has since gone up ~4-6x (94/166
+    // now) without the jump changing, so the same hang time now covers a
+    // much larger, disproportionate horizontal distance (jumpDist = speed *
+    // airtime), which is exactly what threw off obstacle/gap placement --
+    // that math scales off jump distance. Snapping the jump back down to
+    // ~0.8s hang time (apex height unchanged at ~110px, still clears the
+    // raised tier) brings jump distance back in proportion to the current
+    // pace.
+    const GRAVITY = 1400;
+    const JUMP_VELOCITY = -555;
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
