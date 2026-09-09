@@ -54,7 +54,7 @@ export default function Arcade() {
       difficulty: 'EASY',
       rating: 4.7,
       time: 'Endless',
-      img: '/images/trex_runner_game.jpg',
+      img: '/images/trex_runner_game.svg',
       bgClass: 'game-bg-blue',
       onClick: () => setIsTrexRunnerOpen(true)
     }
