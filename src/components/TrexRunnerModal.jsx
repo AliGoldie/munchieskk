@@ -128,31 +128,27 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // you when you fall past the canvas bottom ends the run.
     const LOW_Y = H - 26;
     const HIGH_Y = LOW_Y - 62;
-    // Floatier arc than the first pass -- a snappy jump can make even a slow
-    // scroll feel frantic, since there's so little time to react once
-    // you're committed. Lower gravity + lower jump velocity means a longer,
-    // calmer hang time while still comfortably clearing the raised tier.
-    //
     // All of the below are in px/second (and px/second^2 for acceleration),
     // not px/frame -- update() multiplies by the real elapsed time each
-    // frame (see loop()). This is the actual fix for "still too fast" after
-    // two rounds of just shrinking the numbers: a plain px-per-frame model
-    // runs faster in real time on a 90Hz/120Hz display than on 60Hz, since
-    // it just does more frames per second, so no amount of lowering the
-    // per-frame constant fixes it for a high-refresh-rate phone. Delta-time
-    // scaling makes the game run at the same real-world speed regardless of
-    // the device's refresh rate.
-    const GRAVITY = 1800;
-    const JUMP_VELOCITY = -630;
+    // frame (see loop()), so the game runs the same real-world speed
+    // regardless of the device's refresh rate.
+    //
+    // Jump feel: direct feedback was that the jump itself felt rushed, not
+    // just the scroll. Halving JUMP_VELOCITY and quartering GRAVITY from the
+    // previous pass doubles hang time (0.7s -> 1.4s) while keeping the same
+    // apex height (~110px, still comfortably clears the raised tier) --
+    // same peak, much gentler launch and much longer float.
+    const GRAVITY = 450;
+    const JUMP_VELOCITY = -315;
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // Cut hard again -- delta-time fixed the refresh-rate bug but the pace
-    // itself was still too high. At 40 base, a hazard spawning at the
-    // canvas edge takes ~8 seconds real time to reach the player.
-    const BASE_SPEED = 40;
-    const MAX_SPEED = 70;
-    const SPEED_RAMP = 0.2;
+    // Cut again -- still too fast even at the easiest starting pace (before
+    // any difficulty ramp). At 30 base, a hazard now takes ~10+ seconds to
+    // cross the canvas.
+    const BASE_SPEED = 30;
+    const MAX_SPEED = 52;
+    const SPEED_RAMP = 0.15;
     const TERRAIN_LOOKAHEAD = 260;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
