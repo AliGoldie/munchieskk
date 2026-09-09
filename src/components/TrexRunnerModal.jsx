@@ -159,6 +159,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // segment RNG lands, so back-to-back hazards can't stack into an
     // effectively unbeatable chain a couple of jumps in.
     const MIN_OBSTACLE_SPACING = 200;
+    // Chance a given segment gets a burger, and how much clear room it
+    // needs from any obstacle on that same segment (see ensureTerrain).
+    const COLLECTIBLE_CHANCE = 0.55;
+    const MIN_COLLECTIBLE_CLEARANCE = 45;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
 
@@ -180,7 +184,6 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       score: 0,
       burgersCollected: 0,
       speed: BASE_SPEED,
-      collectTimer: 2.2,
       elapsed: 0,
       scoreThrottle: 0,
       lastTime: null,
@@ -239,18 +242,43 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         // flat, and a minimum real-world spacing from the last obstacle
         // stops back-to-back hazards from stacking into an unfair chain
         // regardless of how the per-segment RNG lands.
-        //
-        // Previous values (12% -> 50%) were too low -- combined with the
-        // slower speed from the last pass, obstacles took 80+ real seconds
-        // to show up at all, which read as "no obstacles, just holes."
         const inGrace = state.segmentsGenerated <= GRACE_SEGMENTS;
         const obstacleChance = 0.4 + difficulty() * 0.35;
+        let placedObstacle = null;
         if (last && !inGrace && seg.xEnd - seg.xStart > 130 && Math.random() < obstacleChance) {
           const v = OBSTACLE_VARIANTS[Math.floor(Math.random() * OBSTACLE_VARIANTS.length)];
           const ox = seg.xStart + 34 + Math.random() * (seg.xEnd - seg.xStart - 68);
           if (ox - state.lastObstacleRightEdge >= MIN_OBSTACLE_SPACING) {
-            state.obstacles.push({ x: ox, w: v.w, h: v.h, tierY: seg.y });
+            placedObstacle = { x: ox, w: v.w, h: v.h, tierY: seg.y };
+            state.obstacles.push(placedObstacle);
             state.lastObstacleRightEdge = ox + v.w;
+          }
+        }
+
+        // Collectible for this segment, placed with real clearance from
+        // any obstacle just placed on it. Previously burgers spawned on an
+        // independent real-time timer with zero awareness of obstacle
+        // positions, so a burger could land right in an obstacle's danger
+        // zone -- reachable only by flying straight into the obstacle,
+        // which isn't a real choice. Deciding both together here means a
+        // burger only ever appears somewhere it can actually be grabbed
+        // without risking the hit.
+        if (last && Math.random() < COLLECTIBLE_CHANCE) {
+          const hopHeight = 30 + Math.random() * 34;
+          let cx = null;
+          if (placedObstacle) {
+            const roomBefore = placedObstacle.x - seg.xStart;
+            const roomAfter = seg.xEnd - (placedObstacle.x + placedObstacle.w);
+            if (roomBefore >= MIN_COLLECTIBLE_CLEARANCE + 20 && roomBefore >= roomAfter) {
+              cx = seg.xStart + 10 + Math.random() * (roomBefore - MIN_COLLECTIBLE_CLEARANCE - 10);
+            } else if (roomAfter >= MIN_COLLECTIBLE_CLEARANCE + 20) {
+              cx = placedObstacle.x + placedObstacle.w + MIN_COLLECTIBLE_CLEARANCE + Math.random() * (roomAfter - MIN_COLLECTIBLE_CLEARANCE - 10);
+            }
+          } else if (seg.xEnd - seg.xStart > 40) {
+            cx = seg.xStart + 15 + Math.random() * (seg.xEnd - seg.xStart - 30);
+          }
+          if (cx != null) {
+            state.collectibles.push({ x: cx, y: seg.y - PLAYER_H - hopHeight, size: 9 });
           }
         }
       }
@@ -265,7 +293,6 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.score = 0;
       state.burgersCollected = 0;
       state.speed = BASE_SPEED;
-      state.collectTimer = 2.2;
       state.elapsed = 0;
       state.scoreThrottle = 0;
       state.lastTime = null;
@@ -282,12 +309,6 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       sfxJump();
     }
     jumpRef.current = jump;
-
-    function spawnCollectible() {
-      const lastTierY = state.terrain.length > 0 ? state.terrain[state.terrain.length - 1].y : LOW_Y;
-      const hopHeight = 30 + Math.random() * 34;
-      state.collectibles.push({ x: W + TERRAIN_LOOKAHEAD, y: lastTierY - PLAYER_H - hopHeight, size: 9 });
-    }
 
     function overlap(ax, ay, aw, ah, bx, by, bw, bh) {
       return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
@@ -389,12 +410,6 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       if (!landed && state.player.y > H) {
         endGame();
         return;
-      }
-
-      state.collectTimer -= dt;
-      if (state.collectTimer <= 0) {
-        spawnCollectible();
-        state.collectTimer = 2.5 + Math.random() * 2;
       }
 
       const hitboxX = PLAYER_X + 5;
