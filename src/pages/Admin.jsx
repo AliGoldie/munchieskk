@@ -578,7 +578,7 @@ export default function Admin() {
   }, [shopSettings?.noticeMessage]);
 
   // §5b: Waste log (writes the existing, previously-unused waste_log table)
-  const WASTE_REASONS = ['Made wrong', 'Dropped', 'End of night', 'Expired'];
+  const WASTE_REASONS = ['Made wrong', 'Dropped', 'End of night', 'Expired', 'Staff meal'];
   const [wasteLog, setWasteLog] = useState([]);
   const [wasteItemId, setWasteItemId] = useState('');
   const [wasteQty, setWasteQty] = useState('');
@@ -696,9 +696,28 @@ export default function Admin() {
       if (menuItem.cost_price == null) uncostedItemIds.add(String(menuItem.id));
     });
 
-    const pct = grossRm > 0 ? ((cogsRm + wasteRm) / grossRm) * 100 : 0;
-    return { pct, grossRm, cogsRm, wasteRm, uncostedCount: uncostedItemIds.size };
-  }, [orders, menu, wasteLog]);
+    // Points redemptions fulfilled today: real food given away for free,
+    // same as waste, but previously invisible here -- only a separate
+    // display-only "Total value given away" figure on the Redemptions tab
+    // showed it, and that fed nowhere. Only counts prizes linked to a menu
+    // item (unlinked/free-choice prizes have no item to cost).
+    let redemptionRm = 0;
+    redemptions.forEach(r => {
+      if (r.status !== 'FULFILLED') return;
+      const when = new Date(r.fulfilled_at || r.redeemed_at);
+      if (when < startOfDay) return;
+      const prize = loyaltyPrizes.find(p => p.id === r.prize_id);
+      if (!prize || !prize.menu_item_id) return;
+      const menuItem = menu.find(m => String(m.id) === String(prize.menu_item_id));
+      if (!menuItem) return;
+      const perUnitRm = menuItem.cost_price != null ? menuItem.cost_price / 100 : (menuItem.price * 0.40) / 100;
+      redemptionRm += perUnitRm;
+      if (menuItem.cost_price == null) uncostedItemIds.add(String(menuItem.id));
+    });
+
+    const pct = grossRm > 0 ? ((cogsRm + wasteRm + redemptionRm) / grossRm) * 100 : 0;
+    return { pct, grossRm, cogsRm, wasteRm, redemptionRm, uncostedCount: uncostedItemIds.size };
+  }, [orders, menu, wasteLog, redemptions, loyaltyPrizes]);
 
   const pendingOrders = orders.filter(o => o.status === 'PENDING');
   const activeOrders = orders.filter(o => o.status !== 'COLLECTED' && o.status !== 'CANCELLED');
@@ -3076,6 +3095,7 @@ export default function Admin() {
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Gross sales</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.grossRm.toFixed(2)}</span></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>COGS</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.cogsRm.toFixed(2)}</span></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Waste</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.wasteRm.toFixed(2)}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Redemptions</span><span style={{ fontWeight: 600 }}>RM {foodCostTonight.redemptionRm.toFixed(2)}</span></div>
                   </div>
                   {foodCostTonight.uncostedCount > 0 && (
                     <p style={{ marginTop: '1rem', fontSize: '0.72rem', color: '#d97706', background: 'rgba(245,158,11,0.1)', padding: '8px 10px', borderRadius: '8px' }}>
