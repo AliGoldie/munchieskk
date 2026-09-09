@@ -143,13 +143,18 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // Cut again -- still too fast even at the easiest starting pace (before
-    // any difficulty ramp). At 30 base, a hazard now takes ~10+ seconds to
-    // cross the canvas.
-    const BASE_SPEED = 30;
-    const MAX_SPEED = 52;
-    const SPEED_RAMP = 0.15;
+    // Halved again per direct request ("half slower than usual").
+    const BASE_SPEED = 15;
+    const MAX_SPEED = 26;
+    const SPEED_RAMP = 0.075;
     const TERRAIN_LOOKAHEAD = 260;
+    // No obstacles or tier changes on the first few segments -- a clear
+    // runway to get a feel for the controls before anything shows up.
+    const GRACE_SEGMENTS = 4;
+    // Minimum real-world spacing between obstacles regardless of how the
+    // segment RNG lands, so back-to-back hazards can't stack into an
+    // effectively unbeatable chain a couple of jumps in.
+    const MIN_OBSTACLE_SPACING = 200;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
 
@@ -175,6 +180,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       elapsed: 0,
       scoreThrottle: 0,
       lastTime: null,
+      segmentsGenerated: 0,
+      lastObstacleRightEdge: -9999,
       running: false,
       animFrameId: null
     };
@@ -198,7 +205,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     function nextSegment(afterX, prevTier) {
       const diff = difficulty();
       const jumpDist = maxJumpDistance();
-      const changeTierChance = 0.14 + diff * 0.18;
+      const inGrace = state.segmentsGenerated < GRACE_SEGMENTS;
+      const changeTierChance = inGrace ? 0 : 0.14 + diff * 0.18;
       const nextTier = Math.random() < changeTierChance
         ? (prevTier === 'low' ? 'high' : 'low')
         : prevTier;
@@ -219,13 +227,23 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         const last = state.terrain[state.terrain.length - 1];
         const seg = last ? nextSegment(last.xEnd, last.tier) : { xStart: -20, xEnd: W * 0.65, tier: 'low', y: LOW_Y };
         state.terrain.push(seg);
+        state.segmentsGenerated++;
 
         // Occasionally drop an obstacle onto a fresh segment (skip the
-        // starting segment and anything too narrow to place one fairly).
-        if (last && seg.xEnd - seg.xStart > 130 && Math.random() < 0.5) {
+        // starting segment, the grace window, and anything too narrow to
+        // place one fairly). Chance ramps with difficulty instead of being
+        // flat, and a minimum real-world spacing from the last obstacle
+        // stops back-to-back hazards from stacking into an unfair chain
+        // regardless of how the per-segment RNG lands.
+        const inGrace = state.segmentsGenerated <= GRACE_SEGMENTS;
+        const obstacleChance = 0.12 + difficulty() * 0.38;
+        if (last && !inGrace && seg.xEnd - seg.xStart > 130 && Math.random() < obstacleChance) {
           const v = OBSTACLE_VARIANTS[Math.floor(Math.random() * OBSTACLE_VARIANTS.length)];
           const ox = seg.xStart + 34 + Math.random() * (seg.xEnd - seg.xStart - 68);
-          state.obstacles.push({ x: ox, w: v.w, h: v.h, tierY: seg.y });
+          if (ox - state.lastObstacleRightEdge >= MIN_OBSTACLE_SPACING) {
+            state.obstacles.push({ x: ox, w: v.w, h: v.h, tierY: seg.y });
+            state.lastObstacleRightEdge = ox + v.w;
+          }
         }
       }
     }
@@ -243,6 +261,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.elapsed = 0;
       state.scoreThrottle = 0;
       state.lastTime = null;
+      state.segmentsGenerated = 0;
+      state.lastObstacleRightEdge = -9999;
       state.running = false;
       ensureTerrain();
     }
