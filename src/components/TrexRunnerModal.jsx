@@ -128,17 +128,22 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // you when you fall past the canvas bottom ends the run.
     const LOW_Y = H - 26;
     const HIGH_Y = LOW_Y - 62;
-    const GRAVITY = 0.72;
-    const JUMP_VELOCITY = -12.8;
+    // Floatier arc than the first pass -- a snappy jump can make even a slow
+    // scroll feel frantic, since there's so little time to react once
+    // you're committed. Lower gravity + lower jump velocity means a longer,
+    // calmer hang time while still comfortably clearing the raised tier.
+    const GRAVITY = 0.5;
+    const JUMP_VELOCITY = -10.5;
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // Much slower than the original flat-runner version -- speed was the
-    // single biggest complaint, and now that difficulty comes from platform
-    // layout instead of raw scroll speed, it doesn't need to climb far.
-    const BASE_SPEED = 2.1;
-    const MAX_SPEED = 3.8;
-    const SPEED_RAMP = 0.00018;
+    // Cut again on top of the first speed reduction -- still too fast at
+    // 2.1/3.8. At 1.2 base, a hazard spawning at the right edge takes
+    // roughly 4.5+ seconds to reach the player, a real reaction window
+    // instead of a reflex test.
+    const BASE_SPEED = 1.2;
+    const MAX_SPEED = 2.1;
+    const SPEED_RAMP = 0.0001;
     const TERRAIN_LOOKAHEAD = 260;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
