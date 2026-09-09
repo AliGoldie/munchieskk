@@ -143,15 +143,16 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // Pushed up solidly -- reported as "boring and slow" at 22/38. The
-    // earlier "too fast" reports were real, but in hindsight likely driven
-    // mostly by the jump feeling rushed and hazards stacking unfairly close
-    // together, both fixed independently since (floatier jump arc above;
-    // grace period + min obstacle spacing below) -- so raw speed can come
-    // back up without reintroducing either of those specific problems.
-    const BASE_SPEED = 42;
-    const MAX_SPEED = 72;
-    const SPEED_RAMP = 0.22;
+    // Pushed up again -- still "too slow" at 42/72. Going more decisively
+    // this time rather than another small step: 65/115 is close to the
+    // pace right after the delta-time fix first landed (72/126), which was
+    // called too fast back then, but that was before the jump-feel and
+    // hazard-stacking fixes below existed to confound the read on raw
+    // speed. Worth testing at roughly that level again now that those are
+    // handled separately.
+    const BASE_SPEED = 65;
+    const MAX_SPEED = 115;
+    const SPEED_RAMP = 0.35;
     const TERRAIN_LOOKAHEAD = 260;
     // No obstacles or tier changes on the first few segments -- a clear
     // runway to get a feel for the controls before anything shows up.
