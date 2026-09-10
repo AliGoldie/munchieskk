@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import './Admin.css';
 
 // Stored timestamps (order created_at, shift opened_at, etc.) are UTC and
@@ -335,6 +335,9 @@ export default function Admin() {
   const [showClosingStock, setShowClosingStock] = useState(false);
   const [closingCounts, setClosingCounts] = useState({});
   const [savingClosingStock, setSavingClosingStock] = useState(false);
+  const [stockReportDays, setStockReportDays] = useState(14);
+  const [stockReportSnapshots, setStockReportSnapshots] = useState([]);
+  const [loadingStockReport, setLoadingStockReport] = useState(false);
   const [editingPromo, setEditingPromo] = useState({});
   const [expandedHistoryOrderIds, setExpandedHistoryOrderIds] = useState(new Set());
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(6);
@@ -994,6 +997,118 @@ export default function Admin() {
     } finally {
       setSavingClosingStock(false);
     }
+  };
+
+  const fetchStockReport = async (days) => {
+    setLoadingStockReport(true);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (days - 1));
+    startDate.setHours(0, 0, 0, 0);
+    const startDateStr = startDate.toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('daily_stock_snapshots')
+      .select('*')
+      .gte('snapshot_date', startDateStr)
+      .order('snapshot_date', { ascending: true });
+    if (error) {
+      console.error('Failed to fetch stock report:', error);
+      setStockReportSnapshots([]);
+    } else {
+      setStockReportSnapshots(data || []);
+    }
+    setLoadingStockReport(false);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'stock_report') fetchStockReport(stockReportDays);
+  }, [activeTab, stockReportDays]);
+
+  // Net variance per day (sum across every item counted that day) -- the
+  // trend chart. A day with several items short shows as one clearly
+  // negative bar rather than needing 17 separate lines.
+  const stockReportDailyTotals = useMemo(() => {
+    const byDate = {};
+    stockReportSnapshots.forEach(s => {
+      const variance = s.counted_quantity - (s.system_quantity_before ?? s.counted_quantity);
+      if (!byDate[s.snapshot_date]) byDate[s.snapshot_date] = { date: s.snapshot_date, variance: 0, itemsCounted: 0 };
+      byDate[s.snapshot_date].variance += variance;
+      byDate[s.snapshot_date].itemsCounted += 1;
+    });
+    return Object.values(byDate)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(d => ({ ...d, displayDate: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }));
+  }, [stockReportSnapshots]);
+
+  // Per-item totals across the whole range, worst (most negative) first --
+  // the "which items keep coming up short" view.
+  const stockReportItemSummary = useMemo(() => {
+    const byItem = {};
+    stockReportSnapshots.forEach(s => {
+      const variance = s.counted_quantity - (s.system_quantity_before ?? s.counted_quantity);
+      if (!byItem[s.item_id]) byItem[s.item_id] = { itemId: s.item_id, totalVariance: 0, daysCounted: 0 };
+      byItem[s.item_id].totalVariance += variance;
+      byItem[s.item_id].daysCounted += 1;
+    });
+    return Object.values(byItem)
+      .map(row => {
+        const item = menu.find(m => m.id === row.itemId);
+        return { ...row, name: item?.name || 'Unknown item', avgVariance: row.totalVariance / row.daysCounted };
+      })
+      .sort((a, b) => a.totalVariance - b.totalVariance);
+  }, [stockReportSnapshots, menu]);
+
+  const generateStockReportDoc = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('MunchiesKK Stock Report', 14, 20);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Last ${stockReportDays} days - Generated ${formatStoreDateTime(new Date())}`, 14, 28);
+
+    autoTable(doc, {
+      startY: 36,
+      head: [['Date', 'Items Counted', 'Net Variance']],
+      body: stockReportDailyTotals.map(d => [d.displayDate, d.itemsCounted.toString(), d.variance > 0 ? `+${d.variance}` : d.variance.toString()]),
+      theme: 'grid',
+      headStyles: { fillColor: [45, 153, 255] }
+    });
+
+    doc.text('Item Variance Summary (worst first)', 14, doc.lastAutoTable.finalY + 15);
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 20,
+      head: [['Item', 'Days Counted', 'Total Variance', 'Avg/Day']],
+      body: stockReportItemSummary.map(row => [row.name, row.daysCounted.toString(), row.totalVariance > 0 ? `+${row.totalVariance}` : row.totalVariance.toString(), row.avgVariance.toFixed(1)]),
+      theme: 'striped'
+    });
+
+    return doc;
+  };
+
+  const downloadStockReportPDF = () => {
+    const doc = generateStockReportDoc();
+    doc.save(`MunchiesKK_Stock_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  // Web Share API with a file attachment -- lets a phone's share sheet hand
+  // the PDF straight to a WhatsApp group in one tap. Not every browser
+  // supports sharing files (canShare({files}) is the real feature check,
+  // separate from navigator.share existing at all), so this always falls
+  // back to a plain download rather than claiming to send anything itself --
+  // there's no WhatsApp Business API wired into this project to actually
+  // deliver a message server-side.
+  const shareStockReportPDF = async () => {
+    const doc = generateStockReportDoc();
+    const fileName = `MunchiesKK_Stock_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const file = new File([doc.output('blob')], fileName, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'MunchiesKK Stock Report', text: 'Daily stock report' });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+    doc.save(fileName);
   };
 
   // §5b: Pause online ordering + customer notice. setShopStatus() replaces
@@ -2046,7 +2161,7 @@ export default function Admin() {
       ['Pending Orders', pendingOrders.length.toString()]
     ];
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: 40,
       head: [['Metric', 'Value']],
       body: tableData,
@@ -2063,7 +2178,7 @@ export default function Admin() {
     ]);
 
     doc.text('Recent Orders', 14, doc.lastAutoTable.finalY + 15);
-    doc.autoTable({
+    autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 20,
       head: recentOrdersHeader,
       body: recentOrdersBody,
@@ -2115,6 +2230,9 @@ export default function Admin() {
           </button>
           <button className={`sidebar-item ${activeTab === 'redemptions' ? 'active' : ''}`} onClick={() => setActiveTab('redemptions')}>
             <Ticket size={20} /> Redemptions
+          </button>
+          <button className={`sidebar-item ${activeTab === 'stock_report' ? 'active' : ''}`} onClick={() => setActiveTab('stock_report')}>
+            <TrendingUp size={20} /> Stock Report
           </button>
           {!viewingAsStaff && (
             <button className={`sidebar-item ${activeTab === 'audit' ? 'active' : ''}`} onClick={() => setActiveTab('audit')}>
@@ -5243,6 +5361,95 @@ export default function Admin() {
                 })}
               </tbody>
             </table></div>
+          </div>
+        )}
+
+        {/* Stock Report Tab */}
+        {activeTab === 'stock_report' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="admin-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ margin: '0 0 0.25rem' }}>📊 Stock Report</h3>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  Variance trends from daily closing stock takes -- built from the counts recorded via "Closing Stock" on the Dashboard.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {[7, 14, 30].map(d => (
+                    <button key={d} type="button" onClick={() => setStockReportDays(d)}
+                      style={{
+                        padding: '6px 12px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                        border: stockReportDays === d ? '1px solid #2d99ff' : '1px solid #cbd5e1',
+                        background: stockReportDays === d ? 'rgba(45,153,255,0.1)' : '#fff',
+                        color: stockReportDays === d ? '#2d99ff' : 'var(--text-secondary)'
+                      }}>{d}d</button>
+                  ))}
+                </div>
+                <button type="button" onClick={downloadStockReportPDF}
+                  style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+                  ⬇️ Download PDF
+                </button>
+                <button type="button" onClick={shareStockReportPDF}
+                  style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#25d366', color: '#fff', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                  title="Shares the PDF via your device's share sheet (WhatsApp, email, etc.) where supported -- otherwise downloads it">
+                  📤 Share
+                </button>
+              </div>
+            </div>
+
+            <div className="admin-card" style={{ padding: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1rem' }}>Net Variance by Day</h3>
+              {loadingStockReport ? (
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>Loading…</p>
+              ) : stockReportDailyTotals.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>No closing stock takes recorded in this range yet. Use "Closing Stock" on the Dashboard to record your first one.</p>
+              ) : (
+                <div style={{ height: '280px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stockReportDailyTotals}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="displayDate" fontSize={12} />
+                      <YAxis fontSize={12} />
+                      <RechartsTooltip formatter={(value) => [value, 'Net variance']} />
+                      <Bar dataKey="variance">
+                        {stockReportDailyTotals.map((d, i) => (
+                          <Cell key={i} fill={d.variance < 0 ? '#ef4444' : d.variance > 0 ? '#22c55e' : '#94a3b8'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="admin-card" style={{ padding: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 0.25rem' }}>Item Variance Summary</h3>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Worst (most negative) first -- items that keep coming up short across closing counts.</p>
+              {stockReportItemSummary.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '1rem 0' }}>No data yet for this range.</p>
+              ) : (
+                <div className="table-responsive">
+                  <table className="admin-table">
+                    <thead>
+                      <tr><th>Item</th><th>Days Counted</th><th>Total Variance</th><th>Avg / Day</th></tr>
+                    </thead>
+                    <tbody>
+                      {stockReportItemSummary.map(row => (
+                        <tr key={row.itemId}>
+                          <td>{row.name}</td>
+                          <td>{row.daysCounted}</td>
+                          <td style={{ color: row.totalVariance < 0 ? '#ef4444' : row.totalVariance > 0 ? '#16a34a' : 'inherit', fontWeight: 700 }}>
+                            {row.totalVariance > 0 ? `+${row.totalVariance}` : row.totalVariance}
+                          </td>
+                          <td>{row.avgVariance.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

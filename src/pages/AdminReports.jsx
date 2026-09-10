@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, Calendar } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const AdminReports = () => {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ const AdminReports = () => {
     doc.setFontSize(12);
     doc.text('Summary Overview', 14, 45);
     
-    doc.autoTable({
+    autoTable(doc, {
       startY: 50,
       head: [['Metric', 'Value']],
       body: [
