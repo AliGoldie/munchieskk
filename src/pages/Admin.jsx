@@ -216,7 +216,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
-    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateStock, setStockQuantity,
+    menu, toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateStock, setStockQuantity, fetchStockHistory, recordClosingStock,
     syncWarnings, removeSyncWarning,
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
@@ -329,6 +329,12 @@ export default function Admin() {
   const [editingAddonLowStock, setEditingAddonLowStock] = useState({});
   const [editingStock, setEditingStock] = useState({});
   const [editingLowStock, setEditingLowStock] = useState({});
+  const [stockHistoryItemId, setStockHistoryItemId] = useState(null);
+  const [stockHistoryData, setStockHistoryData] = useState([]);
+  const [loadingStockHistory, setLoadingStockHistory] = useState(false);
+  const [showClosingStock, setShowClosingStock] = useState(false);
+  const [closingCounts, setClosingCounts] = useState({});
+  const [savingClosingStock, setSavingClosingStock] = useState(false);
   const [editingPromo, setEditingPromo] = useState({});
   const [expandedHistoryOrderIds, setExpandedHistoryOrderIds] = useState(new Set());
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(6);
@@ -937,6 +943,57 @@ export default function Admin() {
     logAudit('Waste log entry removed', { id, itemName: item?.name || null, quantity: row?.quantity || null });
     pushToast({ msg: 'Waste entry removed', kind: 'info', title: 'Waste log updated' });
     fetchWasteLog();
+  };
+
+  const openStockHistory = async (itemId) => {
+    setStockHistoryItemId(itemId);
+    setLoadingStockHistory(true);
+    const data = await fetchStockHistory(itemId);
+    setStockHistoryData(data);
+    setLoadingStockHistory(false);
+  };
+
+  const closeStockHistory = () => {
+    setStockHistoryItemId(null);
+    setStockHistoryData([]);
+  };
+
+  // Pre-fills every item's count with its current system stock so a
+  // full daily take always produces one row per item, not just the ones
+  // that turned out to differ -- matching how a real physical count works.
+  const openClosingStock = () => {
+    const initial = {};
+    menu.forEach(item => { initial[item.id] = String(item.stock_quantity ?? 0); });
+    setClosingCounts(initial);
+    setShowClosingStock(true);
+  };
+
+  const saveClosingStock = async () => {
+    setSavingClosingStock(true);
+    try {
+      const entries = Object.entries(closingCounts);
+      let varianceCount = 0;
+      for (const [itemId, value] of entries) {
+        const counted = Math.max(0, Math.floor(Number(value) || 0));
+        const item = menu.find(m => m.id === itemId);
+        const before = item?.stock_quantity ?? 0;
+        if (counted !== before) varianceCount++;
+        await recordClosingStock(itemId, counted);
+      }
+      logAudit('Closing stock recorded', { itemsCounted: entries.length, itemsWithVariance: varianceCount });
+      pushToast({
+        msg: varianceCount > 0
+          ? `Closing stock saved for ${entries.length} items -- ${varianceCount} differed from system count.`
+          : `Closing stock saved for ${entries.length} items -- all matched.`,
+        kind: varianceCount > 0 ? 'warn' : 'new',
+        title: 'Daily stock take complete'
+      });
+      setShowClosingStock(false);
+    } catch (err) {
+      alert('Error saving closing stock: ' + err.message);
+    } finally {
+      setSavingClosingStock(false);
+    }
   };
 
   // §5b: Pause online ordering + customer notice. setShopStatus() replaces
@@ -3086,9 +3143,18 @@ export default function Admin() {
 
                 {/* Food Cost Tonight */}
                 <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                  <h3 style={{ margin: '0 0 0.25rem' }}>💵 Food Cost Tonight</h3>
-                  <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>(COGS + waste) / gross sales, today</p>
-                  <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <div>
+                      <h3 style={{ margin: '0 0 0.25rem' }}>💵 Food Cost Tonight</h3>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>(COGS + waste) / gross sales, today</p>
+                    </div>
+                    <button type="button" onClick={openClosingStock}
+                      style={{ flexShrink: 0, padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      title="Record today's physical stock count">
+                      📋 Closing Stock
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '1rem', marginTop: '1rem' }}>
                     {foodCostTonight.grossRm > 0 ? `${foodCostTonight.pct.toFixed(1)}%` : '—'}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -3892,10 +3958,16 @@ export default function Admin() {
                             className="qty-btn qty-btn-plus"
                             onClick={(e) => { e.preventDefault(); updateStock(item.id, +1); }}
                           >+</button>
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            title="View stock history"
+                            onClick={(e) => { e.preventDefault(); openStockHistory(item.id); }}
+                          ><Clock size={12} /></button>
                         </div>
-                        
+
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          Alert at: 
+                          Alert at:
                           <input 
                             type="number"
                             min="0"
@@ -6001,6 +6073,81 @@ export default function Admin() {
           </div>
         );
       })()}
+
+      {stockHistoryItemId && (() => {
+        const item = menu.find(m => m.id === stockHistoryItemId);
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={closeStockHistory}>
+            <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '420px', border: '1px solid #334155', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.1rem' }}>Stock History</h3>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>{item?.name || 'Item'} — most recent {stockHistoryData.length} change{stockHistoryData.length === 1 ? '' : 's'}</p>
+              <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {loadingStockHistory ? (
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '1rem 0' }}>Loading…</p>
+                ) : stockHistoryData.length === 0 ? (
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '1rem 0' }}>No stock changes recorded yet for this item.</p>
+                ) : (
+                  stockHistoryData.map(h => {
+                    const delta = (h.new_quantity ?? 0) - (h.old_quantity ?? 0);
+                    return (
+                      <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#0f172a', fontSize: '0.8rem' }}>
+                        <span style={{ color: '#e2e8f0' }}>{h.old_quantity ?? '—'} → {h.new_quantity}</span>
+                        <span style={{ color: delta > 0 ? '#4ade80' : delta < 0 ? '#f87171' : '#94a3b8', fontWeight: 700 }}>{delta > 0 ? `+${delta}` : delta}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.72rem' }}>{new Date(h.changed_at).toLocaleString()}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <button onClick={closeStockHistory} style={{ marginTop: '1rem', padding: '10px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Close</button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {showClosingStock && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => !savingClosingStock && setShowClosingStock(false)}>
+          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '480px', border: '1px solid #334155', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>📋 Daily Closing Stock</h3>
+            <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>
+              Walk the shelf and enter what's actually there for each item. Saving reconciles the system count to your physical count and records today's closing snapshot.
+            </p>
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {menu.map(item => {
+                const counted = closingCounts[item.id] ?? '';
+                const system = item.stock_quantity ?? 0;
+                const variance = counted !== '' ? Math.floor(Number(counted) || 0) - system : 0;
+                return (
+                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '8px', background: '#0f172a' }}>
+                    <span style={{ flex: 1, fontSize: '0.82rem', color: '#e2e8f0' }}>{item.name}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', width: '58px' }}>sys: {system}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={counted}
+                      onChange={e => setClosingCounts({ ...closingCounts, [item.id]: e.target.value })}
+                      style={{ width: '64px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #334155', background: '#1e293b', color: '#fff', fontSize: '0.85rem' }}
+                    />
+                    {variance !== 0 && (
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: variance < 0 ? '#f87171' : '#4ade80', width: '32px' }}>{variance > 0 ? `+${variance}` : variance}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>
+              <button
+                disabled={savingClosingStock}
+                onClick={saveClosingStock}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#FFC72C', color: '#17150F', fontWeight: 'bold', cursor: savingClosingStock ? 'default' : 'pointer', opacity: savingClosingStock ? 0.6 : 1 }}
+              >
+                {savingClosingStock ? 'Saving…' : `Save Closing Counts (${menu.length})`}
+              </button>
+              <button disabled={savingClosingStock} onClick={() => setShowClosingStock(false)} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </div>
   );

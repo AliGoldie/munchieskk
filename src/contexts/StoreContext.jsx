@@ -665,7 +665,40 @@ export function StoreProvider({ children }) {
       .eq('id', id);
   };
 
-  
+  // Recent stock_quantity changes for one item, written automatically by a
+  // DB trigger on every menu_items update (manual edits, sales, restores --
+  // whatever the source) so this is always complete without needing to log
+  // from every call site.
+  const fetchStockHistory = async (itemId, limit = 20) => {
+    const { data, error } = await supabase
+      .from('stock_adjustments')
+      .select('*')
+      .eq('item_id', itemId)
+      .order('changed_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error('Failed to fetch stock history:', error);
+      return [];
+    }
+    return data || [];
+  };
+
+  // Real end-of-day stock take: reconciles stock_quantity to what an admin
+  // physically counted, and keeps a permanent per-day snapshot (via the
+  // record_closing_stock RPC) so past closing counts stay answerable later.
+  const recordClosingStock = async (itemId, countedQuantity) => {
+    const { data, error } = await supabase.rpc('record_closing_stock', {
+      p_item_id: itemId,
+      p_counted_quantity: countedQuantity
+    });
+    if (error) throw error;
+    setMenu(prev => prev.map(i => i.id === itemId
+      ? { ...i, stock_quantity: countedQuantity, inStock: countedQuantity > 0, in_stock: countedQuantity > 0 }
+      : i
+    ));
+    return data;
+  };
+
   const deleteMenuItem = async (id) => {
     const previousMenu = menu;
     // Optimistic UI update -- the realtime subscription's DELETE handler
@@ -1517,7 +1550,7 @@ const clearManualOverride = async (id) => {
       points, tier, pointHistory, orders, addons, itemAddons, customers,
       syncWarnings, removeSyncWarning,
       toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateOrderState, collectOrder, acceptOrder, cancelOrder,
-      updateStock, setStockQuantity, clearManualOverride,
+      updateStock, setStockQuantity, clearManualOverride, fetchStockHistory, recordClosingStock,
       isPromoActive, updatePromo,
       addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
