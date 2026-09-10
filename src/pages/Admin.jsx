@@ -5403,7 +5403,15 @@ export default function Admin() {
               {loadingStockReport ? (
                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>Loading…</p>
               ) : stockReportDailyTotals.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>No closing stock takes recorded in this range yet. Use "Closing Stock" on the Dashboard to record your first one.</p>
+                <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                  <p style={{ color: 'var(--text-muted)', margin: '0 0 1rem' }}>
+                    No closing stock takes recorded in this range yet. This report is built from actual counts, not the history icons in Menu CRM (those just show one item's past changes) -- record a Closing Stock take to start filling it in.
+                  </p>
+                  <button type="button" onClick={openClosingStock}
+                    style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#FFC72C', color: '#17150F', fontWeight: 'bold', cursor: 'pointer' }}>
+                    📋 Take Closing Stock Now
+                  </button>
+                </div>
               ) : (
                 <div style={{ height: '280px' }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -5427,7 +5435,7 @@ export default function Admin() {
               <h3 style={{ margin: '0 0 0.25rem' }}>Item Variance Summary</h3>
               <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Worst (most negative) first -- items that keep coming up short across closing counts.</p>
               {stockReportItemSummary.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '1rem 0' }}>No data yet for this range.</p>
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '1rem 0' }}>No data yet for this range -- fills in once you've recorded a Closing Stock take.</p>
               ) : (
                 <div className="table-responsive">
                   <table className="admin-table">
