@@ -23,6 +23,7 @@ export function StoreProvider({ children }) {
   const [customers, setCustomers] = useState([]);
   const [loyaltyPrizes, setLoyaltyPrizes] = useState([]);
   const [redemptions, setRedemptions] = useState([]);
+  const [ingredients, setIngredients] = useState([]);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
 
   // Local-only state for Cart & Point History
@@ -1457,6 +1458,94 @@ const clearManualOverride = async (id) => {
     return true;
   };
 
+  // Ingredient-level inventory (recipes / BOM), phase 1: ingredients + recipe
+  // links only -- no auto-deduction on sale yet, that's a deliberate
+  // follow-up. Admin-only (RLS), so fetched on demand from Admin.jsx rather
+  // than baked into the public fetchInitialData load every visitor triggers.
+  const fetchIngredients = async () => {
+    const { data, error } = await supabase.from('ingredients').select('*').order('name', { ascending: true });
+    if (!error && data) setIngredients(data);
+  };
+
+  const addIngredient = async (name, unit, costPerUnitFloat) => {
+    const costCents = costPerUnitFloat !== '' && costPerUnitFloat != null ? Math.round(Number(costPerUnitFloat) * 100) : null;
+    const { data, error } = await supabase.from('ingredients').insert([{ name, unit: unit || 'piece', cost_per_unit: costCents }]).select().single();
+    if (error) { alert('Failed to add ingredient: ' + error.message); return null; }
+    setIngredients(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+    return data;
+  };
+
+  const updateIngredientStock = async (id, qty) => {
+    const newQty = Math.max(0, Math.floor(Number(qty) || 0));
+    setIngredients(prev => prev.map(i => i.id === id ? { ...i, stock_quantity: newQty } : i));
+    const { error } = await supabase.from('ingredients').update({ stock_quantity: newQty }).eq('id', id);
+    if (error) console.error('Failed to update ingredient stock:', error);
+  };
+
+  const updateIngredientCost = async (id, costFloat) => {
+    const costCents = costFloat !== '' && costFloat != null ? Math.round(Number(costFloat) * 100) : null;
+    setIngredients(prev => prev.map(i => i.id === id ? { ...i, cost_per_unit: costCents } : i));
+    const { error } = await supabase.from('ingredients').update({ cost_per_unit: costCents }).eq('id', id);
+    if (error) console.error('Failed to update ingredient cost:', error);
+  };
+
+  const updateIngredientLowStockThreshold = async (id, threshold) => {
+    const value = Math.max(0, Math.floor(Number(threshold) || 0));
+    setIngredients(prev => prev.map(i => i.id === id ? { ...i, low_stock_threshold: value } : i));
+    const { error } = await supabase.from('ingredients').update({ low_stock_threshold: value }).eq('id', id);
+    if (error) console.error('Failed to update ingredient threshold:', error);
+  };
+
+  const deleteIngredient = async (id) => {
+    const { error } = await supabase.from('ingredients').delete().eq('id', id);
+    if (error) { alert('Failed to delete ingredient: ' + error.message); return false; }
+    setIngredients(prev => prev.filter(i => i.id !== id));
+    return true;
+  };
+
+  const fetchIngredientHistory = async (ingredientId, limit = 20) => {
+    const { data, error } = await supabase
+      .from('ingredient_adjustments')
+      .select('*')
+      .eq('ingredient_id', ingredientId)
+      .order('changed_at', { ascending: false })
+      .limit(limit);
+    if (error) { console.error('Failed to fetch ingredient history:', error); return []; }
+    return data || [];
+  };
+
+  // One item's recipe (menu item or add-on), joined with ingredient details
+  // for display. Returns [] for anything with no recipe defined yet -- the
+  // normal case for most items in the pilot rollout.
+  const fetchRecipe = async (parentType, parentId) => {
+    const { data, error } = await supabase
+      .from('recipe_items')
+      .select('*, ingredient:ingredient_id(id, name, unit, stock_quantity, cost_per_unit)')
+      .eq('parent_type', parentType)
+      .eq('parent_id', parentId);
+    if (error) { console.error('Failed to fetch recipe:', error); return []; }
+    return data || [];
+  };
+
+  const saveRecipeItem = async (parentType, parentId, ingredientId, quantityPerUnit) => {
+    const { data, error } = await supabase
+      .from('recipe_items')
+      .upsert(
+        [{ parent_type: parentType, parent_id: parentId, ingredient_id: ingredientId, quantity_per_unit: quantityPerUnit }],
+        { onConflict: 'parent_type,parent_id,ingredient_id' }
+      )
+      .select('*, ingredient:ingredient_id(id, name, unit, stock_quantity, cost_per_unit)')
+      .single();
+    if (error) { alert('Failed to save recipe item: ' + error.message); return null; }
+    return data;
+  };
+
+  const removeRecipeItem = async (id) => {
+    const { error } = await supabase.from('recipe_items').delete().eq('id', id);
+    if (error) { alert('Failed to remove recipe item: ' + error.message); return false; }
+    return true;
+  };
+
     const claimShareBonus = async (amount, description) => {
     if (!user || !user.id || !amount) return;
 
@@ -1557,6 +1646,9 @@ const clearManualOverride = async (id) => {
       placeOrder, claimShareBonus, fetchSingleOrder,
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
       addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
+      ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
+      updateIngredientLowStockThreshold, deleteIngredient, fetchIngredientHistory,
+      fetchRecipe, saveRecipeItem, removeRecipeItem,
       categoriesList, addCategory, updateCategory, deleteCategory,
       shopSettings, updateShopSettings, isShopOpenNow,
       arcade_enabled: shopSettings?.arcade_enabled ?? false

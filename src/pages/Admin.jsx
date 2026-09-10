@@ -221,6 +221,9 @@ export default function Admin() {
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
     loyaltyPrizes, redemptions, fetchAdminRedemptions, fulfillRedemption, addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
+    ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
+    updateIngredientLowStockThreshold, deleteIngredient, fetchIngredientHistory,
+    fetchRecipe, saveRecipeItem, removeRecipeItem,
     isPromoActive, updatePromo,
     categoriesList, addCategory, updateCategory, deleteCategory,
     shopSettings, updateShopSettings, isShopOpenNow
@@ -338,6 +341,29 @@ export default function Admin() {
   const [stockReportDays, setStockReportDays] = useState(14);
   const [stockReportSnapshots, setStockReportSnapshots] = useState([]);
   const [loadingStockReport, setLoadingStockReport] = useState(false);
+
+  // Ingredient-level inventory (recipes / BOM) -- phase 1: ingredients CRM,
+  // recipe builder, max-makeable yield, cost/pricing review. No auto-deduct
+  // on sale yet (deliberate follow-up).
+  const [newIngredientName, setNewIngredientName] = useState('');
+  const [newIngredientUnit, setNewIngredientUnit] = useState('piece');
+  const [newIngredientCost, setNewIngredientCost] = useState('');
+  const [savingIngredient, setSavingIngredient] = useState(false);
+  const [editingIngredientStock, setEditingIngredientStock] = useState({});
+  const [editingIngredientCost, setEditingIngredientCost] = useState({});
+  const [editingIngredientLowStock, setEditingIngredientLowStock] = useState({});
+  const [ingredientHistoryId, setIngredientHistoryId] = useState(null);
+  const [ingredientHistoryData, setIngredientHistoryData] = useState([]);
+  const [loadingIngredientHistory, setLoadingIngredientHistory] = useState(false);
+  // All recipe_items across every menu item/add-on, joined with ingredient
+  // stock -- fetched in bulk so the "Max makeable" badge can show directly in
+  // Menu CRM/Add-ons CRM tables without an N+1 fetch per row.
+  const [allRecipeItems, setAllRecipeItems] = useState([]);
+  const [recipeEditorFor, setRecipeEditorFor] = useState(null); // { parentType, parentId, parentName }
+  const [recipeEditorRows, setRecipeEditorRows] = useState([]);
+  const [recipeEditorAddIngredientId, setRecipeEditorAddIngredientId] = useState('');
+  const [recipeEditorAddQty, setRecipeEditorAddQty] = useState('');
+  const [savingRecipeRow, setSavingRecipeRow] = useState(false);
   const [editingPromo, setEditingPromo] = useState({});
   const [expandedHistoryOrderIds, setExpandedHistoryOrderIds] = useState(new Set());
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(6);
@@ -755,6 +781,39 @@ export default function Admin() {
   const totalRedemptionValue = redemptions.reduce((sum, r) => sum + (getRedemptionCost(r) || 0), 0);
   const redemptionsMissingCost = redemptions.filter(r => getRedemptionCost(r) == null).length;
 
+  // Cost & Pricing Review: for every item with a fully-costed recipe (every
+  // ingredient in it has a cost_per_unit set), roll up the real recipe cost
+  // and compare it against the item's stored cost_price (drift -- the
+  // manually-set number is stale) and current price (margin -- ingredient
+  // inflation has eaten into it). Review/alert surface only -- nothing here
+  // changes a price automatically, the admin decides in Menu CRM/Add-ons CRM.
+  const MARGIN_ALERT_THRESHOLD = 20; // percent
+  const costPricingReview = useMemo(() => {
+    const byParent = {};
+    allRecipeItems.forEach(r => {
+      const key = `${r.parent_type}:${r.parent_id}`;
+      if (!byParent[key]) byParent[key] = [];
+      byParent[key].push(r);
+    });
+
+    return Object.entries(byParent).map(([key, rows]) => {
+      const [parentType, parentId] = key.split(':');
+      const parent = parentType === 'menu_item'
+        ? menu.find(m => String(m.id) === String(parentId))
+        : addons.find(a => String(a.id) === String(parentId));
+      if (!parent) return null;
+
+      const missingCost = rows.some(r => r.ingredient?.cost_per_unit == null);
+      const recipeCostRm = missingCost ? null : rows.reduce((sum, r) => sum + (r.ingredient.cost_per_unit / 100) * r.quantity_per_unit, 0);
+      const storedCostRm = parent.cost_price != null ? parent.cost_price / 100 : null;
+      const priceRm = (parent.price || 0) / 100;
+      const marginPct = recipeCostRm != null && priceRm > 0 ? ((priceRm - recipeCostRm) / priceRm) * 100 : null;
+      const costDriftRm = recipeCostRm != null && storedCostRm != null ? recipeCostRm - storedCostRm : null;
+
+      return { parentType, parentId, name: parent.name, recipeCostRm, storedCostRm, priceRm, marginPct, costDriftRm, missingCost };
+    }).filter(Boolean).sort((a, b) => (a.marginPct ?? 999) - (b.marginPct ?? 999));
+  }, [allRecipeItems, menu, addons]);
+
   useEffect(() => {
     if (activeTab === 'promotions') {
       fetchMarketingData();
@@ -1109,6 +1168,111 @@ export default function Admin() {
       }
     }
     doc.save(fileName);
+  };
+
+  const fetchAllRecipeItems = async () => {
+    const { data, error } = await supabase
+      .from('recipe_items')
+      .select('*, ingredient:ingredient_id(id, name, unit, stock_quantity, cost_per_unit)');
+    if (!error && data) setAllRecipeItems(data);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'ingredients' || activeTab === 'inventory' || activeTab === 'addons') {
+      fetchIngredients();
+      fetchAllRecipeItems();
+    }
+  }, [activeTab]);
+
+  // Max makeable for one menu item/add-on from current ingredient stock --
+  // null when it has no recipe defined (the normal case for most items),
+  // so callers can hide the badge entirely rather than showing "0".
+  const getMaxMakeable = (parentType, parentId) => {
+    const rows = allRecipeItems.filter(r => r.parent_type === parentType && r.parent_id === parentId);
+    if (rows.length === 0) return null;
+    return Math.floor(Math.min(...rows.map(r => (r.ingredient?.stock_quantity ?? 0) / r.quantity_per_unit)));
+  };
+
+  const openIngredientHistory = async (id) => {
+    setIngredientHistoryId(id);
+    setLoadingIngredientHistory(true);
+    const data = await fetchIngredientHistory(id);
+    setIngredientHistoryData(data);
+    setLoadingIngredientHistory(false);
+  };
+
+  const closeIngredientHistory = () => {
+    setIngredientHistoryId(null);
+    setIngredientHistoryData([]);
+  };
+
+  const handleAddIngredient = async () => {
+    if (!newIngredientName.trim()) { alert('Enter an ingredient name.'); return; }
+    setSavingIngredient(true);
+    try {
+      const created = await addIngredient(newIngredientName.trim(), newIngredientUnit.trim(), newIngredientCost);
+      if (created) {
+        logAudit('Ingredient added', { name: created.name, unit: created.unit });
+        pushToast({ msg: `"${created.name}" added to ingredients`, kind: 'new', title: 'Ingredient added' });
+        setNewIngredientName('');
+        setNewIngredientUnit('piece');
+        setNewIngredientCost('');
+      }
+    } finally {
+      setSavingIngredient(false);
+    }
+  };
+
+  const handleDeleteIngredient = async (ingredient) => {
+    if (!window.confirm(`Delete "${ingredient.name}"? This removes it from any recipes using it. This cannot be undone.`)) return;
+    const ok = await deleteIngredient(ingredient.id);
+    if (ok) {
+      logAudit('Ingredient deleted', { name: ingredient.name });
+      pushToast({ msg: `"${ingredient.name}" removed`, kind: 'warn', title: 'Ingredient deleted' });
+      fetchAllRecipeItems();
+    }
+  };
+
+  const openRecipeEditor = async (parentType, parentId, parentName) => {
+    setRecipeEditorFor({ parentType, parentId, parentName });
+    setRecipeEditorAddIngredientId('');
+    setRecipeEditorAddQty('');
+    const rows = await fetchRecipe(parentType, parentId);
+    setRecipeEditorRows(rows);
+  };
+
+  const closeRecipeEditor = () => {
+    setRecipeEditorFor(null);
+    setRecipeEditorRows([]);
+  };
+
+  const handleAddRecipeRow = async () => {
+    if (!recipeEditorAddIngredientId) { alert('Select an ingredient.'); return; }
+    const qty = Number(recipeEditorAddQty);
+    if (!qty || qty <= 0) { alert('Enter a quantity greater than zero.'); return; }
+    setSavingRecipeRow(true);
+    try {
+      const saved = await saveRecipeItem(recipeEditorFor.parentType, recipeEditorFor.parentId, recipeEditorAddIngredientId, qty);
+      if (saved) {
+        setRecipeEditorRows(prev => {
+          const withoutDup = prev.filter(r => r.ingredient_id !== recipeEditorAddIngredientId);
+          return [...withoutDup, saved];
+        });
+        setRecipeEditorAddIngredientId('');
+        setRecipeEditorAddQty('');
+        fetchAllRecipeItems();
+      }
+    } finally {
+      setSavingRecipeRow(false);
+    }
+  };
+
+  const handleRemoveRecipeRow = async (rowId) => {
+    const ok = await removeRecipeItem(rowId);
+    if (ok) {
+      setRecipeEditorRows(prev => prev.filter(r => r.id !== rowId));
+      fetchAllRecipeItems();
+    }
   };
 
   // §5b: Pause online ordering + customer notice. setShopStatus() replaces
@@ -2211,6 +2375,9 @@ export default function Admin() {
           </button>
           <button className={`sidebar-item ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => setActiveTab('inventory')}>
             <Layers size={20} /> Menu CRM
+          </button>
+          <button className={`sidebar-item ${activeTab === 'ingredients' ? 'active' : ''}`} onClick={() => setActiveTab('ingredients')}>
+            <ShoppingBag size={20} /> Ingredients CRM
           </button>
           <button className={`sidebar-item ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => setActiveTab('categories')}>
             <Bookmark size={20} /> Category CRM
@@ -4084,6 +4251,12 @@ export default function Admin() {
                           ><Clock size={12} /></button>
                         </div>
 
+                        {getMaxMakeable('menu_item', item.id) != null && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            Max makeable from ingredients: <strong>{getMaxMakeable('menu_item', item.id)}</strong>
+                          </div>
+                        )}
+
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           Alert at:
                           <input 
@@ -4785,6 +4958,11 @@ export default function Admin() {
                               onClick={(e) => { e.preventDefault(); updateAddonStock(addon.id, 1); }}
                             >+</button>
                           </div>
+                          {getMaxMakeable('addon', addon.id) != null && (
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              Max makeable: <strong>{getMaxMakeable('addon', addon.id)}</strong>
+                            </div>
+                          )}
                           <div className="low-stock-input-wrapper">
                             <span className="low-stock-label">Alert at:</span>
                             <input
@@ -5364,6 +5542,144 @@ export default function Admin() {
           </div>
         )}
 
+        {/* Ingredients CRM Tab -- phase 1 of ingredient-level inventory:
+            ingredients + recipes only, no auto-deduction on sale yet. */}
+        {activeTab === 'ingredients' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="admin-card">
+              <h3>Ingredients CRM</h3>
+              <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
+                Raw materials that go into your menu items and add-ons. Set a cost per unit here, then attach ingredients to a
+                recipe from that item's Edit modal in Menu CRM or Add-ons CRM -- items with no recipe defined keep working exactly
+                as before.
+              </p>
+
+              <div className="new-item-form" style={{ gridTemplateColumns: '1fr 1fr 1fr auto', alignItems: 'end' }}>
+                <div className="form-group">
+                  <label>Ingredient Name</label>
+                  <input type="text" placeholder="e.g. Beef Strips" value={newIngredientName} onChange={e => setNewIngredientName(e.target.value)} className="price-input" />
+                </div>
+                <div className="form-group">
+                  <label>Unit</label>
+                  <input type="text" placeholder="piece, slice, gram..." value={newIngredientUnit} onChange={e => setNewIngredientUnit(e.target.value)} className="price-input" />
+                </div>
+                <div className="form-group">
+                  <label>Cost per Unit (RM) — optional</label>
+                  <input type="number" step="0.01" placeholder="e.g. 0.80" value={newIngredientCost} onChange={e => setNewIngredientCost(e.target.value)} className="price-input" />
+                </div>
+                <button type="button" className="btn btn-primary" style={{ height: '40px' }} disabled={savingIngredient} onClick={handleAddIngredient}>
+                  {savingIngredient ? 'Adding...' : 'Add Ingredient'}
+                </button>
+              </div>
+
+              <div className="table-responsive" style={{ marginTop: '1rem' }}>
+                <table className="admin-table sticky-actions">
+                  <thead>
+                    <tr>
+                      <th>Ingredient</th>
+                      <th>Unit</th>
+                      <th>Stock</th>
+                      <th>Cost / Unit</th>
+                      <th>Alert at</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ingredients.map(ing => {
+                      const isLow = (ing.stock_quantity ?? 0) <= (ing.low_stock_threshold ?? 10);
+                      return (
+                        <tr key={ing.id}>
+                          <td>{ing.name}</td>
+                          <td className="text-muted">{ing.unit}</td>
+                          <td>
+                            <div className="qty-control">
+                              <button type="button" className="qty-btn qty-btn-minus" onClick={() => updateIngredientStock(ing.id, (ing.stock_quantity ?? 0) - 1)} disabled={(ing.stock_quantity ?? 0) <= 0}>−</button>
+                              <input
+                                type="number" min="0" className="qty-input"
+                                value={editingIngredientStock[ing.id] !== undefined ? editingIngredientStock[ing.id] : (ing.stock_quantity ?? 0)}
+                                onChange={e => setEditingIngredientStock({ ...editingIngredientStock, [ing.id]: e.target.value })}
+                                onBlur={() => { if (editingIngredientStock[ing.id] !== undefined) { updateIngredientStock(ing.id, editingIngredientStock[ing.id]); setEditingIngredientStock({ ...editingIngredientStock, [ing.id]: undefined }); } }}
+                                onKeyDown={e => { if (e.key === 'Enter') { updateIngredientStock(ing.id, editingIngredientStock[ing.id] ?? ing.stock_quantity); setEditingIngredientStock({ ...editingIngredientStock, [ing.id]: undefined }); e.target.blur(); } }}
+                                style={{ color: isLow ? '#ef4444' : '#1e293b' }}
+                              />
+                              <button type="button" className="qty-btn qty-btn-plus" onClick={() => updateIngredientStock(ing.id, (ing.stock_quantity ?? 0) + 1)}>+</button>
+                              <button type="button" className="icon-btn" title="View stock history" onClick={() => openIngredientHistory(ing.id)}><Clock size={12} /></button>
+                            </div>
+                          </td>
+                          <td>
+                            <input
+                              type="number" min="0" step="0.01" className="price-input" style={{ width: '80px' }}
+                              placeholder="Not set"
+                              value={editingIngredientCost[ing.id] !== undefined ? editingIngredientCost[ing.id] : (ing.cost_per_unit != null ? (ing.cost_per_unit / 100).toFixed(2) : '')}
+                              onChange={e => setEditingIngredientCost({ ...editingIngredientCost, [ing.id]: e.target.value })}
+                              onBlur={() => { if (editingIngredientCost[ing.id] !== undefined) { updateIngredientCost(ing.id, editingIngredientCost[ing.id]); setEditingIngredientCost({ ...editingIngredientCost, [ing.id]: undefined }); } }}
+                              onKeyDown={e => { if (e.key === 'Enter') { updateIngredientCost(ing.id, editingIngredientCost[ing.id] ?? ''); setEditingIngredientCost({ ...editingIngredientCost, [ing.id]: undefined }); e.target.blur(); } }}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number" min="0" className="price-input" style={{ width: '60px' }}
+                              value={editingIngredientLowStock[ing.id] !== undefined ? editingIngredientLowStock[ing.id] : (ing.low_stock_threshold ?? 10)}
+                              onChange={e => setEditingIngredientLowStock({ ...editingIngredientLowStock, [ing.id]: e.target.value })}
+                              onBlur={() => { if (editingIngredientLowStock[ing.id] !== undefined) { updateIngredientLowStockThreshold(ing.id, editingIngredientLowStock[ing.id]); setEditingIngredientLowStock({ ...editingIngredientLowStock, [ing.id]: undefined }); } }}
+                              onKeyDown={e => { if (e.key === 'Enter') { updateIngredientLowStockThreshold(ing.id, editingIngredientLowStock[ing.id] ?? ing.low_stock_threshold); setEditingIngredientLowStock({ ...editingIngredientLowStock, [ing.id]: undefined }); e.target.blur(); } }}
+                            />
+                          </td>
+                          <td>
+                            <button type="button" className="icon-btn icon-btn-danger" title="Delete ingredient" onClick={() => handleDeleteIngredient(ing)}><Trash2 size={13} /></button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {ingredients.length === 0 && (
+                      <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1.5rem 0' }}>No ingredients yet -- add your first one above (e.g. Beef Strips, Egg, Cheese, Buns).</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="admin-card">
+              <h3 style={{ margin: '0 0 0.25rem' }}>Cost &amp; Pricing Review</h3>
+              <p className="text-muted" style={{ margin: '0 0 1rem', fontSize: '0.85rem' }}>
+                Items with a defined recipe, compared against their stored cost and current price. Worst margin first -- this is a
+                review surface only, prices don't change automatically.
+              </p>
+              {costPricingReview.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1rem 0' }}>No items have a recipe defined yet.</p>
+              ) : (
+                <div className="table-responsive">
+                  <table className="admin-table">
+                    <thead>
+                      <tr><th>Item</th><th>Recipe Cost</th><th>Stored Cost</th><th>Price</th><th>Margin</th></tr>
+                    </thead>
+                    <tbody>
+                      {costPricingReview.map(row => (
+                        <tr key={`${row.parentType}:${row.parentId}`}>
+                          <td>{row.name}</td>
+                          <td>{row.missingCost ? <span className="text-muted">Set ingredient costs</span> : `RM ${row.recipeCostRm.toFixed(2)}`}</td>
+                          <td>
+                            {row.storedCostRm == null ? <span className="text-muted">Not set</span> : `RM ${row.storedCostRm.toFixed(2)}`}
+                            {row.costDriftRm != null && Math.abs(row.costDriftRm) >= 0.05 && (
+                              <span style={{ marginLeft: '6px', fontSize: '0.72rem', fontWeight: 700, color: row.costDriftRm > 0 ? '#ef4444' : '#16a34a' }}>
+                                ({row.costDriftRm > 0 ? '+' : ''}{row.costDriftRm.toFixed(2)})
+                              </span>
+                            )}
+                          </td>
+                          <td>RM {row.priceRm.toFixed(2)}</td>
+                          <td style={{ fontWeight: 700, color: row.marginPct == null ? 'inherit' : row.marginPct < MARGIN_ALERT_THRESHOLD ? '#ef4444' : '#16a34a' }}>
+                            {row.marginPct == null ? '—' : `${row.marginPct.toFixed(0)}%`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Stock Report Tab */}
         {activeTab === 'stock_report' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -5834,6 +6150,11 @@ export default function Admin() {
               <button type="button" onClick={() => setEditingMenuItem(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
 
+            <button type="button" onClick={() => openRecipeEditor('menu_item', editingMenuItem.id, editingMenuItem.name)}
+              style={{ marginBottom: '1rem', padding: '8px 14px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: 'var(--munchies-yellow)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+              🧾 Manage Recipe (Ingredients)
+            </button>
+
             <form onSubmit={handleSaveMenuItemDetails} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>ITEM NAME</label>
@@ -5996,6 +6317,11 @@ export default function Admin() {
               </h3>
               <button type="button" onClick={() => { setEditingAddon(null); setEditingAddonImageFile(null); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
+
+            <button type="button" onClick={() => openRecipeEditor('addon', editingAddon.id, editingAddon.name)}
+              style={{ marginBottom: '1rem', padding: '8px 14px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: 'var(--munchies-yellow)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+              🧾 Manage Recipe (Ingredients)
+            </button>
 
             <form onSubmit={handleSaveAddonDetails} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
@@ -6319,6 +6645,77 @@ export default function Admin() {
           </div>
         );
       })()}
+
+      {ingredientHistoryId && (() => {
+        const ing = ingredients.find(i => i.id === ingredientHistoryId);
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={closeIngredientHistory}>
+            <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '420px', border: '1px solid #334155', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.1rem' }}>Stock History</h3>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>{ing?.name || 'Ingredient'} — most recent {ingredientHistoryData.length} change{ingredientHistoryData.length === 1 ? '' : 's'}</p>
+              <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {loadingIngredientHistory ? (
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '1rem 0' }}>Loading…</p>
+                ) : ingredientHistoryData.length === 0 ? (
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '1rem 0' }}>No stock changes recorded yet for this ingredient.</p>
+                ) : (
+                  ingredientHistoryData.map(h => {
+                    const delta = (h.new_quantity ?? 0) - (h.old_quantity ?? 0);
+                    return (
+                      <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#0f172a', fontSize: '0.8rem' }}>
+                        <span style={{ color: '#e2e8f0' }}>{h.old_quantity ?? '—'} → {h.new_quantity}</span>
+                        <span style={{ color: delta > 0 ? '#4ade80' : delta < 0 ? '#f87171' : '#94a3b8', fontWeight: 700 }}>{delta > 0 ? `+${delta}` : delta}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.72rem' }}>{new Date(h.changed_at).toLocaleString()}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <button onClick={closeIngredientHistory} style={{ marginTop: '1rem', padding: '10px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Close</button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {recipeEditorFor && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={closeRecipeEditor}>
+          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '440px', border: '1px solid #334155', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.1rem' }}>Recipe</h3>
+            <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>{recipeEditorFor.parentName} — ingredients this item uses</p>
+
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '1rem' }}>
+              {recipeEditorRows.length === 0 && (
+                <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '0.5rem 0' }}>No recipe defined yet -- this item's stock stays independent until you add ingredients below.</p>
+              )}
+              {recipeEditorRows.map(row => (
+                <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#0f172a', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#e2e8f0' }}>{row.ingredient?.name || 'Ingredient'}</span>
+                  <span style={{ color: '#94a3b8' }}>{row.quantity_per_unit} {row.ingredient?.unit}</span>
+                  <button type="button" onClick={() => handleRemoveRecipeRow(row.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <select value={recipeEditorAddIngredientId} onChange={e => setRecipeEditorAddIngredientId(e.target.value)}
+                style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', fontSize: '0.8rem' }}>
+                <option value="">Select ingredient…</option>
+                {ingredients.map(ing => (
+                  <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>
+                ))}
+              </select>
+              <input type="number" min="0" step="0.01" placeholder="Qty" value={recipeEditorAddQty} onChange={e => setRecipeEditorAddQty(e.target.value)}
+                style={{ width: '64px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', fontSize: '0.8rem' }} />
+              <button type="button" disabled={savingRecipeRow} onClick={handleAddRecipeRow}
+                style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#FFC72C', color: '#17150F', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}>
+                Add
+              </button>
+            </div>
+
+            <button onClick={closeRecipeEditor} style={{ marginTop: '1rem', padding: '10px', borderRadius: '8px', border: 'none', background: 'var(--text-secondary)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Done</button>
+          </div>
+        </div>
+      )}
 
       {showClosingStock && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => !savingClosingStock && setShowClosingStock(false)}>
