@@ -1,0 +1,257 @@
+.grab-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+  overflow-y: auto;
+}
+
+.grab-modal-content {
+  position: relative;
+  background: #0F172A;
+  background-image: radial-gradient(circle at 50% 0%, #1E293B 0%, #0F172A 70%);
+  border: 2px solid rgba(255, 199, 44, 0.4);
+  border-radius: 20px;
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 0 25px rgba(255, 199, 44, 0.25), 0 20px 40px rgba(0,0,0,0.6);
+  color: #F8FAFC;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.grab-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #F8FAFC;
+  font-size: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 20;
+}
+
+.grab-close-btn:hover {
+  background: var(--munchies-orange-accent);
+  transform: scale(1.05);
+}
+
+.grab-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.grab-container h1 {
+  font-size: 26px;
+  letter-spacing: 3px;
+  margin: 0 0 12px;
+  color: var(--munchies-yellow);
+  text-transform: uppercase;
+  font-weight: 800;
+  text-shadow: 0 0 15px rgba(255, 199, 44, 0.4);
+}
+
+.grab-hud {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  background: #1E293B;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.grab-hud .urgent-text {
+  color: var(--munchies-orange-accent);
+  animation: grab-pulse 0.5s infinite alternate;
+}
+
+@keyframes grab-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.5; }
+}
+
+.grab-board-wrap {
+  position: relative;
+  width: 100%;
+  border: 2px solid rgba(255, 199, 44, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0a0f1d;
+  box-shadow: 0 0 20px rgba(255, 199, 44, 0.2);
+  padding: 44px 12px 12px;
+  transition: box-shadow 0.15s ease;
+}
+
+.grab-board-wrap.flash-miss {
+  box-shadow: 0 0 0 3px var(--munchies-orange-accent) inset, 0 0 20px rgba(255, 199, 44, 0.2);
+}
+
+.grab-mute-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  background: rgba(15,23,42,0.65);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.grab-lives {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+}
+
+.grab-combo {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--munchies-yellow);
+  text-shadow: 0 0 10px rgba(255, 199, 44, 0.6);
+}
+
+.grab-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.grab-cell {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111827;
+  font-size: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.08s ease;
+  padding: 0;
+}
+
+.grab-cell:disabled {
+  cursor: default;
+}
+
+.grab-cell-good {
+  animation: grab-pop-in 0.12s ease-out;
+  border-color: rgba(255, 199, 44, 0.5);
+  background: #1E293B;
+}
+
+.grab-cell-bad {
+  animation: grab-pop-in 0.12s ease-out;
+  border-color: rgba(232, 73, 29, 0.6);
+  background: #2A1310;
+}
+
+.grab-cell:active {
+  transform: scale(0.92);
+}
+
+@keyframes grab-pop-in {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.grab-overlay-screen {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  z-index: 10;
+}
+
+.grab-overlay-screen h2 {
+  color: #F8FAFC;
+  font-size: 24px;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.grab-overlay-screen p {
+  font-size: 14px;
+  color: #94A3B8;
+  margin: 0 0 20px;
+  line-height: 1.6;
+  max-width: 320px;
+}
+
+.grab-btn {
+  background: linear-gradient(135deg, var(--munchies-yellow), #e5b022);
+  color: #0F172A;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(255, 199, 44, 0.35);
+  transition: all 0.2s ease;
+}
+
+.grab-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 199, 44, 0.45);
+}
+
+.grab-btn:active {
+  transform: translateY(1px);
+}

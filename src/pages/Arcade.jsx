@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import MunchManModal from '../components/MunchManModal';
 import TrexRunnerModal from '../components/TrexRunnerModal';
+import SpeedGrabModal from '../components/SpeedGrabModal';
 import './Arcade.css';
 
 export default function Arcade() {
@@ -12,6 +13,7 @@ export default function Arcade() {
   const { user } = useAuth();
   const [isMunchManOpen, setIsMunchManOpen] = useState(false);
   const [isTrexRunnerOpen, setIsTrexRunnerOpen] = useState(false);
+  const [isSpeedGrabOpen, setIsSpeedGrabOpen] = useState(false);
   const [globalRank, setGlobalRank] = useState(null);
   const [rankPercentile, setRankPercentile] = useState(null);
 
@@ -57,6 +59,17 @@ export default function Arcade() {
       img: '/images/trex_runner_game.jpg',
       bgClass: 'game-bg-blue',
       onClick: () => setIsTrexRunnerOpen(true)
+    },
+    {
+      id: 3,
+      title: 'SPEED GRAB',
+      desc: 'Snacks and drinks flash across the counter -- tap the good ones before they vanish and dodge the wrong orders. Chase your combo for a new daily high score!',
+      difficulty: 'MEDIUM',
+      rating: 4.8,
+      time: '30s',
+      img: '/images/fry_catch.png',
+      bgClass: 'game-bg-pink',
+      onClick: () => setIsSpeedGrabOpen(true)
     }
   ];
 
@@ -151,6 +164,11 @@ export default function Arcade() {
       <TrexRunnerModal
         isOpen={isTrexRunnerOpen}
         onClose={() => setIsTrexRunnerOpen(false)}
+      />
+
+      <SpeedGrabModal
+        isOpen={isSpeedGrabOpen}
+        onClose={() => setIsSpeedGrabOpen(false)}
       />
 
     </div>
