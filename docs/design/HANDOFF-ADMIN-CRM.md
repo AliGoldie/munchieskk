@@ -10,9 +10,9 @@ Nothing here changes routing. `src/App.jsx` stays byte-identical.
 
 ## 0. Do not regress what already shipped
 
-`Admin.jsx` moved after this console was designed. Three live features are NOT in the
+`Admin.jsx` moved after this console was designed. **Seven** live features are NOT in the
 older screenshots of the mockup and MUST survive this work — the mockup has since been
-updated to show all three, so build against the current file:
+updated to show them, so build against the current file:
 
 | Live in repo | Where | Keep |
 |---|---|---|
@@ -21,9 +21,12 @@ updated to show all three, so build against the current file:
 | `profiles.avatar_color` | `Profile.jsx` picker, `AuthContext` default `'ember'` | Palette `ember #F04E23 / gold #FFC72C / green #5FD68C / purple #C77DFF / blue #63A7F5`. Use it for the customer avatar in the CRM detail view rather than a new colour ramp |
 | **Per-item add-on matrix** | `Admin.jsx` ~L3091 checkbox grid, `StoreContext.toggleItemAddon`, `item_addons` join | Already correct — the checkbox grid per menu item IS the model. Do **not** replace it with a free-text "attached to" field |
 | **Prize → menu item link** | `Admin.jsx` ~L3479 `menu_item_id` select in the prize form, `getRedemptionCost` | Already correct — redemption cost reads `prizes.menu_item_id → menu_items.cost_price`. Keep the select; never match prizes to items by name |
+| **`orders.notes` — customer order note** | `20260902000000_add_order_notes`; `place_order()` now takes a 6th arg `p_notes`; written from Payment/Cart checkout, capped 300 chars server-side | The note MUST be visible on the order ticket in Live Orders and in Order History detail — a "no onions" note the kitchen can't see is worse than no note. Surface it prominently, not as a tooltip |
+| **`collect_order(p_order_id)` RPC** | `20260902000001_add_collect_order_rpc`; `OrderStatus.jsx handleCollect()` | Customer self-collect goes through this RPC. Never revert it to a raw `supabase.from('orders').update({status:'COLLECTED'})` — RLS silently matches 0 rows for non-admins |
 
 Migrations already applied: `20260830000000_add_menu_item_cost_price`,
-`20260901000000_add_sort_order`, `20260901000001_add_avatar_color`.
+`20260901000000_add_sort_order`, `20260901000001_add_avatar_color`,
+`20260902000000_add_order_notes`, `20260902000001_add_collect_order_rpc`.
 The new tables this brief asks for (`admin_audit`, `shifts`, refund columns) are additive on top.
 
 ---

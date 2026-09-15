@@ -7,6 +7,8 @@ found by reading the real files, not generic advice.
 
 ## The five real traps
 
+> Trap 6 was added 2026-09-02 after `orders.notes` and `collect_order()` shipped.
+
 ### 1. `profiles.role` is `'admin'`, not `'owner'`/`'staff'`
 `Admin.jsx` gates the entire page on `user.role !== 'admin'`, and the SQL helper
 `public.is_admin()` — used by RLS policies on `store_settings`, `waste_log`,
@@ -61,6 +63,21 @@ exist because this had a race condition in production. The per-day `order_seq_*`
 and `order_id_counters` are load-bearing. The only legitimate change is the go-live reset
 (`GO-LIVE-RESET.md`), and only when there are zero live orders.
 
+### 6. `place_order()` is redefined by migration — never re-run an older copy
+`20260902000000_add_order_notes` does `DROP FUNCTION public.place_order(jsonb, jsonb, text,
+text, jsonb)` and recreates it with a **6th argument `p_notes`**. Consequences:
+
+- Re-applying any earlier `place_order` migration silently reverts the signature and every
+  customer note stops reaching the table — checkout keeps "working", notes just vanish.
+- If you add another argument, add it **last with a DEFAULT** and update the client call in
+  one commit. `place_order` is the only insert path into `public.orders`
+  (`20260825000004_lock_down_orders_insert`), so a signature mismatch breaks all ordering.
+- Same shape applies to `collect_order(text)`: `public.orders` has exactly one UPDATE
+  policy (`is_admin()`), so any customer-side status change MUST go through a SECURITY
+  DEFINER RPC. A raw `.update()` returns success on 0 rows — the bug that migration fixed.
+  Do not "simplify" it back, and do not add an ownership UPDATE policy instead (it would
+  let a customer PATCH `total` and `items` alongside the status flip).
+
 ---
 
 ## Pre-merge checklist (per PR)
@@ -82,8 +99,12 @@ and `order_id_counters` are load-bearing. The only legitimate change is the go-l
 1. Sign in as admin → console loads, all tabs render, no console errors.
 2. Sign **out** from the admin page → redirects cleanly, no React hook error.
 3. Sign in as a normal customer → `/admin` redirects to login.
-4. Place a real order end to end: `/menu` → cart → payment → order status.
+4. Place a real order end to end: `/menu` → cart → payment → order status. **Leave a
+   customer note at checkout** ("no onions") and confirm it appears on the ticket in Live
+   Orders — if it doesn't, `place_order`'s `p_notes` arg got lost (trap 6).
 5. In the console: accept → ready → collected. Order lands in Order History; points awarded.
+   Then, **as the customer**, tap collect on a READY order and re-poll — status must stay
+   `COLLECTED`, not revert to `READY` (that revert is the `collect_order` RPC regressing).
 6. Menu CRM: change a price, adjust stock, reorder with ▲▼, tick an add-on on one item.
 7. Loyalty: redeem a prize → code appears in the Redemptions tab → fulfil it.
 8. Analytics + Monthly Reports still render (they read `cost_price`; a null-cost item must

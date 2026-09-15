@@ -3,7 +3,7 @@
 Everything a coding agent (Claude Code / Antigravity / new chat) needs to build from the
 approved designs. Repo `AliGoldie/munchieskk`, branch `main`.
 
-**Verified against repo tree `e1925935658a` on 2026-09-02.** If the repo has moved since,
+**Verified against `main` @ commit `e5d43bc` on 2026-09-02.** If the repo has moved since,
 diff before building — see "Before you start" below.
 
 ### ⚠ Branch warning — `design/v4-cinematic-dark`
@@ -35,7 +35,7 @@ anywhere.** Build it fresh from `HANDOFF-V4-DARK.md` on a new branch cut from cu
 | `HANDOFF-PROMPT.md` | Brief for the above | Partly built |
 | `support.js` | Runtime the `.dc.html` files need — keep it beside them | — |
 | `GO-LIVE-RESET.md` | Pre-launch data wipe: SQL to zero all sales/points/test accounts, keeping menu, prizes, settings and staff logins | Run once, at launch |
-| `MERGE-SAFETY.md` | **Read before merging any PR.** The five real traps in this codebase, a per-PR checklist, an 8-step smoke test, merge order and rollback | — |
+| `MERGE-SAFETY.md` | **Read before merging any PR.** The six real traps in this codebase, a per-PR checklist, an 8-step smoke test, merge order and rollback | — |
 
 The three briefs are independent. **Do not run two at once** — v4 dark restyles the same
 customer routes the mobile spec covers, and admin work is separate from both.
@@ -49,13 +49,15 @@ Suggested order: **Admin CRM** (highest operational value, touches only `Admin.j
 
 1. `git log --oneline -20` — if `main` has moved past `e1925935658a`, the "already shipped"
    list in `HANDOFF-ADMIN-CRM.md` §0 may be incomplete. Re-check before deleting anything.
-2. Read `HANDOFF-ADMIN-CRM.md` **§0 "Do not regress what already shipped"** in full. Five
+2. Read `HANDOFF-ADMIN-CRM.md` **§0 "Do not regress what already shipped"** in full. Seven
    features are already live and the brief's older sections predate them:
    `menu_items.cost_price`, `sort_order` ▲▼ reordering, `profiles.avatar_color`, the
-   **per-item add-on checkbox matrix**, and the **prize → menu item link**.
-3. `supabase/migrations/` — `cost_price`, `sort_order`, `avatar_color` migrations are
+   **per-item add-on checkbox matrix**, the **prize → menu item link**, **`orders.notes`**
+   (customer note, must show on the kitchen ticket) and the **`collect_order()` RPC**.
+3. `supabase/migrations/` — `cost_price`, `sort_order`, `avatar_color`, `add_order_notes`
+   and `add_collect_order_rpc` migrations are
    already applied. New tables the brief asks for (`admin_audit`, `shifts`, `orders.refund_*`)
-   are additive on top.
+   are additive on top. **Never re-run an older `place_order` migration** — see MERGE-SAFETY trap 6.
 4. `src/App.jsx` stays **byte-identical** in all three briefs. No routing changes.
 5. Read `MERGE-SAFETY.md`. In particular: `profiles.role` is `'admin'` and must stay that
    way (`is_admin()` and every RLS policy depend on it), new hooks in `Admin.jsx` must go
@@ -80,11 +82,12 @@ Suggested order: **Admin CRM** (highest operational value, touches only `Admin.j
 > in the browser preview — it's the approved design and every control in it is live.
 >
 > Before writing any code: run `git log --oneline -20`, read §0 of the brief, and confirm
-> which of the five "already shipped" features are present in `src/pages/Admin.jsx`. Report
+> which of the **seven** "already shipped" features are present in `src/pages/Admin.jsx`. Report
 > back what you found and your build order. Do not start until I confirm.
 >
-> Also read `docs/design/MERGE-SAFETY.md` — it lists five specific traps in this codebase.
-> Confirm you understand the `profiles.role` and hooks-order constraints before coding.
+> Also read `docs/design/MERGE-SAFETY.md` — it lists **six** specific traps in this codebase.
+> Confirm you understand the `profiles.role`, hooks-order and `place_order` signature
+> constraints before coding.
 >
 > Work from `main` only. Ignore the `design/v4-cinematic-dark` branch entirely — it is 26
 > commits behind and contains no v4 work; see the branch warning in START-HERE.md.
