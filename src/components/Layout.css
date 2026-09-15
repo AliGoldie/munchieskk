@@ -221,6 +221,25 @@
   border: none;
 }
 
+@keyframes cart-bump-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.25); }
+  60% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+.app-layout .cart-link.cart-bump svg,
+.app-layout .cart-link.cart-bump .cart-badge {
+  animation: cart-bump-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-layout .cart-link.cart-bump svg,
+  .app-layout .cart-link.cart-bump .cart-badge {
+    animation: none;
+  }
+}
+
 /* Main Content */
 .app-layout .main-content {
   flex: 1;
@@ -268,6 +287,67 @@
   .app-layout .bottom-nav {
     width: 70%;
     max-width: 1280px;
+  }
+}
+
+.app-layout .page-transition {
+  animation: page-enter 260ms ease-out;
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-layout .page-transition {
+    animation: none;
+  }
+}
+
+.app-layout .cart-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 94px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: var(--r-pill);
+  font-weight: 800;
+  font-size: 0.85rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+  z-index: 200;
+  animation: cart-toast-in 220ms ease-out;
+}
+
+.app-layout .cart-toast svg {
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.app-layout .cart-toast.cart-toast-leaving {
+  animation: cart-toast-out 220ms ease-in forwards;
+}
+
+@keyframes cart-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes cart-toast-out {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to { opacity: 0; transform: translateX(-50%) translateY(10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-layout .cart-toast,
+  .app-layout .cart-toast.cart-toast-leaving {
+    animation: none;
   }
 }
 

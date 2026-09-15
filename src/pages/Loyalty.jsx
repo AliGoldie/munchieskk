@@ -2,10 +2,12 @@
 import { Award, QrCode, Gamepad2, Lock, History, CheckCircle, Gift } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useStore } from '../contexts/StoreContext';
+import { useCountUp } from '../hooks/useCountUp';
 import './Loyalty.css';
 
 export default function Loyalty() {
   const { points, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
+  const displayedPoints = useCountUp(points, 800);
   const nextRank = 5000;
   const progress = Math.min(100, (points / nextRank) * 100);
 
@@ -33,11 +35,11 @@ export default function Loyalty() {
         <h1>BURGER MASTER</h1>
         <p className="rank-level">LOYALTY REWARDS</p>
         <div className="points-flex">
-          <span>{points.toLocaleString()} POINTS</span>
+          <span>{displayedPoints.toLocaleString()} POINTS</span>
           <span>{nextRank.toLocaleString()} TARGET</span>
         </div>
         <div className="progress-bar-lg">
-          <div className="progress-fill-lg" style={{ width: `${progress}%` }}></div>
+          <div className="progress-fill-lg" style={{ transform: `scaleX(${progress / 100})` }}></div>
         </div>
       </div>
 

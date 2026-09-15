@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Award } from 'lucide-react';
+import { EmberFlameIcon, SpikyBadgeIcon } from '../components/icons';
 import { useStore } from '../contexts/StoreContext';
 import ItemModal from '../components/ItemModal';
 import { getItemPoints } from '../utils/pointsCalculator';
@@ -18,6 +18,39 @@ const CATEGORY_COLORS = {
 const DEFAULT_COLOR = { accent: '#8E867C', icon: '📦' };
 
 const CATEGORY_ORDER = ['BBQ', 'PREMIUM', 'PLATTERS', 'SIDES', 'DRINKS'];
+
+function MenuSkeleton() {
+  return (
+    <div className="menu-page">
+      <div className="category-bar">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className="skeleton skeleton-chip" />
+        ))}
+      </div>
+      <div className="card menu-hero-card skeleton-card" style={{ opacity: 1, transform: 'none' }}>
+        <div className="skeleton" style={{ height: '240px' }} />
+        <div className="menu-hero-info">
+          <div className="skeleton skeleton-line" style={{ width: '65%', height: '1.6rem' }} />
+          <div className="skeleton skeleton-line" style={{ width: '90%', marginTop: '10px' }} />
+          <div className="skeleton skeleton-line" style={{ width: '40%', height: '1.5rem', marginTop: '16px' }} />
+          <div className="skeleton skeleton-line" style={{ width: '100%', height: '48px', marginTop: '14px', borderRadius: 'var(--r-pill)' }} />
+        </div>
+      </div>
+      <div className="hot-list-grid" style={{ marginTop: '1.5rem' }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} className="card hot-list-card skeleton-card" style={{ opacity: 1, transform: 'none' }}>
+            <div className="skeleton" style={{ aspectRatio: '16/9' }} />
+            <div className="hot-list-info">
+              <div className="skeleton skeleton-line" style={{ width: '55%' }} />
+              <div className="skeleton skeleton-line" style={{ width: '85%', marginTop: '10px' }} />
+              <div className="skeleton skeleton-line" style={{ width: '30%', height: '1.5rem', marginTop: '14px' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Menu() {
   const { menu, isPromoActive } = useStore();
@@ -50,7 +83,7 @@ export default function Menu() {
     
     return (
       <div style={{ fontSize: '0.75rem', color: '#ff6b6b', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', backgroundColor: 'rgba(255,42,42,0.14)', padding: '2px 8px', borderRadius: '12px', width: 'fit-content' }}>
-        <Flame size={12} /> {timeLeft}
+        <EmberFlameIcon size={12} /> {timeLeft}
       </div>
     );
   };
@@ -76,6 +109,26 @@ export default function Menu() {
       if (scrollUnlockTimeoutRef.current) clearTimeout(scrollUnlockTimeoutRef.current);
     };
   }, []);
+
+  // Reveal cards with a fade/rise as they scroll into view, once each --
+  // unobserve on first reveal so it never re-triggers on scroll-back.
+  useEffect(() => {
+    const cards = document.querySelectorAll('.hot-list-card, .menu-hero-card');
+    if (!cards.length) return;
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+    );
+    cards.forEach(card => revealObserver.observe(card));
+    return () => revealObserver.disconnect();
+  }, [menu]);
 
   // Memoized so the array reference only changes when the actual set of
   // categories does. Without this, every render (including the ones fired
@@ -148,6 +201,12 @@ export default function Menu() {
       }
     }
   }, [categories]);
+
+  // menu starts empty and is filled by the initial Supabase fetch -- show a
+  // shimmering placeholder instead of a blank page while that's in flight.
+  if (menu.length === 0) {
+    return <MenuSkeleton />;
+  }
 
   const scrollToCategory = (cat) => {
     isClickScrolling.current = true;
@@ -307,7 +366,7 @@ export default function Menu() {
 
       {/* Promos / Ads at the bottom */}
       <div className="card loyalty-banner mt-6">
-        <Award size={24} color="var(--munchies-white)" />
+        <SpikyBadgeIcon size={24} color="var(--munchies-white)" />
         <h3 className="mt-2 text-white">LOYALTY PAYS OFF</h3>
         <p className="text-white-dim">Every 5th burger is on the house. Scan at the arcade!</p>
       </div>

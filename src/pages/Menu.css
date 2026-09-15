@@ -88,6 +88,10 @@
   background: rgba(6, 6, 6, .92);
 }
 
+.category-btn:active {
+  transform: scale(0.94);
+}
+
 .category-btn.active {
   background: var(--ember);
   border-color: var(--ember);
@@ -112,7 +116,14 @@
   border: 1px solid var(--line-strong);
   border-radius: var(--r-card);
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  opacity: 0;
+  transform: translateY(18px);
+  transition: transform 0.32s ease, border-color 0.2s ease, opacity 0.32s ease;
+}
+
+.menu-hero-card.in-view {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .menu-hero-card:hover {
@@ -293,8 +304,24 @@
   border: 1px solid var(--line-strong);
   box-shadow: none;
   overflow: hidden;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  opacity: 0;
+  transform: translateY(18px);
+  transition: transform 0.32s ease, border-color 0.2s ease, opacity 0.32s ease;
   cursor: pointer;
+}
+
+.hot-list-card.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hot-list-card,
+  .menu-hero-card {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
 .hot-list-card:hover {
@@ -484,6 +511,42 @@
   font-weight: 500;
   margin-bottom: var(--space-4);
   color: var(--text-2);
+}
+
+/* Loading Skeleton */
+.skeleton {
+  background: linear-gradient(100deg, var(--surface-hover) 30%, var(--line-strong) 50%, var(--surface-hover) 70%);
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--r-card);
+}
+
+.skeleton-chip {
+  flex: 0 0 auto;
+  width: 92px;
+  height: 44px;
+  border-radius: var(--r-pill);
+}
+
+.skeleton-line {
+  height: 0.9rem;
+  border-radius: 4px;
+}
+
+.skeleton-card {
+  cursor: default;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -20% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--surface-hover);
+  }
 }
 
 /* Desktop Layout (768px+) */

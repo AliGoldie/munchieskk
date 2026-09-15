@@ -1,17 +1,40 @@
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, User, Menu as MenuIcon, Home, Gift, Gamepad2, LogOut, Star } from 'lucide-react';
+import { User, Menu as MenuIcon, Home, Gift, Gamepad2, LogOut, Star } from 'lucide-react';
+import { BiteBagIcon } from './icons';
 import './Layout.css';
 
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useCountUp } from '../hooks/useCountUp';
 import CookingPopup from './CookingPopup';
 import ErrorBoundary from './ErrorBoundary';
 
 export default function Layout() {
   const location = useLocation();
   const { cartCount, points } = useStore();
+  const displayedPoints = useCountUp(points, 800);
   const { user, logout } = useAuth();
   const isAdmin = location.pathname.startsWith('/admin');
+
+  // Bumps the cart icon and shows a brief toast whenever an item is added
+  // (cartCount goes up), never on removals -- gives "add to cart" a moment
+  // of visible feedback instead of the badge number just silently changing.
+  const [cartBump, setCartBump] = useState(false);
+  const [cartToast, setCartToast] = useState(null); // null | 'entering' | 'leaving'
+  const prevCartCount = useRef(cartCount);
+  useEffect(() => {
+    if (cartCount > prevCartCount.current) {
+      setCartBump(true);
+      setCartToast('entering');
+      const bumpT = setTimeout(() => setCartBump(false), 450);
+      const leaveT = setTimeout(() => setCartToast('leaving'), 1500);
+      const removeT = setTimeout(() => setCartToast(null), 1780);
+      prevCartCount.current = cartCount;
+      return () => { clearTimeout(bumpT); clearTimeout(leaveT); clearTimeout(removeT); };
+    }
+    prevCartCount.current = cartCount;
+  }, [cartCount]);
 
   if (isAdmin) {
     return (
@@ -63,11 +86,11 @@ export default function Layout() {
             {user && (
               <Link to="/loyalty" className="points-chip">
                 <Star size={13} fill="currentColor" strokeWidth={0} />
-                {points.toLocaleString()}
+                {displayedPoints.toLocaleString()}
               </Link>
             )}
-            <Link to="/cart" className="cart-link">
-              <ShoppingBag size={24} />
+            <Link to="/cart" className={`cart-link${cartBump ? ' cart-bump' : ''}`}>
+              <BiteBagIcon size={24} />
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </Link>
           </div>
@@ -76,7 +99,7 @@ export default function Layout() {
       
       {/* Main Content Area */}
       <main className="main-content">
-        <div className="container">
+        <div className="container page-transition" key={location.pathname}>
           <Outlet />
         </div>
       </main>
@@ -106,6 +129,12 @@ export default function Layout() {
           </Link>
         </div>
       </nav>
+      {cartToast && (
+        <div className={`cart-toast${cartToast === 'leaving' ? ' cart-toast-leaving' : ''}`}>
+          <BiteBagIcon size={16} />
+          Added to Bag!
+        </div>
+      )}
       {/* Cooking Order Popup */}
       <ErrorBoundary>
         <CookingPopup />
