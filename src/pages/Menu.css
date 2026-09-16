@@ -48,9 +48,6 @@
   overflow-x: auto;
   padding: 12px;
   background-color: var(--gold);
-  background-image: url('/images/trex_pattern.png');
-  background-size: 90px 90px;
-  background-repeat: repeat;
   position: sticky;
   top: 60px;
   z-index: 99;
@@ -71,8 +68,8 @@
   padding: 0 14px;
   height: 44px;
   border-radius: var(--r-pill);
-  border: 1px solid rgba(6, 6, 6, .25);
-  background: rgba(6, 6, 6, .82);
+  border: 1px solid rgba(26, 26, 26, .25);
+  background: rgba(26, 26, 26, .82);
   color: var(--text);
   font-weight: 800;
   font-size: 12px;
@@ -84,8 +81,8 @@
 }
 
 .category-btn:hover {
-  border-color: rgba(6, 6, 6, .4);
-  background: rgba(6, 6, 6, .92);
+  border-color: rgba(26, 26, 26, .4);
+  background: rgba(26, 26, 26, .92);
 }
 
 .category-btn:active {
@@ -96,11 +93,6 @@
   background: var(--ember);
   border-color: var(--ember);
   color: #fff;
-}
-
-.category-btn .icon {
-  font-size: 14px;
-  line-height: 1;
 }
 
 .category-section {
@@ -128,7 +120,7 @@
 
 .menu-hero-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(240, 78, 35, .5);
+  border-color: rgba(199, 59, 15, .5);
 }
 
 .hero-badge {
@@ -137,7 +129,7 @@
   left: 14px;
   background: var(--ember);
   color: #fff;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   font-weight: 800;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
@@ -217,7 +209,7 @@
   background: rgba(255, 199, 44, .13);
   border: 1px solid rgba(255, 199, 44, .4);
   color: var(--gold);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   font-weight: 800;
   font-size: 0.65rem;
   letter-spacing: .06em;
@@ -231,7 +223,7 @@
   background: var(--surface-raised);
   color: var(--text);
   border: 1px solid var(--line-control);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   font-weight: 700;
   font-size: 0.7rem;
   padding: 2px 8px;
@@ -277,7 +269,7 @@
   color: var(--text);
   padding: 4px 16px;
   border-radius: var(--r-pill);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   background: transparent;
   text-transform: uppercase;
 }
@@ -326,7 +318,7 @@
 
 .hot-list-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(240, 78, 35, .5);
+  border-color: rgba(199, 59, 15, .5);
 }
 
 .hot-list-img-wrap {
@@ -340,7 +332,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, .05) 25%, rgba(6, 6, 6, .9) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, .05) 25%, rgba(26, 26, 26, .9) 100%);
   pointer-events: none;
 }
 
@@ -429,13 +421,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   border: none;
-  box-shadow: 0 10px 24px rgba(240, 78, 35, .35);
+  box-shadow: 0 10px 24px rgba(199, 59, 15, .35);
   transition: background .16s ease, transform 0.15s ease;
   cursor: pointer;
   white-space: nowrap;
@@ -443,7 +435,7 @@
 
 .hot-list-card .add-btn:hover:not(:disabled) {
   background: var(--gold);
-  color: #0A0A0A;
+  color: #1a1a1a;
   transform: translateY(-2px);
 }
 
