@@ -34,7 +34,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(90% 60% at 50% 100%, rgba(240, 78, 35, .35) 0%, rgba(240, 78, 35, 0) 65%);
+  background: radial-gradient(90% 60% at 50% 100%, rgba(199, 59, 15, .35) 0%, rgba(199, 59, 15, 0) 65%);
   mix-blend-mode: screen;
   pointer-events: none;
 }
@@ -171,9 +171,9 @@
 }
 
 @keyframes pulse-border {
-  0% { box-shadow: 0 0 0 0 rgba(240, 78, 35, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(240, 78, 35, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(240, 78, 35, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(199, 59, 15, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(199, 59, 15, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(199, 59, 15, 0); }
 }
 
 @keyframes scaleIn {
