@@ -68,24 +68,10 @@ export default function Cart() {
                   </span>
                 </div>
                 <div className="cart-item-actions" onDoubleClick={(e) => e.stopPropagation()}>
-                  <button 
-                    className="btn-edit-addons" 
+                  <button
+                    className="btn-edit-addons"
                     onClick={() => setEditingCartItem(item)}
                     title="Edit customizations"
-                    style={{
-                      background: 'rgba(255, 199, 44, .13)',
-                      border: '1px solid rgba(255, 199, 44, .4)',
-                      borderRadius: 'var(--r-pill)',
-                      padding: '4px 11px',
-                      color: 'var(--gold)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
                   >
                     <Edit2 size={13} />
                     <span>Edit</span>

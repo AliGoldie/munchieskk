@@ -71,7 +71,7 @@
 }
 
 .cart-item:hover {
-  border-color: rgba(240, 78, 35, .4);
+  border-color: rgba(199, 59, 15, .4);
 }
 
 .cart-item-details {
@@ -105,6 +105,25 @@
   flex-shrink: 0;
 }
 
+.btn-edit-addons {
+  background: rgba(255, 199, 44, .13);
+  border: 1px solid rgba(255, 199, 44, .4);
+  border-radius: var(--r-pill);
+  padding: 4px 11px;
+  color: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .72rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .16s ease;
+}
+.btn-edit-addons:hover {
+  background: rgba(255, 199, 44, .22);
+}
+
 /* ─── Qty Controls ──────────────────────────────────────────────── */
 .quantity-controls {
   display: flex;
@@ -132,7 +151,7 @@
 }
 
 .btn-qty:hover {
-  background-color: rgba(240, 78, 35, .2);
+  background-color: rgba(199, 59, 15, .2);
 }
 
 .btn-qty:active {
@@ -213,7 +232,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 700;
@@ -229,7 +248,7 @@
   font-size: 0.78rem;
   color: var(--text-muted);
   margin-bottom: 0.9rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
 }
 
 .suggestions-grid {
@@ -249,7 +268,7 @@
 }
 
 .suggestion-card:hover {
-  border-color: rgba(240, 78, 35, .4);
+  border-color: rgba(199, 59, 15, .4);
   transform: translateY(-2px);
 }
 
@@ -265,10 +284,10 @@
   position: absolute;
   top: 5px;
   left: 5px;
-  background: rgba(6, 6, 6, .6);
+  background: rgba(26, 26, 26, .6);
   backdrop-filter: blur(4px);
   color: var(--gold);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   font-size: 0.52rem;
   font-weight: 800;
   letter-spacing: 0.06em;
