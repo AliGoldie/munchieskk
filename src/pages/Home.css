@@ -6,9 +6,12 @@
    readable 1280px column, without an extra wrapper div per section.
    ============================================================ */
 .craving-page {
-  overflow-x: clip; /* safety net for the 100vw breakout below */
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
+  /* Breaks out of Layout's .container (padding + max-width) without an
+     explicit 100vw, which on some browsers is wider than the viewport
+     once the scrollbar is subtracted and causes a stray horizontal
+     scrollbar. Symmetric negative margins + width:auto reach full
+     viewport width without ever declaring a box wider than it. */
+  margin-inline: calc(50% - 50vw);
 }
 
 .c-section {
@@ -684,7 +687,8 @@
 @media (max-width: 600px) {
   .c-section { padding-block: 40px; }
   .c-hero { align-items: flex-end; }
-  .c-hero-mascot { height: 60px; top: 16px; }
+  .c-hero-mascot { height: 44px; top: 14px; }
+  .c-hero-content .c-eyebrow { padding-right: 64px; }
   .c-hero-h1 { letter-spacing: -.02em; }
   .c-buybar-eyebrow { display: none; }
 }
