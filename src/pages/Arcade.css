@@ -23,7 +23,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(90% 70% at 15% 90%, rgba(240, 78, 35, .4) 0%, rgba(240, 78, 35, 0) 65%);
+  background: radial-gradient(90% 70% at 15% 90%, rgba(199, 59, 15, .4) 0%, rgba(199, 59, 15, 0) 65%);
   mix-blend-mode: screen;
   pointer-events: none;
 }
@@ -31,7 +31,7 @@
 .badge-light-blue {
   background: rgba(255, 199, 44, .16);
   color: var(--gold);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   font-weight: 800;
   font-size: 0.65rem;
   letter-spacing: .1em;
@@ -116,7 +116,7 @@
 }
 
 .rank-label {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   font-size: 0.68rem;
   font-weight: 800;
   color: var(--text-muted);
@@ -134,7 +134,7 @@
 .rank-sub {
   background: rgba(255, 255, 255, .06);
   color: var(--text-2);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   font-size: 0.72rem;
   padding: 4px 12px;
   border-radius: var(--r-pill);
@@ -189,7 +189,7 @@
   border: none !important;
   background: var(--ember) !important;
   color: #ffffff !important;
-  box-shadow: 0 10px 24px rgba(240, 78, 35, .35) !important;
+  box-shadow: 0 10px 24px rgba(199, 59, 15, .35) !important;
 }
 
 .points-star-circle {
@@ -224,7 +224,7 @@
 
 .card.game-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(240, 78, 35, .5);
+  border-color: rgba(199, 59, 15, .5);
 }
 
 .game-img-container {
@@ -246,10 +246,10 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(6, 6, 6, .6);
+  background: rgba(26, 26, 26, .6);
   backdrop-filter: blur(6px);
   color: var(--ember);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   font-weight: 800;
   font-size: 0.65rem;
   letter-spacing: .08em;
@@ -297,7 +297,7 @@
   display: flex;
   gap: var(--space-4);
   font-size: 0.78rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Archivo', sans-serif;
   color: var(--text-muted);
 }
 
