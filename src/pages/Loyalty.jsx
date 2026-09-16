@@ -83,10 +83,9 @@ export default function Loyalty() {
                   <p className="pts-req">{prize.points_cost.toLocaleString()} PTS</p>
                 </div>
                 <button
-                  className={`btn ${alreadyRedeemed ? 'btn-dark' : canRedeem ? 'btn-primary' : 'btn-dark'} prize-btn`}
+                  className={`btn ${alreadyRedeemed ? 'btn-dark redeemed' : canRedeem ? 'btn-primary' : 'btn-dark'} prize-btn`}
                   disabled={!canRedeem || alreadyRedeemed || isLoading}
                   onClick={() => handleRedeem(prize)}
-                  style={alreadyRedeemed ? { background: 'rgba(95, 214, 140, .16)', color: 'var(--go)', border: '1px solid rgba(95, 214, 140, .4)', cursor: 'default' } : {}}
                 >
                   {isLoading ? '...' : alreadyRedeemed ? 'REDEEMED' : canRedeem ? 'REDEEM' : 'LOCKED'}
                 </button>
