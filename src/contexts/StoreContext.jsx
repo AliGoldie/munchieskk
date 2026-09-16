@@ -600,6 +600,14 @@ export function StoreProvider({ children }) {
     }
 
     const previousMenu = [...menu];
+    const priorItem = previousMenu.find(item => String(item.id) === String(id));
+    // Edit Details always resends every field, price included, whether or
+    // not the admin actually touched it -- only treat price as "modified"
+    // if the value is actually different, so saving e.g. just a new photo
+    // doesn't kick off a Loyverse sync (and a possible sync-failure toast)
+    // for a price that never changed.
+    const priceActuallyChanged = dbPayload.price !== undefined && dbPayload.price !== priorItem?.price;
+
     // Optimistic UI update
     setMenu(prev => prev.map(item => String(item.id) === String(id) ? { ...item, ...fields } : item));
 
@@ -613,9 +621,9 @@ export function StoreProvider({ children }) {
       return;
     }
 
-    // Push price change to Loyverse if price was modified
+    // Push price change to Loyverse if price was actually modified
     const targetItem = data[0];
-    if (targetItem?.loyverse_item_id && dbPayload.price !== undefined) {
+    if (targetItem?.loyverse_item_id && priceActuallyChanged) {
       console.log('[LOYVERSE PRICE SYNC] updateMenuItem pushing to Loyverse:', targetItem.name, 'Price:', dbPayload.price);
       const syncResult = await pushPriceToLoyverse(targetItem.loyverse_item_id, targetItem.name, dbPayload.price, targetItem.category);
       if (syncResult && syncResult.success === false) {
