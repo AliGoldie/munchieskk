@@ -240,8 +240,8 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   padding-bottom: 8px;
-  margin-inline: max(-20px, calc((1280px - 100%) / 2 - 20px)) 0;
-  padding-left: max(20px, calc((100% - 1280px) / 2));
+  /* .c-craving (a .c-section) already supplies the left/right gutter --
+     the rail just sits flush inside it, aligned under the heading above. */
 }
 .c-craving-card {
   position: relative;
