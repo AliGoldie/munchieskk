@@ -325,6 +325,7 @@
 .c-deal-card {
   background: var(--munchies-ink-2);
   color: #fff;
+  border: 1px solid transparent;
   border-radius: var(--r-1b-card);
   padding: 26px;
   transition: transform .22s ease;
@@ -337,6 +338,18 @@
   letter-spacing: .06em;
   color: var(--munchies-muted-dark);
   margin: 0 0 14px;
+}
+/* The card that actually carries the "BEST VALUE" claim gets the
+   visual weight to back it up -- the other two are informational
+   (how the deal math works / a price reference ladder), not
+   competing offers, so only this one earns the highlight. */
+.c-deal-card--highlight {
+  background: linear-gradient(160deg, #2a2116, var(--munchies-ink-2) 55%);
+  border-color: var(--munchies-yellow);
+  box-shadow: 0 12px 30px -8px rgba(255, 199, 44, .35);
+}
+.c-deal-card--highlight h4 {
+  color: var(--munchies-yellow);
 }
 .c-deal-line {
   font-size: .88rem;

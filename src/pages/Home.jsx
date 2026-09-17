@@ -233,7 +233,7 @@ export default function Home() {
               </>
             ) : <p className="c-deal-line">Menu loading…</p>}
           </div>
-          <div className="c-deal-card">
+          <div className="c-deal-card c-deal-card--highlight">
             <h4>KAWAN MONSTA</h4>
             {kawanMonsta ? (
               <>
