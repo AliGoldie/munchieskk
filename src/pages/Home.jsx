@@ -141,7 +141,7 @@ export default function Home() {
       {/* ================= HERO ================= */}
       <section
         className="c-hero"
-        style={{ backgroundImage: "url('/images/hero_burger.png')" }}
+        style={{ backgroundImage: `url('${heroItem?.image || '/images/hero_burger.png'}')` }}
       >
         <div className="c-hero-scrim" />
         <img src="/images/Trex.png" alt="" className="c-hero-mascot" aria-hidden="true" />
