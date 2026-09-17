@@ -253,11 +253,23 @@ export default function Home() {
         </div>
         <div className="c-portion-copy">
           <h2>THE REVIEWS ALL<br />SAY THE SAME THING</h2>
-          {/* Placeholder quotes -- swap for real Google/Instagram reviews before shipping. */}
+          {/* Placeholder quotes and rating -- swap for real Google/Instagram reviews before shipping. */}
           <blockquote>"Monsta Fries is genuinely a meal for two. Came RM12.90, we couldn't finish."<cite>Aina · Google Review</cite></blockquote>
           <blockquote className="dark">"Kawan Monsta fed four of us for under RM46. Cheaper than mamak and way better."<cite>Joshua · Instagram</cite></blockquote>
           <blockquote>"Patty is thick, not that thin stuff. Portion worth every ringgit."<cite>Ridzuan · Google Review</cite></blockquote>
-          <p className="c-rating">4.8 ★ <span>from 320+ reviews across Google &amp; Instagram</span></p>
+          <p className="c-rating">
+            <span className="c-star-rating" role="img" aria-label="4.8 out of 5 stars">
+              <span className="c-star-row">
+                {[0, 1, 2, 3, 4].map(i => <Star key={i} size={18} />)}
+              </span>
+              <span className="c-star-row c-star-row-fill" style={{ width: `${(4.8 / 5) * 100}%` }}>
+                {[0, 1, 2, 3, 4].map(i => (
+                  <Star key={i} size={18} fill="var(--munchies-yellow)" stroke="var(--munchies-dark)" strokeWidth={1.5} />
+                ))}
+              </span>
+            </span>
+            4.8 <span>from 320+ reviews across Google &amp; Instagram</span>
+          </p>
         </div>
       </section>
 
@@ -272,9 +284,18 @@ export default function Home() {
             {vaultTarget != null ? ` free burger at ${vaultTarget.toLocaleString()} pts.` : ' a free burger at a real points threshold.'}
           </p>
           <div className="c-arcade-games">
-            <span className="c-game-chip"><Gamepad2 size={14} /> MUNCH-MAN</span>
-            <span className="c-game-chip"><Gamepad2 size={14} /> T-REX RUNNER</span>
-            <span className="c-game-chip"><Gamepad2 size={14} /> SPEED GRAB</span>
+            <Link to="/arcade" className="c-game-thumb">
+              <img src="/images/munchman_game.jpg" alt="" />
+              <span><Gamepad2 size={12} /> MUNCH-MAN</span>
+            </Link>
+            <Link to="/arcade" className="c-game-thumb">
+              <img src="/images/trex_runner_game.jpg" alt="" />
+              <span><Gamepad2 size={12} /> T-REX RUNNER</span>
+            </Link>
+            <Link to="/arcade" className="c-game-thumb">
+              <img src="/images/fry_catch.png" alt="" />
+              <span><Gamepad2 size={12} /> SPEED GRAB</span>
+            </Link>
           </div>
           <Link to="/arcade" className="btn c-arcade-cta">PLAY NOW</Link>
         </div>
