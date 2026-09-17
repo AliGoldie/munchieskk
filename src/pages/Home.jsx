@@ -355,9 +355,9 @@ export default function Home() {
           <a
             href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappGreeting)}`}
             target="_blank" rel="noopener noreferrer"
-            className="btn c-footer-pill c-whatsapp"
+            className="btn c-footer-pill"
           >
-            ORDER ON WHATSAPP
+            CONTACT US
           </a>
         </div>
       </footer>

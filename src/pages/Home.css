@@ -722,8 +722,6 @@
   font-size: .74rem;
   letter-spacing: .04em;
 }
-.c-footer-pill.c-whatsapp { background: var(--munchies-whatsapp); }
-
 /* ================= RESPONSIVE ================= */
 @media (max-width: 900px) {
   .c-deals-grid { grid-template-columns: 1fr; }
