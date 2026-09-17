@@ -26,11 +26,6 @@
   overflow-x: hidden;
 }
 
-.cart-page h1 {
-  color: var(--text);
-  font-family: 'Archivo', sans-serif;
-}
-
 .cart-content {
   display: grid;
   grid-template-columns: 1fr;
