@@ -174,8 +174,6 @@
 
 .menu-hero-info h2 {
   font-size: 1.85rem;
-  font-family: 'Archivo', sans-serif;
-  font-weight: 900;
   color: #fff;
   margin-bottom: var(--space-2);
   line-height: 1.1;
@@ -397,8 +395,6 @@
 
 .hot-list-info h3 {
   font-size: 1.08rem;
-  font-family: 'Archivo', sans-serif;
-  font-weight: 900;
   color: #fff;
   text-transform: none;
 }
@@ -494,7 +490,6 @@
 
 .ad-banner h2 {
   font-size: 1.6rem;
-  font-family: 'Archivo', sans-serif;
   margin-bottom: var(--space-2);
   color: var(--text);
 }

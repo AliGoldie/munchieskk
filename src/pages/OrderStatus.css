@@ -40,7 +40,6 @@
 }
 
 .status-card h1, .status-card h2 {
-  font-family: 'Archivo', sans-serif;
   color: var(--text);
 }
 

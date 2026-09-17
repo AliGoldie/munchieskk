@@ -46,7 +46,6 @@
 }
 
 .rank-header-card h1 {
-  font-family: 'Archivo', sans-serif;
   font-size: 1.4rem;
   z-index: 1;
   margin-bottom: 4px;
@@ -177,7 +176,6 @@
 
 .prize-info h3 {
   font-size: 1rem;
-  font-family: 'Archivo', sans-serif;
   color: #fff;
   line-height: 1.1;
   margin-bottom: 4px;

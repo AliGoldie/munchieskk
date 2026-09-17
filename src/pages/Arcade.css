@@ -52,7 +52,6 @@
 }
 
 .prize-content h2 {
-  font-family: 'Archivo', sans-serif;
   font-size: 1.7rem;
   line-height: 1.1;
   text-shadow: none;
@@ -280,7 +279,6 @@
 }
 
 .game-info h3 {
-  font-family: 'Archivo', sans-serif;
   font-size: 1.1rem;
   margin-bottom: 4px;
   color: #fff;
