@@ -258,15 +258,10 @@ export default function Home() {
           <blockquote className="dark">"Kawan Monsta fed four of us for under RM46. Cheaper than mamak and way better."<cite>Joshua · Instagram</cite></blockquote>
           <blockquote>"Patty is thick, not that thin stuff. Portion worth every ringgit."<cite>Ridzuan · Google Review</cite></blockquote>
           <p className="c-rating">
-            <span className="c-star-rating" role="img" aria-label="4.8 out of 5 stars">
-              <span className="c-star-row">
-                {[0, 1, 2, 3, 4].map(i => <Star key={i} size={18} />)}
-              </span>
-              <span className="c-star-row c-star-row-fill" style={{ width: `${(4.8 / 5) * 100}%` }}>
-                {[0, 1, 2, 3, 4].map(i => (
-                  <Star key={i} size={18} fill="var(--munchies-yellow)" stroke="var(--munchies-dark)" strokeWidth={1.5} />
-                ))}
-              </span>
+            <span className="c-star-row" role="img" aria-label="4.8 out of 5 stars">
+              {[0, 1, 2, 3, 4].map(i => (
+                <Star key={i} size={18} fill="var(--munchies-yellow)" stroke="none" />
+              ))}
             </span>
             4.8 <span>from 320+ reviews across Google &amp; Instagram</span>
           </p>

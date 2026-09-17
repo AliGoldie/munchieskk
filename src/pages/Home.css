@@ -434,13 +434,19 @@
 }
 .c-portion-copy blockquote {
   margin: 0 0 14px;
-  padding: 16px 18px;
+  padding: 16px 20px;
   background: #fff;
   border-radius: var(--r-1b-sm);
-  font-size: .9rem;
+  font-family: 'Caveat', cursive;
+  font-weight: 600;
+  font-size: 1.35rem;
+  line-height: 1.25;
   font-style: normal;
   color: var(--munchies-dark);
+  transform: rotate(-1.2deg);
 }
+.c-portion-copy blockquote:nth-child(2) { transform: rotate(0.9deg); }
+.c-portion-copy blockquote:nth-child(3) { transform: rotate(-0.6deg); }
 .c-portion-copy blockquote.dark {
   background: var(--munchies-dark);
   color: #fff;
@@ -471,20 +477,9 @@
   font-weight: 600;
   color: var(--munchies-muted);
 }
-.c-star-rating {
-  position: relative;
-  display: inline-flex;
-}
 .c-star-row {
   display: flex;
   gap: 1px;
-  color: var(--munchies-muted-2);
-}
-.c-star-row-fill {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  white-space: nowrap;
 }
 
 /* ================= ARCADE / REWARD BAND ================= */
