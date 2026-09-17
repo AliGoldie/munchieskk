@@ -70,13 +70,7 @@ export default function Loyalty() {
             const isLoading = loading === prize.id;
             return (
               <div key={prize.id} className="card prize-card">
-                {prize.image_url ? (
-                  <div className="prize-img" style={{ backgroundImage: `url('${prize.image_url}')` }}></div>
-                ) : (
-                  <div className="prize-img" style={{ background: 'var(--plate)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Gift size={36} color="var(--text-dim)" />
-                  </div>
-                )}
+                <div className="prize-img" style={{ backgroundImage: `url('${prize.image_url || '/images/prize_placeholder.png'}')` }}></div>
                 <div className="prize-info">
                   <h3>{prize.name}</h3>
                   {prize.description && <p style={{ fontSize: '0.75rem', color: 'var(--text-2)', margin: '2px 0 0 0' }}>{prize.description}</p>}
