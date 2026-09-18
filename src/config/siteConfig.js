@@ -6,5 +6,7 @@ export const siteConfig = {
     instagram: 'https://www.instagram.com/munchieskk.burger/',
     facebook: null,
     tiktok: null,
-  }
+  },
+  // Direct "write a review" link for the Google Business Profile.
+  googleReviewUrl: 'https://g.page/r/CTOahi0b5u-bEAI/review',
 };

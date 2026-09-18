@@ -39,6 +39,24 @@ export function EmberFlameIcon({ size = 24, color = 'currentColor', ...props }) 
   );
 }
 
+export function BurgerIcon({ size = 24, color = 'currentColor', ...props }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={color}
+      stroke="none"
+      {...props}
+    >
+      <path d="M4 9a8 8 0 0 1 16 0z" />
+      <rect x="3" y="10.5" width="18" height="2.2" rx="1.1" />
+      <rect x="3" y="14" width="18" height="2" rx="1" />
+      <path d="M3 17.5h18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+}
+
 export function SpikyBadgeIcon({ size = 24, color = 'currentColor', ...props }) {
   return (
     <svg
