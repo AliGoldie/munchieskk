@@ -445,26 +445,33 @@
   line-height: 1.05;
   margin: 0 0 20px;
 }
-.c-portion-copy blockquote {
-  margin: 0 0 14px;
+.c-review-rail {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 8px;
+  margin: 0 0 20px;
+}
+.c-review-rail blockquote {
+  flex: 0 0 240px;
+  scroll-snap-align: start;
+  margin: 0;
   padding: 16px 20px;
   background: #fff;
   border-radius: var(--r-1b-sm);
   font-family: 'Caveat', cursive;
   font-weight: 600;
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   line-height: 1.25;
   font-style: normal;
   color: var(--munchies-dark);
-  transform: rotate(-1.2deg);
 }
-.c-portion-copy blockquote:nth-child(2) { transform: rotate(0.9deg); }
-.c-portion-copy blockquote:nth-child(3) { transform: rotate(-0.6deg); }
-.c-portion-copy blockquote.dark {
+.c-review-rail blockquote.dark {
   background: var(--munchies-dark);
   color: #fff;
 }
-.c-portion-copy blockquote cite {
+.c-review-rail blockquote cite {
   display: block;
   margin-top: 8px;
   font-style: normal;
@@ -474,7 +481,7 @@
   color: var(--munchies-muted);
   text-transform: uppercase;
 }
-.c-portion-copy blockquote.dark cite { color: var(--munchies-muted-dark); }
+.c-review-rail blockquote.dark cite { color: var(--munchies-muted-dark); }
 .c-rating {
   display: flex;
   align-items: center;
