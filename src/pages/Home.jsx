@@ -4,7 +4,7 @@ import { ChevronRight, Gamepad2, Star, Users } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getItemPoints } from '../utils/pointsCalculator';
-import { formatTime12Hour } from '../utils/timeUtils';
+import { formatTime12Hour, getMalaysiaNow } from '../utils/timeUtils';
 import { loyaltyConfig } from '../config/loyaltyConfig';
 import { siteConfig } from '../config/siteConfig';
 import ItemModal from '../components/ItemModal';
@@ -40,8 +40,6 @@ const REVIEWS = [
   { quote: `5 star burger... the juiciness of the patty, the fresh vegetables, the cheese... you just can't stop eating after one bite.`, author: 'Queen Deziree', dark: false },
 ];
 
-const DAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
 function findByName(menu, name) {
   const needle = name.toLowerCase();
   return menu.find(m => m.name?.toLowerCase() === needle);
@@ -68,7 +66,8 @@ export default function Home() {
   );
 
   // ---- Real open/closed status (no fake urgency) ----
-  const todayKey = DAY_KEYS[new Date().getDay()];
+  // Sabah's wall-clock day, not the visitor's local one -- see getMalaysiaNow.
+  const todayKey = getMalaysiaNow().dayKey;
   const todaySchedule = shopSettings?.weeklySchedule?.[todayKey];
   const openStr = todaySchedule?.enabled === false ? null : (todaySchedule?.open || shopSettings?.openingTime);
   const closeStr = todaySchedule?.enabled === false ? null : (todaySchedule?.close || shopSettings?.closingTime);

@@ -8,7 +8,7 @@ export const formatOrderId = (id) => {
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
-import { parseTimeToMinutes } from '../utils/timeUtils';
+import { parseTimeToMinutes, getMalaysiaNow } from '../utils/timeUtils';
 
 const StoreContext = createContext();
 
@@ -121,22 +121,21 @@ export function StoreProvider({ children }) {
     if (settings?.status === 'CLOSED' || settings?.status === 'PAUSED') return false;
     // 'SCHEDULE' or any other value → fall through to schedule logic
 
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+    // Sabah's wall clock, not the visitor's (or server's) local timezone --
+    // see getMalaysiaNow for why that distinction matters here.
+    const { dateStr: todayStr, dayKey: todayKey, hour, minute } = getMalaysiaNow();
 
     // 2. Check special closures (holidays/emergency)
     const specialClosures = settings?.specialClosures || [];
     if (specialClosures.some(c => c.date === todayStr)) return false;
 
     // 3. Check weekly schedule for today's day
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const todayKey = dayNames[now.getDay()];
     const weeklySchedule = settings?.weeklySchedule || {};
     const todaySchedule = weeklySchedule[todayKey];
 
     if (todaySchedule) {
       if (!todaySchedule.enabled) return false;
-      const currentMins = now.getHours() * 60 + now.getMinutes();
+      const currentMins = hour * 60 + minute;
       const openMins = parseTimeToMinutes(todaySchedule.open, '17:00');
       const closeMins = parseTimeToMinutes(todaySchedule.close, '23:00');
       if (openMins <= closeMins) {
@@ -147,7 +146,7 @@ export function StoreProvider({ children }) {
     }
 
     // 4. Fallback to global opening/closing time
-    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const currentMins = hour * 60 + minute;
     const openMins = parseTimeToMinutes(settings?.openingTime, '17:00');
     const closeMins = parseTimeToMinutes(settings?.closingTime, '23:00');
     if (openMins <= closeMins) {

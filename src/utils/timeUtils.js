@@ -2,6 +2,36 @@
  * Utility functions for 12-hour time formatting and dynamic operating hour slot generation
  */
 
+// The store operates in one place -- Sabah, Malaysia (MYT, UTC+8, no DST) --
+// but `new Date().getDay()/getHours()/getMinutes()` reads the *visitor's*
+// (or server's) local clock. A customer browsing from a different timezone,
+// or this app simply being previewed/built on a machine set to another zone,
+// would get the wrong weekday/hour and so the wrong open/closed status and
+// hours text. Intl.DateTimeFormat with an explicit timeZone sidesteps that
+// by asking for Malaysia's wall-clock fields regardless of the runtime's own
+// timezone -- no date library needed for this one fixed zone.
+const MALAYSIA_TZ = 'Asia/Kuala_Lumpur';
+const malaysiaPartsFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: MALAYSIA_TZ,
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hour12: false,
+  weekday: 'short'
+});
+
+export function getMalaysiaNow() {
+  const map = {};
+  malaysiaPartsFormatter.formatToParts(new Date()).forEach(p => { map[p.type] = p.value; });
+  return {
+    dateStr: `${map.year}-${map.month}-${map.day}`,
+    // formatToParts gives 'Sun'/'Mon'/... in en-US, matching the DAY_KEYS
+    // arrays already used across the app -- no remapping needed.
+    dayKey: map.weekday,
+    // hour12:false renders midnight as "24" in some engines instead of "00".
+    hour: Number(map.hour) % 24,
+    minute: Number(map.minute)
+  };
+}
+
 // Robust helper to parse time strings ("17:00", "05:00 pm", "5:00 PM", "05:00") into minutes from midnight
 export function parseTimeToMinutes(timeStr, defaultStr = '17:00') {
   const target = timeStr || defaultStr;
