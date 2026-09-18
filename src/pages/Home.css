@@ -450,17 +450,10 @@
   margin: 0 0 20px;
 }
 .c-review-rail {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  padding-bottom: 8px;
   margin: 0 0 20px;
 }
 .c-review-rail blockquote {
-  flex: 0 0 260px;
-  scroll-snap-align: start;
-  margin: 0;
+  margin: 0 0 14px;
   padding: 18px 22px;
   background: #fff;
   border-radius: var(--r-1b-sm);
@@ -471,11 +464,14 @@
   font-style: normal;
   color: var(--munchies-dark);
   cursor: pointer;
+  transform: rotate(-1.2deg);
   transition: transform .16s ease;
 }
+.c-review-rail blockquote:nth-child(2) { transform: rotate(0.9deg); }
+.c-review-rail blockquote:nth-child(3) { transform: rotate(-0.6deg); }
 .c-review-rail blockquote:hover,
 .c-review-rail blockquote:focus-visible {
-  transform: translateY(-3px);
+  box-shadow: var(--shadow-1b-card-hover);
   outline: none;
 }
 .c-review-rail blockquote.dark {
