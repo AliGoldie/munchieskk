@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, Gamepad2, Star, Users } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
@@ -98,42 +98,10 @@ export default function Home() {
     return () => clearInterval(id);
   }, [soonestPromoEnd]);
 
-  // ---- Reviews rail: auto-advance every few seconds, loop back to the
-  // first card after the last, pause while the visitor is actually
-  // touching/hovering it, skip entirely for reduced motion. Tracks its own
-  // step index instead of reading rail.scrollLeft live -- the live value
-  // doesn't reliably reflect an in-progress smooth scroll next to this
-  // rail's own scroll-snap-type: mandatory, which was causing the computed
-  // target to plateau at the same position every tick (looked stuck). ----
-  const reviewRailRef = useRef(null);
+  // ---- Reviews: static stacked cards (no auto-scroll -- reverted per
+  // owner feedback, this reads better than a scrolling rail). Clicking one
+  // still opens the "leave us a review" popup. ----
   const [reviewCTAOpen, setReviewCTAOpen] = useState(false);
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const rail = reviewRailRef.current;
-    if (!rail) return;
-    let paused = false;
-    let idx = 0;
-    const advance = () => {
-      if (paused) return;
-      idx = (idx + 1) % rail.children.length;
-      const card = rail.children[idx];
-      if (card) rail.scrollTo({ left: card.offsetLeft, behavior: 'smooth' });
-    };
-    const pause = () => { paused = true; };
-    const resume = () => { paused = false; };
-    rail.addEventListener('pointerenter', pause);
-    rail.addEventListener('pointerleave', resume);
-    rail.addEventListener('touchstart', pause, { passive: true });
-    rail.addEventListener('touchend', resume);
-    const id = setInterval(advance, 3500);
-    return () => {
-      clearInterval(id);
-      rail.removeEventListener('pointerenter', pause);
-      rail.removeEventListener('pointerleave', resume);
-      rail.removeEventListener('touchstart', pause);
-      rail.removeEventListener('touchend', resume);
-    };
-  }, []);
 
   // ---- Craving rail: real items, matched by name ----
   const cravingNames = ['Jucy Bae', 'Monsta Fries', 'Kawan Monsta', 'CZ Chix Burger'];
@@ -306,7 +274,7 @@ export default function Home() {
         </div>
         <div className="c-portion-copy">
           <h2>THE REVIEWS ALL<br />SAY THE SAME THING</h2>
-          <div className="c-review-rail" ref={reviewRailRef}>
+          <div className="c-review-rail">
             {REVIEWS.map(r => (
               <blockquote
                 key={r.author}
