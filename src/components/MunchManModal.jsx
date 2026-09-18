@@ -194,6 +194,16 @@ export default function MunchManModal({ isOpen, onClose }) {
     const trexImg = new Image();
     trexImg.src = "/images/Trex.png";
 
+    // Maze background: the yellow T-Rex pattern, tiled via a canvas pattern
+    // once loaded (built once on load rather than every frame -- createPattern
+    // per-frame is wasteful and unnecessary since the image never changes).
+    const patternImg = new Image();
+    patternImg.src = "/images/trex_pattern.png";
+    let mazePattern = null;
+    patternImg.onload = () => {
+      mazePattern = ctx.createPattern(patternImg, 'repeat');
+    };
+
     function buildMaze() {
       const g = [];
       for (let r = 0; r < ROWS; r++) {
@@ -565,7 +575,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     function drawMaze() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#1a1a1a';
+      ctx.fillStyle = mazePattern || '#FFC72C';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.fillStyle = '#242320';
@@ -596,8 +606,11 @@ export default function MunchManModal({ isOpen, onClose }) {
           const py = p.r * CELL + CELL / 2;
           // Canvas fillStyle/strokeStyle can't resolve CSS custom properties (a
           // var(--x) string here silently no-ops, leaving whatever color was
-          // last set), so this needs the literal ember hex, not the token.
-          const ringColor = p.type === 'speed' ? '#FFD23F' : p.type === 'freeze' ? '#4FC3F7' : '#c73b0f';
+          // last set), so these need literal hex, not tokens. 'speed' used to
+          // be #FFD23F (bright yellow) -- fine on the old dark maze, but it'd
+          // vanish against the new yellow T-Rex-pattern background, so it's
+          // violet here instead to stay readable against both.
+          const ringColor = p.type === 'speed' ? '#6D5EF6' : p.type === 'freeze' ? '#4FC3F7' : '#c73b0f';
           const pulse = 1 + Math.sin(Date.now() / 220) * 0.12;
           ctx.strokeStyle = ringColor;
           ctx.lineWidth = 2;
