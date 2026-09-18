@@ -24,6 +24,19 @@ const CATEGORY_TAG_COLOR = {
 };
 const CATEGORY_ORDER = ['BBQ', 'PREMIUM', 'PLATTERS', 'SIDES', 'DRINKS'];
 
+// Real reviews from the Penampang Google Business listing (Munchies KK,
+// 4.5 stars / 76 reviews), pulled 2026-09-18. Not live data -- update this
+// list by hand if the business wants fresher quotes rotated in.
+const GOOGLE_RATING = 4.5;
+const GOOGLE_REVIEW_COUNT = 76;
+const REVIEWS = [
+  { quote: `It tasted absolutely delicious and the service was v good... Have ordered 4x from them and will definitely come back for more. Highly recommend the place.`, author: 'Mich. L.', dark: false },
+  { quote: `Juicy burger! We had Sumandak Burger and Mushy Burger. Both were tasty. Will definitely come again!`, author: 'Shamiera Z.', dark: true },
+  { quote: `Burger mantap! Patty juicy, generous portion! Sgt berbaloi.`, author: 'Stalin Umoe', dark: false },
+  { quote: `About as close to burger heaven as you're going to get short of dying.`, author: 'Nor kron', dark: true },
+  { quote: `5 star burger... the juiciness of the patty, the fresh vegetables, the cheese... you just can't stop eating after one bite.`, author: 'Queen Deziree', dark: false },
+];
+
 const DAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function findByName(menu, name) {
@@ -253,17 +266,20 @@ export default function Home() {
         </div>
         <div className="c-portion-copy">
           <h2>THE REVIEWS ALL<br />SAY THE SAME THING</h2>
-          {/* Placeholder quotes and rating -- swap for real Google/Instagram reviews before shipping. */}
-          <blockquote>"Monsta Fries is genuinely a meal for two. Came RM12.90, we couldn't finish."<cite>Aina · Google Review</cite></blockquote>
-          <blockquote className="dark">"Kawan Monsta fed four of us for under RM46. Cheaper than mamak and way better."<cite>Joshua · Instagram</cite></blockquote>
-          <blockquote>"Patty is thick, not that thin stuff. Portion worth every ringgit."<cite>Ridzuan · Google Review</cite></blockquote>
+          <div className="c-review-rail">
+            {REVIEWS.map(r => (
+              <blockquote key={r.author} className={r.dark ? 'dark' : ''}>
+                "{r.quote}"<cite>{r.author} · Google Review</cite>
+              </blockquote>
+            ))}
+          </div>
           <p className="c-rating">
-            <span className="c-star-row" role="img" aria-label="4.8 out of 5 stars">
+            <span className="c-star-row" role="img" aria-label={`${GOOGLE_RATING} out of 5 stars`}>
               {[0, 1, 2, 3, 4].map(i => (
-                <Star key={i} size={18} fill="var(--munchies-yellow)" stroke="none" />
+                <Star key={i} size={18} fill={i < Math.floor(GOOGLE_RATING) ? 'var(--munchies-yellow)' : 'var(--munchies-muted-dark)'} stroke="none" />
               ))}
             </span>
-            4.8 <span>from 320+ reviews across Google &amp; Instagram</span>
+            {GOOGLE_RATING} <span>from {GOOGLE_REVIEW_COUNT} Google reviews</span>
           </p>
         </div>
       </section>
