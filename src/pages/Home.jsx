@@ -35,10 +35,8 @@ const CATEGORY_ORDER = ['BBQ', 'PREMIUM', 'PLATTERS', 'SIDES', 'DRINKS'];
 const GOOGLE_RATING = 4.5;
 const GOOGLE_REVIEW_COUNT = 76;
 const REVIEWS = [
-  { quote: `It tasted absolutely delicious and the service was v good... Have ordered 4x from them and will definitely come back for more. Highly recommend the place.`, author: 'Mich. L.', dark: false },
-  { quote: `Juicy burger! We had Sumandak Burger and Mushy Burger. Both were tasty. Will definitely come again!`, author: 'Shamiera Z.', dark: true },
-  { quote: `Burger mantap! Patty juicy, generous portion! Sgt berbaloi.`, author: 'Stalin Umoe', dark: false },
-  { quote: `About as close to burger heaven as you're going to get short of dying.`, author: 'Nor kron', dark: true },
+  { quote: `About as close to burger heaven as you're going to get short of dying.`, author: 'Nor kron', dark: false },
+  { quote: `It tasted absolutely delicious and the service was v good... Have ordered 4x from them and will definitely come back for more. Highly recommend the place.`, author: 'Mich. L.', dark: true },
   { quote: `5 star burger... the juiciness of the patty, the fresh vegetables, the cheese... you just can't stop eating after one bite.`, author: 'Queen Deziree', dark: false },
 ];
 
