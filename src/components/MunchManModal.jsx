@@ -103,8 +103,37 @@ export default function MunchManModal({ isOpen, onClose }) {
     } catch (err) {}
   };
 
+  // A short burst of filtered white noise -- the classic way retro sound
+  // chips (NES/Game Boy's noise channel) fake a hi-hat or snare hit without
+  // any sample playback, just synthesis like every other sound here.
+  const noiseBurst = (dur, vol, delay = 0) => {
+    if (!soundOn || !audioCtxRef.current) return;
+    try {
+      const ctx = audioCtxRef.current;
+      const t0 = ctx.currentTime + delay;
+      const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * dur));
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.value = 4000;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(vol, t0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      src.start(t0);
+      src.stop(t0 + dur + 0.01);
+    } catch (err) {}
+  };
+
   const sfxEat = () => tone(700, 0.05, 'square', 0.10, 0);
   const sfxPower = () => { tone(500, 0.08, 'triangle', 0.15, 0); tone(700, 0.08, 'triangle', 0.15, 0.08); tone(900, 0.12, 'triangle', 0.15, 0.16); };
+  const sfxPowerSpawn = () => [660, 880, 1100].forEach((f, i) => tone(f, 0.1, 'square', 0.08, i * 0.06));
   const sfxGhostEaten = () => { tone(600, 0.06, 'sawtooth', 0.15, 0); tone(400, 0.08, 'sawtooth', 0.15, 0.06); };
   const sfxHit = () => tone(140, 0.3, 'sawtooth', 0.2, 0);
   const sfxWin = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.15, i * 0.15));
@@ -114,10 +143,20 @@ export default function MunchManModal({ isOpen, onClose }) {
   const startMusic = () => {
     stopMusic();
     let musicStep = 0;
-    const musicPattern = [220, 220, 262, 196, 220, 246, 262, 196];
+    // Same 8-step lead line as before (unchanged so the loop's overall feel
+    // and 260ms tempo stay familiar), now layered with a root-note bassline
+    // a couple octaves down and a soft noise click on every step (louder on
+    // the downbeats) -- three simple "channels" playing together is what
+    // actually makes 8-bit game music read as music instead of a single
+    // beeping lead line.
+    const leadPattern = [220, 220, 262, 196, 220, 246, 262, 196];
+    const bassPattern = [110, 110, 131, 98, 110, 123, 131, 98];
     musicIntervalRef.current = setInterval(() => {
       if (!gameStateRef.current || !gameStateRef.current.running) return;
-      tone(musicPattern[musicStep % musicPattern.length], 0.18, 'triangle', 0.045, 0);
+      const i = musicStep % 8;
+      tone(leadPattern[i], 0.18, 'triangle', 0.045, 0);
+      tone(bassPattern[i], 0.16, 'square', 0.05, 0);
+      noiseBurst(0.035, i % 4 === 0 ? 0.05 : 0.022, 0);
       musicStep++;
     }, 260);
   };
@@ -254,6 +293,16 @@ export default function MunchManModal({ isOpen, onClose }) {
       { r: ROWS - 2, c: COLS - 2, type: 'scare' }
     ];
 
+    // A bonus power pellet at dead center (row 7 has no interior walls, so
+    // it's always open) that isn't there from the start like the corner
+    // ones -- it appears and disappears on a fixed schedule against the
+    // round clock, cycling every CENTER_PELLET_INTERVAL seconds and staying
+    // up for CENTER_PELLET_DURATION of that if the player doesn't grab it.
+    const CENTER_PELLET = { r: 7, c: 8 };
+    const CENTER_PELLET_INTERVAL = 20;
+    const CENTER_PELLET_DURATION = 8;
+    const CENTER_PELLET_TYPES = ['scare', 'speed', 'freeze'];
+
     const SPEED_BOOST_DURATION = 300;
     const FREEZE_DURATION = 240;
     const PLAYER_SPEED = 2;
@@ -283,6 +332,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       pelletsEaten: 0,
       ghostsEaten: 0,
       pellets: [],
+      centerPellet: null,
       player: {
         x: PLAYER_START.c * CELL,
         y: PLAYER_START.r * CELL,
@@ -318,6 +368,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         state.dots.push(row);
       }
       state.pellets = PELLET_SPOTS.map(p => ({ ...p, eaten: false }));
+      state.centerPellet = null;
       state.pellets.forEach(p => {
         if (state.dots[p.r][p.c]) {
           state.dots[p.r][p.c] = false;
@@ -465,6 +516,29 @@ export default function MunchManModal({ isOpen, onClose }) {
           }
         }
       });
+    }
+
+    // Adds/expires the center bonus pellet against the round clock. It's
+    // just another entry in state.pellets once spawned -- checkDotEat and
+    // drawMaze already handle any pellet in that array generically, so
+    // this only needs to manage when one is present.
+    function updateCenterPellet(elapsed) {
+      const cyclePos = elapsed % CENTER_PELLET_INTERVAL;
+      const shouldShow = cyclePos < CENTER_PELLET_DURATION;
+
+      if (shouldShow && !state.centerPellet) {
+        const type = CENTER_PELLET_TYPES[Math.floor(Math.random() * CENTER_PELLET_TYPES.length)];
+        const p = { r: CENTER_PELLET.r, c: CENTER_PELLET.c, type, eaten: false };
+        state.pellets.push(p);
+        state.centerPellet = p;
+        sfxPowerSpawn();
+      } else if (!shouldShow && state.centerPellet) {
+        // Window closed -- if the player didn't grab it, mark it eaten so
+        // drawMaze/checkDotEat both treat it as already-resolved (identical
+        // to the eaten path) rather than adding a second "expired" state.
+        state.centerPellet.eaten = true;
+        state.centerPellet = null;
+      }
     }
 
     function checkWin() {
@@ -830,6 +904,7 @@ export default function MunchManModal({ isOpen, onClose }) {
           }
 
           const elapsed = (performance.now() - state.roundStartTime) / 1000;
+          updateCenterPellet(elapsed);
           const timeLeft = Math.max(0, TIME_LIMIT_SECONDS - elapsed);
           const urgent = timeLeft <= 10 && timeLeft > 0;
 
@@ -978,6 +1053,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       ];
 
       s.pellets = PELLET_SPOTS.map(p => ({ ...p, eaten: false }));
+      s.centerPellet = null;
       s.pellets.forEach(p => {
         if (s.dots[p.r][p.c]) { s.dots[p.r][p.c] = false; totalCount--; }
       });
