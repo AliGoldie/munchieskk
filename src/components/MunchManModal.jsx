@@ -565,11 +565,11 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     function drawMaze() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#0a0f1d';
+      ctx.fillStyle = '#1a1a1a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = '#1e293b';
-      ctx.shadowColor = 'rgba(56, 189, 248, 0.4)';
+      ctx.fillStyle = '#242320';
+      ctx.shadowColor = 'rgba(199, 59, 15, 0.35)';
       ctx.shadowBlur = 10;
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -594,7 +594,10 @@ export default function MunchManModal({ isOpen, onClose }) {
         if (!p.eaten) {
           const px = p.c * CELL + CELL / 2;
           const py = p.r * CELL + CELL / 2;
-          const ringColor = p.type === 'speed' ? '#FFD23F' : p.type === 'freeze' ? '#4FC3F7' : 'var(--munchies-orange-accent)';
+          // Canvas fillStyle/strokeStyle can't resolve CSS custom properties (a
+          // var(--x) string here silently no-ops, leaving whatever color was
+          // last set), so this needs the literal ember hex, not the token.
+          const ringColor = p.type === 'speed' ? '#FFD23F' : p.type === 'freeze' ? '#4FC3F7' : '#c73b0f';
           const pulse = 1 + Math.sin(Date.now() / 220) * 0.12;
           ctx.strokeStyle = ringColor;
           ctx.lineWidth = 2;
@@ -655,7 +658,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       if (trexImg.complete && trexImg.naturalWidth > 0) {
         ctx.drawImage(trexImg, -TREX_DRAW_W / 2, -TREX_DRAW_H / 2, TREX_DRAW_W, TREX_DRAW_H);
       } else {
-        ctx.fillStyle = 'var(--munchies-yellow)';
+        ctx.fillStyle = '#FFC72C';
         ctx.beginPath();
         ctx.arc(0, 0, 9.5, 0, Math.PI * 2);
         ctx.fill();

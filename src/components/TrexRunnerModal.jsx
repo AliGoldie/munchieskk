@@ -449,8 +449,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     function drawBackground() {
       ctx.clearRect(0, 0, W, H);
       const grad = ctx.createLinearGradient(0, 0, 0, H);
-      grad.addColorStop(0, '#1E293B');
-      grad.addColorStop(1, '#0a0f1d');
+      grad.addColorStop(0, '#242320');
+      grad.addColorStop(1, '#1a1a1a');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
     }
@@ -459,7 +459,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       for (const seg of state.terrain) {
         const w = seg.xEnd - seg.xStart;
         if (w <= 0) continue;
-        ctx.fillStyle = '#111827';
+        ctx.fillStyle = '#2c2924';
         ctx.fillRect(seg.xStart, seg.y, w, H - seg.y);
         ctx.strokeStyle = 'rgba(255, 199, 44, 0.4)';
         ctx.lineWidth = 2;
@@ -483,7 +483,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     function drawObstacle(o) {
       const y = o.tierY - o.h;
-      ctx.fillStyle = '#C23B15';
+      ctx.fillStyle = '#c73b0f';
       ctx.beginPath();
       ctx.roundRect(o.x, y, o.w, o.h, 4);
       ctx.fill();
