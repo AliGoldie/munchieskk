@@ -99,19 +99,23 @@ export default function Home() {
   }, [soonestPromoEnd]);
 
   // ---- Reviews rail: auto-advance every few seconds, loop, pause while the
-  // visitor is actually touching/hovering it, skip entirely for reduced motion ----
+  // visitor is actually touching/hovering it, skip entirely for reduced motion.
+  // Tracks its own step index instead of reading rail.scrollLeft live -- the
+  // live value doesn't reliably reflect an in-progress smooth scroll next to
+  // this rail's own scroll-snap-type: mandatory, which was causing the
+  // computed target to plateau at the same position every tick (looked stuck). ----
   const reviewRailRef = useRef(null);
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const rail = reviewRailRef.current;
     if (!rail) return;
     let paused = false;
+    let idx = 0;
     const advance = () => {
       if (paused) return;
-      const card = rail.querySelector('blockquote');
-      const step = card ? card.getBoundingClientRect().width + 14 : rail.clientWidth;
-      const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
-      rail.scrollTo({ left: atEnd ? 0 : rail.scrollLeft + step, behavior: 'smooth' });
+      idx = (idx + 1) % rail.children.length;
+      const card = rail.children[idx];
+      if (card) rail.scrollTo({ left: card.offsetLeft, behavior: 'smooth' });
     };
     const pause = () => { paused = true; };
     const resume = () => { paused = false; };
