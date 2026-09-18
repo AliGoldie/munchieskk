@@ -715,6 +715,25 @@
   color: var(--munchies-amber-ink);
   margin: 2px 0 0;
 }
+.c-footer-social {
+  display: flex;
+  gap: 10px;
+}
+.c-footer-social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--munchies-dark);
+  color: #fff;
+  transition: background .16s ease, transform .16s ease;
+}
+.c-footer-social-link:hover {
+  background: var(--munchies-orange);
+  transform: translateY(-2px);
+}
 .c-footer-links {
   display: flex;
   gap: 10px;

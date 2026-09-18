@@ -8,7 +8,10 @@ import { formatTime12Hour } from '../utils/timeUtils';
 import { loyaltyConfig } from '../config/loyaltyConfig';
 import { siteConfig } from '../config/siteConfig';
 import ItemModal from '../components/ItemModal';
+import { InstagramIcon, FacebookIcon, TiktokIcon } from '../components/SocialIcons';
 import './Home.css';
+
+const SOCIAL_ICONS = { instagram: InstagramIcon, facebook: FacebookIcon, tiktok: TiktokIcon };
 
 // Category tag colors for the typographic menu -- text color on a dark
 // pill, matching the actual 1b prototype (colored label text, not a
@@ -388,6 +391,17 @@ export default function Home() {
             <strong>MUNCHIESKK</strong>
             <p>Kota Kinabalu · {formatTime12Hour(shopSettings?.openingTime)}–{formatTime12Hour(shopSettings?.closingTime)} · WhatsApp {siteConfig.whatsappNumber}</p>
           </div>
+        </div>
+        <div className="c-footer-social">
+          {Object.entries(siteConfig.social).map(([platform, url]) => {
+            if (!url) return null;
+            const Icon = SOCIAL_ICONS[platform];
+            return (
+              <a key={platform} href={url} target="_blank" rel="noopener noreferrer" className="c-footer-social-link" aria-label={platform}>
+                <Icon size={18} />
+              </a>
+            );
+          })}
         </div>
         <div className="c-footer-links">
           {user?.short_code && (
