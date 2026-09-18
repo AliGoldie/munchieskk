@@ -50,6 +50,34 @@
   --text-xl: 1.5rem;
   --text-2xl: 2rem;
   --text-3xl: 2.5rem;
+
+  /* Direction 1b "Craving Scroll" — additive tokens only.
+     Never repoint the --munchies-yellow/orange/dark/canvas/white/blue,
+     --radius-*, --shadow-brutalist*, or --border-thick values above:
+     .admin-layout reads this same :root scope and must stay pixel-identical. */
+  --munchies-ink-2: #242320;
+  --munchies-muted: #6b6558;
+  --munchies-muted-dark: #a9a498;
+  --munchies-muted-2: #8a8577;
+  --munchies-amber-ink: #8a5a14;
+  --munchies-green: #0f7a32;
+  --munchies-green-light: #7fd39a;
+  --munchies-whatsapp: #128C7E;
+  --munchies-premium: #ffb4a0;
+
+  /* Radii — additive, do not touch --radius-* above */
+  --r-1b-sm: 12px;
+  --r-1b-btn: 16px;
+  --r-1b-row: 22px;
+  --r-1b-card: 28px;
+  --r-1b-shell: 32px;
+  --r-1b-frame: 38px;
+
+  /* Soft shadows — additive, do not touch --shadow-brutalist* above */
+  --shadow-1b-card-hover: 0 16px 34px rgba(26, 26, 26, .14);
+  --shadow-1b-price-card: 0 16px 40px rgba(26, 26, 26, .22);
+  --shadow-1b-hero-img: 0 26px 60px rgba(26, 26, 26, .3);
+  --shadow-1b-cta: 0 12px 26px rgba(199, 59, 15, .34);
 }
 
 * {

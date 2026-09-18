@@ -6,16 +6,17 @@ import ItemModal from '../components/ItemModal';
 import { getItemPoints } from '../utils/pointsCalculator';
 import './Menu.css';
 
-// Category color config — each category gets a unique color identity
+// Category color config — same accent family as Home's typographic
+// menu (CATEGORY_TAG_COLOR in Home.jsx) for a consistent identity.
 const CATEGORY_COLORS = {
-  BBQ:      { accent: '#F0862A', icon: '🔥' },
-  PREMIUM:  { accent: '#C77DFF', icon: '👑' },
-  PLATTERS: { accent: '#FFC72C', icon: '🍽️' },
-  SIDES:    { accent: '#5FD68C', icon: '🥗' },
-  DRINKS:   { accent: '#63A7F5', icon: '🥤' },
+  BBQ:      { accent: 'var(--munchies-orange)' },
+  PREMIUM:  { accent: 'var(--munchies-premium)' },
+  PLATTERS: { accent: 'var(--munchies-green-light)' },
+  SIDES:    { accent: 'var(--munchies-yellow)' },
+  DRINKS:   { accent: 'var(--munchies-blue)' },
 };
 
-const DEFAULT_COLOR = { accent: '#8E867C', icon: '📦' };
+const DEFAULT_COLOR = { accent: 'var(--munchies-muted-dark)' };
 
 const CATEGORY_ORDER = ['BBQ', 'PREMIUM', 'PLATTERS', 'SIDES', 'DRINKS'];
 
@@ -82,7 +83,7 @@ export default function Menu() {
     if (!timeLeft || timeLeft === 'Sale ended') return null;
     
     return (
-      <div style={{ fontSize: '0.75rem', color: '#ff6b6b', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', backgroundColor: 'rgba(255,42,42,0.14)', padding: '2px 8px', borderRadius: '12px', width: 'fit-content' }}>
+      <div style={{ fontSize: '0.75rem', color: 'var(--danger-color)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', backgroundColor: 'rgba(239, 68, 68, .14)', padding: '2px 8px', borderRadius: '12px', width: 'fit-content' }}>
         <EmberFlameIcon size={12} /> {timeLeft}
       </div>
     );
@@ -230,7 +231,6 @@ export default function Menu() {
       {/* Sticky Categories Navigation */}
       <div className="category-bar">
         {categories.map(cat => {
-          const colors = CATEGORY_COLORS[cat] || DEFAULT_COLOR;
           const isActive = activeCategory === cat;
           return (
             <button
@@ -238,7 +238,6 @@ export default function Menu() {
               className={`category-btn${isActive ? ' active' : ''}`}
               onClick={() => scrollToCategory(cat)}
             >
-              <span className="icon">{colors.icon}</span>
               {cat}
             </button>
           );
@@ -321,10 +320,10 @@ export default function Menu() {
                     <div className="hot-list-info">
                       <div className="flex-between">
                         <h3>{item.name}</h3>
-                        <span 
+                        <span
                           className="tag-category"
-                          style={{ 
-                            backgroundColor: `${colors.accent}18`,
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, .08)',
                             color: colors.accent,
                             borderColor: colors.accent
                           }}

@@ -70,23 +70,16 @@ export default function Loyalty() {
             const isLoading = loading === prize.id;
             return (
               <div key={prize.id} className="card prize-card">
-                {prize.image_url ? (
-                  <div className="prize-img" style={{ backgroundImage: `url('${prize.image_url}')` }}></div>
-                ) : (
-                  <div className="prize-img" style={{ background: 'var(--plate)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Gift size={36} color="var(--text-dim)" />
-                  </div>
-                )}
+                <div className="prize-img" style={{ backgroundImage: `url('${prize.image_url || '/images/prize_placeholder.png'}')` }}></div>
                 <div className="prize-info">
                   <h3>{prize.name}</h3>
                   {prize.description && <p style={{ fontSize: '0.75rem', color: 'var(--text-2)', margin: '2px 0 0 0' }}>{prize.description}</p>}
                   <p className="pts-req">{prize.points_cost.toLocaleString()} PTS</p>
                 </div>
                 <button
-                  className={`btn ${alreadyRedeemed ? 'btn-dark' : canRedeem ? 'btn-primary' : 'btn-dark'} prize-btn`}
+                  className={`btn ${alreadyRedeemed ? 'btn-dark redeemed' : canRedeem ? 'btn-primary' : 'btn-dark'} prize-btn`}
                   disabled={!canRedeem || alreadyRedeemed || isLoading}
                   onClick={() => handleRedeem(prize)}
-                  style={alreadyRedeemed ? { background: 'rgba(95, 214, 140, .16)', color: 'var(--go)', border: '1px solid rgba(95, 214, 140, .4)', cursor: 'default' } : {}}
                 >
                   {isLoading ? '...' : alreadyRedeemed ? 'REDEEMED' : canRedeem ? 'REDEEM' : 'LOCKED'}
                 </button>

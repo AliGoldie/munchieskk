@@ -75,14 +75,70 @@
 }
 
 .modal-addon-item:hover {
-  border-color: rgba(240, 78, 35, .4);
+  border-color: rgba(199, 59, 15, .4);
 }
 
 .modal-addon-item.selected {
-  border-color: rgba(240, 78, 35, .6);
-  background: rgba(240, 78, 35, .09);
+  border-color: rgba(199, 59, 15, .6);
+  background: rgba(199, 59, 15, .09);
   box-shadow: none;
 }
+
+/* "STACK IT UP" promoted row -- the Combo Fries + Can addon gets a
+   standout treatment (Direction 1b's meal-deal emphasis) even before
+   it's checked. */
+.modal-addon-item.promoted {
+  border-color: rgba(255, 199, 44, .5);
+  background: rgba(255, 199, 44, .1);
+}
+.modal-addon-item.promoted.selected {
+  border-color: var(--gold);
+  background: rgba(255, 199, 44, .18);
+}
+.modal-addon-promo-tag {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  color: var(--munchies-dark);
+  background: var(--gold);
+  padding: 2px 7px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.modal-header-name {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.5rem;
+  margin: 0;
+  color: var(--text);
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.modal-header-price {
+  text-align: right;
+  flex-shrink: 0;
+}
+.modal-header-price .was {
+  color: var(--text-dim);
+  text-decoration: line-through;
+  font-size: .9rem;
+  font-weight: 600;
+}
+.modal-header-price .now {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.25rem;
+  color: var(--gold);
+}
+.modal-header-price .now.on-promo { color: var(--ember); }
 
 .modal-addon-info {
   display: flex;

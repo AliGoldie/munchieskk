@@ -53,18 +53,16 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
       <div className="modal-image-container" style={{ backgroundImage: `url('${item.image}')` }}></div>
       <div className="modal-body">
         {/* Base Price Row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.5rem' }}>
-          <h2 style={{ fontFamily: "'Archivo', sans-serif", fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'var(--text)', lineHeight: '1.2', textTransform: 'uppercase' }}>
-            {item.name}
-          </h2>
-          <div style={{ textAlign: 'right' }}>
+        <div className="modal-header-row">
+          <h2 className="modal-header-name">{item.name}</h2>
+          <div className="modal-header-price">
             {isPromoActive(item) ? (
               <>
-                <div style={{ color: 'var(--text-dim)', textDecoration: 'line-through', fontSize: '0.9rem', fontWeight: 600 }}>RM {(item.price / 100).toFixed(2)}</div>
-                <div style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: '1.25rem', color: 'var(--ember)' }}>RM {(item.promo_price / 100).toFixed(2)}</div>
+                <div className="was">RM {(item.price / 100).toFixed(2)}</div>
+                <div className="now on-promo">RM {(item.promo_price / 100).toFixed(2)}</div>
               </>
             ) : (
-              <div style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: '1.25rem', color: 'var(--gold)' }}>RM {(item.price / 100).toFixed(2)}</div>
+              <div className="now">RM {(item.price / 100).toFixed(2)}</div>
             )}
           </div>
         </div>
@@ -82,10 +80,11 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
             <div className="modal-addons-list">
               {availableAddons.map(addon => {
                 const isOutOfStock = addon.stock_quantity !== undefined && addon.stock_quantity <= 0;
+                const isPromoted = /combo.*fries|fries.*combo/i.test(addon.name);
                 return (
                   <label
                     key={addon.id}
-                    className={`modal-addon-item ${selectedAddonIds.includes(addon.id) ? 'selected' : ''} ${isOutOfStock ? 'disabled' : ''}`}
+                    className={`modal-addon-item ${selectedAddonIds.includes(addon.id) ? 'selected' : ''} ${isOutOfStock ? 'disabled' : ''} ${isPromoted ? 'promoted' : ''}`}
                     style={isOutOfStock ? { opacity: 0.45, cursor: 'not-allowed', background: 'var(--surface)' } : {}}
                   >
                     <div className="modal-addon-info">
@@ -95,6 +94,7 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
                       <div>
                         <span className="modal-addon-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           {addon.name}
+                          {isPromoted && !isOutOfStock && <span className="modal-addon-promo-tag">SAVE MORE</span>}
                           {isOutOfStock && <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>(Sold Out)</span>}
                         </span>
                         <span className="modal-addon-price">
