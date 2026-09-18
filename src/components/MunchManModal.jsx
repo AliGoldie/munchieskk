@@ -190,9 +190,24 @@ export default function MunchManModal({ isOpen, onClose }) {
     canvas.width = COLS * CELL;
     canvas.height = ROWS * CELL;
 
-    // Load T-Rex image sprite
+    // Load T-Rex image sprite. This is a Munch-Man-only mascot redraw, kept
+    // as its own file rather than overwriting /images/Trex.png -- that file
+    // is also used by TrexRunnerModal, which isn't part of this restyle.
     const trexImg = new Image();
-    trexImg.src = "/images/Trex.png";
+    trexImg.src = "/images/munchman_trex.png";
+
+    // Ghost sprites, one per ghost identity. Only used for the normal
+    // (non-scared) look -- the scared/blinking state stays procedurally
+    // drawn (see drawGhosts) since that's a shared visual cue independent
+    // of which ghost it is.
+    const ghostSprites = {
+      dill: new Image(),
+      burger: new Image(),
+      fries: new Image()
+    };
+    ghostSprites.dill.src = "/images/ghost_dill.png";
+    ghostSprites.burger.src = "/images/ghost_burger.png";
+    ghostSprites.fries.src = "/images/ghost_fries.png";
 
     // Maze background: the yellow T-Rex pattern, tiled via a canvas pattern
     // once loaded (built once on load rather than every frame -- createPattern
@@ -227,9 +242,9 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     const PLAYER_START = { r: ROWS - 2, c: Math.floor(COLS / 2) };
     const GHOST_STARTS = [
-      { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill' },
-      { r: 1, c: 11, color: '#8FCB4A', dark: '#4E8B27', name: 'Gherkin' },
-      { r: 7, c: 8, color: '#5BAA33', dark: '#356A1B', name: 'Relish' }
+      { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill', sprite: 'dill' },
+      { r: 1, c: 11, color: '#E4483C', dark: '#A32E24', name: 'Bun', sprite: 'burger' },
+      { r: 7, c: 8, color: '#3FA9E0', dark: '#1E6F9C', name: 'Fry', sprite: 'fries' }
     ];
 
     const PELLET_SPOTS = [
@@ -339,6 +354,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         color: g.color,
         dark: g.dark,
         name: g.name,
+        spriteKey: g.sprite,
         scared: false,
         scaredTimer: 0,
         speed: GHOST_SPEED,
@@ -651,7 +667,6 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     const TREX_ART_FACES_LEFT = true;
     const TREX_DRAW_W = 32;
-    const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
 
     function drawPlayer() {
       const cx = state.player.x + CELL / 2;
@@ -669,7 +684,8 @@ export default function MunchManModal({ isOpen, onClose }) {
       ctx.scale(flip, 1);
 
       if (trexImg.complete && trexImg.naturalWidth > 0) {
-        ctx.drawImage(trexImg, -TREX_DRAW_W / 2, -TREX_DRAW_H / 2, TREX_DRAW_W, TREX_DRAW_H);
+        const drawH = TREX_DRAW_W * (trexImg.naturalHeight / trexImg.naturalWidth);
+        ctx.drawImage(trexImg, -TREX_DRAW_W / 2, -drawH / 2, TREX_DRAW_W, drawH);
       } else {
         ctx.fillStyle = '#FFC72C';
         ctx.beginPath();
@@ -698,26 +714,19 @@ export default function MunchManModal({ isOpen, onClose }) {
         }
 
         const scaredLook = g.scared;
-        const blink = g.scared && g.scaredTimer < 90 && Math.floor(Date.now() / 150) % 2 === 0;
-        const base = scaredLook ? (blink ? '#fff' : '#4FC3F7') : g.color;
-        const dark = scaredLook ? (blink ? '#ccc' : '#1E88C7') : g.dark;
-
-        ctx.fillStyle = base;
-        ctx.beginPath();
-        ctx.roundRect(cx - 7, cy - 10, 14, 20, 7);
-        ctx.fill();
-
-        if (!scaredLook) {
-          ctx.fillStyle = dark;
-          const bumps = [[-3, -5], [3, -1], [-2, 3], [3, 7]];
-          bumps.forEach(([bx, by]) => {
-            ctx.beginPath();
-            ctx.arc(cx + bx, cy + by, 1.2, 0, Math.PI * 2);
-            ctx.fill();
-          });
-        }
 
         if (scaredLook) {
+          // Scared state stays the original procedurally-drawn look -- it's
+          // a shared gameplay cue (all ghosts look the same when scared),
+          // not a per-ghost identity, so it doesn't need the new sprites.
+          const blink = g.scaredTimer < 90 && Math.floor(Date.now() / 150) % 2 === 0;
+          const base = blink ? '#fff' : '#4FC3F7';
+
+          ctx.fillStyle = base;
+          ctx.beginPath();
+          ctx.roundRect(cx - 7, cy - 10, 14, 20, 7);
+          ctx.fill();
+
           ctx.strokeStyle = '#0a3a52';
           ctx.lineWidth = 1.4;
           ctx.beginPath();
@@ -729,18 +738,40 @@ export default function MunchManModal({ isOpen, onClose }) {
           ctx.beginPath();
           ctx.arc(cx, cy + 4, 2.5, Math.PI * 0.15, Math.PI * 0.85);
           ctx.stroke();
-        } else {
-          ctx.fillStyle = '#fff';
-          ctx.beginPath();
-          ctx.arc(cx - 3, cy - 3, 2.4, 0, Math.PI * 2);
-          ctx.arc(cx + 3, cy - 3, 2.4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#14140f';
-          ctx.beginPath();
-          ctx.arc(cx - 3, cy - 2.3, 1.1, 0, Math.PI * 2);
-          ctx.arc(cx + 3, cy - 2.3, 1.1, 0, Math.PI * 2);
-          ctx.fill();
+          return;
         }
+
+        const sprite = ghostSprites[g.spriteKey];
+        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+          const GHOST_DRAW_W = 22;
+          const drawH = GHOST_DRAW_W * (sprite.naturalHeight / sprite.naturalWidth);
+          ctx.drawImage(sprite, cx - GHOST_DRAW_W / 2, cy - drawH / 2, GHOST_DRAW_W, drawH);
+          return;
+        }
+
+        // Fallback while the sprite is still loading (or fails to load):
+        // the original procedural body, using this ghost's own color.
+        ctx.fillStyle = g.color;
+        ctx.beginPath();
+        ctx.roundRect(cx - 7, cy - 10, 14, 20, 7);
+        ctx.fill();
+        ctx.fillStyle = g.dark;
+        const bumps = [[-3, -5], [3, -1], [-2, 3], [3, 7]];
+        bumps.forEach(([bx, by]) => {
+          ctx.beginPath();
+          ctx.arc(cx + bx, cy + by, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(cx - 3, cy - 3, 2.4, 0, Math.PI * 2);
+        ctx.arc(cx + 3, cy - 3, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#14140f';
+        ctx.beginPath();
+        ctx.arc(cx - 3, cy - 2.3, 1.1, 0, Math.PI * 2);
+        ctx.arc(cx + 3, cy - 2.3, 1.1, 0, Math.PI * 2);
+        ctx.fill();
       });
     }
 
@@ -935,9 +966,9 @@ export default function MunchManModal({ isOpen, onClose }) {
 
       const PLAYER_START = { r: ROWS - 2, c: Math.floor(COLS / 2) };
       const GHOST_STARTS = [
-        { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill' },
-        { r: 1, c: 11, color: '#8FCB4A', dark: '#4E8B27', name: 'Gherkin' },
-        { r: 7, c: 8, color: '#5BAA33', dark: '#356A1B', name: 'Relish' }
+        { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill', sprite: 'dill' },
+        { r: 1, c: 11, color: '#E4483C', dark: '#A32E24', name: 'Bun', sprite: 'burger' },
+        { r: 7, c: 8, color: '#3FA9E0', dark: '#1E6F9C', name: 'Fry', sprite: 'fries' }
       ];
       const PELLET_SPOTS = [
         { r: 1, c: 1, type: 'scare' },
@@ -969,7 +1000,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
       s.ghosts = GHOST_STARTS.map(g => ({
         x: g.c * CELL, y: g.r * CELL, dir: { dx: 1, dy: 0 },
-        color: g.color, dark: g.dark, name: g.name, scared: false, scaredTimer: 0,
+        color: g.color, dark: g.dark, name: g.name, spriteKey: g.sprite, scared: false, scaredTimer: 0,
         speed: 1, spawn: { r: g.r, c: g.c }, respawnFlash: 0
       }));
 
