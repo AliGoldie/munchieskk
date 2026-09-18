@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, Gamepad2, Star, Users } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
@@ -94,6 +94,37 @@ export default function Home() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [soonestPromoEnd]);
+
+  // ---- Reviews rail: auto-advance every few seconds, loop, pause while the
+  // visitor is actually touching/hovering it, skip entirely for reduced motion ----
+  const reviewRailRef = useRef(null);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const rail = reviewRailRef.current;
+    if (!rail) return;
+    let paused = false;
+    const advance = () => {
+      if (paused) return;
+      const card = rail.querySelector('blockquote');
+      const step = card ? card.getBoundingClientRect().width + 14 : rail.clientWidth;
+      const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+      rail.scrollTo({ left: atEnd ? 0 : rail.scrollLeft + step, behavior: 'smooth' });
+    };
+    const pause = () => { paused = true; };
+    const resume = () => { paused = false; };
+    rail.addEventListener('pointerenter', pause);
+    rail.addEventListener('pointerleave', resume);
+    rail.addEventListener('touchstart', pause, { passive: true });
+    rail.addEventListener('touchend', resume);
+    const id = setInterval(advance, 3500);
+    return () => {
+      clearInterval(id);
+      rail.removeEventListener('pointerenter', pause);
+      rail.removeEventListener('pointerleave', resume);
+      rail.removeEventListener('touchstart', pause);
+      rail.removeEventListener('touchend', resume);
+    };
+  }, []);
 
   // ---- Craving rail: real items, matched by name ----
   const cravingNames = ['Jucy Bae', 'Monsta Fries', 'Kawan Monsta', 'CZ Chix Burger'];
@@ -266,7 +297,7 @@ export default function Home() {
         </div>
         <div className="c-portion-copy">
           <h2>THE REVIEWS ALL<br />SAY THE SAME THING</h2>
-          <div className="c-review-rail">
+          <div className="c-review-rail" ref={reviewRailRef}>
             {REVIEWS.map(r => (
               <blockquote key={r.author} className={r.dark ? 'dark' : ''}>
                 "{r.quote}"<cite>{r.author} · Google Review</cite>
