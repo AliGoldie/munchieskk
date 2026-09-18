@@ -103,8 +103,37 @@ export default function MunchManModal({ isOpen, onClose }) {
     } catch (err) {}
   };
 
+  // A short burst of filtered white noise -- the classic way retro sound
+  // chips (NES/Game Boy's noise channel) fake a hi-hat or snare hit without
+  // any sample playback, just synthesis like every other sound here.
+  const noiseBurst = (dur, vol, delay = 0) => {
+    if (!soundOn || !audioCtxRef.current) return;
+    try {
+      const ctx = audioCtxRef.current;
+      const t0 = ctx.currentTime + delay;
+      const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * dur));
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.value = 4000;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(vol, t0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      src.start(t0);
+      src.stop(t0 + dur + 0.01);
+    } catch (err) {}
+  };
+
   const sfxEat = () => tone(700, 0.05, 'square', 0.10, 0);
   const sfxPower = () => { tone(500, 0.08, 'triangle', 0.15, 0); tone(700, 0.08, 'triangle', 0.15, 0.08); tone(900, 0.12, 'triangle', 0.15, 0.16); };
+  const sfxPowerSpawn = () => [660, 880, 1100].forEach((f, i) => tone(f, 0.1, 'square', 0.08, i * 0.06));
   const sfxGhostEaten = () => { tone(600, 0.06, 'sawtooth', 0.15, 0); tone(400, 0.08, 'sawtooth', 0.15, 0.06); };
   const sfxHit = () => tone(140, 0.3, 'sawtooth', 0.2, 0);
   const sfxWin = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.15, i * 0.15));
@@ -114,10 +143,20 @@ export default function MunchManModal({ isOpen, onClose }) {
   const startMusic = () => {
     stopMusic();
     let musicStep = 0;
-    const musicPattern = [220, 220, 262, 196, 220, 246, 262, 196];
+    // Same 8-step lead line as before (unchanged so the loop's overall feel
+    // and 260ms tempo stay familiar), now layered with a root-note bassline
+    // a couple octaves down and a soft noise click on every step (louder on
+    // the downbeats) -- three simple "channels" playing together is what
+    // actually makes 8-bit game music read as music instead of a single
+    // beeping lead line.
+    const leadPattern = [220, 220, 262, 196, 220, 246, 262, 196];
+    const bassPattern = [110, 110, 131, 98, 110, 123, 131, 98];
     musicIntervalRef.current = setInterval(() => {
       if (!gameStateRef.current || !gameStateRef.current.running) return;
-      tone(musicPattern[musicStep % musicPattern.length], 0.18, 'triangle', 0.045, 0);
+      const i = musicStep % 8;
+      tone(leadPattern[i], 0.18, 'triangle', 0.045, 0);
+      tone(bassPattern[i], 0.16, 'square', 0.05, 0);
+      noiseBurst(0.035, i % 4 === 0 ? 0.05 : 0.022, 0);
       musicStep++;
     }, 260);
   };
@@ -190,9 +229,34 @@ export default function MunchManModal({ isOpen, onClose }) {
     canvas.width = COLS * CELL;
     canvas.height = ROWS * CELL;
 
-    // Load T-Rex image sprite
+    // Load T-Rex image sprite. This is a Munch-Man-only mascot redraw, kept
+    // as its own file rather than overwriting /images/Trex.png -- that file
+    // is also used by TrexRunnerModal, which isn't part of this restyle.
     const trexImg = new Image();
-    trexImg.src = "/images/Trex.png";
+    trexImg.src = "/images/munchman_trex.png";
+
+    // Ghost sprites, one per ghost identity. Only used for the normal
+    // (non-scared) look -- the scared/blinking state stays procedurally
+    // drawn (see drawGhosts) since that's a shared visual cue independent
+    // of which ghost it is.
+    const ghostSprites = {
+      dill: new Image(),
+      burger: new Image(),
+      fries: new Image()
+    };
+    ghostSprites.dill.src = "/images/ghost_dill.png";
+    ghostSprites.burger.src = "/images/ghost_burger.png";
+    ghostSprites.fries.src = "/images/ghost_fries.png";
+
+    // Maze background: the yellow T-Rex pattern, tiled via a canvas pattern
+    // once loaded (built once on load rather than every frame -- createPattern
+    // per-frame is wasteful and unnecessary since the image never changes).
+    const patternImg = new Image();
+    patternImg.src = "/images/trex_pattern.png";
+    let mazePattern = null;
+    patternImg.onload = () => {
+      mazePattern = ctx.createPattern(patternImg, 'repeat');
+    };
 
     function buildMaze() {
       const g = [];
@@ -217,9 +281,9 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     const PLAYER_START = { r: ROWS - 2, c: Math.floor(COLS / 2) };
     const GHOST_STARTS = [
-      { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill' },
-      { r: 1, c: 11, color: '#8FCB4A', dark: '#4E8B27', name: 'Gherkin' },
-      { r: 7, c: 8, color: '#5BAA33', dark: '#356A1B', name: 'Relish' }
+      { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill', sprite: 'dill' },
+      { r: 1, c: 11, color: '#E4483C', dark: '#A32E24', name: 'Bun', sprite: 'burger' },
+      { r: 7, c: 8, color: '#3FA9E0', dark: '#1E6F9C', name: 'Fry', sprite: 'fries' }
     ];
 
     const PELLET_SPOTS = [
@@ -228,6 +292,16 @@ export default function MunchManModal({ isOpen, onClose }) {
       { r: ROWS - 2, c: 1, type: 'freeze' },
       { r: ROWS - 2, c: COLS - 2, type: 'scare' }
     ];
+
+    // A bonus power pellet at dead center (row 7 has no interior walls, so
+    // it's always open) that isn't there from the start like the corner
+    // ones -- it appears and disappears on a fixed schedule against the
+    // round clock, cycling every CENTER_PELLET_INTERVAL seconds and staying
+    // up for CENTER_PELLET_DURATION of that if the player doesn't grab it.
+    const CENTER_PELLET = { r: 7, c: 8 };
+    const CENTER_PELLET_INTERVAL = 20;
+    const CENTER_PELLET_DURATION = 8;
+    const CENTER_PELLET_TYPES = ['scare', 'speed', 'freeze'];
 
     const SPEED_BOOST_DURATION = 300;
     const FREEZE_DURATION = 240;
@@ -258,6 +332,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       pelletsEaten: 0,
       ghostsEaten: 0,
       pellets: [],
+      centerPellet: null,
       player: {
         x: PLAYER_START.c * CELL,
         y: PLAYER_START.r * CELL,
@@ -293,6 +368,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         state.dots.push(row);
       }
       state.pellets = PELLET_SPOTS.map(p => ({ ...p, eaten: false }));
+      state.centerPellet = null;
       state.pellets.forEach(p => {
         if (state.dots[p.r][p.c]) {
           state.dots[p.r][p.c] = false;
@@ -329,6 +405,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         color: g.color,
         dark: g.dark,
         name: g.name,
+        spriteKey: g.sprite,
         scared: false,
         scaredTimer: 0,
         speed: GHOST_SPEED,
@@ -439,6 +516,29 @@ export default function MunchManModal({ isOpen, onClose }) {
           }
         }
       });
+    }
+
+    // Adds/expires the center bonus pellet against the round clock. It's
+    // just another entry in state.pellets once spawned -- checkDotEat and
+    // drawMaze already handle any pellet in that array generically, so
+    // this only needs to manage when one is present.
+    function updateCenterPellet(elapsed) {
+      const cyclePos = elapsed % CENTER_PELLET_INTERVAL;
+      const shouldShow = cyclePos < CENTER_PELLET_DURATION;
+
+      if (shouldShow && !state.centerPellet) {
+        const type = CENTER_PELLET_TYPES[Math.floor(Math.random() * CENTER_PELLET_TYPES.length)];
+        const p = { r: CENTER_PELLET.r, c: CENTER_PELLET.c, type, eaten: false };
+        state.pellets.push(p);
+        state.centerPellet = p;
+        sfxPowerSpawn();
+      } else if (!shouldShow && state.centerPellet) {
+        // Window closed -- if the player didn't grab it, mark it eaten so
+        // drawMaze/checkDotEat both treat it as already-resolved (identical
+        // to the eaten path) rather than adding a second "expired" state.
+        state.centerPellet.eaten = true;
+        state.centerPellet = null;
+      }
     }
 
     function checkWin() {
@@ -565,7 +665,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     function drawMaze() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#1a1a1a';
+      ctx.fillStyle = mazePattern || '#FFC72C';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.fillStyle = '#242320';
@@ -596,8 +696,11 @@ export default function MunchManModal({ isOpen, onClose }) {
           const py = p.r * CELL + CELL / 2;
           // Canvas fillStyle/strokeStyle can't resolve CSS custom properties (a
           // var(--x) string here silently no-ops, leaving whatever color was
-          // last set), so this needs the literal ember hex, not the token.
-          const ringColor = p.type === 'speed' ? '#FFD23F' : p.type === 'freeze' ? '#4FC3F7' : '#c73b0f';
+          // last set), so these need literal hex, not tokens. 'speed' used to
+          // be #FFD23F (bright yellow) -- fine on the old dark maze, but it'd
+          // vanish against the new yellow T-Rex-pattern background, so it's
+          // violet here instead to stay readable against both.
+          const ringColor = p.type === 'speed' ? '#6D5EF6' : p.type === 'freeze' ? '#4FC3F7' : '#c73b0f';
           const pulse = 1 + Math.sin(Date.now() / 220) * 0.12;
           ctx.strokeStyle = ringColor;
           ctx.lineWidth = 2;
@@ -638,7 +741,6 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     const TREX_ART_FACES_LEFT = true;
     const TREX_DRAW_W = 32;
-    const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
 
     function drawPlayer() {
       const cx = state.player.x + CELL / 2;
@@ -656,7 +758,8 @@ export default function MunchManModal({ isOpen, onClose }) {
       ctx.scale(flip, 1);
 
       if (trexImg.complete && trexImg.naturalWidth > 0) {
-        ctx.drawImage(trexImg, -TREX_DRAW_W / 2, -TREX_DRAW_H / 2, TREX_DRAW_W, TREX_DRAW_H);
+        const drawH = TREX_DRAW_W * (trexImg.naturalHeight / trexImg.naturalWidth);
+        ctx.drawImage(trexImg, -TREX_DRAW_W / 2, -drawH / 2, TREX_DRAW_W, drawH);
       } else {
         ctx.fillStyle = '#FFC72C';
         ctx.beginPath();
@@ -685,26 +788,19 @@ export default function MunchManModal({ isOpen, onClose }) {
         }
 
         const scaredLook = g.scared;
-        const blink = g.scared && g.scaredTimer < 90 && Math.floor(Date.now() / 150) % 2 === 0;
-        const base = scaredLook ? (blink ? '#fff' : '#4FC3F7') : g.color;
-        const dark = scaredLook ? (blink ? '#ccc' : '#1E88C7') : g.dark;
-
-        ctx.fillStyle = base;
-        ctx.beginPath();
-        ctx.roundRect(cx - 7, cy - 10, 14, 20, 7);
-        ctx.fill();
-
-        if (!scaredLook) {
-          ctx.fillStyle = dark;
-          const bumps = [[-3, -5], [3, -1], [-2, 3], [3, 7]];
-          bumps.forEach(([bx, by]) => {
-            ctx.beginPath();
-            ctx.arc(cx + bx, cy + by, 1.2, 0, Math.PI * 2);
-            ctx.fill();
-          });
-        }
 
         if (scaredLook) {
+          // Scared state stays the original procedurally-drawn look -- it's
+          // a shared gameplay cue (all ghosts look the same when scared),
+          // not a per-ghost identity, so it doesn't need the new sprites.
+          const blink = g.scaredTimer < 90 && Math.floor(Date.now() / 150) % 2 === 0;
+          const base = blink ? '#fff' : '#4FC3F7';
+
+          ctx.fillStyle = base;
+          ctx.beginPath();
+          ctx.roundRect(cx - 7, cy - 10, 14, 20, 7);
+          ctx.fill();
+
           ctx.strokeStyle = '#0a3a52';
           ctx.lineWidth = 1.4;
           ctx.beginPath();
@@ -716,18 +812,40 @@ export default function MunchManModal({ isOpen, onClose }) {
           ctx.beginPath();
           ctx.arc(cx, cy + 4, 2.5, Math.PI * 0.15, Math.PI * 0.85);
           ctx.stroke();
-        } else {
-          ctx.fillStyle = '#fff';
-          ctx.beginPath();
-          ctx.arc(cx - 3, cy - 3, 2.4, 0, Math.PI * 2);
-          ctx.arc(cx + 3, cy - 3, 2.4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#14140f';
-          ctx.beginPath();
-          ctx.arc(cx - 3, cy - 2.3, 1.1, 0, Math.PI * 2);
-          ctx.arc(cx + 3, cy - 2.3, 1.1, 0, Math.PI * 2);
-          ctx.fill();
+          return;
         }
+
+        const sprite = ghostSprites[g.spriteKey];
+        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+          const GHOST_DRAW_W = 22;
+          const drawH = GHOST_DRAW_W * (sprite.naturalHeight / sprite.naturalWidth);
+          ctx.drawImage(sprite, cx - GHOST_DRAW_W / 2, cy - drawH / 2, GHOST_DRAW_W, drawH);
+          return;
+        }
+
+        // Fallback while the sprite is still loading (or fails to load):
+        // the original procedural body, using this ghost's own color.
+        ctx.fillStyle = g.color;
+        ctx.beginPath();
+        ctx.roundRect(cx - 7, cy - 10, 14, 20, 7);
+        ctx.fill();
+        ctx.fillStyle = g.dark;
+        const bumps = [[-3, -5], [3, -1], [-2, 3], [3, 7]];
+        bumps.forEach(([bx, by]) => {
+          ctx.beginPath();
+          ctx.arc(cx + bx, cy + by, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(cx - 3, cy - 3, 2.4, 0, Math.PI * 2);
+        ctx.arc(cx + 3, cy - 3, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#14140f';
+        ctx.beginPath();
+        ctx.arc(cx - 3, cy - 2.3, 1.1, 0, Math.PI * 2);
+        ctx.arc(cx + 3, cy - 2.3, 1.1, 0, Math.PI * 2);
+        ctx.fill();
       });
     }
 
@@ -786,6 +904,7 @@ export default function MunchManModal({ isOpen, onClose }) {
           }
 
           const elapsed = (performance.now() - state.roundStartTime) / 1000;
+          updateCenterPellet(elapsed);
           const timeLeft = Math.max(0, TIME_LIMIT_SECONDS - elapsed);
           const urgent = timeLeft <= 10 && timeLeft > 0;
 
@@ -922,9 +1041,9 @@ export default function MunchManModal({ isOpen, onClose }) {
 
       const PLAYER_START = { r: ROWS - 2, c: Math.floor(COLS / 2) };
       const GHOST_STARTS = [
-        { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill' },
-        { r: 1, c: 11, color: '#8FCB4A', dark: '#4E8B27', name: 'Gherkin' },
-        { r: 7, c: 8, color: '#5BAA33', dark: '#356A1B', name: 'Relish' }
+        { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill', sprite: 'dill' },
+        { r: 1, c: 11, color: '#E4483C', dark: '#A32E24', name: 'Bun', sprite: 'burger' },
+        { r: 7, c: 8, color: '#3FA9E0', dark: '#1E6F9C', name: 'Fry', sprite: 'fries' }
       ];
       const PELLET_SPOTS = [
         { r: 1, c: 1, type: 'scare' },
@@ -934,6 +1053,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       ];
 
       s.pellets = PELLET_SPOTS.map(p => ({ ...p, eaten: false }));
+      s.centerPellet = null;
       s.pellets.forEach(p => {
         if (s.dots[p.r][p.c]) { s.dots[p.r][p.c] = false; totalCount--; }
       });
@@ -956,7 +1076,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
       s.ghosts = GHOST_STARTS.map(g => ({
         x: g.c * CELL, y: g.r * CELL, dir: { dx: 1, dy: 0 },
-        color: g.color, dark: g.dark, name: g.name, scared: false, scaredTimer: 0,
+        color: g.color, dark: g.dark, name: g.name, spriteKey: g.sprite, scared: false, scaredTimer: 0,
         speed: 1, spawn: { r: g.r, c: g.c }, respawnFlash: 0
       }));
 
