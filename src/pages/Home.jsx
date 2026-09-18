@@ -100,8 +100,8 @@ export default function Home() {
     return () => clearInterval(id);
   }, [soonestPromoEnd]);
 
-  // ---- Reviews rail: auto-advance every few seconds, stop at the last card
-  // (no loop back to the start), pause while the visitor is actually
+  // ---- Reviews rail: auto-advance every few seconds, loop back to the
+  // first card after the last, pause while the visitor is actually
   // touching/hovering it, skip entirely for reduced motion. Tracks its own
   // step index instead of reading rail.scrollLeft live -- the live value
   // doesn't reliably reflect an in-progress smooth scroll next to this
@@ -117,8 +117,7 @@ export default function Home() {
     let idx = 0;
     const advance = () => {
       if (paused) return;
-      if (idx >= rail.children.length - 1) { clearInterval(id); return; }
-      idx += 1;
+      idx = (idx + 1) % rail.children.length;
       const card = rail.children[idx];
       if (card) rail.scrollTo({ left: card.offsetLeft, behavior: 'smooth' });
     };
