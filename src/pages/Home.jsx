@@ -8,6 +8,8 @@ import { formatTime12Hour } from '../utils/timeUtils';
 import { loyaltyConfig } from '../config/loyaltyConfig';
 import { siteConfig } from '../config/siteConfig';
 import ItemModal from '../components/ItemModal';
+import Modal from '../components/Modal';
+import { BurgerIcon } from '../components/icons';
 import { InstagramIcon, FacebookIcon, TiktokIcon } from '../components/SocialIcons';
 import './Home.css';
 
@@ -98,13 +100,15 @@ export default function Home() {
     return () => clearInterval(id);
   }, [soonestPromoEnd]);
 
-  // ---- Reviews rail: auto-advance every few seconds, loop, pause while the
-  // visitor is actually touching/hovering it, skip entirely for reduced motion.
-  // Tracks its own step index instead of reading rail.scrollLeft live -- the
-  // live value doesn't reliably reflect an in-progress smooth scroll next to
-  // this rail's own scroll-snap-type: mandatory, which was causing the
-  // computed target to plateau at the same position every tick (looked stuck). ----
+  // ---- Reviews rail: auto-advance every few seconds, stop at the last card
+  // (no loop back to the start), pause while the visitor is actually
+  // touching/hovering it, skip entirely for reduced motion. Tracks its own
+  // step index instead of reading rail.scrollLeft live -- the live value
+  // doesn't reliably reflect an in-progress smooth scroll next to this
+  // rail's own scroll-snap-type: mandatory, which was causing the computed
+  // target to plateau at the same position every tick (looked stuck). ----
   const reviewRailRef = useRef(null);
+  const [reviewCTAOpen, setReviewCTAOpen] = useState(false);
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const rail = reviewRailRef.current;
@@ -113,7 +117,8 @@ export default function Home() {
     let idx = 0;
     const advance = () => {
       if (paused) return;
-      idx = (idx + 1) % rail.children.length;
+      if (idx >= rail.children.length - 1) { clearInterval(id); return; }
+      idx += 1;
       const card = rail.children[idx];
       if (card) rail.scrollTo({ left: card.offsetLeft, behavior: 'smooth' });
     };
@@ -306,7 +311,14 @@ export default function Home() {
           <h2>THE REVIEWS ALL<br />SAY THE SAME THING</h2>
           <div className="c-review-rail" ref={reviewRailRef}>
             {REVIEWS.map(r => (
-              <blockquote key={r.author} className={r.dark ? 'dark' : ''}>
+              <blockquote
+                key={r.author}
+                className={r.dark ? 'dark' : ''}
+                role="button"
+                tabIndex={0}
+                onClick={() => setReviewCTAOpen(true)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setReviewCTAOpen(true); } }}
+              >
                 "{r.quote}"<cite>{r.author} · Google Review</cite>
               </blockquote>
             ))}
@@ -428,6 +440,28 @@ export default function Home() {
       </footer>
 
       {selectedItem && <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
+      {reviewCTAOpen && (
+        <Modal onClose={() => setReviewCTAOpen(false)} className="c-review-cta-modal" ariaLabel="Leave us a review">
+          <div className="c-review-cta">
+            <BurgerIcon size={36} color="var(--munchies-orange)" />
+            <h3>LOVED BY KK</h3>
+            <p>Got a sec? Leave us a review on Google — it really helps a local kawan-run kitchen out.</p>
+            <a
+              href={siteConfig.googleReviewUrl}
+              target="_blank" rel="noopener noreferrer"
+              className="btn c-review-cta-btn"
+              onClick={() => setReviewCTAOpen(false)}
+            >
+              WRITE A REVIEW
+            </a>
+            <div className="c-review-cta-stars" aria-hidden="true">
+              {[0, 1, 2, 3, 4].map(i => (
+                <Star key={i} size={22} fill="var(--munchies-yellow)" stroke="none" style={{ '--stagger-i': i }} />
+              ))}
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
