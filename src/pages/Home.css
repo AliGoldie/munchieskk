@@ -486,6 +486,29 @@
   text-transform: uppercase;
 }
 .c-review-rail blockquote.dark cite { color: var(--munchies-muted-dark); }
+.c-review-dots {
+  display: flex;
+  gap: 10px;
+  margin: 2px 0 18px;
+}
+.c-review-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: var(--munchies-muted-dark);
+  opacity: .5;
+  cursor: pointer;
+  transition: opacity .2s ease, transform .2s ease, color .2s ease;
+}
+.c-review-dot:hover { opacity: .8; }
+.c-review-dot.active {
+  color: var(--munchies-orange);
+  opacity: 1;
+  transform: scale(1.2);
+}
 .c-rating {
   display: flex;
   align-items: center;

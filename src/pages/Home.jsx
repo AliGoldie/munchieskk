@@ -9,6 +9,7 @@ import { loyaltyConfig } from '../config/loyaltyConfig';
 import { siteConfig } from '../config/siteConfig';
 import ItemModal from '../components/ItemModal';
 import { InstagramIcon, FacebookIcon, TiktokIcon } from '../components/SocialIcons';
+import { BurgerIcon } from '../components/icons';
 import './Home.css';
 
 const SOCIAL_ICONS = { instagram: InstagramIcon, facebook: FacebookIcon, tiktok: TiktokIcon };
@@ -98,34 +99,59 @@ export default function Home() {
     return () => clearInterval(id);
   }, [soonestPromoEnd]);
 
-  // ---- Reviews rail: auto-advance every few seconds, loop, pause while the
-  // visitor is actually touching/hovering it, skip entirely for reduced motion ----
+  // ---- Reviews rail: index-driven so the burger-dot pagination below it can
+  // show which review is active. Auto-advances every few seconds and loops,
+  // pauses while the visitor is touching/hovering it, skipped entirely for
+  // reduced motion. A scroll listener keeps the dots in sync if the visitor
+  // swipes manually instead of waiting.
   const reviewRailRef = useRef(null);
+  const reviewPausedRef = useRef(false);
+  const [reviewIndex, setReviewIndex] = useState(0);
+
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const id = setInterval(() => {
+      if (!reviewPausedRef.current) setReviewIndex(i => (i + 1) % REVIEWS.length);
+    }, 3500);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const rail = reviewRailRef.current;
+    const card = rail?.children[reviewIndex];
+    if (card) rail.scrollTo({ left: card.offsetLeft, behavior: 'smooth' });
+  }, [reviewIndex]);
+
+  useEffect(() => {
     const rail = reviewRailRef.current;
     if (!rail) return;
-    let paused = false;
-    const advance = () => {
-      if (paused) return;
-      const card = rail.querySelector('blockquote');
-      const step = card ? card.getBoundingClientRect().width + 14 : rail.clientWidth;
-      const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
-      rail.scrollTo({ left: atEnd ? 0 : rail.scrollLeft + step, behavior: 'smooth' });
+    const pause = () => { reviewPausedRef.current = true; };
+    const resume = () => { reviewPausedRef.current = false; };
+    let raf;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const cards = [...rail.children];
+        let closest = 0, closestDist = Infinity;
+        cards.forEach((el, i) => {
+          const dist = Math.abs(el.offsetLeft - rail.scrollLeft);
+          if (dist < closestDist) { closest = i; closestDist = dist; }
+        });
+        setReviewIndex(closest);
+      });
     };
-    const pause = () => { paused = true; };
-    const resume = () => { paused = false; };
     rail.addEventListener('pointerenter', pause);
     rail.addEventListener('pointerleave', resume);
     rail.addEventListener('touchstart', pause, { passive: true });
     rail.addEventListener('touchend', resume);
-    const id = setInterval(advance, 3500);
+    rail.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      clearInterval(id);
+      cancelAnimationFrame(raf);
       rail.removeEventListener('pointerenter', pause);
       rail.removeEventListener('pointerleave', resume);
       rail.removeEventListener('touchstart', pause);
       rail.removeEventListener('touchend', resume);
+      rail.removeEventListener('scroll', onScroll);
     };
   }, []);
 
@@ -305,6 +331,19 @@ export default function Home() {
               <blockquote key={r.author} className={r.dark ? 'dark' : ''}>
                 "{r.quote}"<cite>{r.author} · Google Review</cite>
               </blockquote>
+            ))}
+          </div>
+          <div className="c-review-dots">
+            {REVIEWS.map((r, i) => (
+              <button
+                key={r.author}
+                type="button"
+                className={`c-review-dot ${i === reviewIndex ? 'active' : ''}`}
+                onClick={() => setReviewIndex(i)}
+                aria-label={`Show review ${i + 1} of ${REVIEWS.length}`}
+              >
+                <BurgerIcon size={14} />
+              </button>
             ))}
           </div>
           <p className="c-rating">
