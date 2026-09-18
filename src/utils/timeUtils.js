@@ -18,18 +18,28 @@ const malaysiaPartsFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'short'
 });
 
-export function getMalaysiaNow() {
+const DAY_KEY_TO_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+// Same Malaysia wall-clock fields as getMalaysiaNow, but for an arbitrary
+// instant -- e.g. "what weekday was this stored order timestamp, in
+// Malaysia" rather than only "what's the date/time right now."
+export function getMalaysiaParts(date = new Date()) {
   const map = {};
-  malaysiaPartsFormatter.formatToParts(new Date()).forEach(p => { map[p.type] = p.value; });
+  malaysiaPartsFormatter.formatToParts(date).forEach(p => { map[p.type] = p.value; });
   return {
     dateStr: `${map.year}-${map.month}-${map.day}`,
     // formatToParts gives 'Sun'/'Mon'/... in en-US, matching the DAY_KEYS
     // arrays already used across the app -- no remapping needed.
     dayKey: map.weekday,
+    dayIndex: DAY_KEY_TO_INDEX[map.weekday],
     // hour12:false renders midnight as "24" in some engines instead of "00".
     hour: Number(map.hour) % 24,
     minute: Number(map.minute)
   };
+}
+
+export function getMalaysiaNow() {
+  return getMalaysiaParts(new Date());
 }
 
 // Robust helper to parse time strings ("17:00", "05:00 pm", "5:00 PM", "05:00") into minutes from midnight

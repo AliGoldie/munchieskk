@@ -3,7 +3,7 @@ import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { startNewOrderAlert, stopNewOrderAlert } from '../utils/soundAlert';
-import { formatTime12Hour } from '../utils/timeUtils';
+import { formatTime12Hour, getMalaysiaNow } from '../utils/timeUtils';
 import { supabase } from '../config/supabase';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -641,7 +641,7 @@ export default function Admin() {
   const [eventsNotes, setEventsNotes] = useState([]);
 
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-  const [selectedEventDate, setSelectedEventDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedEventDate, setSelectedEventDate] = useState(getMalaysiaNow().dateStr);
   const [eventFormData, setEventFormData] = useState({
     id: null,
     title: '',
@@ -1552,7 +1552,7 @@ export default function Admin() {
 
 
   const handleOpenAddEventModal = (dateStr = null) => {
-    const targetDate = dateStr || new Date().toISOString().split('T')[0];
+    const targetDate = dateStr || getMalaysiaNow().dateStr;
     setSelectedEventDate(targetDate);
     setEventFormData({ id: null, title: '', type: 'event', description: '' });
     setIsEventModalOpen(true);
@@ -2596,7 +2596,7 @@ export default function Admin() {
                             const dayFull = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
                             // Use LOCAL draft state — fully isolated per day, no stale closures
                             const sched = localSchedule[day] || { enabled: true, open: '17:00', close: '23:00' };
-                            const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+                            const today = getMalaysiaNow().dayKey;
                             const isToday = day === today;
                             return (
                               <div key={day} style={{
@@ -2638,7 +2638,7 @@ export default function Admin() {
                       <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🚨 Special Closures & Holidays</label>
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                          <input type="date" id="closure-date-input" min={new Date().toISOString().split('T')[0]}
+                          <input type="date" id="closure-date-input" min={getMalaysiaNow().dateStr}
                             style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.875rem' }} />
                           <input type="text" id="closure-reason-input" placeholder="Reason (e.g. Public Holiday)"
                             style={{ flex: 1, minWidth: '160px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontSize: '0.875rem' }} />
@@ -2660,7 +2660,7 @@ export default function Admin() {
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {[...(localClosures || [])].sort((a,b) => a.date.localeCompare(b.date)).map((closure, idx) => {
-                              const todayStr = new Date().toISOString().split('T')[0];
+                              const todayStr = getMalaysiaNow().dateStr;
                               const isPast = closure.date < todayStr;
                               const isToday = closure.date === todayStr;
                               return (
@@ -2705,7 +2705,7 @@ export default function Admin() {
                     <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>🏪 Store Status</h3>
                     <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                       {(() => {
-                        const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+                        const today = getMalaysiaNow().dayKey;
                         const sched = shopSettings?.weeklySchedule?.[today];
                         if (!sched || !sched.enabled) return 'Closed today per weekly schedule';
                         return `Today: ${formatTime12Hour(sched.open)} – ${formatTime12Hour(sched.close)}`;
@@ -3126,7 +3126,7 @@ export default function Admin() {
                      <div style={{ flex: 1, border: '1px solid #fee2e2', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff5f5' }}>
                         <div style={{ color: '#ef4444', marginBottom: '8px' }}><Archive size={32} /></div>
                         <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{formatStoreDateTime(new Date(), { month: 'short' })} Report</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date().getFullYear()}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{getMalaysiaNow().dateStr.slice(0, 4)}</div>
                      </div>
                      <div style={{ flex: 1, border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} className="hover-bg-slate">
                         <div style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}><PlusSquare size={32} /></div>
