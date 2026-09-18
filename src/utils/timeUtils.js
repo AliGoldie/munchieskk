@@ -42,6 +42,55 @@ export function getMalaysiaNow() {
   return getMalaysiaParts(new Date());
 }
 
+// Parses a "YYYY-MM-DD" Malaysia-calendar date string into the real UTC
+// instant of that day's Malaysia midnight (or its last millisecond, with
+// endOfDay). JS interprets a bare date-only ISO string ("2026-09-19") as
+// *UTC* midnight, not Malaysia midnight -- an 8-hour-wrong instant if used
+// directly as a cutoff -- so this is the one correct way to turn a
+// Malaysia calendar date back into a comparable timestamp.
+export function malaysiaDateStrToUTC(dateStr, endOfDay = false) {
+  return new Date(`${dateStr}T${endOfDay ? '23:59:59.999' : '00:00:00'}+08:00`);
+}
+
+// Real UTC instant of Malaysia midnight for the day containing `date`.
+export function getMalaysiaStartOfDayUTC(date = new Date()) {
+  return malaysiaDateStrToUTC(getMalaysiaParts(date).dateStr);
+}
+
+// Adds (or subtracts, with a negative count) whole calendar days to a
+// Malaysia "YYYY-MM-DD" date string. Malaysia has no DST, so exact
+// millisecond arithmetic on its own midnight instant is always exactly
+// 24h/day -- no calendar edge cases to handle.
+export function addMalaysiaDays(dateStr, days) {
+  const start = malaysiaDateStrToUTC(dateStr);
+  return getMalaysiaParts(new Date(start.getTime() + days * 86400000)).dateStr;
+}
+
+// Adds (or subtracts) whole months, clamping the day to the target month's
+// real length (e.g. Jan 31 - 1 month -> Dec 31, not an overflowed Mar 3).
+// Pure calendar-integer math -- deliberately not routed through a Date
+// object's own month arithmetic, which would reintroduce a runtime-
+// timezone dependency for no benefit here.
+export function addMalaysiaMonths(dateStr, months) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const total = (y * 12 + (m - 1)) + months;
+  const newY = Math.floor(total / 12);
+  const newM = ((total % 12) + 12) % 12 + 1;
+  const daysInNewMonth = new Date(newY, newM, 0).getDate();
+  const newD = Math.min(d, daysInNewMonth);
+  return `${newY}-${String(newM).padStart(2, '0')}-${String(newD).padStart(2, '0')}`;
+}
+
+// Adds (or subtracts) whole years, same day-clamping as addMalaysiaMonths
+// (matters for Feb 29 on a non-leap target year).
+export function addMalaysiaYears(dateStr, years) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const newY = y + years;
+  const daysInMonth = new Date(newY, m, 0).getDate();
+  const newD = Math.min(d, daysInMonth);
+  return `${newY}-${String(m).padStart(2, '0')}-${String(newD).padStart(2, '0')}`;
+}
+
 // Robust helper to parse time strings ("17:00", "05:00 pm", "5:00 PM", "05:00") into minutes from midnight
 export function parseTimeToMinutes(timeStr, defaultStr = '17:00') {
   const target = timeStr || defaultStr;
