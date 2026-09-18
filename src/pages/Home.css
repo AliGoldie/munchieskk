@@ -451,23 +451,23 @@
 }
 .c-review-rail {
   display: flex;
-  gap: 10px;
+  gap: 14px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   padding-bottom: 8px;
   margin: 0 0 20px;
 }
 .c-review-rail blockquote {
-  flex: 0 0 170px;
+  flex: 0 0 260px;
   scroll-snap-align: start;
   margin: 0;
-  padding: 12px 14px;
+  padding: 18px 22px;
   background: #fff;
   border-radius: var(--r-1b-sm);
   font-family: 'Caveat', cursive;
   font-weight: 600;
-  font-size: 1.05rem;
-  line-height: 1.2;
+  font-size: 1.4rem;
+  line-height: 1.28;
   font-style: normal;
   color: var(--munchies-dark);
   cursor: pointer;
