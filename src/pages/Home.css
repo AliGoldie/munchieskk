@@ -407,7 +407,11 @@
   background: var(--munchies-canvas);
   color: var(--munchies-dark);
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr), not 1fr -- a grid track won't shrink below its content's
+     natural width otherwise, and .c-review-rail's flex children (240px each)
+     would force this column (and the whole page) wider than the viewport
+     instead of scrolling inside the rail. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 40px;
   align-items: center;
 }
@@ -751,7 +755,7 @@
 /* ================= RESPONSIVE ================= */
 @media (max-width: 900px) {
   .c-deals-grid { grid-template-columns: 1fr; }
-  .c-portion { grid-template-columns: 1fr; }
+  .c-portion { grid-template-columns: minmax(0, 1fr); }
   .c-arcade { grid-template-columns: 1fr; }
   .c-portion-img { min-height: 280px; }
 }
