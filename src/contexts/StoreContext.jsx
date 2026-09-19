@@ -1424,6 +1424,29 @@ const clearManualOverride = async (id) => {
     return data;
   };
 
+  // GrabFood has no live order integration (that's a bigger, separate build
+  // -- see the app conversation this shipped from) -- staff read two numbers
+  // off Grab's own merchant portal once a day (items sold, and the net
+  // settled payout already correct after commission/SST/promo funding) and
+  // this turns that into one orders row (channel='Grab') plus a real stock
+  // deduction per item, via a single atomic RPC transaction so a partial
+  // failure can't record the sale without its stock deduction.
+  const logGrabfoodDailyEntry = async (entryDate, items, netTotalCents) => {
+    const { data, error } = await supabase.rpc('log_grabfood_daily_entry', {
+      p_entry_date: entryDate,
+      p_items: items,
+      p_net_total_cents: netTotalCents
+    });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    // Refresh local stock levels for whatever this deducted -- same
+    // approach fulfillRedemption already uses after its own RPC call.
+    const { data: freshMenu } = await supabase.from('menu_items').select('*');
+    if (freshMenu) setMenu(freshMenu.map(item => ({ ...item, inStock: item.in_stock, price: item.price })));
+    return { success: true, ...data };
+  };
+
   const fetchAdminRedemptions = async () => {
     const { data, error } = await supabase.from('redemptions').select('*, profiles:user_id(name, phone)').order('redeemed_at', { ascending: false }).limit(100);
     if (!error && data) setRedemptions(data);
@@ -1653,7 +1676,7 @@ const clearManualOverride = async (id) => {
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, claimShareBonus, fetchSingleOrder,
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
-      addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
+      addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize, logGrabfoodDailyEntry,
       ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
       updateIngredientLowStockThreshold, deleteIngredient, fetchIngredientHistory,
       fetchRecipe, saveRecipeItem, removeRecipeItem,
