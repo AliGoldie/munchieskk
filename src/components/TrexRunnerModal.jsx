@@ -17,6 +17,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const [rewardMsg, setRewardMsg] = useState(null);
   const [isNewBest, setIsNewBest] = useState(false);
   const [rankInfo, setRankInfo] = useState(null);
+  const [activeEffects, setActiveEffects] = useState({ speed: 0, invincible: 0 });
+  const [deathReason, setDeathReason] = useState(null);
 
   const gameStateRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -106,6 +108,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const sfxCollect = () => tone(780, 0.06, 'square', 0.11, 0);
   const sfxHit = () => tone(140, 0.3, 'sawtooth', 0.2, 0);
   const sfxNewBest = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.14, i * 0.13));
+  const sfxSmash = () => tone(300, 0.12, 'square', 0.16, 0);
+  const sfxPowerupSpeed = () => [500, 700, 900].forEach((f, i) => tone(f, 0.08, 'sawtooth', 0.1, i * 0.05));
+  const sfxPowerupInvincible = () => [400, 600, 800, 1000].forEach((f, i) => tone(f, 0.1, 'triangle', 0.12, i * 0.06));
 
   const toggleSound = () => setSoundOn(prev => !prev);
 
@@ -147,10 +152,16 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // Another explicit +20% on top of the last nudge (78/138 -> 94/166).
-    const BASE_SPEED = 94;
-    const MAX_SPEED = 166;
-    const SPEED_RAMP = 0.5;
+    // Another explicit +20% on top of the last nudge (78/138 -> 94/166),
+    // a further +13% requested on top of that (94/166 -> 106/188), and a
+    // small +6% "tiny bit faster" nudge on top of that (106/188 -> 112/199).
+    // SPEED_RAMP is slowed (not scaled proportionally) alongside it so the
+    // climb from base to max takes noticeably longer in real time -- the
+    // "make it faster AND make it last longer" request together mean less
+    // ramp per second, not just a higher final speed.
+    const BASE_SPEED = 112;
+    const MAX_SPEED = 199;
+    const SPEED_RAMP = 0.45;
     const TERRAIN_LOOKAHEAD = 260;
     // No obstacles or tier changes on the first few segments -- a clear
     // runway to get a feel for the controls before anything shows up.
@@ -169,19 +180,57 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const trexImg = new Image();
     trexImg.src = '/images/Trex.png';
 
+    // Sprite art for the new obstacle variety / power-ups / background --
+    // each Image is checked for `.complete && naturalWidth > 0` before every
+    // draw, so the game renders correctly (procedural fallback shapes) even
+    // before these files exist or if one fails to load.
+    const OBSTACLE_SPRITES = {
+      pan: new Image(),
+      crate: new Image(),
+      bottle: new Image()
+    };
+    OBSTACLE_SPRITES.pan.src = '/images/trex_obstacle_pan.png';
+    OBSTACLE_SPRITES.crate.src = '/images/trex_obstacle_crate.png';
+    OBSTACLE_SPRITES.bottle.src = '/images/trex_obstacle_bottle.png';
+
+    const POWERUP_SPRITES = {
+      speed: new Image(),
+      invincible: new Image()
+    };
+    POWERUP_SPRITES.speed.src = '/images/trex_powerup_speed.png';
+    POWERUP_SPRITES.invincible.src = '/images/trex_powerup_shield.png';
+
+    const bgImg = new Image();
+    bgImg.src = '/images/trex_bg_kitchen.png';
+
     const OBSTACLE_VARIANTS = [
-      { w: 22, h: 26 },
-      { w: 34, h: 20 },
-      { w: 18, h: 38 }
+      { w: 22, h: 26, spriteKey: 'crate' },
+      { w: 34, h: 20, spriteKey: 'pan' },
+      { w: 18, h: 38, spriteKey: 'bottle' }
     ];
+
+    // Power-up tuning: speed boost multiplies world-scroll speed (and so
+    // score, which is distance-based) for a limited window; invincibility
+    // lets obstacle hits be shrugged off for the same window. Neither
+    // protects against a missed jump/pit fall or running into a raised
+    // platform's side wall -- those are timing mistakes, not hazards, so
+    // "invincible" only ever means "immune to obstacles".
+    const POWERUP_DURATION = 6;
+    const POWERUP_SPEED_MULTIPLIER = 1.5;
+    const POWERUP_CHANCE = 0.1;
+    const MIN_POWERUP_SPACING = 500;
+    const OBSTACLE_SMASH_BONUS = 15;
 
     const state = {
       player: { y: LOW_Y - PLAYER_H, vy: 0, onGround: true },
       terrain: [],
       obstacles: [],
       collectibles: [],
+      powerups: [],
+      effects: [],
       distance: 0,
       score: 0,
+      bonusScore: 0,
       burgersCollected: 0,
       speed: BASE_SPEED,
       elapsed: 0,
@@ -189,6 +238,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       lastTime: null,
       segmentsGenerated: 0,
       lastObstacleRightEdge: -9999,
+      lastPowerupRightEdge: -9999,
+      speedBoostUntil: 0,
+      invincibleUntil: 0,
       running: false,
       animFrameId: null
     };
@@ -196,8 +248,11 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     // Difficulty ramps the platform layout (wider pits, more tier changes)
     // rather than relying on scroll speed alone to feel harder over time.
+    // Cap raised from 6000 to 7800 alongside the slower SPEED_RAMP above --
+    // both push "full difficulty" further out so an average run has more
+    // breathing room before tier-change jumps get tight.
     function difficulty() {
-      return Math.min(1, state.distance / 6000);
+      return Math.min(1, state.distance / 7800);
     }
 
     function maxJumpDistance() {
@@ -229,6 +284,28 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       return { xStart, xEnd, tier: nextTier, y: nextTier === 'high' ? HIGH_Y : LOW_Y };
     }
 
+    // Shared placement math for anything that needs to land somewhere clear
+    // of a same-segment obstacle (collectibles, power-ups): pick before the
+    // obstacle if there's more room there, after it otherwise, or null if
+    // neither side has minRoom+20 of clearance. Used to keep both spawn
+    // kinds' clearance rules identical instead of drifting apart.
+    function pickClearX(seg, placedObstacle, minRoom) {
+      if (placedObstacle) {
+        const roomBefore = placedObstacle.x - seg.xStart;
+        const roomAfter = seg.xEnd - (placedObstacle.x + placedObstacle.w);
+        if (roomBefore >= minRoom + 20 && roomBefore >= roomAfter) {
+          return seg.xStart + 10 + Math.random() * (roomBefore - minRoom - 10);
+        } else if (roomAfter >= minRoom + 20) {
+          return placedObstacle.x + placedObstacle.w + minRoom + Math.random() * (roomAfter - minRoom - 10);
+        }
+        return null;
+      }
+      if (seg.xEnd - seg.xStart > 40) {
+        return seg.xStart + 15 + Math.random() * (seg.xEnd - seg.xStart - 30);
+      }
+      return null;
+    }
+
     function ensureTerrain() {
       while (state.terrain.length === 0 || state.terrain[state.terrain.length - 1].xEnd < W + TERRAIN_LOOKAHEAD) {
         const last = state.terrain[state.terrain.length - 1];
@@ -249,7 +326,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           const v = OBSTACLE_VARIANTS[Math.floor(Math.random() * OBSTACLE_VARIANTS.length)];
           const ox = seg.xStart + 34 + Math.random() * (seg.xEnd - seg.xStart - 68);
           if (ox - state.lastObstacleRightEdge >= MIN_OBSTACLE_SPACING) {
-            placedObstacle = { x: ox, w: v.w, h: v.h, tierY: seg.y };
+            placedObstacle = { x: ox, w: v.w, h: v.h, tierY: seg.y, spriteKey: v.spriteKey };
             state.obstacles.push(placedObstacle);
             state.lastObstacleRightEdge = ox + v.w;
           }
@@ -265,20 +342,22 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         // without risking the hit.
         if (last && Math.random() < COLLECTIBLE_CHANCE) {
           const hopHeight = 30 + Math.random() * 34;
-          let cx = null;
-          if (placedObstacle) {
-            const roomBefore = placedObstacle.x - seg.xStart;
-            const roomAfter = seg.xEnd - (placedObstacle.x + placedObstacle.w);
-            if (roomBefore >= MIN_COLLECTIBLE_CLEARANCE + 20 && roomBefore >= roomAfter) {
-              cx = seg.xStart + 10 + Math.random() * (roomBefore - MIN_COLLECTIBLE_CLEARANCE - 10);
-            } else if (roomAfter >= MIN_COLLECTIBLE_CLEARANCE + 20) {
-              cx = placedObstacle.x + placedObstacle.w + MIN_COLLECTIBLE_CLEARANCE + Math.random() * (roomAfter - MIN_COLLECTIBLE_CLEARANCE - 10);
-            }
-          } else if (seg.xEnd - seg.xStart > 40) {
-            cx = seg.xStart + 15 + Math.random() * (seg.xEnd - seg.xStart - 30);
-          }
+          const cx = pickClearX(seg, placedObstacle, MIN_COLLECTIBLE_CLEARANCE);
           if (cx != null) {
             state.collectibles.push({ x: cx, y: seg.y - PLAYER_H - hopHeight, size: 9 });
+          }
+        }
+
+        // Power-up: rarer than a burger, same clearance rule from any
+        // obstacle on the segment, plus its own minimum world-space gap
+        // from the last power-up so speed/invincibility pickups can't
+        // cluster together.
+        if (last && !inGrace && Math.random() < POWERUP_CHANCE) {
+          const px = pickClearX(seg, placedObstacle, MIN_COLLECTIBLE_CLEARANCE);
+          if (px != null && px - state.lastPowerupRightEdge >= MIN_POWERUP_SPACING) {
+            const type = Math.random() < 0.5 ? 'speed' : 'invincible';
+            state.powerups.push({ x: px, y: seg.y - PLAYER_H - 34, size: 11, type });
+            state.lastPowerupRightEdge = px;
           }
         }
       }
@@ -289,8 +368,11 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.terrain = [];
       state.obstacles = [];
       state.collectibles = [];
+      state.powerups = [];
+      state.effects = [];
       state.distance = 0;
       state.score = 0;
+      state.bonusScore = 0;
       state.burgersCollected = 0;
       state.speed = BASE_SPEED;
       state.elapsed = 0;
@@ -298,6 +380,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.lastTime = null;
       state.segmentsGenerated = 0;
       state.lastObstacleRightEdge = -9999;
+      state.lastPowerupRightEdge = -9999;
+      state.speedBoostUntil = 0;
+      state.invincibleUntil = 0;
       state.running = false;
       ensureTerrain();
     }
@@ -314,7 +399,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
     }
 
-    async function endGame() {
+    async function endGame(reason) {
       state.running = false;
       sfxHit();
 
@@ -324,6 +409,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       setGameStarted(false);
       setScore(finalScore);
       setBurgersCollected(finalBurgers);
+      setDeathReason(reason);
 
       const liveUser = userRef.current;
       if (!liveUser || !liveUser.id) return;
@@ -356,18 +442,34 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     function update(dt) {
       state.elapsed += dt;
       state.speed = Math.min(MAX_SPEED, state.speed + SPEED_RAMP * dt);
-      state.distance += state.speed * dt;
-      state.score = Math.floor(state.distance / 8) + state.burgersCollected * 5;
+
+      const speedBoostActive = state.elapsed < state.speedBoostUntil;
+      const invincibleActive = state.elapsed < state.invincibleUntil;
+      // The boost multiplies the *effective* scroll speed only -- state.speed
+      // itself keeps ramping toward MAX_SPEED underneath it, so the game
+      // returns to the normal ramped pace (not a compounded one) once the
+      // boost window ends.
+      const effectiveSpeed = speedBoostActive ? state.speed * POWERUP_SPEED_MULTIPLIER : state.speed;
+
+      state.distance += effectiveSpeed * dt;
+      // Score is distance + burger bonus + smashed-obstacle bonus (from
+      // invincibility). Distance already accrues faster while boosted, so
+      // that alone rewards the speed power-up without a separate multiplier.
+      state.score = Math.floor(state.distance / 8) + state.burgersCollected * 5 + state.bonusScore;
       state.scoreThrottle += dt;
       if (state.scoreThrottle >= 0.1) {
         state.scoreThrottle = 0;
         setScore(state.score);
+        setActiveEffects({
+          speed: Math.max(0, state.speedBoostUntil - state.elapsed),
+          invincible: Math.max(0, state.invincibleUntil - state.elapsed)
+        });
       }
 
       // Scroll the world -- terrain, obstacles and collectibles all move
       // left in screen space, same approach the flat-runner version used
       // for obstacles, just now applied to platform segments too.
-      const moveBy = state.speed * dt;
+      const moveBy = effectiveSpeed * dt;
       for (const seg of state.terrain) {
         seg.xStart -= moveBy;
         seg.xEnd -= moveBy;
@@ -399,7 +501,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
 
       if (hitWall) {
-        endGame();
+        endGame('wall');
         return;
       }
 
@@ -408,7 +510,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // Fell into a pit -- no platform under the player and they've
       // dropped past the bottom of the canvas.
       if (!landed && state.player.y > H) {
-        endGame();
+        endGame('pit');
         return;
       }
 
@@ -426,7 +528,14 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         }
         const obY = o.tierY - o.h;
         if (overlap(hitboxX, hitboxY, hitboxW, hitboxH, o.x, obY, o.w, o.h)) {
-          endGame();
+          if (invincibleActive) {
+            state.bonusScore += OBSTACLE_SMASH_BONUS;
+            state.effects.push({ x: o.x + o.w / 2, y: obY + o.h / 2, ttl: 0.25 });
+            sfxSmash();
+            state.obstacles.splice(i, 1);
+            continue;
+          }
+          endGame('obstacle');
           return;
         }
       }
@@ -444,6 +553,32 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           state.collectibles.splice(i, 1);
         }
       }
+
+      for (let i = state.powerups.length - 1; i >= 0; i--) {
+        const p = state.powerups[i];
+        p.x -= moveBy;
+        if (p.x + p.size * 2 < 0) {
+          state.powerups.splice(i, 1);
+          continue;
+        }
+        if (overlap(hitboxX, hitboxY, hitboxW, hitboxH, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2)) {
+          if (p.type === 'speed') {
+            state.speedBoostUntil = state.elapsed + POWERUP_DURATION;
+            sfxPowerupSpeed();
+          } else {
+            state.invincibleUntil = state.elapsed + POWERUP_DURATION;
+            sfxPowerupInvincible();
+          }
+          state.powerups.splice(i, 1);
+        }
+      }
+
+      for (let i = state.effects.length - 1; i >= 0; i--) {
+        const e = state.effects[i];
+        e.x -= moveBy;
+        e.ttl -= dt;
+        if (e.ttl <= 0) state.effects.splice(i, 1);
+      }
     }
 
     function drawBackground() {
@@ -453,6 +588,23 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       grad.addColorStop(1, '#1a1a1a');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
+
+      // Parallax scenery, scrolling slower (0.3x) than the foreground so it
+      // reads as background depth. No-op (just the gradient above) until
+      // the art file exists or if it fails to load.
+      if (bgImg.complete && bgImg.naturalWidth > 0) {
+        const bh = H * 0.7;
+        const bw = bgImg.naturalWidth * (bh / bgImg.naturalHeight);
+        const offset = -(state.distance * 0.3) % bw;
+        // Lowered from 0.5 -- the food-city art is busy enough at full
+        // strength to camouflage small obstacle/pickup sprites in front of
+        // it, which made some deaths look like they came from nowhere.
+        ctx.globalAlpha = 0.38;
+        for (let x = offset - bw; x < W; x += bw) {
+          ctx.drawImage(bgImg, x, H - bh - 26, bw, bh);
+        }
+        ctx.globalAlpha = 1;
+      }
     }
 
     function drawTerrain() {
@@ -483,12 +635,56 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     function drawObstacle(o) {
       const y = o.tierY - o.h;
+      // Dark contact shadow behind every obstacle regardless of sprite --
+      // keeps hazards readable against the busy background art instead of
+      // blending into it.
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(o.x + o.w / 2, y + o.h / 2, o.w * 0.68, o.h * 0.68, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const sprite = OBSTACLE_SPRITES[o.spriteKey];
+      if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+        ctx.drawImage(sprite, o.x, y, o.w, o.h);
+        return;
+      }
       ctx.fillStyle = '#c73b0f';
       ctx.beginPath();
       ctx.roundRect(o.x, y, o.w, o.h, 4);
       ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
       ctx.fillRect(o.x, y, o.w, 4);
+    }
+
+    function drawPowerup(p) {
+      // Same readability aid as obstacles, plus a bit of glow since these
+      // are worth actively chasing rather than just avoiding.
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+      const sprite = POWERUP_SPRITES[p.type];
+      if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+        ctx.drawImage(sprite, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
+        return;
+      }
+      ctx.fillStyle = p.type === 'speed' ? '#3FA9E0' : '#FFD23F';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    function drawEffects() {
+      for (const e of state.effects) {
+        const alpha = Math.max(0, e.ttl / 0.25);
+        ctx.strokeStyle = `rgba(255, 199, 44, ${alpha})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, (1 - alpha) * 20 + 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
 
     function drawMiniBurger(cx, cy, size) {
@@ -507,10 +703,26 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     function drawPlayer() {
       const cx = PLAYER_X + PLAYER_W / 2;
       const cy = state.player.y + PLAYER_H / 2;
-      const bob = state.player.onGround && state.running ? Math.abs(Math.sin(state.elapsed * 10)) * 2 : 0;
+      const running = state.player.onGround && state.running;
+      // Stride cycle standing in for a real run-cycle sprite sheet: a bob
+      // synced with a small forward/back lean, both speeding up as the
+      // world speed ramps. Deliberately not multiple AI-generated frames --
+      // independent image generations of "the same character running"
+      // don't reliably match each other in style/proportions, so swapping
+      // between them would look worse than a single well-animated pose.
+      const strideSpeed = 12 + (state.speed - BASE_SPEED) * 0.04;
+      const phase = state.elapsed * strideSpeed;
+      const bob = running ? Math.abs(Math.sin(phase)) * 3 : 0;
+      const lean = running ? Math.sin(phase * 2) * 0.06 : 0;
+      const invincibleActive = state.elapsed < state.invincibleUntil;
 
       ctx.save();
       ctx.translate(cx, cy - bob);
+      if (invincibleActive) {
+        ctx.shadowColor = 'rgba(255, 210, 63, 0.9)';
+        ctx.shadowBlur = 14;
+      }
+      ctx.rotate(lean);
       ctx.scale(-1, 1); // T-Rex sprite art faces left; flip so it runs facing right
       if (trexImg.complete && trexImg.naturalWidth > 0) {
         ctx.drawImage(trexImg, -TREX_DRAW_W / 2, -TREX_DRAW_H / 2, TREX_DRAW_W, TREX_DRAW_H);
@@ -528,6 +740,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       drawTerrain();
       state.obstacles.forEach(drawObstacle);
       state.collectibles.forEach(c => drawMiniBurger(c.x, c.y, c.size));
+      state.powerups.forEach(drawPowerup);
+      drawEffects();
       drawPlayer();
     }
 
@@ -584,6 +798,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     setIsNewBest(false);
     setRankInfo(null);
     setBurgersCollected(0);
+    setActiveEffects({ speed: 0, invincible: 0 });
+    setDeathReason(null);
     ensureAudio();
 
     if (user) {
@@ -622,12 +838,23 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
             <canvas ref={canvasRef}></canvas>
 
+            {(activeEffects.speed > 0 || activeEffects.invincible > 0) && (
+              <div className="runner-powerup-badges">
+                {activeEffects.speed > 0 && (
+                  <span className="runner-badge runner-badge-speed">⚡ {activeEffects.speed.toFixed(1)}s</span>
+                )}
+                {activeEffects.invincible > 0 && (
+                  <span className="runner-badge runner-badge-shield">🛡 {activeEffects.invincible.toFixed(1)}s</span>
+                )}
+              </div>
+            )}
+
             {(!gameStarted || gameOver) && (
               <div className="runner-overlay-screen">
                 {!gameOver ? (
                   <>
                     <h2>Ready to Run?</h2>
-                    <p>Tap, click, or press Space to jump your T-Rex between raised platforms and over pits. Grab floating burgers for bonus points -- missing a jump or hitting an obstacle ends the run!</p>
+                    <p>Tap, click, or press Space to jump your T-Rex between raised platforms and over pits. Grab floating burgers for bonus points, ⚡ speed boosts to rack up distance fast, and 🛡 shields to smash through obstacles -- missing a jump still ends the run!</p>
                     {user && bestScore > 0 && (
                       <p style={{ fontSize: 12, color: 'var(--munchies-yellow)', marginTop: -12 }}>Your Best: {bestScore}</p>
                     )}
@@ -639,6 +866,13 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                   <>
                     <h2>{isNewBest ? '🎉 New Best!' : '💥 Game Over'}</h2>
                     <p>Score: {score}{!isNewBest && user ? ` -- Best: ${bestScore}` : ''}</p>
+                    {deathReason && (
+                      <p style={{ fontSize: 12, color: '#aaa', marginTop: -10, marginBottom: 4 }}>
+                        {deathReason === 'wall' && 'Ran into a platform mid-jump'}
+                        {deathReason === 'pit' && 'Missed a jump into a pit'}
+                        {deathReason === 'obstacle' && 'Hit an obstacle'}
+                      </p>
+                    )}
 
                     {burgersCollected > 0 && (
                       <div style={{ fontSize: 12, color: '#ccc', marginBottom: 10 }}>
