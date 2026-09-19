@@ -3,7 +3,10 @@ import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { startNewOrderAlert, stopNewOrderAlert } from '../utils/soundAlert';
-import { formatTime12Hour } from '../utils/timeUtils';
+import {
+  formatTime12Hour, getMalaysiaNow, getMalaysiaParts, getMalaysiaStartOfDayUTC,
+  malaysiaDateStrToUTC, addMalaysiaDays, addMalaysiaMonths, addMalaysiaYears
+} from '../utils/timeUtils';
 import { supabase } from '../config/supabase';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -91,22 +94,11 @@ function getCustomerSegment(orderCount, lifetimeCents, lastSeenDays) {
 // no changes to the aggregation/bucketing logic at all.
 const DATE_RANGE_PRESETS = ['Today', '7d', '30d', 'This month'];
 function computePresetDateRange(preset) {
-  const end = new Date();
-  const toStr = (d) => d.toISOString().split('T')[0];
-  const endStr = toStr(end);
+  const endStr = getMalaysiaNow().dateStr;
   if (preset === 'Today') return { start: endStr, end: endStr };
-  if (preset === '7d') {
-    const s = new Date(end); s.setDate(s.getDate() - 6);
-    return { start: toStr(s), end: endStr };
-  }
-  if (preset === '30d') {
-    const s = new Date(end); s.setDate(s.getDate() - 29);
-    return { start: toStr(s), end: endStr };
-  }
-  if (preset === 'This month') {
-    const s = new Date(end.getFullYear(), end.getMonth(), 1);
-    return { start: toStr(s), end: endStr };
-  }
+  if (preset === '7d') return { start: addMalaysiaDays(endStr, -6), end: endStr };
+  if (preset === '30d') return { start: addMalaysiaDays(endStr, -29), end: endStr };
+  if (preset === 'This month') return { start: `${endStr.slice(0, 7)}-01`, end: endStr };
   return null;
 }
 
@@ -642,7 +634,7 @@ export default function Admin() {
   const [eventsNotes, setEventsNotes] = useState([]);
 
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-  const [selectedEventDate, setSelectedEventDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedEventDate, setSelectedEventDate] = useState(getMalaysiaNow().dateStr);
   const [eventFormData, setEventFormData] = useState({
     id: null,
     title: '',
@@ -664,14 +656,13 @@ export default function Admin() {
   // on this weekday over the last 8 weeks. Cancelled orders never actually
   // moved stock, so they're excluded from "sold".
   const prepBoardData = useMemo(() => {
-    const todayIdx = new Date().getDay();
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 56);
+    const { dateStr: todayStr, dayIndex: todayIdx } = getMalaysiaNow();
+    const cutoff = malaysiaDateStrToUTC(addMalaysiaDays(todayStr, -56));
     const qtyByItem = {};
     orders.forEach(o => {
       if (o.status === 'CANCELLED') return;
       const created = new Date(o.created_at);
-      if (created < cutoff || created.getDay() !== todayIdx) return;
+      if (created < cutoff || getMalaysiaParts(created).dayIndex !== todayIdx) return;
       (o.items || []).forEach(oi => {
         if (oi.id == null) return;
         const key = String(oi.id);
@@ -700,8 +691,7 @@ export default function Admin() {
   // selling price instead -- same ratio, applied to the closest available
   // number.
   const foodCostTonight = useMemo(() => {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const startOfDay = getMalaysiaStartOfDayUTC();
     const uncostedItemIds = new Set();
     let grossRm = 0;
     let cogsRm = 0;
@@ -1006,8 +996,7 @@ export default function Admin() {
 
   const fetchWasteLog = async () => {
     try {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+      const startOfDay = getMalaysiaStartOfDayUTC();
       const { data, error } = await supabase
         .from('waste_log')
         .select('*')
@@ -1107,10 +1096,7 @@ export default function Admin() {
 
   const fetchStockReport = async (days) => {
     setLoadingStockReport(true);
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - (days - 1));
-    startDate.setHours(0, 0, 0, 0);
-    const startDateStr = startDate.toISOString().slice(0, 10);
+    const startDateStr = addMalaysiaDays(getMalaysiaNow().dateStr, -(days - 1));
     const { data, error } = await supabase
       .from('daily_stock_snapshots')
       .select('*')
@@ -1599,7 +1585,7 @@ export default function Admin() {
 
 
   const handleOpenAddEventModal = (dateStr = null) => {
-    const targetDate = dateStr || new Date().toISOString().split('T')[0];
+    const targetDate = dateStr || getMalaysiaNow().dateStr;
     setSelectedEventDate(targetDate);
     setEventFormData({ id: null, title: '', type: 'event', description: '' });
     setIsEventModalOpen(true);
@@ -1746,8 +1732,7 @@ export default function Admin() {
   }, [totalCompleted, orders.length, activeTab]);
 
   // Metrics calculation for Overview
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = getMalaysiaStartOfDayUTC();
   const todaysOrders = orders.filter(o => new Date(o.created_at || now) >= todayStart && o.status !== 'PENDING');
   const lowStockItems = [
     ...menu.filter(item => !item.inStock || (item.stock_quantity ?? 99) <= (item.low_stock_threshold ?? 10)).map(i => ({ ...i, isAddon: false })),
@@ -1789,22 +1774,29 @@ export default function Admin() {
   const processAnalyticsData = () => {
     const validOrders = orders.filter(o => o.status !== 'PENDING');
     
-    const nowD = new Date(now);
-    let cutoff = new Date(nowD);
+    // Every "today"/cutoff/bucket boundary below is computed against
+    // Malaysia's wall clock (see timeUtils.getMalaysia*), not new Date()'s
+    // local getters -- a report viewed from outside Malaysia (or built/
+    // previewed on a non-Malaysia machine) would otherwise bucket orders
+    // placed near midnight into the wrong day, and show the wrong revenue
+    // for "today"/"this week"/etc.
+    const todayStr = getMalaysiaNow().dateStr;
+    let cutoff;
     if (selectedDateRange.start && selectedDateRange.end) {
-      cutoff = new Date(selectedDateRange.start);
+      cutoff = malaysiaDateStrToUTC(selectedDateRange.start);
+    } else if (analyticsPeriod === 'daily') {
+      cutoff = malaysiaDateStrToUTC(addMalaysiaDays(todayStr, -7));
+    } else if (analyticsPeriod === 'monthly') {
+      cutoff = malaysiaDateStrToUTC(addMalaysiaMonths(todayStr, -6));
+    } else if (analyticsPeriod === 'yearly') {
+      cutoff = malaysiaDateStrToUTC(addMalaysiaYears(todayStr, -3));
     } else {
-      if (analyticsPeriod === 'daily') cutoff.setDate(cutoff.getDate() - 7);
-      else if (analyticsPeriod === 'monthly') cutoff.setMonth(cutoff.getMonth() - 6);
-      else if (analyticsPeriod === 'yearly') cutoff.setFullYear(cutoff.getFullYear() - 3);
+      cutoff = getMalaysiaStartOfDayUTC();
     }
-    
-    cutoff.setHours(0, 0, 0, 0);
 
     let periodOrders = validOrders.filter(o => new Date(o.created_at || now) >= cutoff);
     if (selectedDateRange.start && selectedDateRange.end) {
-      const endOfDay = new Date(selectedDateRange.end);
-      endOfDay.setHours(23, 59, 59, 999);
+      const endOfDay = malaysiaDateStrToUTC(selectedDateRange.end, true);
       periodOrders = periodOrders.filter(o => new Date(o.created_at || now) <= endOfDay);
     }
     
@@ -1926,44 +1918,39 @@ export default function Admin() {
     // Trend Data
     const trendData = [];
     if (selectedDateRange.start && selectedDateRange.end) {
-      const start = new Date(selectedDateRange.start);
-      const end = new Date(selectedDateRange.end);
-      let curr = new Date(start);
-      while (curr <= end) {
+      let curr = selectedDateRange.start;
+      while (curr <= selectedDateRange.end) {
         trendData.push({
-          dateStr: curr.toISOString().split('T')[0],
-          displayDate: curr.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          dateStr: curr,
+          displayDate: formatStoreDate(malaysiaDateStrToUTC(curr), { month: 'short', day: 'numeric' }),
           revenue: 0, web: 0, loyverse: 0, ordersCount: 0
         });
-        curr.setDate(curr.getDate() + 1);
+        curr = addMalaysiaDays(curr, 1);
       }
     } else if (analyticsPeriod === 'daily') {
       for (let i = 6; i >= 0; i--) {
-        const d = new Date(nowD);
-        d.setDate(d.getDate() - i);
+        const dateStr = addMalaysiaDays(todayStr, -i);
         trendData.push({
-          dateStr: d.toISOString().split('T')[0],
-          displayDate: d.toLocaleDateString('en-US', { weekday: 'short' }),
+          dateStr,
+          displayDate: formatStoreDate(malaysiaDateStrToUTC(dateStr), { weekday: 'short' }),
           revenue: 0, web: 0, loyverse: 0, ordersCount: 0
         });
       }
     } else if (analyticsPeriod === 'monthly') {
       for (let i = 5; i >= 0; i--) {
-        const d = new Date(nowD);
-        d.setMonth(d.getMonth() - i);
+        const monthDateStr = addMalaysiaMonths(todayStr, -i);
         trendData.push({
-          dateStr: `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2, '0')}`,
-          displayDate: d.toLocaleDateString('en-US', { month: 'short' }),
+          dateStr: monthDateStr.slice(0, 7),
+          displayDate: formatStoreDate(malaysiaDateStrToUTC(monthDateStr), { month: 'short' }),
           revenue: 0, web: 0, loyverse: 0, ordersCount: 0
         });
       }
     } else if (analyticsPeriod === 'yearly') {
       for (let i = 2; i >= 0; i--) {
-        const d = new Date(nowD);
-        d.setFullYear(d.getFullYear() - i);
+        const yearStr = addMalaysiaYears(todayStr, -i).slice(0, 4);
         trendData.push({
-          dateStr: `${d.getFullYear()}`,
-          displayDate: `${d.getFullYear()}`,
+          dateStr: yearStr,
+          displayDate: yearStr,
           revenue: 0, web: 0, loyverse: 0, ordersCount: 0
         });
       }
@@ -1980,20 +1967,21 @@ export default function Admin() {
 
     periodOrders.forEach(order => {
       const orderD = new Date(order.created_at || now);
+      const orderMY = getMalaysiaParts(orderD);
       let matchedBucket = null;
 
       if ((selectedDateRange.start && selectedDateRange.end) || analyticsPeriod === 'daily') {
-        const dateStr = orderD.toISOString().split('T')[0];
+        const dateStr = orderMY.dateStr;
         matchedBucket = trendData.find(d => d.dateStr === dateStr);
         if ((selectedDateRange.start && selectedDateRange.end) && !matchedBucket) {
            matchedBucket = { dateStr, displayDate: dateStr, revenue: 0, web: 0, loyverse: 0, ordersCount: 0 };
            trendData.push(matchedBucket);
         }
       } else if (analyticsPeriod === 'monthly') {
-        const monthStr = `${orderD.getFullYear()}-${(orderD.getMonth()+1).toString().padStart(2, '0')}`;
+        const monthStr = orderMY.dateStr.slice(0, 7);
         matchedBucket = trendData.find(d => d.dateStr === monthStr);
       } else if (analyticsPeriod === 'yearly') {
-        const yearStr = `${orderD.getFullYear()}`;
+        const yearStr = orderMY.dateStr.slice(0, 4);
         matchedBucket = trendData.find(d => d.dateStr === yearStr);
       }
 
@@ -2011,8 +1999,8 @@ export default function Admin() {
         else matchedBucket.web += gross;
       }
 
-      // Populate hourly trend
-      const hour = orderD.getHours();
+      // Populate hourly trend (Malaysia hour, not the viewer's local one)
+      const hour = orderMY.hour;
       hourlyTrendData[hour].ordersCount += 1;
       const gross = order.total / 100;
       const rawChannel = (order.channel || 'web').toLowerCase();
@@ -2646,7 +2634,7 @@ export default function Admin() {
                             const dayFull = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
                             // Use LOCAL draft state — fully isolated per day, no stale closures
                             const sched = localSchedule[day] || { enabled: true, open: '17:00', close: '23:00' };
-                            const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+                            const today = getMalaysiaNow().dayKey;
                             const isToday = day === today;
                             return (
                               <div key={day} style={{
@@ -2688,7 +2676,7 @@ export default function Admin() {
                       <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🚨 Special Closures & Holidays</label>
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                          <input type="date" id="closure-date-input" min={new Date().toISOString().split('T')[0]}
+                          <input type="date" id="closure-date-input" min={getMalaysiaNow().dateStr}
                             style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.875rem' }} />
                           <input type="text" id="closure-reason-input" placeholder="Reason (e.g. Public Holiday)"
                             style={{ flex: 1, minWidth: '160px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontSize: '0.875rem' }} />
@@ -2710,7 +2698,7 @@ export default function Admin() {
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {[...(localClosures || [])].sort((a,b) => a.date.localeCompare(b.date)).map((closure, idx) => {
-                              const todayStr = new Date().toISOString().split('T')[0];
+                              const todayStr = getMalaysiaNow().dateStr;
                               const isPast = closure.date < todayStr;
                               const isToday = closure.date === todayStr;
                               return (
@@ -2755,7 +2743,7 @@ export default function Admin() {
                     <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>🏪 Store Status</h3>
                     <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                       {(() => {
-                        const today = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+                        const today = getMalaysiaNow().dayKey;
                         const sched = shopSettings?.weeklySchedule?.[today];
                         if (!sched || !sched.enabled) return 'Closed today per weekly schedule';
                         return `Today: ${formatTime12Hour(sched.open)} – ${formatTime12Hour(sched.close)}`;
@@ -3073,13 +3061,9 @@ export default function Admin() {
                           const isSelected = selectedCalendarDate.getDate() === dateNum;
                           const dayDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
                           
-                          // Check for orders
-                          const hasOrders = orders.some(o => {
-                            const oDate = new Date(o.created_at);
-                            return oDate.getDate() === dateNum && 
-                                   oDate.getMonth() === month && 
-                                   oDate.getFullYear() === year;
-                          });
+                          // Check for orders (Malaysia calendar date, not
+                          // the viewer's local reading of the UTC timestamp)
+                          const hasOrders = orders.some(o => getMalaysiaParts(new Date(o.created_at)).dateStr === dayDateStr);
 
                           // Check for events
                           const dayEvents = eventsNotes.filter(e => e.date === dayDateStr);
@@ -3176,7 +3160,7 @@ export default function Admin() {
                      <div style={{ flex: 1, border: '1px solid #fee2e2', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff5f5' }}>
                         <div style={{ color: '#ef4444', marginBottom: '8px' }}><Archive size={32} /></div>
                         <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{formatStoreDateTime(new Date(), { month: 'short' })} Report</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date().getFullYear()}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{getMalaysiaNow().dateStr.slice(0, 4)}</div>
                      </div>
                      <div style={{ flex: 1, border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} className="hover-bg-slate">
                         <div style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}><PlusSquare size={32} /></div>
