@@ -581,6 +581,14 @@
     font-size: 23px;
   }
 
+  /* Cards were stuck at 1 column (full container width) on desktop too --
+     that stretched the 16/9 image to ~600px tall, pushing POWER UP off
+     the bottom of the screen. Multi-column brings the card back to a
+     sane width so the image scales down with it. */
+  .hot-list-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
   .hot-list-info h3 {
     font-size: 1.2rem;
   }
