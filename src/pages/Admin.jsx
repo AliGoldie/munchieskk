@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2 } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2, Truck, Plus, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import './Admin.css';
@@ -221,6 +221,7 @@ export default function Admin() {
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
     loyaltyPrizes, redemptions, fetchAdminRedemptions, fulfillRedemption, addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
+    logGrabfoodDailyEntry,
     ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
     updateIngredientLowStockThreshold, deleteIngredient, fetchIngredientHistory,
     fetchRecipe, saveRecipeItem, removeRecipeItem,
@@ -780,6 +781,52 @@ export default function Admin() {
   };
   const totalRedemptionValue = redemptions.reduce((sum, r) => sum + (getRedemptionCost(r) || 0), 0);
   const redemptionsMissingCost = redemptions.filter(r => getRedemptionCost(r) == null).length;
+
+  // ── GrabFood Daily Entry: no live order integration -- staff read two
+  // numbers off Grab's own merchant portal once a day (items sold, net
+  // settled payout) and this logs one channel='Grab' order plus a real
+  // stock deduction per item, via log_grabfood_daily_entry(). ───────────
+  const [grabEntryDate, setGrabEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [grabRows, setGrabRows] = useState([{ itemId: '', quantity: 1 }]);
+  const [grabNetTotalRm, setGrabNetTotalRm] = useState('');
+  const [grabSubmitting, setGrabSubmitting] = useState(false);
+  const [grabResult, setGrabResult] = useState(null);
+
+  const grabfoodOrders = orders
+    .filter(o => (o.channel || '').toLowerCase() === 'grab')
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 30);
+
+  const addGrabRow = () => setGrabRows(prev => [...prev, { itemId: '', quantity: 1 }]);
+  const removeGrabRow = (idx) => setGrabRows(prev => prev.filter((_, i) => i !== idx));
+  const updateGrabRow = (idx, field, value) => setGrabRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+
+  const handleSubmitGrabEntry = async () => {
+    const netTotalCents = Math.round(parseFloat(grabNetTotalRm || '0') * 100);
+    if (!netTotalCents || netTotalCents <= 0) {
+      alert('Enter the net payout amount from Grab\'s settlement report.');
+      return;
+    }
+    const items = grabRows
+      .filter(r => r.itemId && Number(r.quantity) > 0)
+      .map(r => {
+        const menuItem = menu.find(m => m.id === r.itemId);
+        return { id: r.itemId, name: menuItem?.name || r.itemId, quantity: Number(r.quantity) };
+      });
+
+    setGrabSubmitting(true);
+    setGrabResult(null);
+    const res = await logGrabfoodDailyEntry(grabEntryDate, items, netTotalCents);
+    setGrabSubmitting(false);
+
+    if (!res.success) {
+      alert('Failed to log GrabFood entry: ' + res.error);
+      return;
+    }
+    setGrabResult(res);
+    setGrabRows([{ itemId: '', quantity: 1 }]);
+    setGrabNetTotalRm('');
+  };
 
   // Cost & Pricing Review: for every item with a fully-costed recipe (every
   // ingredient in it has a cost_per_unit set), roll up the real recipe cost
@@ -2391,7 +2438,10 @@ export default function Admin() {
           <button className={`sidebar-item ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
             <Archive size={20} /> Order History
           </button>
-        
+          <button className={`sidebar-item ${activeTab === 'grabfood' ? 'active' : ''}`} onClick={() => setActiveTab('grabfood')}>
+            <Truck size={20} /> GrabFood Entry
+          </button>
+
           <button className={`sidebar-item ${activeTab === 'loyalty_crm' ? 'active' : ''}`} onClick={() => setActiveTab('loyalty_crm')}>
             <Gift size={20} /> Prizes CRM
           </button>
@@ -5539,6 +5589,127 @@ export default function Admin() {
                 })}
               </tbody>
             </table></div>
+          </div>
+        )}
+
+        {/* GrabFood Daily Entry Tab */}
+        {activeTab === 'grabfood' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="admin-card">
+              <h3>GrabFood Daily Entry</h3>
+              <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
+                Once a day, read two numbers off Grab's own merchant portal: the items sold, and the net settled payout
+                (already correct after commission/SST/promo funding -- don't try to recompute that here). This logs one
+                order and deducts real stock per item.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 520 }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  Date
+                  <input
+                    type="date"
+                    className="price-input w-full"
+                    value={grabEntryDate}
+                    onChange={e => setGrabEntryDate(e.target.value)}
+                    style={{ display: 'block', marginTop: 4 }}
+                  />
+                </label>
+
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Items sold via GrabFood</div>
+                  {grabRows.map((row, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                      <select
+                        className="price-input"
+                        style={{ flex: 1 }}
+                        value={row.itemId}
+                        onChange={e => updateGrabRow(idx, 'itemId', e.target.value)}
+                      >
+                        <option value="">-- Select item --</option>
+                        {menu.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        className="price-input"
+                        style={{ width: 80 }}
+                        value={row.quantity}
+                        onChange={e => updateGrabRow(idx, 'quantity', e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        onClick={() => removeGrabRow(idx)}
+                        disabled={grabRows.length === 1}
+                        aria-label="Remove row"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" className="btn btn-sm btn-outline" onClick={addGrabRow}>
+                    <Plus size={14} /> Add item
+                  </button>
+                </div>
+
+                <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  Net payout (RM) -- from Grab's settlement report
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="price-input w-full"
+                    value={grabNetTotalRm}
+                    onChange={e => setGrabNetTotalRm(e.target.value)}
+                    placeholder="0.00"
+                    style={{ display: 'block', marginTop: 4 }}
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSubmitGrabEntry}
+                  disabled={grabSubmitting}
+                  style={{ alignSelf: 'flex-start' }}
+                >
+                  {grabSubmitting ? 'Logging...' : 'Log GrabFood Entry'}
+                </button>
+
+                {grabResult && (
+                  <div style={{ fontSize: '0.85rem', background: 'rgba(34,197,94,0.1)', border: '1px solid #22c55e', borderRadius: 8, padding: '10px 14px' }}>
+                    <strong>Logged as {grabResult.order_id}.</strong>{' '}
+                    {grabResult.deducted_items?.length > 0 && <span>Stock deducted for {grabResult.deducted_items.length} item{grabResult.deducted_items.length === 1 ? '' : 's'}.</span>}
+                    {grabResult.unmapped_items?.length > 0 && (
+                      <div style={{ color: '#b45309', marginTop: 4 }}>
+                        {grabResult.unmapped_items.length} item{grabResult.unmapped_items.length === 1 ? '' : 's'} not found in Menu CRM -- stock not deducted for: {grabResult.unmapped_items.map(i => i.name).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="admin-card">
+              <h3>Recent GrabFood Entries</h3>
+              <div className="table-responsive"><table className="admin-table">
+                <thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Net Total</th></tr></thead>
+                <tbody>
+                  {grabfoodOrders.length === 0 ? (
+                    <tr><td colSpan="4" className="text-center text-muted" style={{ padding: '2rem' }}>No GrabFood entries logged yet.</td></tr>
+                  ) : grabfoodOrders.map(o => (
+                    <tr key={o.id}>
+                      <td style={{ fontFamily: 'monospace' }}>{o.id}</td>
+                      <td>{formatStoreDate(o.created_at)}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        {(o.items || []).map(i => `${i.name} x${i.quantity}`).join(', ') || '—'}
+                      </td>
+                      <td>RM {((o.total || 0) / 100).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+            </div>
           </div>
         )}
 
