@@ -18,6 +18,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const [isNewBest, setIsNewBest] = useState(false);
   const [rankInfo, setRankInfo] = useState(null);
   const [activeEffects, setActiveEffects] = useState({ speed: 0, invincible: 0 });
+  const [deathReason, setDeathReason] = useState(null);
 
   const gameStateRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -151,11 +152,16 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const PLAYER_X = 54;
     const PLAYER_W = 30;
     const PLAYER_H = 34;
-    // Another explicit +20% on top of the last nudge (78/138 -> 94/166), and
-    // a further +13% requested on top of that (94/166 -> 106/188).
-    const BASE_SPEED = 106;
-    const MAX_SPEED = 188;
-    const SPEED_RAMP = 0.57;
+    // Another explicit +20% on top of the last nudge (78/138 -> 94/166),
+    // a further +13% requested on top of that (94/166 -> 106/188), and a
+    // small +6% "tiny bit faster" nudge on top of that (106/188 -> 112/199).
+    // SPEED_RAMP is slowed (not scaled proportionally) alongside it so the
+    // climb from base to max takes noticeably longer in real time -- the
+    // "make it faster AND make it last longer" request together mean less
+    // ramp per second, not just a higher final speed.
+    const BASE_SPEED = 112;
+    const MAX_SPEED = 199;
+    const SPEED_RAMP = 0.45;
     const TERRAIN_LOOKAHEAD = 260;
     // No obstacles or tier changes on the first few segments -- a clear
     // runway to get a feel for the controls before anything shows up.
@@ -242,8 +248,11 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     // Difficulty ramps the platform layout (wider pits, more tier changes)
     // rather than relying on scroll speed alone to feel harder over time.
+    // Cap raised from 6000 to 7800 alongside the slower SPEED_RAMP above --
+    // both push "full difficulty" further out so an average run has more
+    // breathing room before tier-change jumps get tight.
     function difficulty() {
-      return Math.min(1, state.distance / 6000);
+      return Math.min(1, state.distance / 7800);
     }
 
     function maxJumpDistance() {
@@ -390,7 +399,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
     }
 
-    async function endGame() {
+    async function endGame(reason) {
       state.running = false;
       sfxHit();
 
@@ -400,6 +409,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       setGameStarted(false);
       setScore(finalScore);
       setBurgersCollected(finalBurgers);
+      setDeathReason(reason);
 
       const liveUser = userRef.current;
       if (!liveUser || !liveUser.id) return;
@@ -491,7 +501,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
 
       if (hitWall) {
-        endGame();
+        endGame('wall');
         return;
       }
 
@@ -500,7 +510,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // Fell into a pit -- no platform under the player and they've
       // dropped past the bottom of the canvas.
       if (!landed && state.player.y > H) {
-        endGame();
+        endGame('pit');
         return;
       }
 
@@ -525,7 +535,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
             state.obstacles.splice(i, 1);
             continue;
           }
-          endGame();
+          endGame('obstacle');
           return;
         }
       }
@@ -586,7 +596,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         const bh = H * 0.7;
         const bw = bgImg.naturalWidth * (bh / bgImg.naturalHeight);
         const offset = -(state.distance * 0.3) % bw;
-        ctx.globalAlpha = 0.5;
+        // Lowered from 0.5 -- the food-city art is busy enough at full
+        // strength to camouflage small obstacle/pickup sprites in front of
+        // it, which made some deaths look like they came from nowhere.
+        ctx.globalAlpha = 0.38;
         for (let x = offset - bw; x < W; x += bw) {
           ctx.drawImage(bgImg, x, H - bh - 26, bw, bh);
         }
@@ -622,6 +635,13 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     function drawObstacle(o) {
       const y = o.tierY - o.h;
+      // Dark contact shadow behind every obstacle regardless of sprite --
+      // keeps hazards readable against the busy background art instead of
+      // blending into it.
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(o.x + o.w / 2, y + o.h / 2, o.w * 0.68, o.h * 0.68, 0, 0, Math.PI * 2);
+      ctx.fill();
       const sprite = OBSTACLE_SPRITES[o.spriteKey];
       if (sprite && sprite.complete && sprite.naturalWidth > 0) {
         ctx.drawImage(sprite, o.x, y, o.w, o.h);
@@ -636,6 +656,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
 
     function drawPowerup(p) {
+      // Same readability aid as obstacles, plus a bit of glow since these
+      // are worth actively chasing rather than just avoiding.
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * 1.15, 0, Math.PI * 2);
+      ctx.fill();
       const sprite = POWERUP_SPRITES[p.type];
       if (sprite && sprite.complete && sprite.naturalWidth > 0) {
         ctx.drawImage(sprite, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
@@ -773,6 +799,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     setRankInfo(null);
     setBurgersCollected(0);
     setActiveEffects({ speed: 0, invincible: 0 });
+    setDeathReason(null);
     ensureAudio();
 
     if (user) {
@@ -839,6 +866,13 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                   <>
                     <h2>{isNewBest ? '🎉 New Best!' : '💥 Game Over'}</h2>
                     <p>Score: {score}{!isNewBest && user ? ` -- Best: ${bestScore}` : ''}</p>
+                    {deathReason && (
+                      <p style={{ fontSize: 12, color: '#aaa', marginTop: -10, marginBottom: 4 }}>
+                        {deathReason === 'wall' && 'Ran into a platform mid-jump'}
+                        {deathReason === 'pit' && 'Missed a jump into a pit'}
+                        {deathReason === 'obstacle' && 'Hit an obstacle'}
+                      </p>
+                    )}
 
                     {burgersCollected > 0 && (
                       <div style={{ fontSize: 12, color: '#ccc', marginBottom: 10 }}>
