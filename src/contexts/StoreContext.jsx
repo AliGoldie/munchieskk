@@ -1430,19 +1430,57 @@ const clearManualOverride = async (id) => {
   // this turns that into one orders row (channel='Grab') plus a real stock
   // deduction per item, via a single atomic RPC transaction so a partial
   // failure can't record the sale without its stock deduction.
-  const logGrabfoodDailyEntry = async (entryDate, items, netTotalCents) => {
+  const logGrabfoodDailyEntry = async (entryDate, items, netTotalCents, addonItems = [], grabOrderRef = null) => {
     const { data, error } = await supabase.rpc('log_grabfood_daily_entry', {
       p_entry_date: entryDate,
       p_items: items,
-      p_net_total_cents: netTotalCents
+      p_net_total_cents: netTotalCents,
+      p_addon_items: addonItems,
+      p_grab_order_ref: grabOrderRef
     });
     if (error) {
       return { success: false, error: error.message };
     }
     // Refresh local stock levels for whatever this deducted -- same
     // approach fulfillRedemption already uses after its own RPC call.
+    // Addons stock changes don't reach other clients via realtime (that
+    // channel only handles INSERT/DELETE, not UPDATE), so this refetch is
+    // the only way this session's own addons list picks up the deduction.
     const { data: freshMenu } = await supabase.from('menu_items').select('*');
     if (freshMenu) setMenu(freshMenu.map(item => ({ ...item, inStock: item.in_stock, price: item.price })));
+    if (addonItems.length > 0) {
+      const { data: freshAddons } = await supabase.from('addons').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
+      if (freshAddons) setAddons(freshAddons);
+    }
+    return { success: true, ...data };
+  };
+
+  // Undo a mistaken GrabFood entry: reverses both item and add-on stock
+  // (add-on reversal reads addon_deduction_log server-side, which is why
+  // that log is written in the first place) and voids the order. Mirrors
+  // cancelOrder's optimistic-update shape, but calls a dedicated RPC since
+  // cancel_order() refuses any order already status='COLLECTED', which
+  // every GrabFood entry is inserted as.
+  const undoGrabfoodEntry = async (orderId, note = null) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || order.status === 'CANCELLED') return { success: false, error: 'Already undone.' };
+
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'CANCELLED', cancel_reason: 'GrabFood entry corrected', cancel_note: note } : o));
+
+    const { data, error } = await supabase.rpc('undo_grabfood_daily_entry', {
+      p_order_id: orderId,
+      p_note: note
+    });
+    if (error) {
+      setOrders(prev => prev.map(o => o.id === orderId ? order : o));
+      return { success: false, error: error.message };
+    }
+
+    const { data: freshMenu } = await supabase.from('menu_items').select('*');
+    if (freshMenu) setMenu(freshMenu.map(item => ({ ...item, inStock: item.in_stock, price: item.price })));
+    const { data: freshAddons } = await supabase.from('addons').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
+    if (freshAddons) setAddons(freshAddons);
+
     return { success: true, ...data };
   };
 
@@ -1675,7 +1713,7 @@ const clearManualOverride = async (id) => {
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, claimShareBonus, fetchSingleOrder,
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
-      addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize, logGrabfoodDailyEntry,
+      addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize, logGrabfoodDailyEntry, undoGrabfoodEntry,
       ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
       updateIngredientLowStockThreshold, deleteIngredient, fetchIngredientHistory,
       fetchRecipe, saveRecipeItem, removeRecipeItem,

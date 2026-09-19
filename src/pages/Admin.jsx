@@ -213,7 +213,7 @@ export default function Admin() {
     orders, updateOrderState, acceptOrder, customers, cancelOrder,
     addons, itemAddons, addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
     loyaltyPrizes, redemptions, fetchAdminRedemptions, fulfillRedemption, addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
-    logGrabfoodDailyEntry,
+    logGrabfoodDailyEntry, undoGrabfoodEntry,
     ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
     updateIngredientLowStockThreshold, deleteIngredient, fetchIngredientHistory,
     fetchRecipe, saveRecipeItem, removeRecipeItem,
@@ -777,7 +777,8 @@ export default function Admin() {
   // settled payout) and this logs one channel='Grab' order plus a real
   // stock deduction per item, via log_grabfood_daily_entry(). ───────────
   const [grabEntryDate, setGrabEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [grabRows, setGrabRows] = useState([{ itemId: '', quantity: 1 }]);
+  const [grabRows, setGrabRows] = useState([{ key: '', quantity: 1 }]);
+  const [grabOrderRef, setGrabOrderRef] = useState('');
   const [grabNetTotalRm, setGrabNetTotalRm] = useState('');
   const [grabSubmitting, setGrabSubmitting] = useState(false);
   const [grabResult, setGrabResult] = useState(null);
@@ -787,7 +788,10 @@ export default function Admin() {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 30);
 
-  const addGrabRow = () => setGrabRows(prev => [...prev, { itemId: '', quantity: 1 }]);
+  // Unified item/add-on picker: row.key is 'item:<id>' or 'addon:<id>' so
+  // one dropdown (with two <optgroup>s) covers both, matching how staff
+  // actually think about what they wrote down for one Grab order.
+  const addGrabRow = () => setGrabRows(prev => [...prev, { key: '', quantity: 1 }]);
   const removeGrabRow = (idx) => setGrabRows(prev => prev.filter((_, i) => i !== idx));
   const updateGrabRow = (idx, field, value) => setGrabRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
 
@@ -797,16 +801,24 @@ export default function Admin() {
       alert('Enter the net payout amount from Grab\'s settlement report.');
       return;
     }
-    const items = grabRows
-      .filter(r => r.itemId && Number(r.quantity) > 0)
-      .map(r => {
-        const menuItem = menu.find(m => m.id === r.itemId);
-        return { id: r.itemId, name: menuItem?.name || r.itemId, quantity: Number(r.quantity) };
-      });
+    const items = [];
+    const addonItems = [];
+    grabRows.forEach(r => {
+      const qty = Number(r.quantity);
+      if (!r.key || qty <= 0) return;
+      const [kind, id] = r.key.split(':');
+      if (kind === 'item') {
+        const menuItem = menu.find(m => m.id === id);
+        items.push({ id, name: menuItem?.name || id, quantity: qty });
+      } else if (kind === 'addon') {
+        const addon = addons.find(a => a.id === id);
+        addonItems.push({ id, name: addon?.name || id, quantity: qty });
+      }
+    });
 
     setGrabSubmitting(true);
     setGrabResult(null);
-    const res = await logGrabfoodDailyEntry(grabEntryDate, items, netTotalCents);
+    const res = await logGrabfoodDailyEntry(grabEntryDate, items, netTotalCents, addonItems, grabOrderRef.trim() || null);
     setGrabSubmitting(false);
 
     if (!res.success) {
@@ -814,8 +826,17 @@ export default function Admin() {
       return;
     }
     setGrabResult(res);
-    setGrabRows([{ itemId: '', quantity: 1 }]);
+    setGrabRows([{ key: '', quantity: 1 }]);
     setGrabNetTotalRm('');
+    setGrabOrderRef('');
+  };
+
+  const handleUndoGrabEntry = async (orderId) => {
+    if (!window.confirm('Undo this GrabFood entry? This restores its item and add-on stock and voids the order.')) return;
+    const res = await undoGrabfoodEntry(orderId, 'Undone from GrabFood Daily Entry tab');
+    if (!res.success) {
+      alert('Failed to undo entry: ' + res.error);
+    }
   };
 
   // Cost & Pricing Review: for every item with a fully-costed recipe (every
@@ -5582,35 +5603,54 @@ export default function Admin() {
             <div className="admin-card">
               <h3>GrabFood Daily Entry</h3>
               <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
-                Once a day, read two numbers off Grab's own merchant portal: the items sold, and the net settled payout
-                (already correct after commission/SST/promo funding -- don't try to recompute that here). This logs one
-                order and deducts real stock per item.
+                Log one entry per GrabFood order (e.g. GF-554): what was sold -- items and add-ons -- from your own
+                order log written at order time, plus the net payout RM for that order. Both are visible directly in
+                the Grab Merchant app per order -- you don't need to wait for the emailed Finance report, and Grab's
+                report doesn't break items down anyway. This deducts real stock for every item and add-on, atomically.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 520 }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                  Date
-                  <input
-                    type="date"
-                    className="price-input w-full"
-                    value={grabEntryDate}
-                    onChange={e => setGrabEntryDate(e.target.value)}
-                    style={{ display: 'block', marginTop: 4 }}
-                  />
-                </label>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, flex: 1 }}>
+                    Date
+                    <input
+                      type="date"
+                      className="price-input w-full"
+                      value={grabEntryDate}
+                      onChange={e => setGrabEntryDate(e.target.value)}
+                      style={{ display: 'block', marginTop: 4 }}
+                    />
+                  </label>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, flex: 1 }}>
+                    Grab order # (optional)
+                    <input
+                      type="text"
+                      className="price-input w-full"
+                      value={grabOrderRef}
+                      onChange={e => setGrabOrderRef(e.target.value)}
+                      placeholder="e.g. GF-554"
+                      style={{ display: 'block', marginTop: 4 }}
+                    />
+                  </label>
+                </div>
 
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Items sold via GrabFood</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Items &amp; add-ons sold in this order</div>
                   {grabRows.map((row, idx) => (
                     <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
                       <select
                         className="price-input"
                         style={{ flex: 1 }}
-                        value={row.itemId}
-                        onChange={e => updateGrabRow(idx, 'itemId', e.target.value)}
+                        value={row.key}
+                        onChange={e => updateGrabRow(idx, 'key', e.target.value)}
                       >
-                        <option value="">-- Select item --</option>
-                        {menu.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        <option value="">-- Select item or add-on --</option>
+                        <optgroup label="Menu Items">
+                          {menu.map(m => <option key={`item:${m.id}`} value={`item:${m.id}`}>{m.name}</option>)}
+                        </optgroup>
+                        <optgroup label="Add-ons">
+                          {addons.map(a => <option key={`addon:${a.id}`} value={`addon:${a.id}`}>{a.name}</option>)}
+                        </optgroup>
                       </select>
                       <input
                         type="number"
@@ -5632,12 +5672,12 @@ export default function Admin() {
                     </div>
                   ))}
                   <button type="button" className="btn btn-sm btn-outline" onClick={addGrabRow}>
-                    <Plus size={14} /> Add item
+                    <Plus size={14} /> Add row
                   </button>
                 </div>
 
                 <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                  Net payout (RM) -- from Grab's settlement report
+                  Net payout (RM) -- from the Grab Merchant app
                   <input
                     type="number"
                     min="0"
@@ -5664,9 +5704,15 @@ export default function Admin() {
                   <div style={{ fontSize: '0.85rem', background: 'rgba(34,197,94,0.1)', border: '1px solid #22c55e', borderRadius: 8, padding: '10px 14px' }}>
                     <strong>Logged as {grabResult.order_id}.</strong>{' '}
                     {grabResult.deducted_items?.length > 0 && <span>Stock deducted for {grabResult.deducted_items.length} item{grabResult.deducted_items.length === 1 ? '' : 's'}.</span>}
+                    {grabResult.deducted_addons?.length > 0 && <span> Stock deducted for {grabResult.deducted_addons.length} add-on{grabResult.deducted_addons.length === 1 ? '' : 's'}.</span>}
                     {grabResult.unmapped_items?.length > 0 && (
                       <div style={{ color: '#b45309', marginTop: 4 }}>
                         {grabResult.unmapped_items.length} item{grabResult.unmapped_items.length === 1 ? '' : 's'} not found in Menu CRM -- stock not deducted for: {grabResult.unmapped_items.map(i => i.name).join(', ')}
+                      </div>
+                    )}
+                    {grabResult.unmapped_addons?.length > 0 && (
+                      <div style={{ color: '#b45309', marginTop: 4 }}>
+                        {grabResult.unmapped_addons.length} add-on{grabResult.unmapped_addons.length === 1 ? '' : 's'} not found in Add-ons CRM -- stock not deducted for: {grabResult.unmapped_addons.map(i => i.name).join(', ')}
                       </div>
                     )}
                   </div>
@@ -5677,18 +5723,28 @@ export default function Admin() {
             <div className="admin-card">
               <h3>Recent GrabFood Entries</h3>
               <div className="table-responsive"><table className="admin-table">
-                <thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Net Total</th></tr></thead>
+                <thead><tr><th>Order ID</th><th>Grab Ref</th><th>Date</th><th>Items</th><th>Net Total</th><th>Status</th></tr></thead>
                 <tbody>
                   {grabfoodOrders.length === 0 ? (
-                    <tr><td colSpan="4" className="text-center text-muted" style={{ padding: '2rem' }}>No GrabFood entries logged yet.</td></tr>
+                    <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No GrabFood entries logged yet.</td></tr>
                   ) : grabfoodOrders.map(o => (
-                    <tr key={o.id}>
+                    <tr key={o.id} style={o.status === 'CANCELLED' ? { opacity: 0.5 } : undefined}>
                       <td style={{ fontFamily: 'monospace' }}>{o.id}</td>
+                      <td style={{ fontFamily: 'monospace' }}>{o.notes || '—'}</td>
                       <td>{formatStoreDate(o.created_at)}</td>
                       <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         {(o.items || []).map(i => `${i.name} x${i.quantity}`).join(', ') || '—'}
                       </td>
                       <td>RM {((o.total || 0) / 100).toFixed(2)}</td>
+                      <td>
+                        {o.status === 'CANCELLED' ? (
+                          <span className="text-muted" style={{ fontSize: '0.8rem' }}>Voided</span>
+                        ) : (
+                          <button type="button" className="btn btn-sm btn-outline" onClick={() => handleUndoGrabEntry(o.id)}>
+                            Undo
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
