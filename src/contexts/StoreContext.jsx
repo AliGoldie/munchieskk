@@ -350,11 +350,13 @@ export function StoreProvider({ children }) {
   useEffect(() => { ordersRef.current = orders; }, [orders]);
 
   // Polling fallback in case Supabase Realtime is disabled on the orders table.
-  // A slow reconciliation safety net (60s) while Realtime is connected, and a
-  // faster primary sync (5s) while it is disconnected. Skipped entirely while
+  // A reconciliation safety net (15s) while Realtime is connected, and a
+  // faster primary sync (5s) while it is disconnected. Kept fast because
+  // Realtime has not proven reliable at delivering order changes to admins;
+  // the payload is now tiny so the cadence is cheap. Skipped entirely while
   // the tab is hidden, and run once immediately when it becomes visible again.
   useEffect(() => {
-    const pollInterval = isRealtimeConnected ? 60000 : 5000;
+    const pollInterval = isRealtimeConnected ? 15000 : 5000;
     const poll = async () => {
       if (document.hidden) return;
       // 0. Poll Store Settings — only needed as a fallback when Realtime is down.
