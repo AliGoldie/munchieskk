@@ -344,12 +344,19 @@ export function StoreProvider({ children }) {
     };
   }, [user?.id, user?.role]);
 
-  // Polling fallback in case Supabase Realtime is disabled on the orders table
-  // Acts as a periodic reconciliation safety net (30s) when Realtime is connected, 
-  // and a fast primary sync (5s) when Realtime is disconnected.
+  // Lets the poll below read the latest orders without restarting its interval
+  // every time the list changes.
+  const ordersRef = useRef([]);
+  useEffect(() => { ordersRef.current = orders; }, [orders]);
+
+  // Polling fallback in case Supabase Realtime is disabled on the orders table.
+  // A slow reconciliation safety net (60s) while Realtime is connected, and a
+  // faster primary sync (5s) while it is disconnected. Skipped entirely while
+  // the tab is hidden, and run once immediately when it becomes visible again.
   useEffect(() => {
-    const pollInterval = isRealtimeConnected ? 15000 : 3000;
-    const pollOrders = setInterval(async () => {
+    const pollInterval = isRealtimeConnected ? 60000 : 5000;
+    const poll = async () => {
+      if (document.hidden) return;
       // 0. Poll Store Settings — only needed as a fallback when Realtime is down.
       //    When Realtime is connected, store_settings changes already arrive via
       //    the public channel above, so polling here would just be redundant egress.
@@ -373,14 +380,32 @@ export function StoreProvider({ children }) {
         } catch (e) {}
       }
 
-      // 1. Admin-only: full 100-row orders fetch.
+      // 1. Admin-only order reconciliation.
       //    Non-admin users do not run this fetch — they use fetchSingleOrder instead.
+      //    A select('*') of the latest 100 orders is ~100KB+ (items/notes JSON) and used
+      //    to run every few seconds on every open admin device, which dominated egress.
+      //    Probe with just id+status (~5KB) and only pull full rows for orders that are
+      //    new to this client or whose status advanced.
       if (user?.role === 'admin') {
-        const { data: latestOrdersRaw } = await supabase.from('orders')
-          .select('*')
+        const { data: probe } = await supabase.from('orders')
+          .select('id,status')
           .order('created_at', { ascending: false })
           .limit(100);
-        
+        if (!probe) return;
+
+        const rank = { 'PENDING': 0, 'COOKING': 1, 'READY': 2, 'COLLECTED': 3, 'CANCELLED': 4 };
+        const localStatus = new Map(ordersRef.current.map(o => [o.id, o.status]));
+        const staleIds = probe.filter(p => {
+          if (!localStatus.has(p.id)) return true;
+          if (localStatus.get(p.id) === p.status) return false;
+          return (rank[p.status] ?? 0) >= (rank[localStatus.get(p.id)] ?? 0);
+        }).map(p => p.id);
+        if (staleIds.length === 0) return;
+
+        const { data: latestOrdersRaw } = await supabase.from('orders')
+          .select('*')
+          .in('id', staleIds);
+
         if (latestOrdersRaw) {
           const latestOrders = latestOrdersRaw;
           setOrders(prev => {
@@ -409,9 +434,16 @@ export function StoreProvider({ children }) {
           });
         }
       }
-    }, pollInterval);
+    };
 
-    return () => clearInterval(pollOrders);
+    const pollOrders = setInterval(poll, pollInterval);
+    const onVisible = () => { if (!document.hidden) poll(); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(pollOrders);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [isRealtimeConnected, user?.id, user?.role]);
 
   // Lightweight single-order fetch for non-admin customer tracking.
