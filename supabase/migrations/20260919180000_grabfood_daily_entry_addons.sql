@@ -27,6 +27,8 @@ SET search_path = public
 AS $$
 DECLARE
   v_day_key text;
+  v_seq_name text;
+  v_seed integer;
   v_counter integer;
   v_order_id text;
   v_item jsonb;
@@ -51,16 +53,25 @@ BEGIN
     RAISE EXCEPTION 'Invalid net total.';
   END IF;
 
-  -- Own day-keyed counter sequence (distinct prefix from place_order()'s
-  -- 'MP-DDMM-###' web-order ids) via the same atomic
-  -- INSERT ... ON CONFLICT DO UPDATE pattern, so concurrent admin submits
-  -- can never collide on the same order id.
-  v_day_key := 'GRB' || to_char(p_entry_date, 'DDMM');
-  INSERT INTO public.order_id_counters (day_key, counter)
-  VALUES (v_day_key, 1)
-  ON CONFLICT (day_key) DO UPDATE SET counter = public.order_id_counters.counter + 1
-  RETURNING counter INTO v_counter;
-  v_order_id := 'GRB-' || to_char(p_entry_date, 'DDMM') || '-' || lpad(v_counter::text, 3, '0');
+  -- Mint the id from a non-transactional per-day sequence (distinct GRB-
+  -- prefix from place_order()'s MP-DDMM-### ids), seeded from any existing
+  -- GRB-DDMM-### rows for that day, exactly like place_order() does. (The
+  -- order_id_counters table this used to read was dropped by
+  -- 20260829000001, so the old version failed on every call.)
+  v_day_key := to_char(p_entry_date, 'DDMM');
+  v_seq_name := 'grb_order_seq_' || v_day_key;
+
+  IF to_regclass('public.' || v_seq_name) IS NULL THEN
+    SELECT COALESCE(MAX(substring(id from 10)::integer), 0)
+    INTO v_seed
+    FROM public.orders
+    WHERE id ~ ('^GRB-' || v_day_key || '-[0-9]{3}$');
+
+    EXECUTE format('CREATE SEQUENCE IF NOT EXISTS public.%I START %s', v_seq_name, v_seed + 1);
+  END IF;
+
+  EXECUTE format('SELECT nextval(%L)', 'public.' || v_seq_name) INTO v_counter;
+  v_order_id := 'GRB-' || v_day_key || '-' || lpad(v_counter::text, 3, '0');
 
   -- Malaysia midnight of the entry date, explicit +08:00 -- not a bare
   -- date cast, which Postgres would read as UTC midnight (the exact class
