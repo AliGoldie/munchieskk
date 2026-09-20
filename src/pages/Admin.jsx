@@ -782,11 +782,38 @@ export default function Admin() {
   const [grabNetTotalRm, setGrabNetTotalRm] = useState('');
   const [grabSubmitting, setGrabSubmitting] = useState(false);
   const [grabResult, setGrabResult] = useState(null);
+  const [grabSearch, setGrabSearch] = useState('');
+  const [grabSearchResults, setGrabSearchResults] = useState(null);
+  const [grabSearching, setGrabSearching] = useState(false);
+
+  // Find any GrabFood entry by its Grab order number, across ALL history --
+  // the `orders` list held in memory only covers the latest ~200 orders, so
+  // an older GF-### would never turn up by filtering that.
+  useEffect(() => {
+    const q = grabSearch.trim();
+    if (!q) { setGrabSearchResults(null); setGrabSearching(false); return; }
+    const safe = q.replace(/[%,()*"\\]/g, '');
+    if (!safe) { setGrabSearchResults([]); setGrabSearching(false); return; }
+    let cancelled = false;
+    setGrabSearching(true);
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('id,notes,created_at,items,total,status,channel')
+        .eq('channel', 'Grab')
+        .or(`notes.ilike.%${safe}%,id.ilike.%${safe}%`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (!cancelled) { setGrabSearchResults(data || []); setGrabSearching(false); }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [grabSearch]);
 
   const grabfoodOrders = orders
     .filter(o => (o.channel || '').toLowerCase() === 'grab')
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 30);
+  const grabListRows = grabSearchResults !== null ? grabSearchResults : grabfoodOrders;
 
   // Unified item/add-on picker: row.key is 'item:<id>' or 'addon:<id>' so
   // one dropdown (with two <optgroup>s) covers both, matching how staff
@@ -796,6 +823,11 @@ export default function Admin() {
   const updateGrabRow = (idx, field, value) => setGrabRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
 
   const handleSubmitGrabEntry = async () => {
+    const grabRef = grabOrderRef.trim().toUpperCase().replace(/\s+/g, '');
+    if (!grabRef) {
+      alert('Enter the Grab order number (e.g. GF-2484). It is how you find this entry later.');
+      return;
+    }
     const netTotalCents = Math.round(parseFloat(grabNetTotalRm || '0') * 100);
     if (!netTotalCents || netTotalCents <= 0) {
       alert('Enter the net payout amount from Grab\'s settlement report.');
@@ -816,16 +848,21 @@ export default function Admin() {
       }
     });
 
+    if (items.length === 0 && addonItems.length === 0) {
+      alert('Add at least one item or add-on that was sold in this order.');
+      return;
+    }
+
     setGrabSubmitting(true);
     setGrabResult(null);
-    const res = await logGrabfoodDailyEntry(grabEntryDate, items, netTotalCents, addonItems, grabOrderRef.trim() || null);
+    const res = await logGrabfoodDailyEntry(grabEntryDate, items, netTotalCents, addonItems, grabRef);
     setGrabSubmitting(false);
 
     if (!res.success) {
       alert('Failed to log GrabFood entry: ' + res.error);
       return;
     }
-    setGrabResult(res);
+    setGrabResult({ ...res, grab_ref: grabRef });
     setGrabRows([{ key: '', quantity: 1 }]);
     setGrabNetTotalRm('');
     setGrabOrderRef('');
@@ -836,6 +873,8 @@ export default function Admin() {
     const res = await undoGrabfoodEntry(orderId, 'Undone from GrabFood Daily Entry tab');
     if (!res.success) {
       alert('Failed to undo entry: ' + res.error);
+    } else {
+      setGrabSearchResults(prev => prev ? prev.map(o => o.id === orderId ? { ...o, status: 'CANCELLED' } : o) : prev);
     }
   };
 
@@ -5606,11 +5645,25 @@ export default function Admin() {
                 Log one entry per GrabFood order (e.g. GF-554): what was sold -- items and add-ons -- from your own
                 order log written at order time, plus the net payout RM for that order. Both are visible directly in
                 the Grab Merchant app per order -- you don't need to wait for the emailed Finance report, and Grab's
-                report doesn't break items down anyway. This deducts real stock for every item and add-on, atomically.
+                report doesn't break items down anyway. This deducts real stock for every item and add-on, atomically. The Grab order number is required: it is the entry's title, and you can search for it below.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 520 }}>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, flex: 1.4 }}>
+                    Grab order # (required)
+                    <input
+                      type="text"
+                      className="price-input w-full"
+                      value={grabOrderRef}
+                      onChange={e => setGrabOrderRef(e.target.value.toUpperCase())}
+                      placeholder="e.g. GF-2484"
+                      autoComplete="off"
+                      autoFocus
+                      required
+                      style={{ display: 'block', marginTop: 4, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.5px' }}
+                    />
+                  </label>
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, flex: 1 }}>
                     Date
                     <input
@@ -5618,17 +5671,6 @@ export default function Admin() {
                       className="price-input w-full"
                       value={grabEntryDate}
                       onChange={e => setGrabEntryDate(e.target.value)}
-                      style={{ display: 'block', marginTop: 4 }}
-                    />
-                  </label>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, flex: 1 }}>
-                    Grab order # (optional)
-                    <input
-                      type="text"
-                      className="price-input w-full"
-                      value={grabOrderRef}
-                      onChange={e => setGrabOrderRef(e.target.value)}
-                      placeholder="e.g. GF-554"
                       style={{ display: 'block', marginTop: 4 }}
                     />
                   </label>
@@ -5702,7 +5744,8 @@ export default function Admin() {
 
                 {grabResult && (
                   <div style={{ fontSize: '0.85rem', background: 'rgba(34,197,94,0.1)', border: '1px solid #22c55e', borderRadius: 8, padding: '10px 14px' }}>
-                    <strong>Logged as {grabResult.order_id}.</strong>{' '}
+                    <strong>Logged {grabResult.grab_ref}.</strong>{' '}
+                    <span className="text-muted">(system ID {grabResult.order_id})</span>{' '}
                     {grabResult.deducted_items?.length > 0 && <span>Stock deducted for {grabResult.deducted_items.length} item{grabResult.deducted_items.length === 1 ? '' : 's'}.</span>}
                     {grabResult.deducted_addons?.length > 0 && <span> Stock deducted for {grabResult.deducted_addons.length} add-on{grabResult.deducted_addons.length === 1 ? '' : 's'}.</span>}
                     {grabResult.unmapped_items?.length > 0 && (
@@ -5721,16 +5764,35 @@ export default function Admin() {
             </div>
 
             <div className="admin-card">
-              <h3>Recent GrabFood Entries</h3>
+              <h3>GrabFood Entries</h3>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', margin: '0.5rem 0 1rem', flexWrap: 'wrap' }}>
+                <input
+                  type="search"
+                  className="price-input"
+                  style={{ flex: 1, minWidth: 220, maxWidth: 360 }}
+                  placeholder="Find by Grab order # (e.g. GF-2484 or 2484)"
+                  value={grabSearch}
+                  onChange={e => setGrabSearch(e.target.value)}
+                  autoComplete="off"
+                />
+                <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                  {grabSearchResults !== null
+                    ? (grabSearching ? 'Searching...' : `${grabSearchResults.length} match${grabSearchResults.length === 1 ? '' : 'es'} across all entries`)
+                    : 'Showing the 30 most recent. Type to search every entry.'}
+                </span>
+              </div>
               <div className="table-responsive"><table className="admin-table">
-                <thead><tr><th>Order ID</th><th>Grab Ref</th><th>Date</th><th>Items</th><th>Net Total</th><th>Status</th></tr></thead>
+                <thead><tr><th>Grab Order #</th><th>Date</th><th>Items</th><th>Net Total</th><th>Status</th><th>System ID</th></tr></thead>
                 <tbody>
-                  {grabfoodOrders.length === 0 ? (
-                    <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No GrabFood entries logged yet.</td></tr>
-                  ) : grabfoodOrders.map(o => (
+                  {grabListRows.length === 0 ? (
+                    <tr><td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>
+                      {grabSearchResults !== null ? 'No GrabFood entry matches that number.' : 'No GrabFood entries logged yet.'}
+                    </td></tr>
+                  ) : grabListRows.map(o => (
                     <tr key={o.id} style={o.status === 'CANCELLED' ? { opacity: 0.5 } : undefined}>
-                      <td style={{ fontFamily: 'monospace' }}>{o.id}</td>
-                      <td style={{ fontFamily: 'monospace' }}>{o.notes || '—'}</td>
+                      <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                        {o.notes || <span className="text-muted" style={{ fontWeight: 400, fontStyle: 'italic' }}>no Grab # (older entry)</span>}
+                      </td>
                       <td>{formatStoreDate(o.created_at)}</td>
                       <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         {(o.items || []).map(i => `${i.name} x${i.quantity}`).join(', ') || '—'}
@@ -5745,6 +5807,7 @@ export default function Admin() {
                           </button>
                         )}
                       </td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{o.id}</td>
                     </tr>
                   ))}
                 </tbody>
