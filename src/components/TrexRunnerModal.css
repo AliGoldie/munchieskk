@@ -115,10 +115,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* "safe center": centers when the content fits, but falls back to
+     starting from the top when it doesn't -- plain "center" on a
+     scrollable flex box clips equally off both ends, which cut the
+     heading off at the top instead of just scrolling to it. */
+  justify-content: safe center;
   text-align: center;
-  padding: 24px;
+  padding: 16px 24px;
   z-index: 10;
+  /* The canvas (and this overlay, sized to match it via inset: 0) is only
+     ~200px tall -- shorter than the Ready to Run copy + button on most
+     screens. Without this, overflow: hidden on .runner-canvas-wrap clipped
+     the Play button clean off instead of just scrolling to it. */
+  overflow-y: auto;
 }
 
 .runner-overlay-screen h2 {
