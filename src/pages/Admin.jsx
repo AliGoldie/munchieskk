@@ -5776,9 +5776,11 @@ export default function Admin() {
                   autoComplete="off"
                 />
                 <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                  {grabSearchResults !== null
-                    ? (grabSearching ? 'Searching...' : `${grabSearchResults.length} match${grabSearchResults.length === 1 ? '' : 'es'} across all entries`)
-                    : 'Showing the 30 most recent. Type to search every entry.'}
+                  {grabSearching
+                    ? 'Searching...'
+                    : grabSearchResults !== null
+                      ? `${grabSearchResults.length} match${grabSearchResults.length === 1 ? '' : 'es'} across all entries`
+                      : 'Showing the 30 most recent. Type to search every entry.'}
                 </span>
               </div>
               <div className="table-responsive"><table className="admin-table">
