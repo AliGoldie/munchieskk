@@ -248,6 +248,7 @@ export function StoreProvider({ children }) {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'addons' }, payload => {
         if (payload.eventType === 'INSERT') setAddons(prev => prev.some(a => a.id === payload.new.id) ? prev : [...prev, payload.new]);
+        else if (payload.eventType === 'UPDATE') setAddons(prev => prev.map(a => a.id === payload.new.id ? payload.new : a));
         else if (payload.eventType === 'DELETE') setAddons(prev => prev.filter(a => a.id !== payload.old.id));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'item_addons' }, payload => {
