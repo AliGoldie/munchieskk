@@ -87,7 +87,7 @@ export default function OrderStatus() {
     
     const shareData = {
       title: 'MunchiesKK',
-      text: 'Just enjoyed delicious smash burgers from MunchiesKK! 🍔🔥 #MunchiesKK',
+      text: 'Just enjoyed delicious smash burgers from MunchiesKK! 🍔🔥 #ilovemunchieskk #munchieskkburger',
       url: window.location.origin
     };
 
@@ -99,14 +99,35 @@ export default function OrderStatus() {
         setClaimedReview(true);
         alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
       } else {
-        // 2. Desktop Fallback: Synchronously open tab first to prevent popup blocking
-        if (platform === 'Facebook') {
-          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`, '_blank', 'noopener,noreferrer');
-        } else {
-          if (navigator.clipboard) {
-            navigator.clipboard.writeText(shareData.text + ' ' + shareData.url).catch(() => {});
-          }
-          window.open('https://www.instagram.com', '_blank', 'noopener,noreferrer');
+        // 2. Desktop fallback. Copy the caption (with hashtags) for both
+        // platforms -- neither sharer URL accepts custom text (Facebook's
+        // sharer.php ignores it, Instagram has no web share-intent URL at
+        // all), so clipboard is the only reliable way the hashtags reach
+        // the actual post either way.
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(shareData.text + ' ' + shareData.url).catch(() => {});
+        }
+
+        const target = platform === 'Facebook'
+          ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`
+          : 'https://www.instagram.com';
+
+        // Opened without `noopener` so the return value is a real window
+        // reference instead of always null -- that's what lets a blocked
+        // pop-up actually be detected below. `opener` is stripped manually
+        // right after for the same anti-tabnapping property noopener gives.
+        const shareWindow = window.open(target, '_blank', 'noreferrer');
+        if (shareWindow) {
+          try { shareWindow.opener = null; } catch { /* cross-origin, fine */ }
+        }
+
+        if (!shareWindow) {
+          alert(`Your browser blocked the ${platform} pop-up. Your caption was copied -- please allow pop-ups and try again, or paste it directly into ${platform}.`);
+          return;
+        }
+
+        if (platform === 'Instagram') {
+          alert('Your caption (with hashtags) was copied! Paste it into your Instagram post or story, then come back here.');
         }
 
         // Clean up any existing listener before attaching a new one
