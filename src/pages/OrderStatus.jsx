@@ -110,7 +110,9 @@ export default function OrderStatus() {
 
       const target = platform === 'Facebook'
         ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`
-        : 'https://www.instagram.com';
+        : platform === 'TikTok'
+          ? 'https://www.tiktok.com/upload'
+          : 'https://www.instagram.com';
 
       // Opened without `noopener` so the return value is a real window
       // reference instead of always null -- that's what lets a blocked
@@ -126,8 +128,10 @@ export default function OrderStatus() {
         return;
       }
 
-      if (platform === 'Instagram') {
-        alert('Your caption (with hashtags) was copied! Paste it into your Instagram post or story, then come back here.');
+      // Neither Instagram nor TikTok has a share-intent URL that accepts a
+      // pre-filled caption -- both just open a page, not a post composer.
+      if (platform === 'Instagram' || platform === 'TikTok') {
+        alert(`Your caption (with hashtags) was copied! Paste it into your ${platform} post or story, then come back here.`);
       }
 
       // Clean up any existing listener before attaching a new one
@@ -149,13 +153,16 @@ export default function OrderStatus() {
       };
 
       const handleReturn = async () => {
-        if (!document.hidden) {
+        // Just alt-tabbing back to this tab after 5s (leaving the share tab
+        // open in the background) used to be enough to claim the bonus --
+        // require the share tab to actually be closed too, so a return that
+        // doesn't wait for that keeps listening instead of paying out.
+        if (!document.hidden && shareWindow.closed) {
           const elapsedSeconds = (Date.now() - shareStartTime) / 1000;
-          // Only claim and cleanup if user was away for at least 5s
           if (elapsedSeconds >= 5) {
             cleanup();
             try {
-              await claimShareBonus(loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
+              await claimShareBonus(id, loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
               setClaimedReview(true);
               alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
             } catch (err) {
@@ -310,7 +317,7 @@ export default function OrderStatus() {
                 </div>
                 <p className="text-sm mt-2 mb-3" style={{ color: 'var(--text-2)' }}>Snap a pic of your food and tag us on social media to claim your reward instantly!</p>
 
-                <div className="flex gap-2 justify-center">
+                <div className="flex gap-2 justify-center" style={{ flexWrap: 'wrap' }}>
                   <button
                     className="btn btn-outline flex-1 social-share-btn"
                     onClick={() => handleSocialShare('Instagram')}
@@ -324,6 +331,13 @@ export default function OrderStatus() {
                     disabled={claimedReview}
                   >
                     <Share2 size={18} /> Facebook
+                  </button>
+                  <button
+                    className="btn btn-outline flex-1 social-share-btn"
+                    onClick={() => handleSocialShare('TikTok')}
+                    disabled={claimedReview}
+                  >
+                    <Share2 size={18} /> TikTok
                   </button>
                 </div>
                 {claimedReview && <p className="text-sm mt-3 font-bold" style={{ color: 'var(--go)' }}>Bonus claimed!</p>}
