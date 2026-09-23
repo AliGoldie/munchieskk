@@ -1839,7 +1839,7 @@ export default function Admin() {
     PLATTERS: '#D4A017',
     SIDES: '#1DAA54',
     DRINKS: '#2E7DD6',
-    Other: '#a3aed1'
+    Other: '#a9a498'
   };
 
   const salesByCategoryData = Object.keys(categorySales)
@@ -2675,7 +2675,7 @@ export default function Admin() {
                   overflowY: 'auto', padding: '2rem 1rem'
                 }} onClick={e => { if (e.target === e.currentTarget) setScheduleModalOpen(false); }}>
                   <div style={{
-                    background: '#1e293b', borderRadius: '20px', width: '100%', maxWidth: '680px',
+                    background: '#242320', borderRadius: '20px', width: '100%', maxWidth: '680px',
                     border: '2px solid rgba(255,199,44,0.35)', boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
                     overflow: 'hidden', margin: 'auto'
                   }}>
@@ -2699,7 +2699,7 @@ export default function Admin() {
                           {[['OPEN','🟢 Open Now','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close Now','#ef4444'],['SCHEDULE','📅 Use Schedule','#6366f1']].map(([s,label,col]) => (
                             <button key={s} type="button" onClick={() => setShopStatus(s)}
                               style={{ flex: 1, minWidth: '110px', padding: '9px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem',
-                                background: shopSettings?.status === s ? col : '#334155', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
+                                background: shopSettings?.status === s ? col : '#3a3733', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
                           ))}
                         </div>
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: '6px 0 0' }}>
@@ -2739,11 +2739,11 @@ export default function Admin() {
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
                                     <input type="time" value={sched.open}
                                       onChange={e => saveScheduleDay(day, { open: e.target.value })}
-                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
+                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
                                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>to</span>
                                     <input type="time" value={sched.close}
                                       onChange={e => saveScheduleDay(day, { close: e.target.value })}
-                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
+                                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
                                     <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)' }}>({formatTime12Hour(sched.open)} – {formatTime12Hour(sched.close)})</span>
                                   </div>
                                 ) : (
@@ -2760,9 +2760,9 @@ export default function Admin() {
                         <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🚨 Special Closures & Holidays</label>
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
                           <input type="date" id="closure-date-input" min={getMalaysiaNow().dateStr}
-                            style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.875rem' }} />
+                            style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold', fontSize: '0.875rem' }} />
                           <input type="text" id="closure-reason-input" placeholder="Reason (e.g. Public Holiday)"
-                            style={{ flex: 1, minWidth: '160px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontSize: '0.875rem' }} />
+                            style={{ flex: 1, minWidth: '160px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontSize: '0.875rem' }} />
                           <button type="button"
                             onClick={() => {
                               const dateInput = document.getElementById('closure-date-input');
@@ -2817,7 +2817,7 @@ export default function Admin() {
 
               {/* Shop Status Card — Compact Dashboard Version */}
               <div className="card shop-status-card" style={{
-                background: '#1e293b', color: '#ffffff', padding: '1.25rem 1.5rem',
+                background: '#242320', color: '#ffffff', padding: '1.25rem 1.5rem',
                 borderRadius: '16px', border: '2px solid rgba(255, 199, 44, 0.4)',
                 boxShadow: '0 10px 25px rgba(0,0,0,0.3)', marginBottom: '1.5rem'
               }}>
@@ -2853,7 +2853,7 @@ export default function Admin() {
                   {[['OPEN','🟢 Open','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close','#ef4444'],['SCHEDULE','📅 Schedule','#6366f1']].map(([s,label,col]) => (
                     <button key={s} type="button" onClick={() => setShopStatus(s)}
                       style={{ flex: 1, padding: '9px 4px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.78rem',
-                        background: shopSettings?.status === s ? col : '#334155', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
+                        background: shopSettings?.status === s ? col : '#3a3733', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
                   ))}
                 </div>
 
@@ -2871,7 +2871,7 @@ export default function Admin() {
                       onChange={e => setNoticeMessageInput(e.target.value)}
                       style={{ flex: 1, minWidth: '220px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.08)', color: '#fff', fontSize: '0.85rem' }} />
                     <button type="button" disabled={savingNotice} onClick={() => saveNoticeMessage()}
-                      style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#eab308', color: '#1e293b', fontWeight: 'bold', cursor: savingNotice ? 'default' : 'pointer', opacity: savingNotice ? 0.6 : 1, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#eab308', color: '#242320', fontWeight: 'bold', cursor: savingNotice ? 'default' : 'pointer', opacity: savingNotice ? 0.6 : 1, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                       Save
                     </button>
                   </div>
@@ -2880,7 +2880,7 @@ export default function Admin() {
 
               {/* Shift Handover / Cash-Up Card (§6) */}
               <div className="card" style={{
-                background: '#1e293b', color: '#ffffff', padding: '1.25rem 1.5rem',
+                background: '#242320', color: '#ffffff', padding: '1.25rem 1.5rem',
                 borderRadius: '16px', border: '2px solid rgba(255, 199, 44, 0.4)',
                 boxShadow: '0 10px 25px rgba(0,0,0,0.3)', marginBottom: '1.5rem'
               }}>
@@ -2897,7 +2897,7 @@ export default function Admin() {
                   </div>
                   <span style={{
                     padding: '6px 16px', borderRadius: '20px', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase',
-                    background: currentShift ? '#16a34a' : '#334155', color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                    background: currentShift ? '#16a34a' : '#3a3733', color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                   }}>
                     {currentShift ? '🟢 SHIFT OPEN' : '⚪ NO SHIFT'}
                   </span>
@@ -2913,9 +2913,9 @@ export default function Admin() {
                           <input type="number" step="0.01" min="0"
                             value={openingFloatEditValue === '' ? centsToRm(currentShift.opening_float) : openingFloatEditValue}
                             onChange={e => setOpeningFloatEditValue(e.target.value)}
-                            style={{ width: '90px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
+                            style={{ width: '90px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }} />
                           <button type="button" onClick={() => saveOpeningFloat()}
-                            style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', background: '#334155', color: '#fff', fontSize: '0.72rem', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', background: '#3a3733', color: '#fff', fontSize: '0.72rem', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
                         </div>
                       </div>
                       <div>
@@ -2940,7 +2940,7 @@ export default function Admin() {
                         <input type="number" step="0.01" min="0" placeholder="0.00"
                           value={countedInput}
                           onChange={e => setCountedInput(e.target.value)}
-                          style={{ width: '110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }} />
+                          style={{ width: '110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }} />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>Variance</label>
@@ -2986,7 +2986,7 @@ export default function Admin() {
                         <input type="number" step="0.01" min="0" placeholder="0.00"
                           value={openingFloatInput}
                           onChange={e => setOpeningFloatInput(e.target.value)}
-                          style={{ width: '110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }} />
+                          style={{ width: '110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }} />
                       </div>
                       <button type="button" disabled={savingShift} onClick={() => openShift()}
                         style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#16a34a', color: '#fff', fontWeight: 'bold', cursor: savingShift ? 'default' : 'pointer', opacity: savingShift ? 0.6 : 1, fontSize: '0.85rem' }}>
@@ -3015,23 +3015,23 @@ export default function Admin() {
                   <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><Layers size={28} /></div>
                   <div className="sedap-metric-content">
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Available Dish</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{menu.length}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#242320' }}>{menu.length}</div>
                   </div>
                 </div>
                 
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><ShoppingBag size={28} /></div>
+                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(255, 199, 44, 0.18)', color: '#8a5a14', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><ShoppingBag size={28} /></div>
                   <div className="sedap-metric-content">
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Total Order</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{orders.length}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#242320' }}>{orders.length}</div>
                   </div>
                 </div>
 
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><Clock size={28} /></div>
+                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(15, 122, 50, 0.1)', color: '#0f7a32', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><Clock size={28} /></div>
                   <div className="sedap-metric-content">
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Pending Orders</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#242320' }}>
                        <span onClick={() => setActiveTab('orders')} style={{ cursor: 'pointer' }}>
                          {pendingOrders.length}
                        </span>
@@ -3040,10 +3040,10 @@ export default function Admin() {
                 </div>
 
                 <div className="sedap-metric-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }} title={`All-time revenue generated from ${orders.length} total orders`}>
-                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><TrendingUp size={28} /></div>
+                  <div className="sedap-metric-icon" style={{ backgroundColor: 'rgba(199, 59, 15, 0.12)', color: '#c73b0f', padding: '1rem', borderRadius: '50%', marginRight: '1rem' }}><TrendingUp size={28} /></div>
                   <div className="sedap-metric-content">
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>Total Sale</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{(orders.reduce((sum, o) => sum + o.total, 0) / 100).toFixed(2)}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#242320' }}>{(orders.reduce((sum, o) => sum + o.total, 0) / 100).toFixed(2)}</div>
                   </div>
                 </div>
               </div>
@@ -3175,7 +3175,7 @@ export default function Admin() {
 
                           // Background & text color styling
                           let bgColor = 'transparent';
-                          let textColor = '#1e293b';
+                          let textColor = '#242320';
                           if (isSelected) {
                             bgColor = '#ef4444';
                             textColor = 'white';
@@ -3264,7 +3264,7 @@ export default function Admin() {
 
                   {/* NOTES & UPCOMING EVENTS Box */}
                   <div className="admin-card" style={{
-                    background: '#1e293b',
+                    background: '#242320',
                     color: '#ffffff',
                     padding: '1.5rem',
                     borderRadius: '16px',
@@ -3339,7 +3339,7 @@ export default function Admin() {
                           key={evt.id}
                           onClick={() => handleOpenEditEventModal(evt)}
                           style={{
-                            background: '#0f172a',
+                            background: '#1a1a1a',
                             borderLeft: evt.type === 'promo' ? '4px solid #ef4444' : evt.type === 'event' ? '4px solid #3b82f6' : '4px solid #10b981',
                             padding: '8px 12px',
                             borderRadius: '8px',
@@ -3383,7 +3383,7 @@ export default function Admin() {
                     {/* New vs Returning */}
                     <div style={{ marginBottom: '1.5rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
-                        <span style={{ fontWeight: 600, color: '#1e293b' }}>New: {customerInsights.newCount} ({customerInsights.newPercent.toFixed(1)}%)</span>
+                        <span style={{ fontWeight: 600, color: '#242320' }}>New: {customerInsights.newCount} ({customerInsights.newPercent.toFixed(1)}%)</span>
                         <span style={{ fontWeight: 600, color: '#3b82f6' }}>Returning: {customerInsights.returningCount} ({customerInsights.returningPercent.toFixed(1)}%)</span>
                       </div>
                       <div style={{ height: '8px', borderRadius: '4px', backgroundColor: '#e2e8f0', display: 'flex', overflow: 'hidden' }}>
@@ -3395,7 +3395,7 @@ export default function Admin() {
                     {/* Order Frequency */}
                     <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center', border: '1px solid #f1f5f9' }}>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Avg. Order Frequency</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#242320' }}>
                          {customerInsights.avgOrderFrequency > 0 
                             ? `Every ${customerInsights.avgOrderFrequency.toFixed(1)} days`
                             : 'Not enough data yet'
@@ -3410,8 +3410,8 @@ export default function Admin() {
                          {customerInsights.topSpenders.map((cust, idx) => (
                             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: idx < customerInsights.topSpenders.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                               <div>
-                                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>{cust.name}</div>
-                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Faves: <span style={{color:'#0f172a'}}>{cust.favoriteItem}</span></div>
+                                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#242320' }}>{cust.name}</div>
+                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Faves: <span style={{color:'#1a1a1a'}}>{cust.favoriteItem}</span></div>
                               </div>
                               <div style={{ fontWeight: 700, color: '#10b981', fontSize: '0.9rem' }}>
                                 RM {(cust.totalSpend / 100).toFixed(2)}
@@ -3443,7 +3443,7 @@ export default function Admin() {
                                </div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>RM {item.revenue.toFixed(2)}</div>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#242320' }}>RM {item.revenue.toFixed(2)}</div>
                             </div>
                          </div>
                        ))}
@@ -3556,7 +3556,7 @@ export default function Admin() {
                       📋 Closing Stock
                     </button>
                   </div>
-                  <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '1rem', marginTop: '1rem' }}>
+                  <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#242320', marginBottom: '1rem', marginTop: '1rem' }}>
                     {foodCostTonight.grossRm > 0 ? `${foodCostTonight.pct.toFixed(1)}%` : '—'}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -3635,7 +3635,7 @@ export default function Admin() {
                           style={{
                             padding: '6px 14px', borderRadius: '6px', border: 'none',
                             background: isActive ? '#fff' : 'transparent',
-                            color: isActive ? '#0f172a' : 'var(--text-secondary)',
+                            color: isActive ? '#1a1a1a' : 'var(--text-secondary)',
                             fontWeight: isActive ? '600' : '500',
                             fontSize: '0.875rem', cursor: 'pointer',
                             boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
@@ -3655,12 +3655,12 @@ export default function Admin() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Total Orders</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a' }}>{kpi.orderCount}</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1a1a1a' }}>{kpi.orderCount}</div>
                 <div style={{ fontSize: '0.75rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}><TrendingUp size={12}/> +12% from yesterday</div>
               </div>
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Gross Sales</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a' }}>RM {kpi.totalGrossSales.toFixed(2)}</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1a1a1a' }}>RM {kpi.totalGrossSales.toFixed(2)}</div>
               </div>
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Est. Net Profit</div>
@@ -3669,7 +3669,7 @@ export default function Admin() {
               </div>
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Inventory Alert</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: lowStockCount > 0 ? '#ef4444' : '#0f172a' }}>{lowStockCount}</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: lowStockCount > 0 ? '#ef4444' : '#1a1a1a' }}>{lowStockCount}</div>
                 
                 {lowStockCount > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
@@ -3702,7 +3702,7 @@ export default function Admin() {
               
               {/* Stacked Bar Chart */}
               <div className="admin-card col-span-2" style={{ padding: '1.5rem' }}>
-                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Total Revenue by Channel</h4>
+                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#1a1a1a', fontSize: '1.125rem' }}>Total Revenue by Channel</h4>
                 <div style={{ height: '350px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={trendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
@@ -3724,7 +3724,7 @@ export default function Admin() {
               {/* Sidebar: Performance & Channels */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div className="admin-card" style={{ padding: '1.5rem', flex: 1 }}>
-                  <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Performance</h4>
+                  <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#1a1a1a', fontSize: '1.125rem' }}>Performance</h4>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Order Completion Rate</span>
                     <span style={{ fontWeight: 800, fontSize: '1.125rem', color: '#10b981' }}>{totalCompleted > 0 ? ((totalCompleted / (orders.length || 1)) * 100).toFixed(1) : 0}%</span>
@@ -3736,7 +3736,7 @@ export default function Admin() {
                 </div>
 
                 <div className="admin-card" style={{ padding: '1.5rem', flex: 2 }}>
-                   <h4 style={{ margin: 0, marginBottom: '1rem', color: '#0f172a', fontSize: '1.125rem' }}>Channel Share</h4>
+                   <h4 style={{ margin: 0, marginBottom: '1rem', color: '#1a1a1a', fontSize: '1.125rem' }}>Channel Share</h4>
                    <div style={{ height: '200px' }}>
                      <ResponsiveContainer width="100%" height="100%">
                        <PieChart>
@@ -3768,7 +3768,7 @@ export default function Admin() {
               
               <div className="admin-card col-span-2" style={{ padding: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
+                  <h4 style={{ margin: 0, color: '#1a1a1a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
                   <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '3px' }}>
                     {['all', 'web', 'loyverse', 'grabfood'].map(filter => (
                       <button
@@ -3777,7 +3777,7 @@ export default function Admin() {
                         style={{
                           padding: '4px 12px', borderRadius: '4px', border: 'none',
                           background: topItemsChannelFilter === filter ? '#fff' : 'transparent',
-                          color: topItemsChannelFilter === filter ? '#0f172a' : 'var(--text-secondary)',
+                          color: topItemsChannelFilter === filter ? '#1a1a1a' : 'var(--text-secondary)',
                           fontWeight: topItemsChannelFilter === filter ? '600' : '500',
                           fontSize: '0.75rem', cursor: 'pointer',
                           boxShadow: topItemsChannelFilter === filter ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
@@ -3799,10 +3799,10 @@ export default function Admin() {
                     <div key={idx} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #f8fafc', paddingBottom: '0.75rem', paddingTop: '0.25rem' }}>
                        <div style={{ flex: 3, display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundImage: `url(${item.image})`, backgroundSize: 'cover' }}></div>
-                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{item.name}</div>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name}</div>
                        </div>
                        <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#3b82f6' }}>{item.sales}</div>
-                       <div style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#0f172a', fontSize: '0.8rem' }}>RM {item.revenue.toFixed(2)}</div>
+                       <div style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#1a1a1a', fontSize: '0.8rem' }}>RM {item.revenue.toFixed(2)}</div>
                        <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem', marginLeft: '10px' }}>{item.margin.toFixed(1)}%</div>
                     </div>
                   ))}
@@ -3811,7 +3811,7 @@ export default function Admin() {
               </div>
 
               <div className="admin-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column' }}>
-                <h4 style={{ margin: 0, marginBottom: '1rem', color: '#0f172a', fontSize: '1.125rem' }}>Channel Net Margin Breakdown</h4>
+                <h4 style={{ margin: 0, marginBottom: '1rem', color: '#1a1a1a', fontSize: '1.125rem' }}>Channel Net Margin Breakdown</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, justifyContent: 'center' }}>
                   {Object.entries(channelStats).map(([key, stat]) => {
                     if (stat.gross === 0) return null; // Don't show fabricated data for empty channels
@@ -3820,7 +3820,7 @@ export default function Admin() {
                     return (
                       <div key={key} style={{ padding: '0.75rem', backgroundColor: `${stat.color}10`, borderRadius: '8px', borderLeft: `4px solid ${stat.color}` }}>
                         <div style={{ fontSize: '0.85rem', color: stat.color, fontWeight: 600, marginBottom: '0.25rem' }}>{stat.name}</div>
-                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1a1a1a' }}>
                           {computedMargin}% 
                           <span style={{fontSize:'0.7rem', fontWeight:400, marginLeft: '6px', color: 'var(--text-secondary)'}}>
                             ({feePercent}% Fee)
@@ -3866,7 +3866,7 @@ export default function Admin() {
                     return (
                       <div style={{ padding: '0.75rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px dashed #bbf7d0' }}>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Projected Net Profit Change</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: profitDifference < 0 ? '#ef4444' : (profitDifference > 0 ? '#10b981' : '#0f172a') }}>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: profitDifference < 0 ? '#ef4444' : (profitDifference > 0 ? '#10b981' : '#1a1a1a') }}>
                           {profitDifference < 0 ? '-' : '+'}RM {Math.abs(profitDifference).toFixed(2)}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -3883,7 +3883,7 @@ export default function Admin() {
             {/* Row 4: Peak Hours Breakdown */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '1.5rem', marginTop: '1.5rem' }}>
               <div className="admin-card" style={{ padding: '1.5rem' }}>
-                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#0f172a', fontSize: '1.125rem' }}>Peak Hours Breakdown</h4>
+                <h4 style={{ margin: 0, marginBottom: '1.5rem', color: '#1a1a1a', fontSize: '1.125rem' }}>Peak Hours Breakdown</h4>
                 <div style={{ height: '300px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={hourlyTrendData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
@@ -4352,7 +4352,7 @@ export default function Admin() {
                               }
                             }}
                             style={{
-                              color: (editingStock[item.id] !== undefined ? Number(editingStock[item.id]) : ((menu.find(m => m.id === item.id) || item).stock_quantity ?? 99)) === 0 ? '#ef4444' : '#1e293b'
+                              color: (editingStock[item.id] !== undefined ? Number(editingStock[item.id]) : ((menu.find(m => m.id === item.id) || item).stock_quantity ?? 99)) === 0 ? '#ef4444' : '#242320'
                             }}
                           />
                           <button
@@ -4405,7 +4405,7 @@ export default function Admin() {
                         <label className="stock-toggle" title={item.inStock ? 'Mark sold out' : 'Restock'}>
                           <input type="checkbox" checked={!!item.inStock} onChange={() => toggleStock(item.id)} />
                           <span className="stock-toggle-track"></span>
-                          <span className="stock-toggle-label" style={{ color: item.inStock ? '#00b074' : '#ff5b5b' }}>
+                          <span className="stock-toggle-label" style={{ color: item.inStock ? '#0f7a32' : '#ef4444' }}>
                             {item.inStock ? 'In Stock' : 'Sold Out'}
                           </span>
                         </label>
@@ -4557,7 +4557,7 @@ export default function Admin() {
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
                       <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Points</h4>
-                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#2563eb' }}>{customer.points || 0}</p>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#c73b0f' }}>{customer.points || 0}</p>
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
                       <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Last Seen</h4>
@@ -4688,7 +4688,7 @@ export default function Admin() {
           <div className="admin-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
-                <h3 style={{ margin: 0, color: '#1e293b' }}>🏷️ Category CRM</h3>
+                <h3 style={{ margin: 0, color: '#242320' }}>🏷️ Category CRM</h3>
                 <p className="text-muted" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
                   Manage storefront menu categories, icons, badge colors, and display labels.
                 </p>
@@ -4779,7 +4779,7 @@ export default function Admin() {
                           <strong>{cat.label}</strong>
                         </td>
                         <td>
-                          <code style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.85rem', color: '#0f172a', fontWeight: 'bold' }}>
+                          <code style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.85rem', color: '#1a1a1a', fontWeight: 'bold' }}>
                             {cat.code}
                           </code>
                         </td>
@@ -4843,7 +4843,7 @@ export default function Admin() {
             zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
           }}>
             <div style={{
-              background: '#1e293b', color: '#fff', width: '100%', maxWidth: '460px',
+              background: '#242320', color: '#fff', width: '100%', maxWidth: '460px',
               borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
               boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
             }}>
@@ -4862,7 +4862,7 @@ export default function Admin() {
                     required
                     value={editingCat.code}
                     onChange={(e) => setEditingCat({ ...editingCat, code: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
 
@@ -4873,7 +4873,7 @@ export default function Admin() {
                     required
                     value={editingCat.label}
                     onChange={(e) => setEditingCat({ ...editingCat, label: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
 
@@ -4882,7 +4882,7 @@ export default function Admin() {
                   <select
                     value={editingCat.icon || '🍔'}
                     onChange={(e) => setEditingCat({ ...editingCat, icon: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   >
                     <option value="🔥">🔥 BBQ</option>
                     <option value="👑">👑 Premium</option>
@@ -5901,7 +5901,7 @@ export default function Admin() {
                                 onChange={e => setEditingIngredientStock({ ...editingIngredientStock, [ing.id]: e.target.value })}
                                 onBlur={() => { if (editingIngredientStock[ing.id] !== undefined) { updateIngredientStock(ing.id, editingIngredientStock[ing.id]); setEditingIngredientStock({ ...editingIngredientStock, [ing.id]: undefined }); } }}
                                 onKeyDown={e => { if (e.key === 'Enter') { updateIngredientStock(ing.id, editingIngredientStock[ing.id] ?? ing.stock_quantity); setEditingIngredientStock({ ...editingIngredientStock, [ing.id]: undefined }); e.target.blur(); } }}
-                                style={{ color: isLow ? '#ef4444' : '#1e293b' }}
+                                style={{ color: isLow ? '#ef4444' : '#242320' }}
                               />
                               <button type="button" className="qty-btn qty-btn-plus" onClick={() => updateIngredientStock(ing.id, (ing.stock_quantity ?? 0) + 1)}>+</button>
                               <button type="button" className="icon-btn" title="View stock history" onClick={() => openIngredientHistory(ing.id)}><Clock size={12} /></button>
@@ -5997,9 +5997,9 @@ export default function Admin() {
                     <button key={d} type="button" onClick={() => setStockReportDays(d)}
                       style={{
                         padding: '6px 12px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-                        border: stockReportDays === d ? '1px solid #2d99ff' : '1px solid #cbd5e1',
-                        background: stockReportDays === d ? 'rgba(45,153,255,0.1)' : '#fff',
-                        color: stockReportDays === d ? '#2d99ff' : 'var(--text-secondary)'
+                        border: stockReportDays === d ? '1px solid #c73b0f' : '1px solid #cbd5e1',
+                        background: stockReportDays === d ? 'rgba(199,59,15,0.1)' : '#fff',
+                        color: stockReportDays === d ? '#c73b0f' : 'var(--text-secondary)'
                       }}>{d}d</button>
                   ))}
                 </div>
@@ -6116,8 +6116,8 @@ export default function Admin() {
           zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
         }}>
           <div style={{
-            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '500px',
-            borderRadius: '16px', padding: '1.5rem', border: '1px solid #334155',
+            background: '#242320', color: '#fff', width: '100%', maxWidth: '500px',
+            borderRadius: '16px', padding: '1.5rem', border: '1px solid #3a3733',
             boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
             maxHeight: '90vh', overflowY: 'auto'
           }}>
@@ -6138,7 +6138,7 @@ export default function Admin() {
                     placeholder="e.g. SUMMER20"
                     value={promoFormData.code}
                     onChange={(e) => setPromoFormData({ ...promoFormData, code: e.target.value.toUpperCase() })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -6148,7 +6148,7 @@ export default function Admin() {
                     placeholder="e.g. Summer Sale"
                     value={promoFormData.name}
                     onChange={(e) => setPromoFormData({ ...promoFormData, name: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
               </div>
@@ -6165,8 +6165,8 @@ export default function Admin() {
                     <button key={val} type="button" onClick={() => setPromoFormData({ ...promoFormData, type: val })}
                       style={{
                         padding: '8px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                        border: promoFormData.type === val ? '1px solid #2563eb' : '1px solid var(--text-secondary)',
-                        background: promoFormData.type === val ? '#2563eb' : 'transparent',
+                        border: promoFormData.type === val ? '1px solid #c73b0f' : '1px solid var(--text-secondary)',
+                        background: promoFormData.type === val ? '#c73b0f' : 'transparent',
                         color: promoFormData.type === val ? '#fff' : 'var(--text-secondary)'
                       }}>{label}</button>
                   ))}
@@ -6186,7 +6186,7 @@ export default function Admin() {
                     placeholder={promoFormData.type === 'percent_off' ? "e.g. 20 (for 20%)" : "e.g. 500 (for RM 5.00)"}
                     value={promoFormData.value}
                     onChange={(e) => setPromoFormData({ ...promoFormData, value: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   />
                   <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
                     {promoFormData.type === 'flat_off' ? 'Enter in cents (e.g. 500 = RM 5.00)' : 'Enter whole percentage (e.g. 15 = 15%)'}
@@ -6197,7 +6197,7 @@ export default function Admin() {
                     placeholder="e.g. 5000 (for RM 50.00)"
                     value={promoFormData.min_spend}
                     onChange={(e) => setPromoFormData({ ...promoFormData, min_spend: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   />
                   <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Enter in cents (e.g. 5000 = RM 50.00). Enforced at checkout.</small>
                 </div>
@@ -6210,7 +6210,7 @@ export default function Admin() {
                     required
                     value={promoFormData.applies_to_item_id}
                     onChange={(e) => setPromoFormData({ ...promoFormData, applies_to_item_id: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   >
                     <option value="">Select an Item...</option>
                     {menu.map(item => (
@@ -6231,7 +6231,7 @@ export default function Admin() {
                       placeholder="e.g. 5000 (for RM 50.00)"
                       value={promoFormData.min_spend}
                       onChange={(e) => setPromoFormData({ ...promoFormData, min_spend: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                     />
                     <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Enter in cents (e.g. 5000 = RM 50.00)</small>
                   </div>
@@ -6241,7 +6241,7 @@ export default function Admin() {
                       required
                       value={promoFormData.free_item_id}
                       onChange={(e) => setPromoFormData({ ...promoFormData, free_item_id: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                     >
                       <option value="">Select an Item...</option>
                       {menu.map(item => (
@@ -6260,7 +6260,7 @@ export default function Admin() {
                     placeholder="∞"
                     value={promoFormData.max_total_uses}
                     onChange={(e) => setPromoFormData({ ...promoFormData, max_total_uses: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -6270,7 +6270,7 @@ export default function Admin() {
                     placeholder="∞"
                     value={promoFormData.max_uses_per_user}
                     onChange={(e) => setPromoFormData({ ...promoFormData, max_uses_per_user: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
               </div>
@@ -6283,7 +6283,7 @@ export default function Admin() {
                     className="dark-datetime-input"
                     value={promoFormData.starts_at}
                     onChange={(e) => setPromoFormData({ ...promoFormData, starts_at: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -6293,7 +6293,7 @@ export default function Admin() {
                     className="dark-datetime-input"
                     value={promoFormData.ends_at}
                     onChange={(e) => setPromoFormData({ ...promoFormData, ends_at: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   />
                 </div>
               </div>
@@ -6327,7 +6327,7 @@ export default function Admin() {
               <button
                 type="submit"
                 disabled={savingPromo}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 'bold', cursor: savingPromo ? 'default' : 'pointer', opacity: savingPromo ? 0.6 : 1, marginTop: '8px' }}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#c73b0f', color: '#fff', fontWeight: 'bold', cursor: savingPromo ? 'default' : 'pointer', opacity: savingPromo ? 0.6 : 1, marginTop: '8px' }}
               >
                 {savingPromo ? 'Saving…' : promoFormData.id ? 'Save Changes' : 'Create Promo Code'}
               </button>
@@ -6344,7 +6344,7 @@ export default function Admin() {
           zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
         }}>
           <div style={{
-            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '480px',
+            background: '#242320', color: '#fff', width: '100%', maxWidth: '480px',
             borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
             boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
           }}>
@@ -6363,7 +6363,7 @@ export default function Admin() {
                   required
                   value={selectedEventDate}
                   onChange={(e) => setSelectedEventDate(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
@@ -6372,7 +6372,7 @@ export default function Admin() {
                 <select
                   value={eventFormData.type}
                   onChange={(e) => setEventFormData({ ...eventFormData, type: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 >
                   <option value="event">🎉 Store Event</option>
                   <option value="promo">🔥 Promotion</option>
@@ -6388,7 +6388,7 @@ export default function Admin() {
                   placeholder="e.g. CZ CHIX Promo Launch"
                   value={eventFormData.title}
                   onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
@@ -6399,7 +6399,7 @@ export default function Admin() {
                   placeholder="Add event details, discount info, or restock notes..."
                   value={eventFormData.description}
                   onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff' }}
                 />
               </div>
 
@@ -6440,7 +6440,7 @@ export default function Admin() {
           zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
         }}>
           <div style={{
-            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '520px',
+            background: '#242320', color: '#fff', width: '100%', maxWidth: '520px',
             borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
             boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
           }}>
@@ -6452,7 +6452,7 @@ export default function Admin() {
             </div>
 
             <button type="button" onClick={() => openRecipeEditor('menu_item', editingMenuItem.id, editingMenuItem.name)}
-              style={{ marginBottom: '1rem', padding: '8px 14px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: 'var(--munchies-yellow)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+              style={{ marginBottom: '1rem', padding: '8px 14px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: 'var(--munchies-yellow)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
               🧾 Manage Recipe (Ingredients)
             </button>
 
@@ -6464,7 +6464,7 @@ export default function Admin() {
                   required
                   value={editingMenuItem.name}
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, name: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
@@ -6473,7 +6473,7 @@ export default function Admin() {
                 <select
                   value={editingMenuItem.category}
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, category: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 >
                   {categoriesList.map(c => (
                     <option key={c.id} value={c.code}>{c.icon || '🏷️'} {c.label}</option>
@@ -6489,7 +6489,7 @@ export default function Admin() {
                   required
                   value={editingMenuItem.price}
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, price: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
@@ -6501,7 +6501,7 @@ export default function Admin() {
                   placeholder="e.g. 2.20"
                   value={editingMenuItem.cost_price}
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, cost_price: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 />
                 <CostMarginLine
                   dark
@@ -6517,7 +6517,7 @@ export default function Admin() {
                   placeholder="Describe ingredients, options, or combo details..."
                   value={editingMenuItem.description}
                   onChange={(e) => setEditingMenuItem({ ...editingMenuItem, description: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff' }}
                 />
               </div>
 
@@ -6527,7 +6527,7 @@ export default function Admin() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => setEditingMenuItemImageFile(e.target.files[0])}
-                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontSize: '0.85rem' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontSize: '0.85rem' }}
                 />
               </div>
 
@@ -6566,7 +6566,7 @@ export default function Admin() {
             zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
           }}>
             <div style={{
-              background: '#1e293b', color: '#fff', width: '100%', maxWidth: '420px',
+              background: '#242320', color: '#fff', width: '100%', maxWidth: '420px',
               borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
               boxShadow: '0 20px 40px rgba(0,0,0,0.5)', maxHeight: '80vh', display: 'flex', flexDirection: 'column'
             }}>
@@ -6608,7 +6608,7 @@ export default function Admin() {
           zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)'
         }}>
           <div style={{
-            background: '#1e293b', color: '#fff', width: '100%', maxWidth: '420px',
+            background: '#242320', color: '#fff', width: '100%', maxWidth: '420px',
             borderRadius: '16px', padding: '1.5rem', border: '2px solid rgba(255, 199, 44, 0.4)',
             boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
           }}>
@@ -6620,7 +6620,7 @@ export default function Admin() {
             </div>
 
             <button type="button" onClick={() => openRecipeEditor('addon', editingAddon.id, editingAddon.name)}
-              style={{ marginBottom: '1rem', padding: '8px 14px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: 'var(--munchies-yellow)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+              style={{ marginBottom: '1rem', padding: '8px 14px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: 'var(--munchies-yellow)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
               🧾 Manage Recipe (Ingredients)
             </button>
 
@@ -6632,7 +6632,7 @@ export default function Admin() {
                   required
                   value={editingAddon.name}
                   onChange={(e) => setEditingAddon({ ...editingAddon, name: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
@@ -6644,7 +6644,7 @@ export default function Admin() {
                   placeholder="Leave blank for TBD"
                   value={editingAddon.price}
                   onChange={(e) => setEditingAddon({ ...editingAddon, price: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 />
               </div>
 
@@ -6656,7 +6656,7 @@ export default function Admin() {
                   placeholder="e.g. 1.20"
                   value={editingAddon.cost_price}
                   onChange={(e) => setEditingAddon({ ...editingAddon, cost_price: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 />
                 {editingAddon.cost_price !== '' && editingAddon.price && (
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -6675,7 +6675,7 @@ export default function Admin() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => setEditingAddonImageFile(e.target.files?.[0] || null)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontSize: '0.85rem' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontSize: '0.85rem' }}
                 />
               </div>
 
@@ -6703,7 +6703,7 @@ export default function Admin() {
         {/* Cancellation Modal */}
       {cancellingOrder && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
+          <div style={{ background: '#242320', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #3a3733' }}>
             <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Cancel Order</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold' }}>REASON</label>
@@ -6717,7 +6717,7 @@ export default function Admin() {
                       padding: '6px 12px',
                       borderRadius: '999px',
                       border: `1px solid ${cancellingOrder.reason === r ? '#FFC72C' : 'var(--text-secondary)'}`,
-                      background: cancellingOrder.reason === r ? '#FFC72C' : '#0f172a',
+                      background: cancellingOrder.reason === r ? '#FFC72C' : '#1a1a1a',
                       color: cancellingOrder.reason === r ? '#17150F' : '#fff',
                       fontWeight: 700,
                       fontSize: '0.75rem',
@@ -6729,13 +6729,13 @@ export default function Admin() {
                 ))}
               </div></div>
               <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 'bold' }}>NOTE (OPTIONAL)</label>
-              <textarea value={cancellingOrder.note} onChange={e => setCancellingOrder({...cancellingOrder, note: e.target.value})} placeholder="Any extra detail..." style={{ width: '100%', minHeight: '56px', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#0f172a', color: '#fff', fontFamily: 'inherit', resize: 'vertical' }} /></div>
+              <textarea value={cancellingOrder.note} onChange={e => setCancellingOrder({...cancellingOrder, note: e.target.value})} placeholder="Any extra detail..." style={{ width: '100%', minHeight: '56px', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontFamily: 'inherit', resize: 'vertical' }} /></div>
               <div><label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold' }}>STOCK ACTION</label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'restore' ? '#1e3a8a' : '#0f172a', border: '1px solid var(--text-secondary)', borderRadius: '8px', cursor: 'pointer', marginBottom: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'restore' ? '#1e3a8a' : '#1a1a1a', border: '1px solid var(--text-secondary)', borderRadius: '8px', cursor: 'pointer', marginBottom: '8px' }}>
                 <input type="radio" checked={cancellingOrder.wasteAction === 'restore'} onChange={() => setCancellingOrder({...cancellingOrder, wasteAction: 'restore'})} />
                 <div><div style={{ color: '#fff', fontWeight: 'bold' }}>Restore to stock</div><div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Item not prepared, still available.</div></div>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'waste' ? '#450a0a' : '#0f172a', border: '1px solid var(--text-secondary)', borderRadius: '8px', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: cancellingOrder.wasteAction === 'waste' ? '#450a0a' : '#1a1a1a', border: '1px solid var(--text-secondary)', borderRadius: '8px', cursor: 'pointer' }}>
                 <input type="radio" checked={cancellingOrder.wasteAction === 'waste'} onChange={() => setCancellingOrder({...cancellingOrder, wasteAction: 'waste'})} />
                 <div><div style={{ color: '#fca5a5', fontWeight: 'bold' }}>Mark as waste</div><div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Item prepped, cannot be resold.</div></div>
               </label></div>
@@ -6775,7 +6775,7 @@ export default function Admin() {
         const amountCents = refundingOrder.amountMode === 'full' ? refundingOrder.total : Math.round(refundingOrder.total / 2);
         return (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-            <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #334155' }}>
+            <div style={{ background: '#242320', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '450px', border: '1px solid #3a3733' }}>
               <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Refund or void</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                 <div>
@@ -6788,8 +6788,8 @@ export default function Admin() {
                         onClick={() => setRefundingOrder({ ...refundingOrder, amountMode: mode })}
                         style={{
                           flex: 1, padding: '10px', borderRadius: '8px',
-                          border: `1px solid ${refundingOrder.amountMode === mode ? '#FFC72C' : '#334155'}`,
-                          background: refundingOrder.amountMode === mode ? '#FFC72C' : '#0f172a',
+                          border: `1px solid ${refundingOrder.amountMode === mode ? '#FFC72C' : '#3a3733'}`,
+                          background: refundingOrder.amountMode === mode ? '#FFC72C' : '#1a1a1a',
                           color: refundingOrder.amountMode === mode ? '#17150F' : '#fff',
                           fontWeight: 700, cursor: 'pointer'
                         }}
@@ -6810,8 +6810,8 @@ export default function Admin() {
                         onClick={() => setRefundingOrder({ ...refundingOrder, reason: r })}
                         style={{
                           padding: '6px 12px', borderRadius: '999px',
-                          border: `1px solid ${refundingOrder.reason === r ? '#FFC72C' : '#334155'}`,
-                          background: refundingOrder.reason === r ? '#FFC72C' : '#0f172a',
+                          border: `1px solid ${refundingOrder.reason === r ? '#FFC72C' : '#3a3733'}`,
+                          background: refundingOrder.reason === r ? '#FFC72C' : '#1a1a1a',
                           color: refundingOrder.reason === r ? '#17150F' : '#fff',
                           fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer'
                         }}
@@ -6854,7 +6854,7 @@ export default function Admin() {
           : <span className="text-muted">Preview appears here as you type…</span>;
         return (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-            <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '480px', border: '1px solid #334155' }}>
+            <div style={{ background: '#242320', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '480px', border: '1px solid #3a3733' }}>
               <h3 style={{ margin: '0 0 1rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>Message segment</h3>
               <p style={{ margin: '0 0 1.2rem', fontSize: '0.85rem', color: '#94a3b8' }}>
                 Sending to <strong>{customerSegmentFilter}</strong> — {recipients.length} customer{recipients.length === 1 ? '' : 's'}.
@@ -6870,8 +6870,8 @@ export default function Admin() {
                         onClick={() => setBlastComposer({ ...blastComposer, channel: ch })}
                         style={{
                           flex: 1, padding: '10px', borderRadius: '8px',
-                          border: `1px solid ${blastComposer.channel === ch ? '#FFC72C' : '#334155'}`,
-                          background: blastComposer.channel === ch ? '#FFC72C' : '#0f172a',
+                          border: `1px solid ${blastComposer.channel === ch ? '#FFC72C' : '#3a3733'}`,
+                          background: blastComposer.channel === ch ? '#FFC72C' : '#1a1a1a',
                           color: blastComposer.channel === ch ? '#17150F' : '#fff',
                           fontWeight: 700, cursor: 'pointer'
                         }}
@@ -6887,12 +6887,12 @@ export default function Admin() {
                     value={blastComposer.message}
                     onChange={e => setBlastComposer({ ...blastComposer, message: e.target.value })}
                     placeholder="Hey {name}, we miss you! Come back for..."
-                    style={{ width: '100%', minHeight: '80px', padding: '10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', fontFamily: 'inherit', resize: 'vertical' }}
+                    style={{ width: '100%', minHeight: '80px', padding: '10px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: '#fff', fontFamily: 'inherit', resize: 'vertical' }}
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>CUSTOMER SEES</label>
-                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', fontSize: '0.85rem', color: '#e2e8f0' }}>
+                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: '#1a1a1a', border: '1px solid #3a3733', fontSize: '0.85rem', color: '#e2e8f0' }}>
                     {preview}
                   </div>
                 </div>
@@ -6920,7 +6920,7 @@ export default function Admin() {
         const item = menu.find(m => m.id === stockHistoryItemId);
         return (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={closeStockHistory}>
-            <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '420px', border: '1px solid #334155', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: '#242320', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '420px', border: '1px solid #3a3733', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
               <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.1rem' }}>Stock History</h3>
               <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>{item?.name || 'Item'} — most recent {stockHistoryData.length} change{stockHistoryData.length === 1 ? '' : 's'}</p>
               <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -6932,7 +6932,7 @@ export default function Admin() {
                   stockHistoryData.map(h => {
                     const delta = (h.new_quantity ?? 0) - (h.old_quantity ?? 0);
                     return (
-                      <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#0f172a', fontSize: '0.8rem' }}>
+                      <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', fontSize: '0.8rem' }}>
                         <span style={{ color: '#e2e8f0' }}>{h.old_quantity ?? '—'} → {h.new_quantity}</span>
                         <span style={{ color: delta > 0 ? '#4ade80' : delta < 0 ? '#f87171' : '#94a3b8', fontWeight: 700 }}>{delta > 0 ? `+${delta}` : delta}</span>
                         <span style={{ color: '#64748b', fontSize: '0.72rem' }}>{new Date(h.changed_at).toLocaleString()}</span>
@@ -6951,7 +6951,7 @@ export default function Admin() {
         const ing = ingredients.find(i => i.id === ingredientHistoryId);
         return (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={closeIngredientHistory}>
-            <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '420px', border: '1px solid #334155', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: '#242320', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '420px', border: '1px solid #3a3733', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
               <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.1rem' }}>Stock History</h3>
               <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>{ing?.name || 'Ingredient'} — most recent {ingredientHistoryData.length} change{ingredientHistoryData.length === 1 ? '' : 's'}</p>
               <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -6963,7 +6963,7 @@ export default function Admin() {
                   ingredientHistoryData.map(h => {
                     const delta = (h.new_quantity ?? 0) - (h.old_quantity ?? 0);
                     return (
-                      <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#0f172a', fontSize: '0.8rem' }}>
+                      <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', fontSize: '0.8rem' }}>
                         <span style={{ color: '#e2e8f0' }}>{h.old_quantity ?? '—'} → {h.new_quantity}</span>
                         <span style={{ color: delta > 0 ? '#4ade80' : delta < 0 ? '#f87171' : '#94a3b8', fontWeight: 700 }}>{delta > 0 ? `+${delta}` : delta}</span>
                         <span style={{ color: '#64748b', fontSize: '0.72rem' }}>{new Date(h.changed_at).toLocaleString()}</span>
@@ -6980,7 +6980,7 @@ export default function Admin() {
 
       {recipeEditorFor && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={closeRecipeEditor}>
-          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '440px', border: '1px solid #334155', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#242320', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '440px', border: '1px solid #3a3733', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.1rem' }}>Recipe</h3>
             <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>{recipeEditorFor.parentName} — ingredients this item uses</p>
 
@@ -6989,7 +6989,7 @@ export default function Admin() {
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '0.5rem 0' }}>No recipe defined yet -- this item's stock stays independent until you add ingredients below.</p>
               )}
               {recipeEditorRows.map(row => (
-                <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#0f172a', fontSize: '0.85rem' }}>
+                <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', fontSize: '0.85rem' }}>
                   <span style={{ color: '#e2e8f0' }}>{row.ingredient?.name || 'Ingredient'}</span>
                   <span style={{ color: '#94a3b8' }}>{row.quantity_per_unit} {row.ingredient?.unit}</span>
                   <button type="button" onClick={() => handleRemoveRecipeRow(row.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
@@ -6999,14 +6999,14 @@ export default function Admin() {
 
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <select value={recipeEditorAddIngredientId} onChange={e => setRecipeEditorAddIngredientId(e.target.value)}
-                style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', fontSize: '0.8rem' }}>
+                style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: '#fff', fontSize: '0.8rem' }}>
                 <option value="">Select ingredient…</option>
                 {ingredients.map(ing => (
                   <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>
                 ))}
               </select>
               <input type="number" min="0" step="0.01" placeholder="Qty" value={recipeEditorAddQty} onChange={e => setRecipeEditorAddQty(e.target.value)}
-                style={{ width: '64px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', fontSize: '0.8rem' }} />
+                style={{ width: '64px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: '#fff', fontSize: '0.8rem' }} />
               <button type="button" disabled={savingRecipeRow} onClick={handleAddRecipeRow}
                 style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#FFC72C', color: '#17150F', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}>
                 Add
@@ -7020,7 +7020,7 @@ export default function Admin() {
 
       {showClosingStock && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => !savingClosingStock && setShowClosingStock(false)}>
-          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '480px', border: '1px solid #334155', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#242320', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '480px', border: '1px solid #3a3733', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>📋 Daily Closing Stock</h3>
             <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>
               Walk the shelf and enter what's actually there for each item. Saving reconciles the system count to your physical count and records today's closing snapshot.
@@ -7031,7 +7031,7 @@ export default function Admin() {
                 const system = item.stock_quantity ?? 0;
                 const variance = counted !== '' ? Math.floor(Number(counted) || 0) - system : 0;
                 return (
-                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '8px', background: '#0f172a' }}>
+                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '8px', background: '#1a1a1a' }}>
                     <span style={{ flex: 1, fontSize: '0.82rem', color: '#e2e8f0' }}>{item.name}</span>
                     <span style={{ fontSize: '0.7rem', color: '#64748b', width: '58px' }}>sys: {system}</span>
                     <input
@@ -7039,7 +7039,7 @@ export default function Admin() {
                       min="0"
                       value={counted}
                       onChange={e => setClosingCounts({ ...closingCounts, [item.id]: e.target.value })}
-                      style={{ width: '64px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #334155', background: '#1e293b', color: '#fff', fontSize: '0.85rem' }}
+                      style={{ width: '64px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #3a3733', background: '#242320', color: '#fff', fontSize: '0.85rem' }}
                     />
                     {variance !== 0 && (
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: variance < 0 ? '#f87171' : '#4ade80', width: '32px' }}>{variance > 0 ? `+${variance}` : variance}</span>
