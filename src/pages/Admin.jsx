@@ -3237,7 +3237,7 @@ export default function Admin() {
                   <div className="admin-card" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h3 style={{ margin: 0 }}>Last Reports</h3>
-                    <span onClick={() => navigate('/admin/reports')} style={{ fontSize: '0.8rem', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}>See all</span>
+                    <span onClick={() => navigate('/admin/reports')} style={{ fontSize: '0.8rem', color: '#c73b0f', cursor: 'pointer', textDecoration: 'underline' }}>See all</span>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
                      <div style={{ flex: 1, border: '1px solid #fee2e2', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff5f5' }}>
@@ -3384,11 +3384,11 @@ export default function Admin() {
                     <div style={{ marginBottom: '1.5rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
                         <span style={{ fontWeight: 600, color: '#242320' }}>New: {customerInsights.newCount} ({customerInsights.newPercent.toFixed(1)}%)</span>
-                        <span style={{ fontWeight: 600, color: '#3b82f6' }}>Returning: {customerInsights.returningCount} ({customerInsights.returningPercent.toFixed(1)}%)</span>
+                        <span style={{ fontWeight: 600, color: '#0f7a32' }}>Returning: {customerInsights.returningCount} ({customerInsights.returningPercent.toFixed(1)}%)</span>
                       </div>
                       <div style={{ height: '8px', borderRadius: '4px', backgroundColor: '#e2e8f0', display: 'flex', overflow: 'hidden' }}>
                         <div style={{ width: `${customerInsights.newPercent}%`, backgroundColor: '#ef4444', transition: 'width 1s ease-in-out' }}></div>
-                        <div style={{ width: `${customerInsights.returningPercent}%`, backgroundColor: '#3b82f6', transition: 'width 1s ease-in-out' }}></div>
+                        <div style={{ width: `${customerInsights.returningPercent}%`, backgroundColor: '#0f7a32', transition: 'width 1s ease-in-out' }}></div>
                       </div>
                     </div>
                     
@@ -3686,11 +3686,11 @@ export default function Admin() {
                 )}
                 
                 <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', fontSize: '0.75rem' }}>
-                  <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setActiveTab('inventory')}>
+                  <span style={{ color: '#c73b0f', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setActiveTab('inventory')}>
                     Menu Stock
                   </span>
                   <span style={{ color: '#cbd5e1' }}>•</span>
-                  <span style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setActiveTab('addons')}>
+                  <span style={{ color: '#c73b0f', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setActiveTab('addons')}>
                     Add-ons Stock
                   </span>
                 </div>
@@ -3801,7 +3801,7 @@ export default function Admin() {
                           <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundImage: `url(${item.image})`, backgroundSize: 'cover' }}></div>
                           <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name}</div>
                        </div>
-                       <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#3b82f6' }}>{item.sales}</div>
+                       <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#c73b0f' }}>{item.sales}</div>
                        <div style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#1a1a1a', fontSize: '0.8rem' }}>RM {item.revenue.toFixed(2)}</div>
                        <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem', marginLeft: '10px' }}>{item.margin.toFixed(1)}%</div>
                     </div>
@@ -4118,7 +4118,7 @@ export default function Admin() {
                           <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>{newItemPhotoMeta?.name}</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{((newItemPhotoMeta?.size || 0) / 1024).toFixed(0)} KB</div>
                         </div>
-                        <span style={{ fontSize: '0.78rem', color: '#3b82f6', fontWeight: 600 }}>Replace</span>
+                        <span style={{ fontSize: '0.78rem', color: '#c73b0f', fontWeight: 600 }}>Replace</span>
                       </>
                     )}
                   </div>
@@ -4807,7 +4807,7 @@ export default function Admin() {
                               type="button"
                               className="btn btn-sm btn-secondary"
                               onClick={() => setEditingCat({ ...cat })}
-                              style={{ background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold' }}
+                              style={{ background: '#c73b0f', color: '#fff', border: 'none', fontWeight: 'bold' }}
                             >
                               ✏️ Edit
                             </button>
