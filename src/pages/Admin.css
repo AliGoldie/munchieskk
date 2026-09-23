@@ -1,18 +1,21 @@
 .admin-page {
-  color: #2b3674;
-  font-family: 'Inter', sans-serif;
+  color: var(--munchies-dark);
+  font-family: 'Archivo', system-ui, sans-serif;
+  background: var(--munchies-canvas);
 }
 
 .admin-header-section h1 {
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: #2b3674;
+  font-family: 'Archivo Black', sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--munchies-dark);
+  text-transform: uppercase;
 }
 
 .admin-card {
   background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(26,26,26,.06);
   padding: 1.5rem;
   margin-bottom: 2rem;
   border: none;
@@ -20,13 +23,13 @@
 
 .admin-card h3 {
   font-weight: 700;
-  color: #2b3674;
+  color: var(--munchies-dark);
   margin-bottom: 1.5rem;
   font-size: 1.25rem;
 }
 
 .admin-card h4 {
-  color: #a3aed1;
+  color: var(--munchies-muted-2);
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -64,19 +67,21 @@
 .admin-table th {
   text-align: left;
   padding: 0.75rem 1rem;
-  font-weight: 600;
-  color: #a3aed1;
-  font-size: 0.85rem;
-  border-bottom: 1px solid #f4f7fe;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--munchies-muted-2);
+  font-size: 0.72rem;
+  border-bottom: 1px solid var(--munchies-canvas);
 }
 
 .admin-table td {
   padding: 1rem;
   background-color: #ffffff;
-  border-top: 1px solid #f8f9fc;
-  border-bottom: 1px solid #f8f9fc;
+  border-top: 1px solid var(--munchies-canvas);
+  border-bottom: 1px solid var(--munchies-canvas);
   vertical-align: middle;
-  color: #2b3674;
+  color: var(--munchies-dark);
 }
 
 .admin-table tbody tr {
@@ -85,19 +90,19 @@
 
 .admin-table tbody tr:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  box-shadow: 0 4px 12px rgba(26,26,26,.05);
 }
 
 .admin-table td:first-child {
-  border-left: 1px solid #f8f9fc;
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+  border-left: 1px solid var(--munchies-canvas);
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
 }
 
 .admin-table td:last-child {
-  border-right: 1px solid #f8f9fc;
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
+  border-right: 1px solid var(--munchies-canvas);
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 
 /* Wide tables (Menu Inventory, Add-ons CRM) scroll horizontally past their
@@ -112,7 +117,7 @@
 
 .admin-table.sticky-actions td:last-child {
   background-color: #ffffff;
-  box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.12);
+  box-shadow: -6px 0 8px -6px rgba(26, 26, 26, 0.12);
 }
 
 .admin-table.sticky-actions th:last-child {
@@ -138,18 +143,17 @@
   width: 26px;
   height: 26px;
   border-radius: 6px;
-  border: 1px solid #e5e9f5;
+  border: 1px solid var(--munchies-canvas);
   background: #fff;
-  color: #7c8bb3;
+  color: var(--munchies-muted);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   flex-shrink: 0;
   padding: 0;
 }
 .icon-btn:hover:not(:disabled) {
-  background: #f4f7fe;
-  border-color: #a3aed1;
-  color: #2b3674;
+  background: var(--munchies-canvas);
+  color: var(--munchies-dark);
 }
 .icon-btn:disabled {
   opacity: 0.4;
@@ -198,9 +202,9 @@
   filter: brightness(0.96);
 }
 .pill-action-btn.pill-blue {
-  background: #eef2ff;
-  color: #4338ca;
-  border-color: #c7d2fe;
+  background: rgba(255, 199, 44, .16);
+  color: var(--munchies-amber-ink);
+  border-color: rgba(255, 199, 44, .4);
 }
 .pill-action-btn.pill-red {
   background: #fef2f2;
@@ -246,7 +250,7 @@
   transition: transform 0.2s ease;
 }
 .stock-toggle input:checked + .stock-toggle-track {
-  background: #00b074;
+  background: var(--munchies-green);
 }
 .stock-toggle input:checked + .stock-toggle-track::after {
   transform: translateX(16px);
@@ -257,26 +261,26 @@
 }
 
 .status-badge.in-stock, .status-badge.completed {
-  background-color: rgba(0, 176, 116, 0.1);
-  color: #00b074;
+  background-color: rgba(15, 122, 50, 0.1);
+  color: var(--munchies-green);
 }
 
 .status-badge.out-stock, .status-badge.cancelled {
-  background-color: rgba(255, 91, 91, 0.1);
-  color: #ff5b5b;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--danger-color);
 }
 
 .status-badge.pending {
-  background-color: rgba(255, 173, 10, 0.1);
-  color: #ffad0a;
+  background-color: rgba(199, 59, 15, 0.1);
+  color: var(--munchies-orange);
 }
 
 /* Button overrides for Sedap */
 .admin-page .btn {
   border: none;
   box-shadow: none;
-  border-radius: 12px;
-  font-weight: 600;
+  border-radius: 999px;
+  font-weight: 700;
   padding: 0.6rem 1.2rem;
 }
 
@@ -287,20 +291,20 @@
 .admin-page .btn-sm {
   padding: 0.3rem 0.65rem;
   font-size: 0.72rem;
-  border-radius: 8px;
+  border-radius: 999px;
 }
 
 .admin-page .btn-primary {
-  background-color: #00b074;
+  background-color: var(--munchies-orange);
   color: white;
 }
 .admin-page .btn-primary:hover {
-  background-color: #009966;
+  background-color: #a8330d;
 }
 
 .admin-page .btn-secondary {
-  background-color: #f4f7fe;
-  color: #2b3674;
+  background-color: var(--munchies-canvas);
+  color: var(--munchies-dark);
 }
 
 .new-item-form {
@@ -309,9 +313,9 @@
   gap: 1rem;
   background-color: #ffffff;
   padding: 1.5rem;
-  border-radius: 16px;
+  border-radius: 20px;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  box-shadow: 0 10px 28px rgba(26,26,26,.06);
 }
 
 .admin-dashboard-layout {
@@ -332,10 +336,10 @@
   gap: 0.5rem;
   position: sticky;
   top: 2rem;
-  background: white;
+  background: var(--munchies-dark);
   padding: 1.5rem 1rem;
   border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  box-shadow: 0 10px 28px rgba(26,26,26,.16);
 }
 
 .sidebar-item {
@@ -346,7 +350,7 @@
   border-radius: 12px;
   background: transparent;
   border: none;
-  color: #a3aed1;
+  color: var(--munchies-muted-dark);
   font-weight: 600;
   cursor: pointer;
   text-align: left;
@@ -356,12 +360,13 @@
 }
 
 .sidebar-item:hover {
-  color: #00b074;
+  color: var(--munchies-yellow);
 }
 
 .sidebar-item.active {
-  background-color: rgba(0, 176, 116, 0.1);
-  color: #00b074;
+  background-color: rgba(255, 199, 44, 0.14);
+  color: var(--munchies-yellow);
+  font-weight: 700;
 }
 .sidebar-item.active::before {
   content: '';
@@ -371,13 +376,13 @@
   transform: translateY(-50%);
   height: 20px;
   width: 4px;
-  background-color: #00b074;
+  background-color: var(--munchies-yellow);
   border-top-right-radius: 4px;
   border-bottom-right-radius: 4px;
 }
 
 .sidebar-badge {
-  background-color: #ff5b5b;
+  background-color: var(--munchies-orange);
   color: white;
   font-size: 0.75rem;
   font-weight: 700;
@@ -410,9 +415,9 @@
 
 .sedap-metric-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  box-shadow: 0 10px 28px rgba(26,26,26,.06);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -430,18 +435,18 @@
 }
 
 .sedap-metric-icon.green {
-  background-color: rgba(0, 176, 116, 0.15);
-  color: #00b074;
+  background-color: rgba(15, 122, 50, 0.15);
+  color: var(--munchies-green);
 }
 
 .sedap-metric-icon.red {
-  background-color: rgba(255, 91, 91, 0.15);
-  color: #ff5b5b;
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--danger-color);
 }
 
 .sedap-metric-icon.blue {
-  background-color: rgba(45, 153, 255, 0.15);
-  color: #2d99ff;
+  background-color: rgba(199, 59, 15, 0.12);
+  color: var(--munchies-orange);
 }
 
 .sedap-metric-content {
@@ -450,16 +455,19 @@
 }
 
 .sedap-metric-value {
+  font-family: 'Archivo Black', sans-serif;
+  font-weight: 400;
   font-size: 1.75rem;
-  font-weight: 800;
-  color: #2b3674;
+  color: var(--munchies-dark);
   line-height: 1.2;
 }
 
 .sedap-metric-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #a3aed1;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--munchies-muted-2);
   margin-top: 4px;
 }
 
@@ -478,9 +486,9 @@
 
 .chart-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  box-shadow: 0 10px 28px rgba(26,26,26,.06);
 }
 
 .chart-header {
@@ -508,7 +516,7 @@
   transition: background 0.2s;
 }
 .top-selling-item:hover {
-  background: #f8f9fc;
+  background: var(--munchies-canvas);
 }
 
 .top-selling-img {
@@ -525,19 +533,19 @@
 
 .top-selling-name {
   font-weight: 700;
-  color: #2b3674;
+  color: var(--munchies-dark);
   font-size: 0.9rem;
 }
 
 .top-selling-sales {
   font-size: 0.8rem;
-  color: #a3aed1;
+  color: var(--munchies-muted-2);
   font-weight: 600;
 }
 
 /* --- Live Orders: Pending Alerts --- */
 .pending-badge-pill {
-  background: #ff5b5b;
+  background: var(--danger-color);
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
@@ -548,18 +556,18 @@
 }
 
 @keyframes pulse-red {
-  0% { box-shadow: 0 0 0 0 rgba(255, 91, 91, 0.4); }
-  70% { box-shadow: 0 0 0 8px rgba(255, 91, 91, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 91, 91, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
 .pending-alert-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  border-left: 6px solid #ff5b5b;
-  box-shadow: 0 8px 30px rgba(255, 91, 91, 0.15);
+  border-left: 6px solid var(--danger-color);
+  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.15);
   display: flex;
   flex-direction: column;
 }
@@ -585,7 +593,7 @@
 }
 
 .pending-alert-title {
-  color: #ff5b5b;
+  color: var(--danger-color);
   font-weight: 800;
   font-size: 1.1rem;
   letter-spacing: 0.5px;
@@ -594,30 +602,30 @@
 
 .pending-alert-id {
   font-family: var(--font-mono, monospace);
-  color: #1e293b;
+  color: var(--munchies-dark);
   font-size: 0.9rem;
   font-weight: 700;
 }
 
 .pending-alert-items {
-  background: #f4f7fe;
+  background: var(--munchies-canvas);
   padding: 0.75rem;
-  border-radius: 8px;
-  color: #475569;
+  border-radius: 10px;
+  color: var(--munchies-muted);
   font-size: 0.9rem;
   line-height: 1.5;
 }
 
 .pending-accept-btn {
-  background: #00b074;
+  background: var(--munchies-green);
   color: white;
   border: none;
   padding: 1rem 2rem;
-  border-radius: 12px;
+  border-radius: 999px;
   font-weight: 800;
   font-size: 1.1rem;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(0, 176, 116, 0.3);
+  box-shadow: 0 8px 20px rgba(15, 122, 50, 0.3);
   transition: all 0.2s;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -625,8 +633,8 @@
 
 .pending-accept-btn:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 12px 25px rgba(0, 176, 116, 0.4);
-  background: #00c783;
+  box-shadow: 0 12px 25px rgba(15, 122, 50, 0.4);
+  background: #0d6b2c;
 }
 
 /* --- Menu Inventory Quantity Controls --- */
@@ -697,8 +705,8 @@
 
 .price-input:focus {
   outline: none;
-  border-color: #00b074;
-  box-shadow: 0 0 0 3px rgba(0, 176, 116, 0.1);
+  border-color: var(--munchies-green);
+  box-shadow: 0 0 0 3px rgba(15, 122, 50, 0.1);
 }
 
 .dark-datetime-input::-webkit-calendar-picker-indicator {
@@ -733,7 +741,7 @@
   padding: 0.75rem;
   border: none;
   border-radius: 9px;
-  background: #F5F3EF;
+  background: var(--munchies-ink-2);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -743,7 +751,7 @@
 }
 
 .admin-role-switch:hover {
-  background: #EDEAE3;
+  background: #2c2b27;
 }
 
 .admin-role-switch-avatar {
@@ -762,7 +770,7 @@
 .admin-role-switch-name {
   font-weight: 700;
   font-size: 0.75rem;
-  color: #17150F;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -773,13 +781,13 @@
   font-size: 0.625rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8B8478;
+  color: var(--munchies-muted-2);
 }
 
 .admin-staff-banner {
-  background: #EAF2FB;
-  border: 1px solid #B7D4EF;
-  color: #1F63A8;
+  background: rgba(255, 199, 44, .14);
+  border: 1px solid rgba(255, 199, 44, .4);
+  color: var(--munchies-amber-ink);
   font-weight: 600;
   font-size: 0.8rem;
   border-radius: 10px;
@@ -814,9 +822,9 @@
     margin: 0;
     gap: 0.5rem;
     border-radius: 20px 20px 0 0;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.24);
     -webkit-overflow-scrolling: touch;
-    background: white;
+    background: var(--munchies-dark);
   }
 
   .sidebar-item {
