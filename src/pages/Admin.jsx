@@ -785,28 +785,51 @@ export default function Admin() {
   const [grabSearch, setGrabSearch] = useState('');
   const [grabSearchResults, setGrabSearchResults] = useState(null);
   const [grabSearching, setGrabSearching] = useState(false);
+  const [grabSearchError, setGrabSearchError] = useState(false);
 
   // Find any GrabFood entry by its Grab order number, across ALL history --
   // the `orders` list held in memory only covers the latest ~200 orders, so
   // an older GF-### would never turn up by filtering that.
   useEffect(() => {
     const q = grabSearch.trim();
-    if (!q) { setGrabSearchResults(null); setGrabSearching(false); return; }
+    if (!q) { setGrabSearchResults(null); setGrabSearching(false); setGrabSearchError(false); return; }
     const safe = q.replace(/[%,()*"\\]/g, '');
-    if (!safe) { setGrabSearchResults([]); setGrabSearching(false); return; }
+    if (!safe) { setGrabSearchResults([]); setGrabSearching(false); setGrabSearchError(false); return; }
     let cancelled = false;
+    const controller = new AbortController();
+    // Without this, a hung/black-holed request left `grabSearching` (and its
+    // "Searching..." status text) stuck forever with no way for the admin to
+    // tell a real "not found" apart from the search having silently failed.
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     setGrabSearching(true);
+    setGrabSearchError(false);
     const t = setTimeout(async () => {
-      const { data } = await supabase
-        .from('orders')
-        .select('id,notes,created_at,items,total,status,channel')
-        .eq('channel', 'Grab')
-        .or(`notes.ilike.%${safe}%,id.ilike.%${safe}%`)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (!cancelled) { setGrabSearchResults(data || []); setGrabSearching(false); }
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('id,notes,created_at,items,total,status,channel')
+          .eq('channel', 'Grab')
+          .or(`notes.ilike.%${safe}%,id.ilike.%${safe}%`)
+          .order('created_at', { ascending: false })
+          .limit(50)
+          .abortSignal(controller.signal);
+        if (cancelled) return;
+        if (error) throw error;
+        setGrabSearchResults(data || []);
+        setGrabSearching(false);
+      } catch (err) {
+        if (cancelled) return;
+        // Fall back to the recent-30 list (grabListRows below) instead of an
+        // empty result set -- an empty set reads as "that order doesn't
+        // exist", which is the wrong message when the search itself failed.
+        setGrabSearchResults(null);
+        setGrabSearching(false);
+        setGrabSearchError(true);
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }, 300);
-    return () => { cancelled = true; clearTimeout(t); };
+    return () => { cancelled = true; clearTimeout(t); clearTimeout(timeoutId); controller.abort(); };
   }, [grabSearch]);
 
   const grabfoodOrders = orders
@@ -5775,12 +5798,14 @@ export default function Admin() {
                   onChange={e => setGrabSearch(e.target.value)}
                   autoComplete="off"
                 />
-                <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                <span className="text-muted" style={{ fontSize: '0.8rem', color: grabSearchError ? 'var(--danger, #d9534f)' : undefined }}>
                   {grabSearching
                     ? 'Searching...'
-                    : grabSearchResults !== null
-                      ? `${grabSearchResults.length} match${grabSearchResults.length === 1 ? '' : 'es'} across all entries`
-                      : 'Showing the 30 most recent. Type to search every entry.'}
+                    : grabSearchError
+                      ? 'Search failed -- showing the 30 most recent instead. Check your connection and try again.'
+                      : grabSearchResults !== null
+                        ? `${grabSearchResults.length} match${grabSearchResults.length === 1 ? '' : 'es'} across all entries`
+                        : 'Showing the 30 most recent. Type to search every entry.'}
                 </span>
               </div>
               <div className="table-responsive"><table className="admin-table">
