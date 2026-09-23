@@ -1649,13 +1649,17 @@ const clearManualOverride = async (id) => {
     return true;
   };
 
-    const claimShareBonus = async (amount, description) => {
-    if (!user || !user.id || !amount) return;
+    const claimShareBonus = async (orderId, amount, description) => {
+    if (!user || !user.id || !amount || !orderId) return;
 
-    // Call RPC to atomically check limit and award points
+    // Server enforces the actual limit (one claim per COLLECTED order the
+    // caller owns) -- the old signature took a bare amount with no order
+    // reference at all, so any authenticated user could call this RPC
+    // directly for unlimited points. `amount` here is only for the
+    // optimistic local UI update below; the server ignores it and always
+    // awards its own fixed amount.
     const { error: rpcErr } = await supabase.rpc('claim_share_bonus', {
-      user_id_param: user.id,
-      amount_param: amount
+      p_order_id: orderId
     });
 
     if (rpcErr) {
