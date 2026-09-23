@@ -307,9 +307,9 @@ export default function MunchManModal({ isOpen, onClose }) {
     const FREEZE_DURATION = 240;
     const PLAYER_SPEED = 2;
     const PLAYER_BOOST_SPEED = 3;
-    const GHOST_SPEED = 1;
+    const GHOST_SPEED = 1.5;
     const GHOST_SCARED_SPEED = 1;
-    const GHOST_CHASE_CHANCE = 0.45;
+    const GHOST_CHASE_CHANCE = 0.65;
     const SCARED_DURATION = 320;
     const GRACE_PERIOD = 120;
     const TIME_LIMIT_SECONDS = 90;
