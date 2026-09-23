@@ -92,91 +92,88 @@ export default function OrderStatus() {
     };
 
     try {
-      if (navigator.share) {
-        // 1. Native mobile share sheet
-        await navigator.share(shareData);
-        await claimShareBonus(loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
-        setClaimedReview(true);
-        alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
-      } else {
-        // 2. Desktop fallback. Copy the caption (with hashtags) for both
-        // platforms -- neither sharer URL accepts custom text (Facebook's
-        // sharer.php ignores it, Instagram has no web share-intent URL at
-        // all), so clipboard is the only reliable way the hashtags reach
-        // the actual post either way.
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(shareData.text + ' ' + shareData.url).catch(() => {});
+      // These are two distinct, explicitly-labeled buttons ("Instagram" /
+      // "Facebook"), not a generic "Share" button -- so `navigator.share()`
+      // (the native OS share sheet) is the wrong tool here even on mobile:
+      // it ignores which platform the user picked and hands them the same
+      // undifferentiated app picker either way, which is exactly the "button
+      // doesn't link to Instagram/Facebook" bug. Always go straight to the
+      // platform-specific target instead.
+      //
+      // Copy the caption (with hashtags) for both platforms -- neither
+      // sharer URL accepts custom text (Facebook's sharer.php ignores it,
+      // Instagram has no share-intent URL at all), so clipboard is the only
+      // reliable way the hashtags reach the actual post either way.
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareData.text + ' ' + shareData.url).catch(() => {});
+      }
+
+      const target = platform === 'Facebook'
+        ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`
+        : 'https://www.instagram.com';
+
+      // Opened without `noopener` so the return value is a real window
+      // reference instead of always null -- that's what lets a blocked
+      // pop-up actually be detected below. `opener` is stripped manually
+      // right after for the same anti-tabnapping property noopener gives.
+      const shareWindow = window.open(target, '_blank', 'noreferrer');
+      if (shareWindow) {
+        try { shareWindow.opener = null; } catch { /* cross-origin, fine */ }
+      }
+
+      if (!shareWindow) {
+        alert(`Your browser blocked the ${platform} pop-up. Your caption was copied -- please allow pop-ups and try again, or paste it directly into ${platform}.`);
+        return;
+      }
+
+      if (platform === 'Instagram') {
+        alert('Your caption (with hashtags) was copied! Paste it into your Instagram post or story, then come back here.');
+      }
+
+      // Clean up any existing listener before attaching a new one
+      if (shareListenerCleanupRef.current) {
+        shareListenerCleanupRef.current();
+      }
+
+      const shareStartTime = Date.now();
+      let maxTimeoutId = null;
+
+      const cleanup = () => {
+        if (maxTimeoutId) {
+          clearTimeout(maxTimeoutId);
+          maxTimeoutId = null;
         }
+        document.removeEventListener('visibilitychange', handleReturn);
+        window.removeEventListener('focus', handleReturn);
+        shareListenerCleanupRef.current = null;
+      };
 
-        const target = platform === 'Facebook'
-          ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`
-          : 'https://www.instagram.com';
-
-        // Opened without `noopener` so the return value is a real window
-        // reference instead of always null -- that's what lets a blocked
-        // pop-up actually be detected below. `opener` is stripped manually
-        // right after for the same anti-tabnapping property noopener gives.
-        const shareWindow = window.open(target, '_blank', 'noreferrer');
-        if (shareWindow) {
-          try { shareWindow.opener = null; } catch { /* cross-origin, fine */ }
-        }
-
-        if (!shareWindow) {
-          alert(`Your browser blocked the ${platform} pop-up. Your caption was copied -- please allow pop-ups and try again, or paste it directly into ${platform}.`);
-          return;
-        }
-
-        if (platform === 'Instagram') {
-          alert('Your caption (with hashtags) was copied! Paste it into your Instagram post or story, then come back here.');
-        }
-
-        // Clean up any existing listener before attaching a new one
-        if (shareListenerCleanupRef.current) {
-          shareListenerCleanupRef.current();
-        }
-
-        const shareStartTime = Date.now();
-        let maxTimeoutId = null;
-
-        const cleanup = () => {
-          if (maxTimeoutId) {
-            clearTimeout(maxTimeoutId);
-            maxTimeoutId = null;
-          }
-          document.removeEventListener('visibilitychange', handleReturn);
-          window.removeEventListener('focus', handleReturn);
-          shareListenerCleanupRef.current = null;
-        };
-
-        const handleReturn = async () => {
-          if (!document.hidden) {
-            const elapsedSeconds = (Date.now() - shareStartTime) / 1000;
-            // Only claim and cleanup if user was away for at least 5s
-            if (elapsedSeconds >= 5) {
-              cleanup();
-              try {
-                await claimShareBonus(loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
-                setClaimedReview(true);
-                alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
-              } catch (err) {
-                alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
-              }
+      const handleReturn = async () => {
+        if (!document.hidden) {
+          const elapsedSeconds = (Date.now() - shareStartTime) / 1000;
+          // Only claim and cleanup if user was away for at least 5s
+          if (elapsedSeconds >= 5) {
+            cleanup();
+            try {
+              await claimShareBonus(loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
+              setClaimedReview(true);
+              alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
+            } catch (err) {
+              alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
             }
           }
-        };
+        }
+      };
 
-        // 2-minute safety auto-cleanup if abandoned
-        maxTimeoutId = setTimeout(() => {
-          cleanup();
-        }, 120000);
+      // 2-minute safety auto-cleanup if abandoned
+      maxTimeoutId = setTimeout(() => {
+        cleanup();
+      }, 120000);
 
-        shareListenerCleanupRef.current = cleanup;
-        document.addEventListener('visibilitychange', handleReturn);
-        window.addEventListener('focus', handleReturn);
-      }
+      shareListenerCleanupRef.current = cleanup;
+      document.addEventListener('visibilitychange', handleReturn);
+      window.addEventListener('focus', handleReturn);
     } catch (err) {
-      // User aborted / closed native share dialog without sharing - do not award points
-      if (err.name === 'AbortError') return;
       alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
     }
   };
