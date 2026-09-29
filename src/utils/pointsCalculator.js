@@ -1,26 +1,12 @@
 /**
- * Points per item based on the actual category field value.
- *
- * BBQ      = 15 pts
- * PREMIUM  = 20 pts
- * PLATTERS = 30 pts
- * SIDES    = 5 pts
- * DRINKS   = 10 pts
- * fallback = 10 pts (unknown or missing category)
+ * RM1 = 1 point, matching the server-side award in handle_order_placed()
+ * (supabase/migrations/20260929000003_switch_order_points_to_rm1_equals_1pt.sql).
+ * item.price is in cents.
  */
-
-const CATEGORY_POINTS = {
-  'BBQ': 15,
-  'PREMIUM': 20,
-  'PLATTERS': 30,
-  'SIDES': 5,
-  'DRINKS': 10
-};
 
 export function getItemPoints(item) {
   if (!item) return 0;
-  const category = (item.category || '').toUpperCase();
-  return CATEGORY_POINTS[category] ?? 10;
+  return Math.round((item.price || 0) / 100);
 }
 
 export function calculateOrderPoints(items) {
