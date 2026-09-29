@@ -14,6 +14,23 @@ cd "$(dirname "$0")/../.."
 psql "$ADMIN_DB_URL" -v ON_ERROR_STOP=1 -c "DROP DATABASE IF EXISTS ${TEST_DB};"
 psql "$ADMIN_DB_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${TEST_DB};"
 
+# Real Supabase projects always have these roles; a bare postgres:16 (local
+# or CI) doesn't. Some migrations GRANT/REVOKE against them, so tests that
+# load those migrations need the roles to exist first. Cluster-level and
+# idempotent -- safe to run every time.
+psql "$ADMIN_DB_URL" -v ON_ERROR_STOP=1 -c "
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN
+    CREATE ROLE anon NOLOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
+    CREATE ROLE authenticated NOLOGIN;
+  END IF;
+END
+\$\$;
+"
+
 status=0
 for f in supabase/tests/*.test.sql; do
   echo "Running $f..."
