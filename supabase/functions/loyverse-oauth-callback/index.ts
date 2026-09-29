@@ -13,6 +13,7 @@ serve(async (req: Request) => {
 
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
   const errorParam = url.searchParams.get('error');
 
   if (errorParam) {
@@ -32,6 +33,35 @@ serve(async (req: Request) => {
       </html>
     `, {
       status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' }
+    });
+  }
+
+  // This callback previously exchanged whatever `code` arrived with no CSRF
+  // protection at all -- anyone could start their own OAuth grant against
+  // this app's real client_id/client_secret using their own Loyverse
+  // account, then hit this public callback directly with their own code,
+  // silently overwriting the store's real access/refresh tokens with the
+  // attacker's and hijacking the whole sync/webhook-registration flow.
+  //
+  // This codebase has no "start OAuth" endpoint of its own to mint and store
+  // a real per-attempt nonce (the authorization URL is constructed and
+  // visited manually, outside this repo) -- so a full random-state-per-
+  // attempt flow isn't wireable from just this callback. Instead this checks
+  // a fixed shared secret set via the LOYVERSE_OAUTH_STATE env var: append
+  // `&state=<that same value>` to the Loyverse authorization URL every time
+  // you (re)connect. An attacker forging a callback hit has no way to know
+  // that value, so their own authorization code is rejected before ever
+  // reaching Loyverse's token endpoint.
+  const expectedState = Deno.env.get('LOYVERSE_OAUTH_STATE');
+  if (!expectedState) {
+    console.error('LOYVERSE_OAUTH_STATE is not configured -- refusing to process any callback until it is set.');
+    return new Response('<h1>Configuration Error: LOYVERSE_OAUTH_STATE not set</h1>', { status: 500 });
+  }
+  if (state !== expectedState) {
+    console.error('OAuth callback rejected: state mismatch (possible CSRF attempt).');
+    return new Response('<h1>OAuth Error: invalid or missing state parameter</h1>', {
+      status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' }
     });
   }
