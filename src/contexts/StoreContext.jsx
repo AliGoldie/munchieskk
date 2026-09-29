@@ -920,7 +920,7 @@ const clearManualOverride = async (id) => {
 
   const cancelOrder = async (orderId, reason, wasteAction = 'restore', isAdmin = false, note = null) => {
     const order = orders.find(o => o.id === orderId);
-    if (!order || order.status === 'COLLECTED' || order.status === 'CANCELLED') return;
+    if (!order || order.status === 'COLLECTED' || order.status === 'CANCELLED') return false;
 
     // Optimistic update
     setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED', cancellation_reason: reason, cancel_reason: reason, cancel_note: note } : o));
@@ -943,7 +943,10 @@ const clearManualOverride = async (id) => {
       }
       // Revert optimistic update
       setOrders(orders.map(o => o.id === orderId ? order : o));
+      return false;
     }
+
+    return true;
   };
 
   const uploadImage = async (file) => {

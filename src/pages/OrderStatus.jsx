@@ -18,14 +18,31 @@ export default function OrderStatus() {
   useEffect(() => {
     if (!id) return;
     let active = true;
-    const poll = async (isFirst = false) => {
+    const poll = async () => {
       const data = await fetchSingleOrder(id);
       if (!active) return;
       if (data) setOrder(data);
-      if (isFirst) setOrderLoading(false); // unblock the Navigate guard after first attempt
     };
-    poll(true); // immediate first fetch, marks loading done when it settles
-    const interval = setInterval(() => poll(false), 5000);
+    // The very first fetch happens right after the customer just paid --
+    // fetchSingleOrder can't tell a genuine "order doesn't exist" apart from
+    // a transient network blip or the just-inserted row not being visible to
+    // a read yet, and a single failed attempt used to bounce the customer
+    // straight to Home with zero explanation at the worst possible moment.
+    // Retry a few times before conceding defeat.
+    (async () => {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        if (!active) return;
+        const data = await fetchSingleOrder(id);
+        if (!active) return;
+        if (data) {
+          setOrder(data);
+          break;
+        }
+        if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
+      }
+      if (active) setOrderLoading(false); // unblock the Navigate guard once retries are exhausted
+    })();
+    const interval = setInterval(poll, 5000);
     return () => {
       active = false;
       clearInterval(interval);
@@ -37,6 +54,7 @@ export default function OrderStatus() {
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [claimedReview, setClaimedReview] = useState(false);
   const shareListenerCleanupRef = useRef(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Guaranteed cleanup of pending share listeners & timers on unmount
   useEffect(() => {
@@ -211,14 +229,27 @@ export default function OrderStatus() {
             </div>
             <button
               className="btn mt-4 w-100"
-              style={{ background: 'transparent', border: '1px solid #ff5b5b', color: '#ff5b5b', fontWeight: '800', borderRadius: 'var(--r-pill)', minHeight: '48px' }}
-              onClick={() => {
-                cancelOrder(order.id, "Cancelled by Customer");
-                localStorage.removeItem('munchies_active_order');
-                alert('Your order has been cancelled.');
+              disabled={isCancelling}
+              style={{ background: 'transparent', border: '1px solid #ff5b5b', color: '#ff5b5b', fontWeight: '800', borderRadius: 'var(--r-pill)', minHeight: '48px', opacity: isCancelling ? 0.6 : 1 }}
+              onClick={async () => {
+                if (isCancelling) return;
+                setIsCancelling(true);
+                try {
+                  // cancelOrder already shows its own error alert and reverts
+                  // the optimistic update on failure -- only announce success
+                  // and clear the tracked order once it actually succeeded,
+                  // instead of always claiming success regardless of outcome.
+                  const ok = await cancelOrder(order.id, "Cancelled by Customer");
+                  if (ok) {
+                    localStorage.removeItem('munchies_active_order');
+                    alert('Your order has been cancelled.');
+                  }
+                } finally {
+                  setIsCancelling(false);
+                }
               }}
             >
-              CANCEL ORDER
+              {isCancelling ? 'CANCELLING...' : 'CANCEL ORDER'}
             </button>
           </div>
         )}
