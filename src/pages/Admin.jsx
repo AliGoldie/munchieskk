@@ -581,8 +581,18 @@ export default function Admin() {
     name: '', category: 'BBQ', price: '', cost_price: '', image: '', description: '', inStock: true
   });
   const [newItemImageFile, setNewItemImageFile] = useState(null);
-  
+
   const [isUploading, setIsUploading] = useState(false);
+
+  // Loyalty Prizes CRM: image upload + edit-in-place state (§ improvement --
+  // previously the only way to fix a typo was delete-and-recreate, and the
+  // only way to set an image was pasting a raw URL by hand).
+  const [newPrizeImage, setNewPrizeImage] = useState('');
+  const [newPrizeMenuItemId, setNewPrizeMenuItemId] = useState('');
+  const [newPrizePhotoStatus, setNewPrizePhotoStatus] = useState('idle'); // 'idle' | 'uploading'
+  const [editingPrizeId, setEditingPrizeId] = useState(null);
+  const [editingPrizeData, setEditingPrizeData] = useState({});
+  const [editingPrizePhotoStatus, setEditingPrizePhotoStatus] = useState('idle');
 
   const [now, setNow] = useState(Date.now());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
@@ -2320,6 +2330,73 @@ export default function Admin() {
     } finally {
       setUploadingImageIds(prev => { const next = new Set(prev); next.delete(item.id); return next; });
     }
+  };
+
+  // Loyalty Prizes CRM: upload a photo for the "Add Prize" form (not yet
+  // created, so it's staged in state and sent with the form submit).
+  const handleNewPrizePhotoSelect = async (file) => {
+    if (!file) return;
+    setNewPrizePhotoStatus('uploading');
+    try {
+      const url = await uploadImage(file);
+      setNewPrizeImage(url);
+    } catch (err) {
+      alert('Photo upload failed: ' + (err.message || 'unknown error'));
+    } finally {
+      setNewPrizePhotoStatus('idle');
+    }
+  };
+
+  // Reuses a linked menu item's existing photo instead of uploading a
+  // separate one -- most prizes ARE a menu item, so its photo is usually
+  // already exactly right.
+  const useMenuItemPhotoForNewPrize = () => {
+    const item = menu.find(m => String(m.id) === String(newPrizeMenuItemId));
+    if (!item?.image) { alert("That menu item doesn't have a photo set."); return; }
+    setNewPrizeImage(item.image);
+  };
+
+  const handleEditingPrizePhotoSelect = async (file) => {
+    if (!file) return;
+    setEditingPrizePhotoStatus('uploading');
+    try {
+      const url = await uploadImage(file);
+      setEditingPrizeData(prev => ({ ...prev, image_url: url }));
+    } catch (err) {
+      alert('Photo upload failed: ' + (err.message || 'unknown error'));
+    } finally {
+      setEditingPrizePhotoStatus('idle');
+    }
+  };
+
+  const useMenuItemPhotoForEditingPrize = () => {
+    const item = menu.find(m => String(m.id) === String(editingPrizeData.menu_item_id));
+    if (!item?.image) { alert("That menu item doesn't have a photo set."); return; }
+    setEditingPrizeData(prev => ({ ...prev, image_url: item.image }));
+  };
+
+  const startEditingPrize = (prize) => {
+    setEditingPrizeId(prize.id);
+    setEditingPrizeData({
+      name: prize.name,
+      description: prize.description || '',
+      points_cost: prize.points_cost,
+      image_url: prize.image_url || '',
+      menu_item_id: prize.menu_item_id || '',
+      deduct_stock: !!prize.deduct_stock
+    });
+  };
+
+  const saveEditingPrize = async () => {
+    const ok = await updateLoyaltyPrize(editingPrizeId, {
+      name: editingPrizeData.name,
+      description: editingPrizeData.description || null,
+      points_cost: parseInt(editingPrizeData.points_cost, 10),
+      image_url: editingPrizeData.image_url || null,
+      menu_item_id: editingPrizeData.menu_item_id || null,
+      deduct_stock: !!editingPrizeData.deduct_stock
+    });
+    if (ok) setEditingPrizeId(null);
   };
 
   const handlePromoEdit = (id, field, value) => {
@@ -5578,22 +5655,47 @@ export default function Admin() {
                 name: fd.get('name'),
                 description: fd.get('description') || null,
                 points_cost: parseInt(fd.get('points_cost')),
-                image_url: fd.get('image_url') || null,
-                menu_item_id: fd.get('menu_item_id') || null,
+                image_url: newPrizeImage || null,
+                menu_item_id: newPrizeMenuItemId || null,
                 deduct_stock: fd.get('deduct_stock') === 'true'
               });
               e.target.reset();
+              setNewPrizeImage('');
+              setNewPrizeMenuItemId('');
             }} className="new-item-form" style={{ gridTemplateColumns: '1fr 1fr 1fr auto', alignItems: 'end', marginBottom: '2rem' }}>
               <div className="form-group"><label>Prize Name</label><input type="text" name="name" placeholder="e.g. Free Burger" required className="price-input" /></div>
               <div className="form-group"><label>Points Cost</label><input type="number" name="points_cost" placeholder="e.g. 500" required className="price-input" min="1" /></div>
-              <div className="form-group"><label>Image URL</label><input type="text" name="image_url" placeholder="/images/prize.jpg" className="price-input" /></div>
               <div className="form-group"><label>Linked Menu Item</label>
-                <select name="menu_item_id" className="price-input" style={{ width: '100%', height: '42px' }}>
+                <select value={newPrizeMenuItemId} onChange={e => setNewPrizeMenuItemId(e.target.value)} className="price-input" style={{ width: '100%', height: '42px' }}>
                   <option value="">-- None --</option>
                   {menu.map(m => <option key={m.id} value={m.id}>{m.name} (Stock: {m.stock_quantity})</option>)}
                 </select>
               </div>
               <div className="form-group" style={{ gridColumn: '1 / span 3' }}><label>Description</label><input type="text" name="description" placeholder="Short description..." className="price-input" /></div>
+              <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
+                <label>Image</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={newPrizeImage}
+                    onChange={e => setNewPrizeImage(e.target.value)}
+                    placeholder="Upload, use linked item's photo, or paste a URL"
+                    className="price-input"
+                    style={{ flex: 1 }}
+                  />
+                  {newPrizeImage && <img src={newPrizeImage} alt="" style={{ width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} />}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <label className="btn btn-sm btn-outline" style={{ cursor: newPrizePhotoStatus === 'uploading' ? 'default' : 'pointer' }}>
+                    {newPrizePhotoStatus === 'uploading' ? 'Uploading…' : 'Upload Photo'}
+                    <input type="file" accept="image/*" style={{ display: 'none' }} disabled={newPrizePhotoStatus === 'uploading'}
+                      onChange={e => handleNewPrizePhotoSelect(e.target.files?.[0])} />
+                  </label>
+                  <button type="button" className="btn btn-sm btn-outline" onClick={useMenuItemPhotoForNewPrize} disabled={!newPrizeMenuItemId}>
+                    Use Linked Item's Photo
+                  </button>
+                </div>
+              </div>
               <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '42px' }}>
                 <input type="checkbox" name="deduct_stock" value="true" id="deduct_stock_check" />
                 <label htmlFor="deduct_stock_check" style={{ margin: 0, cursor: 'pointer' }}>Deduct stock on fulfillment</label>
@@ -5604,12 +5706,74 @@ export default function Admin() {
               <thead><tr><th>Prize</th><th>Cost</th><th>Stock Link</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>{loyaltyPrizes.map(prize => {
                 const linked = menu.find(m => String(m.id) === String(prize.menu_item_id));
+                const isEditing = editingPrizeId === prize.id;
+
+                if (isEditing) {
+                  return (
+                    <tr key={prize.id} style={{ background: 'rgba(199, 59, 15, 0.05)' }}>
+                      <td>
+                        <input type="text" className="price-input" value={editingPrizeData.name}
+                          onChange={e => setEditingPrizeData(prev => ({ ...prev, name: e.target.value }))}
+                          style={{ marginBottom: '6px', width: '100%' }} />
+                        <input type="text" className="price-input" value={editingPrizeData.description}
+                          placeholder="Description"
+                          onChange={e => setEditingPrizeData(prev => ({ ...prev, description: e.target.value }))}
+                          style={{ width: '100%' }} />
+                      </td>
+                      <td>
+                        <input type="number" min="1" className="price-input" style={{ width: '90px' }}
+                          value={editingPrizeData.points_cost}
+                          onChange={e => setEditingPrizeData(prev => ({ ...prev, points_cost: e.target.value }))} />
+                      </td>
+                      <td>
+                        <select className="price-input" style={{ width: '100%' }} value={editingPrizeData.menu_item_id}
+                          onChange={e => setEditingPrizeData(prev => ({ ...prev, menu_item_id: e.target.value }))}>
+                          <option value="">-- None --</option>
+                          {menu.map(m => <option key={m.id} value={m.id}>{m.name} (Stock: {m.stock_quantity})</option>)}
+                        </select>
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          {editingPrizeData.image_url && <img src={editingPrizeData.image_url} alt="" style={{ width: '28px', height: '28px', borderRadius: '5px', objectFit: 'cover' }} />}
+                          <label className="btn btn-sm btn-outline" style={{ fontSize: '0.7rem' }}>
+                            {editingPrizePhotoStatus === 'uploading' ? 'Uploading…' : 'Upload'}
+                            <input type="file" accept="image/*" style={{ display: 'none' }} disabled={editingPrizePhotoStatus === 'uploading'}
+                              onChange={e => handleEditingPrizePhotoSelect(e.target.files?.[0])} />
+                          </label>
+                          <button type="button" className="btn btn-sm btn-outline" style={{ fontSize: '0.7rem' }}
+                            onClick={useMenuItemPhotoForEditingPrize} disabled={!editingPrizeData.menu_item_id}>
+                            Use Item's Photo
+                          </button>
+                        </div>
+                      </td>
+                      <td>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                          <input type="checkbox" checked={editingPrizeData.deduct_stock}
+                            onChange={e => setEditingPrizeData(prev => ({ ...prev, deduct_stock: e.target.checked }))} />
+                          Deduct stock
+                        </label>
+                      </td>
+                      <td><div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-sm btn-primary" onClick={saveEditingPrize}>Save</button>
+                        <button className="btn btn-sm btn-outline" onClick={() => setEditingPrizeId(null)}>Cancel</button>
+                      </div></td>
+                    </tr>
+                  );
+                }
+
                 return (<tr key={prize.id}>
-                  <td><strong>{prize.name}</strong>{prize.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{prize.description}</div>}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {prize.image_url && <img src={prize.image_url} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} />}
+                      <div>
+                        <strong>{prize.name}</strong>
+                        {prize.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{prize.description}</div>}
+                      </div>
+                    </div>
+                  </td>
                   <td className="text-orange font-bold">{prize.points_cost} PTS</td>
                   <td>{linked ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>{linked.name} (Stock: {linked.stock_quantity})</span> : <span className="text-muted">-</span>}</td>
                   <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: prize.is_active ? '#166534' : 'var(--text-secondary)', color: '#fff' }}>{prize.is_active ? 'Active' : 'Inactive'}</span></td>
-                  <td><div style={{ display: 'flex', gap: '8px' }}>
+                  <td><div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button className="btn btn-sm btn-outline" onClick={() => startEditingPrize(prize)}>Edit</button>
                     <button className="btn btn-sm" style={{ background: prize.is_active ? '#f59e0b' : '#22c55e', color: '#fff' }} onClick={() => updateLoyaltyPrize(prize.id, { is_active: !prize.is_active })}>{prize.is_active ? 'Disable' : 'Enable'}</button>
                     <button className="btn btn-sm btn-outline text-red" onClick={() => { if(window.confirm("Delete this prize? This can't be undone.")) deleteLoyaltyPrize(prize.id); }}>Delete</button>
                   </div></td>
