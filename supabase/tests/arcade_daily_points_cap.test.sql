@@ -41,7 +41,7 @@ INSERT INTO profiles (id, points) VALUES ('11111111-1111-1111-1111-111111111111'
 SET LOCAL request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 
 -- A script looping start_session -> claim(everHigherScore) should be capped
--- at the daily budget (120), never able to farm unlimited points by always
+-- at the daily budget (30), never able to farm unlimited points by always
 -- reporting a new "best".
 DO $$
 DECLARE
@@ -57,16 +57,16 @@ BEGIN
     v_total_awarded := v_total_awarded + (v_result->>'points_awarded')::integer;
   END LOOP;
 
-  IF v_total_awarded <> 120 THEN
-    RAISE EXCEPTION 'FAIL: expected exactly 120 points awarded across 10 escalating claims (the daily cap), got %', v_total_awarded;
+  IF v_total_awarded <> 30 THEN
+    RAISE EXCEPTION 'FAIL: expected exactly 30 points awarded across 10 escalating claims (the daily cap), got %', v_total_awarded;
   END IF;
 
   DECLARE
     v_profile_points integer;
   BEGIN
     SELECT points INTO v_profile_points FROM profiles WHERE id = '11111111-1111-1111-1111-111111111111';
-    IF v_profile_points <> 120 THEN
-      RAISE EXCEPTION 'FAIL: expected profile points to be exactly 120, got %', v_profile_points;
+    IF v_profile_points <> 30 THEN
+      RAISE EXCEPTION 'FAIL: expected profile points to be exactly 30, got %', v_profile_points;
     END IF;
   END;
 
@@ -87,16 +87,16 @@ INSERT INTO profiles (id, points) VALUES ('22222222-2222-2222-2222-222222222222'
 SET LOCAL request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
 
 INSERT INTO game_plays (user_id, game_name, played_at, reward_claimed, score, points_awarded)
-VALUES ('22222222-2222-2222-2222-222222222222', 'speed_grab', now() - interval '1 day', true, 100, 120);
+VALUES ('22222222-2222-2222-2222-222222222222', 'speed_grab', now() - interval '1 day', true, 100, 30);
 
 DO $$
 DECLARE
   v_result jsonb;
 BEGIN
   INSERT INTO game_plays (user_id, game_name, reward_claimed) VALUES ('22222222-2222-2222-2222-222222222222', 'speed_grab', false);
-  v_result := public.claim_speed_grab_reward(140); -- beats yesterday's 100 by 40
-  IF (v_result->>'points_awarded')::integer <> 40 THEN
-    RAISE EXCEPTION 'FAIL: yesterday''s spent budget should not carry over to today, expected 40 points awarded, got %', v_result->>'points_awarded';
+  v_result := public.claim_speed_grab_reward(140); -- beats yesterday's 100 by 40, clamped to today's 30 budget
+  IF (v_result->>'points_awarded')::integer <> 30 THEN
+    RAISE EXCEPTION 'FAIL: yesterday''s spent budget should not carry over to today, expected 30 points awarded, got %', v_result->>'points_awarded';
   END IF;
 END $$;
 
@@ -109,7 +109,7 @@ DECLARE
 BEGIN
   INSERT INTO game_plays (user_id, game_name, reward_claimed) VALUES ('11111111-1111-1111-1111-111111111111', 'speed_grab', false);
   v_result := public.claim_speed_grab_reward(50);
-  IF (v_result->>'points_awarded')::integer <> 40 THEN
+  IF (v_result->>'points_awarded')::integer <> 30 THEN
     RAISE EXCEPTION 'FAIL: speed_grab should have its own separate daily budget from trex_runner, got %', v_result->>'points_awarded';
   END IF;
 END $$;

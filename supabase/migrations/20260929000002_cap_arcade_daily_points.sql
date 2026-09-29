@@ -18,10 +18,10 @@
 -- player's recorded best (so a human's real improvement is never lost) but
 -- stop paying loyalty points until the next calendar day.
 --
--- ARCADE_DAILY_POINTS_CAP (120 = three full 40-point claims) is a judgment
--- call about how much free-points-per-day is acceptable, not a pure
--- engineering constant -- adjust it to whatever the business wants by
--- changing the two CREATE OR REPLACE bodies below and re-running them.
+-- ARCADE_DAILY_POINTS_CAP (30) is a judgment call about how much
+-- free-points-per-day is acceptable, not a pure engineering constant --
+-- adjust it to whatever the business wants by changing the two CREATE OR
+-- REPLACE bodies below and re-running them.
 
 ALTER TABLE public.game_plays ADD COLUMN IF NOT EXISTS points_awarded integer NOT NULL DEFAULT 0;
 
@@ -41,7 +41,7 @@ DECLARE
   v_new_total integer := 0;
   v_msg text := '';
   v_is_best boolean := false;
-  v_daily_cap constant integer := 120;
+  v_daily_cap constant integer := 30;
 BEGIN
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN
@@ -131,7 +131,7 @@ DECLARE
   v_new_total integer := 0;
   v_msg text := '';
   v_is_best boolean := false;
-  v_daily_cap constant integer := 120;
+  v_daily_cap constant integer := 30;
 BEGIN
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN
