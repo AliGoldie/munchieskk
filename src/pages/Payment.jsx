@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,6 +18,8 @@ export default function Payment() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [bank, setBank] = useState('');
+  // Synchronous (not React state) double-submit guard -- see handlePayment.
+  const isPlacingOrderRef = useRef(false);
 
   const [specialInstructions, setSpecialInstructions] = useState('');
 
@@ -59,6 +61,11 @@ export default function Payment() {
   if (cart.length === 0 && !isSuccess) return null;
 
   const handlePayment = async () => {
+    // Synchronous guard against a double-fire (fast double-tap, or two
+    // triggering events landing before React commits the isProcessing
+    // state) -- place_order deducts real stock and inserts a real row per
+    // call, so a genuine double-fire here means a real duplicate order.
+    if (isPlacingOrderRef.current) return;
     if (!method) return alert('Please select a payment method.');
     if (method === 'FPX' && !bank) return alert('Please select a bank.');
 
@@ -77,32 +84,45 @@ export default function Payment() {
     const selectedSlot = timeSlots.find(s => s.value === scheduledTime) || timeSlots[0];
     const scheduledDisplayTime = selectedSlot ? selectedSlot.label : formatTime12Hour(scheduledTime);
 
+    isPlacingOrderRef.current = true;
     setIsProcessing(true);
 
     setTimeout(async () => {
-      if (shopSettings?.status === 'PAUSED' || shopSettings?.status === 'CLOSED') {
+      try {
+        if (shopSettings?.status === 'PAUSED' || shopSettings?.status === 'CLOSED') {
+          alert('MunchiesKK is closed right now. Schedule your order for later, or check back during our opening hours.');
+          return;
+        }
+
+        let paymentDetail = method === 'FPX' ? `FPX (${bank})` : method;
+        if (orderMode === 'SCHEDULED') {
+          paymentDetail += ` [Scheduled for ${scheduledDisplayTime}]`;
+        }
+
+        const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null, appliedPromoCode, promoDiscount, promoFreeItemId, promoFreeItemName, specialInstructions);
+
+        if (!orderId) {
+          return;
+        }
+
+        setIsSuccess(true);
+        localStorage.setItem('munchies_active_order', orderId);
+
+        setTimeout(() => {
+          navigate(`/order/${orderId}`);
+        }, 2000);
+      } catch (err) {
+        // placeOrder normally resolves { error } cleanly rather than
+        // throwing, but a thrown exception here (a bad network condition, an
+        // unexpected runtime error) must never leave the Pay button
+        // permanently disabled with a spinner that never stops -- the worst
+        // possible moment for a silent freeze.
+        console.error('Unexpected error placing order:', err);
+        alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
+      } finally {
+        isPlacingOrderRef.current = false;
         setIsProcessing(false);
-        return alert('MunchiesKK is closed right now. Schedule your order for later, or check back during our opening hours.');
       }
-
-      let paymentDetail = method === 'FPX' ? `FPX (${bank})` : method;
-      if (orderMode === 'SCHEDULED') {
-        paymentDetail += ` [Scheduled for ${scheduledDisplayTime}]`;
-      }
-
-      const orderId = await placeOrder(paymentDetail, orderMode === 'SCHEDULED' ? scheduledTime : null, appliedPromoCode, promoDiscount, promoFreeItemId, promoFreeItemName, specialInstructions);
-
-      if (!orderId) {
-        setIsProcessing(false);
-        return;
-      }
-
-      setIsSuccess(true);
-      localStorage.setItem('munchies_active_order', orderId);
-
-      setTimeout(() => {
-        navigate(`/order/${orderId}`);
-      }, 2000);
     }, 2000);
   };
 
@@ -297,31 +317,45 @@ export default function Payment() {
                 onClick={async () => {
                   if (!promoCodeInput) return;
                   setPromoStatus({ state: 'checking', message: '' });
-                  
-                  const { data, error } = await supabase.rpc('validate_and_apply_promo', {
-                    p_code: promoCodeInput,
-                    p_order_total: cartTotal,
-                    p_user_id: user?.id || null,
-                    p_cart_items: cart
-                  });
-                  
-                  if (error || !data) {
-                    setPromoStatus({ state: 'invalid', message: error?.message || 'Error checking promo code.' });
-                    setAppliedPromoCode(null);
-                    setPromoDiscount(0);
-                    setPromoFreeItemName(null);
-                    setPromoFreeItemId(null);
-                    return;
-                  }
 
-                  if (data.valid) {
-                    setPromoStatus({ state: 'valid', message: data.message });
-                    setAppliedPromoCode(promoCodeInput.trim().toUpperCase());
-                    setPromoDiscount(data.discount_cents || 0);
-                    setPromoFreeItemName(data.free_item_name || null);
-                    setPromoFreeItemId(data.free_item_id || null);
-                  } else {
-                    setPromoStatus({ state: 'invalid', message: data.message });
+                  try {
+                    const { data, error } = await supabase.rpc('validate_and_apply_promo', {
+                      p_code: promoCodeInput,
+                      p_order_total: cartTotal,
+                      p_user_id: user?.id || null,
+                      p_cart_items: cart
+                    });
+
+                    if (error || !data) {
+                      setPromoStatus({ state: 'invalid', message: error?.message || 'Error checking promo code.' });
+                      setAppliedPromoCode(null);
+                      setPromoDiscount(0);
+                      setPromoFreeItemName(null);
+                      setPromoFreeItemId(null);
+                      return;
+                    }
+
+                    if (data.valid) {
+                      setPromoStatus({ state: 'valid', message: data.message });
+                      setAppliedPromoCode(promoCodeInput.trim().toUpperCase());
+                      setPromoDiscount(data.discount_cents || 0);
+                      setPromoFreeItemName(data.free_item_name || null);
+                      setPromoFreeItemId(data.free_item_id || null);
+                    } else {
+                      setPromoStatus({ state: 'invalid', message: data.message });
+                      setAppliedPromoCode(null);
+                      setPromoDiscount(0);
+                      setPromoFreeItemName(null);
+                      setPromoFreeItemId(null);
+                    }
+                  } catch (err) {
+                    // A thrown exception here (instead of the { error }
+                    // shape supabase-js normally resolves) must never leave
+                    // promoStatus stuck on 'checking' forever -- that
+                    // disables both the input and this button with no way
+                    // to recover except a full page reload.
+                    console.error('Unexpected error validating promo code:', err);
+                    setPromoStatus({ state: 'invalid', message: "Couldn't check that code right now. Please try again." });
                     setAppliedPromoCode(null);
                     setPromoDiscount(0);
                     setPromoFreeItemName(null);
