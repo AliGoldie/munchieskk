@@ -1,38 +1,78 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, Calendar } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { supabase } from '../config/supabase';
+
+const REPORT_YEAR = 2026;
 
 const AdminReports = () => {
   const navigate = useNavigate();
+  const [downloadingMonth, setDownloadingMonth] = useState(null);
 
-  const handleDownload = (month) => {
-    const doc = new jsPDF();
-    
-    // Simple report generation
-    doc.setFontSize(20);
-    doc.text(`MunchiesKK - Monthly Report`, 14, 22);
-    doc.setFontSize(14);
-    doc.text(`Period: ${month} 2026`, 14, 32);
-    
-    doc.setFontSize(12);
-    doc.text('Summary Overview', 14, 45);
-    
-    autoTable(doc, {
-      startY: 50,
-      head: [['Metric', 'Value']],
-      body: [
-        ['Total Orders', Math.floor(Math.random() * 500) + 100],
-        ['Total Revenue', `RM ${(Math.random() * 10000 + 2000).toFixed(2)}`],
-        ['Most Popular Item', 'Original Ice Blended Bandung'],
-        ['New Customers', Math.floor(Math.random() * 100) + 20]
-      ],
-      theme: 'grid',
-      headStyles: { fillColor: '#e05943' }
-    });
-    
-    doc.save(`MunchiesKK_${month}_Report_2026.pdf`);
+  // Pulls real orders/profiles for the selected calendar month instead of the
+  // Math.random() placeholder this used to ship -- that produced a different
+  // "real-looking" number on every click, which is indistinguishable from an
+  // actual report unless you already know to distrust it.
+  const handleDownload = async (month, monthIndex) => {
+    setDownloadingMonth(month);
+    try {
+      const startDate = new Date(Date.UTC(REPORT_YEAR, monthIndex, 1)).toISOString();
+      const endDate = new Date(Date.UTC(REPORT_YEAR, monthIndex + 1, 1)).toISOString();
+
+      const [{ data: monthOrders, error: ordersError }, { count: newCustomers, error: profilesError }] = await Promise.all([
+        supabase.from('orders').select('total, status, items').gte('created_at', startDate).lt('created_at', endDate),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', startDate).lt('created_at', endDate)
+      ]);
+
+      if (ordersError) throw ordersError;
+      if (profilesError) throw profilesError;
+
+      const countedOrders = (monthOrders || []).filter(o => o.status !== 'CANCELLED');
+      const totalOrders = countedOrders.length;
+      const totalRevenue = countedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+      const itemCounts = {};
+      countedOrders.forEach(o => {
+        (o.items || []).forEach(item => {
+          const name = item.name || 'Unknown Item';
+          itemCounts[name] = (itemCounts[name] || 0) + (item.quantity || 1);
+        });
+      });
+      const topItem = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0];
+      const mostPopularItem = topItem ? topItem[0] : 'No orders this month';
+
+      const doc = new jsPDF();
+
+      doc.setFontSize(20);
+      doc.text(`MunchiesKK - Monthly Report`, 14, 22);
+      doc.setFontSize(14);
+      doc.text(`Period: ${month} ${REPORT_YEAR}`, 14, 32);
+
+      doc.setFontSize(12);
+      doc.text('Summary Overview', 14, 45);
+
+      autoTable(doc, {
+        startY: 50,
+        head: [['Metric', 'Value']],
+        body: [
+          ['Total Orders', totalOrders.toString()],
+          ['Total Revenue', `RM ${(totalRevenue / 100).toFixed(2)}`],
+          ['Most Popular Item', mostPopularItem],
+          ['New Customers', (newCustomers ?? 0).toString()]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: '#c73b0f' }
+      });
+
+      doc.save(`MunchiesKK_${month}_Report_${REPORT_YEAR}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate report:', err);
+      alert('Failed to generate report: ' + (err.message || 'Unknown error'));
+    } finally {
+      setDownloadingMonth(null);
+    }
   };
 
   const months = [
@@ -52,14 +92,14 @@ const AdminReports = () => {
             alignItems: 'center', 
             cursor: 'pointer',
             fontSize: '1rem',
-            color: '#64748b',
+            color: '#6b6558',
             marginRight: '1rem'
           }}
         >
           <ArrowLeft size={20} style={{ marginRight: '8px' }} />
           Back to Dashboard
         </button>
-        <h1 style={{ margin: 0, color: '#1e293b' }}>Annual Reports</h1>
+        <h1 style={{ margin: 0, color: '#242320' }}>Annual Reports</h1>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -78,8 +118,8 @@ const AdminReports = () => {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <div>
-                  <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.25rem' }}>{month}</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  <h3 style={{ margin: 0, color: '#242320', fontSize: '1.25rem' }}>{month}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', color: '#6b6558', fontSize: '0.875rem', marginTop: '0.25rem' }}>
                     <Calendar size={14} style={{ marginRight: '4px' }} />
                     2026
                   </div>
@@ -91,12 +131,12 @@ const AdminReports = () => {
               
               <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
                 <button
-                  onClick={() => handleDownload(month)}
-                  disabled={!isPastOrCurrent}
+                  onClick={() => handleDownload(month, index)}
+                  disabled={!isPastOrCurrent || downloadingMonth === month}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    backgroundColor: isPastOrCurrent ? '#e05943' : '#cbd5e1',
+                    backgroundColor: isPastOrCurrent ? '#c73b0f' : '#cbd5e1',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
@@ -104,12 +144,12 @@ const AdminReports = () => {
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    cursor: isPastOrCurrent ? 'pointer' : 'not-allowed',
+                    cursor: isPastOrCurrent && downloadingMonth !== month ? 'pointer' : 'not-allowed',
                     transition: 'background-color 0.2s'
                   }}
                 >
                   <Download size={18} style={{ marginRight: '8px' }} />
-                  Download Report
+                  {downloadingMonth === month ? 'Generating...' : 'Download Report'}
                 </button>
               </div>
             </div>
