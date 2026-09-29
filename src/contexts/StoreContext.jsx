@@ -25,6 +25,10 @@ export function StoreProvider({ children }) {
   const [redemptions, setRedemptions] = useState([]);
   const [ingredients, setIngredients] = useState([]);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+  // Lets Menu.jsx tell "still loading" apart from "failed to load" -- both
+  // used to render the same infinite shimmer with no way for a customer to
+  // know an actual fetch failure had happened, let alone recover from it.
+  const [menuLoadError, setMenuLoadError] = useState(false);
 
   // Local-only state for Cart & Point History
   const loadState = (key, defaultVal) => {
@@ -194,15 +198,22 @@ export function StoreProvider({ children }) {
       }
       // 1. Fetch Menu
       const { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
-      if (menuData) setMenu(menuData.map(item => ({...item, inStock: item.in_stock, low_stock_threshold: item.low_stock_threshold ?? 10})));
-      else console.error('Menu fetch error:', menuErr?.message || 'Unknown error', menuErr);
+      if (menuData) {
+        setMenu(menuData.map(item => ({...item, inStock: item.in_stock, low_stock_threshold: item.low_stock_threshold ?? 10})));
+        setMenuLoadError(false);
+      } else {
+        console.error('Menu fetch error:', menuErr?.message || 'Unknown error', menuErr);
+        setMenuLoadError(true);
+      }
 
       // 2. Fetch Addons
-      const { data: addonsData } = await supabase.from('addons').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
+      const { data: addonsData, error: addonsErr } = await supabase.from('addons').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
       if (addonsData) setAddons(addonsData);
+      else if (addonsErr) console.error('Addons fetch error:', addonsErr.message, addonsErr);
 
       // 3. Fetch Item-Addon assignments
-      const { data: assignmentsData } = await supabase.from('item_addons').select('*');
+      const { data: assignmentsData, error: assignmentsErr } = await supabase.from('item_addons').select('*');
+      if (!assignmentsData && assignmentsErr) console.error('Item-addons fetch error:', assignmentsErr.message, assignmentsErr);
       if (assignmentsData) {
         const mapping = {};
         assignmentsData.forEach(row => {
@@ -1742,7 +1753,7 @@ const clearManualOverride = async (id) => {
 
   return (
     <StoreContext.Provider value={{
-      menu, cart, cartTotal, cartCount,
+      menu, menuLoadError, cart, cartTotal, cartCount,
       points, tier, pointHistory, orders, addons, itemAddons, customers,
       syncWarnings, removeSyncWarning,
       toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateOrderState, collectOrder, acceptOrder, cancelOrder,

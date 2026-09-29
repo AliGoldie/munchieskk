@@ -54,7 +54,7 @@ function MenuSkeleton() {
 }
 
 export default function Menu() {
-  const { menu, isPromoActive } = useStore();
+  const { menu, menuLoadError, isPromoActive } = useStore();
 
   const PromoCountdown = ({ promoEnd }) => {
     const [timeLeft, setTimeLeft] = useState('');
@@ -204,7 +204,18 @@ export default function Menu() {
   }, [categories]);
 
   // menu starts empty and is filled by the initial Supabase fetch -- show a
-  // shimmering placeholder instead of a blank page while that's in flight.
+  // shimmering placeholder while that's in flight. A failed fetch used to
+  // render the exact same shimmer forever, with no way for a customer to
+  // know anything had gone wrong, let alone recover from it.
+  if (menu.length === 0 && menuLoadError) {
+    return (
+      <div className="menu-page" style={{ textAlign: 'center', padding: '4rem 1.5rem' }}>
+        <p style={{ fontWeight: 700, marginBottom: '0.5rem' }}>We couldn't load the menu.</p>
+        <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Check your connection and try again.</p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
+  }
   if (menu.length === 0) {
     return <MenuSkeleton />;
   }
