@@ -1606,6 +1606,22 @@ const clearManualOverride = async (id) => {
     if (error) console.error('Failed to update ingredient cost:', error);
   };
 
+  const updateIngredientName = async (id, name) => {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return;
+    setIngredients(prev => prev.map(i => i.id === id ? { ...i, name: trimmed } : i));
+    const { error } = await supabase.from('ingredients').update({ name: trimmed }).eq('id', id);
+    if (error) console.error('Failed to update ingredient name:', error);
+  };
+
+  const updateIngredientUnit = async (id, unit) => {
+    const trimmed = (unit || '').trim();
+    if (!trimmed) return;
+    setIngredients(prev => prev.map(i => i.id === id ? { ...i, unit: trimmed } : i));
+    const { error } = await supabase.from('ingredients').update({ unit: trimmed }).eq('id', id);
+    if (error) console.error('Failed to update ingredient unit:', error);
+  };
+
   const updateIngredientLowStockThreshold = async (id, threshold) => {
     const value = Math.max(0, Math.floor(Number(threshold) || 0));
     setIngredients(prev => prev.map(i => i.id === id ? { ...i, low_stock_threshold: value } : i));
@@ -1768,6 +1784,7 @@ const clearManualOverride = async (id) => {
       loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
       addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize, logGrabfoodDailyEntry, undoGrabfoodEntry,
       ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
+      updateIngredientName, updateIngredientUnit,
       updateIngredientLowStockThreshold, deleteIngredient, fetchIngredientHistory,
       fetchRecipe, saveRecipeItem, removeRecipeItem,
       categoriesList, addCategory, updateCategory, deleteCategory,

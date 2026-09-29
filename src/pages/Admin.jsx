@@ -215,6 +215,7 @@ export default function Admin() {
     loyaltyPrizes, redemptions, fetchAdminRedemptions, fulfillRedemption, addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize,
     logGrabfoodDailyEntry, undoGrabfoodEntry,
     ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
+    updateIngredientName, updateIngredientUnit,
     updateIngredientLowStockThreshold, deleteIngredient, fetchIngredientHistory,
     fetchRecipe, saveRecipeItem, removeRecipeItem,
     isPromoActive, updatePromo,
@@ -345,6 +346,8 @@ export default function Admin() {
   const [editingIngredientStock, setEditingIngredientStock] = useState({});
   const [editingIngredientCost, setEditingIngredientCost] = useState({});
   const [editingIngredientLowStock, setEditingIngredientLowStock] = useState({});
+  const [editingIngredientName, setEditingIngredientName] = useState({});
+  const [editingIngredientUnit, setEditingIngredientUnit] = useState({});
   const [ingredientHistoryId, setIngredientHistoryId] = useState(null);
   const [ingredientHistoryData, setIngredientHistoryData] = useState([]);
   const [loadingIngredientHistory, setLoadingIngredientHistory] = useState(false);
@@ -6054,8 +6057,24 @@ export default function Admin() {
                       const isLow = (ing.stock_quantity ?? 0) <= (ing.low_stock_threshold ?? 10);
                       return (
                         <tr key={ing.id}>
-                          <td>{ing.name}</td>
-                          <td className="text-muted">{ing.unit}</td>
+                          <td>
+                            <input
+                              type="text" className="price-input" style={{ minWidth: '140px' }}
+                              value={editingIngredientName[ing.id] !== undefined ? editingIngredientName[ing.id] : ing.name}
+                              onChange={e => setEditingIngredientName({ ...editingIngredientName, [ing.id]: e.target.value })}
+                              onBlur={() => { if (editingIngredientName[ing.id] !== undefined) { updateIngredientName(ing.id, editingIngredientName[ing.id]); setEditingIngredientName({ ...editingIngredientName, [ing.id]: undefined }); } }}
+                              onKeyDown={e => { if (e.key === 'Enter') { updateIngredientName(ing.id, editingIngredientName[ing.id] ?? ing.name); setEditingIngredientName({ ...editingIngredientName, [ing.id]: undefined }); e.target.blur(); } }}
+                            />
+                          </td>
+                          <td className="text-muted">
+                            <input
+                              type="text" className="price-input" style={{ width: '80px' }}
+                              value={editingIngredientUnit[ing.id] !== undefined ? editingIngredientUnit[ing.id] : ing.unit}
+                              onChange={e => setEditingIngredientUnit({ ...editingIngredientUnit, [ing.id]: e.target.value })}
+                              onBlur={() => { if (editingIngredientUnit[ing.id] !== undefined) { updateIngredientUnit(ing.id, editingIngredientUnit[ing.id]); setEditingIngredientUnit({ ...editingIngredientUnit, [ing.id]: undefined }); } }}
+                              onKeyDown={e => { if (e.key === 'Enter') { updateIngredientUnit(ing.id, editingIngredientUnit[ing.id] ?? ing.unit); setEditingIngredientUnit({ ...editingIngredientUnit, [ing.id]: undefined }); e.target.blur(); } }}
+                            />
+                          </td>
                           <td>
                             <div className="qty-control">
                               <button type="button" className="qty-btn qty-btn-minus" onClick={() => updateIngredientStock(ing.id, (ing.stock_quantity ?? 0) - 1)} disabled={(ing.stock_quantity ?? 0) <= 0}>−</button>
