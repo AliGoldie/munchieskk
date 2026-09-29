@@ -1,13 +1,50 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// This function pushes real price changes straight to the connected Loyverse
+// POS using a static LOYVERSE_API_TOKEN -- it had no authorization check at
+// all, so anyone with the public anon key (i.e. anyone who's loaded the
+// site) could call it directly and rewrite real POS prices, entirely
+// bypassing menu_items RLS since this never touches the app's own database.
+// A caller presenting the service-role key itself (never shipped to the
+// browser) is trusted outright; anyone else must be a logged-in admin.
+async function requireAdmin(req: Request): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const authHeader = req.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+  if (serviceKey && token === serviceKey) return { ok: true };
+  if (!token) return { ok: false, status: 401, error: 'Missing Authorization header' };
+
+  const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+  const { data: { user }, error: userErr } = await userClient.auth.getUser();
+  if (userErr || !user) return { ok: false, status: 401, error: 'Unauthorized' };
+
+  const adminClient = createClient(supabaseUrl, serviceKey);
+  const { data: profile } = await adminClient.from('profiles').select('role').eq('id', user.id).maybeSingle();
+  if (profile?.role !== 'admin') return { ok: false, status: 403, error: 'Forbidden: admin access required' };
+
+  return { ok: true };
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  const authCheck = await requireAdmin(req);
+  if (!authCheck.ok) {
+    return new Response(JSON.stringify({ error: authCheck.error }), {
+      status: authCheck.status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 
   try {

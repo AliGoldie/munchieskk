@@ -6,9 +6,47 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// This function had no authorization check at all -- anyone with the public
+// anon key could call it and force a refresh of the stored Loyverse OAuth
+// tokens. It never returns the token itself, so the direct exposure risk is
+// low, but repeated/concurrent unauthenticated calls can race with
+// Loyverse's refresh-token rotation and lock the real integration out until
+// a manual reconnect -- a pure availability/sabotage vector. A caller
+// presenting the service-role key itself (e.g. a scheduled job configured
+// with it, never shipped to the browser) is trusted outright; anyone else
+// must be a logged-in admin.
+async function requireAdmin(req: Request): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const authHeader = req.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+  if (serviceKey && token === serviceKey) return { ok: true };
+  if (!token) return { ok: false, status: 401, error: 'Missing Authorization header' };
+
+  const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+  const { data: { user }, error: userErr } = await userClient.auth.getUser();
+  if (userErr || !user) return { ok: false, status: 401, error: 'Unauthorized' };
+
+  const adminClient = createClient(supabaseUrl, serviceKey);
+  const { data: profile } = await adminClient.from('profiles').select('role').eq('id', user.id).maybeSingle();
+  if (profile?.role !== 'admin') return { ok: false, status: 403, error: 'Forbidden: admin access required' };
+
+  return { ok: true };
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  const authCheck = await requireAdmin(req);
+  if (!authCheck.ok) {
+    return new Response(JSON.stringify({ error: authCheck.error }), {
+      status: authCheck.status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 
   try {
