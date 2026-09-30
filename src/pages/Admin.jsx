@@ -360,6 +360,7 @@ export default function Admin() {
   const [recipeEditorAddIngredientId, setRecipeEditorAddIngredientId] = useState('');
   const [recipeEditorAddQty, setRecipeEditorAddQty] = useState('');
   const [savingRecipeRow, setSavingRecipeRow] = useState(false);
+  const [editingRecipeQty, setEditingRecipeQty] = useState({});
   const [editingPromo, setEditingPromo] = useState({});
   const [expandedHistoryOrderIds, setExpandedHistoryOrderIds] = useState(new Set());
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(6);
@@ -1402,6 +1403,23 @@ export default function Admin() {
       setRecipeEditorRows(prev => prev.filter(r => r.id !== rowId));
       fetchAllRecipeItems();
     }
+  };
+
+  // Editing an existing recipe row's quantity -- saveRecipeItem upserts on
+  // (parent_type, parent_id, ingredient_id), so re-saving the same
+  // ingredient_id with a new quantity replaces the old row's amount rather
+  // than creating a duplicate.
+  const saveRecipeRowQty = async (row) => {
+    const raw = editingRecipeQty[row.id];
+    if (raw === undefined) return;
+    const qty = Number(raw);
+    if (!qty || qty <= 0) { alert('Enter a quantity greater than zero.'); return; }
+    const saved = await saveRecipeItem(recipeEditorFor.parentType, recipeEditorFor.parentId, row.ingredient_id, qty);
+    if (saved) {
+      setRecipeEditorRows(prev => prev.map(r => r.id === row.id ? saved : r));
+      fetchAllRecipeItems();
+    }
+    setEditingRecipeQty(prev => ({ ...prev, [row.id]: undefined }));
   };
 
   // §5b: Pause online ordering + customer notice. setShopStatus() replaces
@@ -7219,8 +7237,12 @@ export default function Admin() {
         );
       })()}
 
+      {/* Opened from inside the Edit Item Details / Edit Add-on modals (both
+          zIndex: 9999), so this needs to stack strictly above 9999 -- at the
+          old zIndex: 1000 it rendered behind its own parent modal, making
+          the ingredient dropdown and Qty field completely unusable. */}
       {recipeEditorFor && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={closeRecipeEditor}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} onClick={closeRecipeEditor}>
           <div style={{ background: '#242320', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '440px', border: '1px solid #3a3733', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.1rem' }}>Recipe</h3>
             <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>{recipeEditorFor.parentName} — ingredients this item uses</p>
@@ -7230,24 +7252,49 @@ export default function Admin() {
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '0.5rem 0' }}>No recipe defined yet -- this item's stock stays independent until you add ingredients below.</p>
               )}
               {recipeEditorRows.map(row => (
-                <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', fontSize: '0.85rem' }}>
-                  <span style={{ color: '#e2e8f0' }}>{row.ingredient?.name || 'Ingredient'}</span>
-                  <span style={{ color: '#94a3b8' }}>{row.quantity_per_unit} {row.ingredient?.unit}</span>
+                <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#e2e8f0', flex: 1 }}>{row.ingredient?.name || 'Ingredient'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <input
+                      type="number" min="0" step="any" inputMode="decimal"
+                      value={editingRecipeQty[row.id] !== undefined ? editingRecipeQty[row.id] : row.quantity_per_unit}
+                      onChange={e => setEditingRecipeQty(prev => ({ ...prev, [row.id]: e.target.value }))}
+                      onBlur={() => saveRecipeRowQty(row)}
+                      onKeyDown={e => { if (e.key === 'Enter') { saveRecipeRowQty(row); e.target.blur(); } }}
+                      style={{ width: '70px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #3a3733', background: '#242320', color: '#fff', fontSize: '0.85rem', textAlign: 'right' }}
+                      title="Click to type a new quantity, e.g. 0.1"
+                    />
+                    <span style={{ color: '#94a3b8', minWidth: '32px' }}>{row.ingredient?.unit}</span>
+                  </div>
                   <button type="button" onClick={() => handleRemoveRecipeRow(row.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
                 </div>
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <p style={{ margin: '0 0 8px', fontSize: '0.72rem', color: '#64748b' }}>
+              Quantity is in the ingredient's own unit -- e.g. if "Minced Buffalo" is priced per kg, type <strong>0.1</strong> for 100g.
+            </p>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
               <select value={recipeEditorAddIngredientId} onChange={e => setRecipeEditorAddIngredientId(e.target.value)}
-                style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: '#fff', fontSize: '0.8rem' }}>
+                style={{ flex: '1 1 160px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: '#fff', fontSize: '0.8rem' }}>
                 <option value="">Select ingredient…</option>
                 {ingredients.map(ing => (
                   <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>
                 ))}
               </select>
-              <input type="number" min="0" step="0.01" placeholder="Qty" value={recipeEditorAddQty} onChange={e => setRecipeEditorAddQty(e.target.value)}
-                style={{ width: '64px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: '#fff', fontSize: '0.8rem' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <input
+                  type="number" min="0" step="any" inputMode="decimal" placeholder="Qty"
+                  value={recipeEditorAddQty} onChange={e => setRecipeEditorAddQty(e.target.value)}
+                  style={{ width: '80px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: '#fff', fontSize: '0.85rem' }}
+                  title="Type the quantity, e.g. 0.1"
+                />
+                {recipeEditorAddIngredientId && (
+                  <span style={{ color: '#94a3b8', fontSize: '0.8rem', minWidth: '32px' }}>
+                    {ingredients.find(i => i.id === recipeEditorAddIngredientId)?.unit}
+                  </span>
+                )}
+              </div>
               <button type="button" disabled={savingRecipeRow} onClick={handleAddRecipeRow}
                 style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#FFC72C', color: '#17150F', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}>
                 Add
