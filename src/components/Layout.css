@@ -303,11 +303,16 @@
   flex-shrink: 0;
 }
 
-/* Position (left/top) is set inline by WhatsAppFloatButton.jsx -- it's
-   draggable and remembered per device, starting bottom-left (clear of
-   CookingPopup.jsx, which owns bottom-right whenever an order is active). */
+/* Position is set inline by WhatsAppFloatButton.jsx as a CSS transform (not
+   left/top): translate3d is compositor-only, so both the drag and the
+   physics-based bounce/fling animation stay smooth at 60fps instead of
+   forcing a layout recalc on every frame. Draggable, flickable, and
+   remembered per device -- starting bottom-left, clear of CookingPopup.jsx,
+   which owns bottom-right whenever an order is active. */
 .app-layout .whatsapp-float-btn {
   position: fixed;
+  top: 0;
+  left: 0;
   width: 44px;
   height: 44px;
   border: none;
@@ -325,6 +330,7 @@
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  will-change: transform;
   transition: box-shadow .15s ease;
 }
 
@@ -332,8 +338,10 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
 }
 
-.app-layout .whatsapp-float-btn:active {
+.app-layout .whatsapp-float-btn:active,
+.app-layout .whatsapp-float-btn.is-flinging {
   cursor: grabbing;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .4);
 }
 
 @media (prefers-reduced-motion: reduce) {
