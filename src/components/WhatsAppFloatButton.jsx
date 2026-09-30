@@ -3,6 +3,7 @@ import { WhatsAppIcon } from './icons';
 import { siteConfig } from '../config/siteConfig';
 
 const STORAGE_KEY = 'munchies_whatsapp_btn_pos';
+const SESSION_DISMISS_KEY = 'munchies_whatsapp_btn_dismissed';
 const BTN_SIZE = 44; // still meets the ~44px minimum comfortable tap target
 const MARGIN = 12;
 const DRAG_THRESHOLD = 6; // px of pointer movement before a tap counts as a drag
@@ -10,6 +11,9 @@ const FLICK_MIN_SPEED = 0.15; // px/ms -- below this a release just drops it, no
 const RESTITUTION = 0.62; // fraction of speed kept after each edge bounce
 const FRICTION_PER_SEC = 0.55; // fraction of speed lost per second in flight
 const STOP_SPEED = 0.02; // px/ms -- below this the fling is considered settled
+const HOLD_SHAKE_MS = 550; // held still (no drag) this long before it starts to shake
+const HOLD_CLOSE_MS = 550; // then held still this much longer before it dismisses
+const CLOSE_ANIM_MS = 220; // fade/scale-out duration before it actually unmounts
 
 // Keeps the button clear of the fixed header and bottom nav (it would
 // render behind both -- z-index 90 vs their 100 -- and become unreachable
@@ -50,16 +54,27 @@ function defaultPosition() {
 // one safe spot for every device and page. Positioned via CSS transform
 // rather than left/top: transform is compositor-only (no layout recalc per
 // frame), which is what actually keeps both the drag and the bounce
-// animation smooth at 60fps.
+// animation smooth at 60fps. Holding it still (no drag) shakes it as a
+// warning, then dismisses it for the rest of this browser tab's session --
+// sessionStorage, not localStorage, so an accidental hold never permanently
+// strands a customer without a contact button on their next visit.
 export default function WhatsAppFloatButton() {
   const href = `https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappGreeting)}`;
   const btnRef = useRef(null);
   const dragRef = useRef({ dragging: false, moved: false, startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
-  const justDraggedRef = useRef(false);
+  const justDraggedRef = useRef(false); // suppresses the click a drag or shake-release still fires
   const historyRef = useRef([]); // recent {x, y, t} pointer samples, for release velocity
   const flingRef = useRef(null); // requestAnimationFrame id, while bouncing
+  const shakeTimerRef = useRef(null);
+  const closeTimerRef = useRef(null);
+  const shakeTriggeredRef = useRef(false); // this press has shaken, whether or not it went on to close
   const [pos, setPos] = useState(null);
   const [isFlinging, setIsFlinging] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(() => {
+    try { return sessionStorage.getItem(SESSION_DISMISS_KEY) === '1'; } catch { return false; }
+  });
 
   const stopFling = () => {
     if (flingRef.current != null) {
@@ -67,6 +82,19 @@ export default function WhatsAppFloatButton() {
       flingRef.current = null;
     }
     setIsFlinging(false);
+  };
+
+  const clearHoldTimers = () => {
+    if (shakeTimerRef.current != null) { clearTimeout(shakeTimerRef.current); shakeTimerRef.current = null; }
+    if (closeTimerRef.current != null) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
+  };
+
+  const dismiss = () => {
+    clearHoldTimers();
+    setIsShaking(false);
+    setIsClosing(true);
+    try { sessionStorage.setItem(SESSION_DISMISS_KEY, '1'); } catch {}
+    setTimeout(() => setIsDismissed(true), CLOSE_ANIM_MS);
   };
 
   const persistPosition = (p) => {
@@ -93,6 +121,7 @@ export default function WhatsAppFloatButton() {
     return () => {
       window.removeEventListener('resize', onResize);
       stopFling();
+      clearHoldTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -147,6 +176,22 @@ export default function WhatsAppFloatButton() {
     };
     historyRef.current = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
     btnRef.current?.setPointerCapture?.(e.pointerId);
+
+    // Holding still (not dragging) shakes it as a warning, then dismisses it
+    // if the hold continues -- each check bails if a real drag started or
+    // the press already ended in the meantime.
+    shakeTriggeredRef.current = false;
+    shakeTimerRef.current = setTimeout(() => {
+      shakeTimerRef.current = null;
+      if (!dragRef.current.dragging || dragRef.current.moved) return;
+      setIsShaking(true);
+      shakeTriggeredRef.current = true;
+      closeTimerRef.current = setTimeout(() => {
+        closeTimerRef.current = null;
+        if (!dragRef.current.dragging || dragRef.current.moved) return;
+        dismiss();
+      }, HOLD_CLOSE_MS);
+    }, HOLD_SHAKE_MS);
   };
 
   const handlePointerMove = (e) => {
@@ -154,7 +199,11 @@ export default function WhatsAppFloatButton() {
     if (!d.dragging) return;
     const dx = e.clientX - d.startX;
     const dy = e.clientY - d.startY;
-    if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) d.moved = true;
+    if (!d.moved && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+      d.moved = true;
+      clearHoldTimers(); // a real drag cancels any pending shake/close
+      setIsShaking(false);
+    }
     if (d.moved) {
       setPos(clampPosition(d.startPosX + dx, d.startPosY + dy));
       const hist = historyRef.current;
@@ -171,6 +220,16 @@ export default function WhatsAppFloatButton() {
     if (!d.dragging) return;
     d.dragging = false;
     btnRef.current?.releasePointerCapture?.(e.pointerId);
+    clearHoldTimers();
+    setIsShaking(false);
+
+    if (shakeTriggeredRef.current) {
+      // Released mid-shake (or right at close) -- not a real tap, so don't
+      // let the click that still fires from this open WhatsApp.
+      shakeTriggeredRef.current = false;
+      justDraggedRef.current = true;
+      return;
+    }
 
     if (!d.moved || !pos) return; // a plain tap -- handleClick opens WhatsApp
 
@@ -209,23 +268,27 @@ export default function WhatsAppFloatButton() {
     window.open(href, '_blank', 'noopener,noreferrer');
   };
 
-  if (!pos) return null;
+  if (!pos || isDismissed) return null;
 
   return (
-    <button
-      ref={btnRef}
-      type="button"
-      className={`whatsapp-float-btn${isFlinging ? ' is-flinging' : ''}`}
+    <div
+      className="whatsapp-float-wrap"
       style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onClick={handleClick}
-      aria-label="Chat with us on WhatsApp. Drag or flick to move this button."
-      title="Chat with us on WhatsApp — drag or flick to move"
     >
-      <WhatsAppIcon size={20} color="#fff" />
-    </button>
+      <button
+        ref={btnRef}
+        type="button"
+        className={`whatsapp-float-btn${isFlinging ? ' is-flinging' : ''}${isShaking ? ' is-shaking' : ''}${isClosing ? ' is-closing' : ''}`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onClick={handleClick}
+        aria-label="Chat with us on WhatsApp. Drag or flick to move, hold to hide."
+        title="Chat with us on WhatsApp — drag or flick to move, hold to hide"
+      >
+        <WhatsAppIcon size={20} color="#fff" />
+      </button>
+    </div>
   );
 }

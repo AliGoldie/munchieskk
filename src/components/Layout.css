@@ -304,17 +304,27 @@
 }
 
 /* Position is set inline by WhatsAppFloatButton.jsx as a CSS transform (not
-   left/top): translate3d is compositor-only, so both the drag and the
-   physics-based bounce/fling animation stay smooth at 60fps instead of
-   forcing a layout recalc on every frame. Draggable, flickable, and
-   remembered per device -- starting bottom-left, clear of CookingPopup.jsx,
-   which owns bottom-right whenever an order is active. */
-.app-layout .whatsapp-float-btn {
+   left/top) on this wrapper: translate3d is compositor-only, so both the
+   drag and the physics-based bounce/fling animation stay smooth at 60fps
+   instead of forcing a layout recalc on every frame. Draggable, flickable,
+   and remembered per device -- starting bottom-left, clear of
+   CookingPopup.jsx, which owns bottom-right whenever an order is active.
+   The shake (a rotation) lives on the inner button instead, since an
+   element can't have both an inline positional transform and a
+   keyframe-animated one without the inline style winning outright. */
+.app-layout .whatsapp-float-wrap {
   position: fixed;
   top: 0;
   left: 0;
   width: 44px;
   height: 44px;
+  z-index: 90;
+  will-change: transform;
+}
+
+.app-layout .whatsapp-float-btn {
+  width: 100%;
+  height: 100%;
   border: none;
   padding: 0;
   font: inherit;
@@ -324,14 +334,12 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
-  z-index: 90;
   cursor: grab;
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  will-change: transform;
-  transition: box-shadow .15s ease;
+  transition: box-shadow .15s ease, opacity .2s ease, transform .2s ease;
 }
 
 .app-layout .whatsapp-float-btn:hover {
@@ -344,9 +352,35 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, .4);
 }
 
+/* Held still (not dragged) long enough -- a visible warning that
+   continuing to hold will hide the button. */
+@keyframes whatsapp-shake {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-14deg); }
+  40% { transform: rotate(11deg); }
+  60% { transform: rotate(-9deg); }
+  80% { transform: rotate(6deg); }
+}
+
+.app-layout .whatsapp-float-btn.is-shaking {
+  animation: whatsapp-shake .35s ease-in-out infinite;
+}
+
+/* The hold continued past the shake -- dismiss it for the rest of this
+   browser tab's session (see SESSION_DISMISS_KEY in the component). */
+.app-layout .whatsapp-float-btn.is-closing {
+  animation: none;
+  opacity: 0;
+  transform: scale(.3);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-layout .whatsapp-float-btn {
     transition: none;
+  }
+
+  .app-layout .whatsapp-float-btn.is-shaking {
+    animation: none;
   }
 }
 
