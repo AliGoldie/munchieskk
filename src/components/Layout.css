@@ -303,6 +303,46 @@
   flex-shrink: 0;
 }
 
+/* Bottom-left, not bottom-right: CookingPopup.jsx owns bottom-right whenever
+   an order is active, up to 300px wide. Sits clear above the bottom nav
+   using the same safe-area math as the nav itself. */
+.app-layout .whatsapp-float-btn {
+  position: fixed;
+  left: 16px;
+  bottom: calc(78px + env(safe-area-inset-bottom) + 16px);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #25D366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
+  z-index: 90;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.app-layout .whatsapp-float-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+}
+
+.app-layout .whatsapp-float-btn:active {
+  transform: scale(0.96);
+}
+
+@media (min-width: 768px) {
+  .app-layout .whatsapp-float-btn {
+    bottom: calc(92px + env(safe-area-inset-bottom) + 16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-layout .whatsapp-float-btn {
+    transition: none;
+  }
+}
+
 .app-layout .cart-toast.cart-toast-leaving {
   animation: cart-toast-out 220ms ease-in forwards;
 }

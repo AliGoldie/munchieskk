@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCountUp } from '../hooks/useCountUp';
 import CookingPopup from './CookingPopup';
 import ErrorBoundary from './ErrorBoundary';
+import WhatsAppFloatButton from './WhatsAppFloatButton';
 
 export default function Layout() {
   const location = useLocation();
@@ -139,6 +140,7 @@ export default function Layout() {
       <ErrorBoundary>
         <CookingPopup />
       </ErrorBoundary>
+      <WhatsAppFloatButton />
     </div>
   );
 }
