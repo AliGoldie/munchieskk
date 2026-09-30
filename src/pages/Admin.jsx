@@ -2301,6 +2301,34 @@ export default function Admin() {
     setEditingCostPrice({ ...editingCostPrice, [id]: undefined });
   };
 
+  // Ingredients CRM name/unit/cost: same click-pencil-to-reveal, explicit
+  // Save/Cancel pattern as Menu CRM's price/cost-price cells above -- nothing
+  // changes until Save is clicked, so a stray click or keystroke on the row
+  // can't silently rename an ingredient or alter its cost.
+  const handleIngredientNameChange = (id, value) => setEditingIngredientName({ ...editingIngredientName, [id]: value });
+  const saveIngredientName = (id) => {
+    if (editingIngredientName[id] !== undefined && editingIngredientName[id].trim() !== '') {
+      updateIngredientName(id, editingIngredientName[id]);
+    }
+    setEditingIngredientName({ ...editingIngredientName, [id]: undefined });
+  };
+
+  const handleIngredientUnitChange = (id, value) => setEditingIngredientUnit({ ...editingIngredientUnit, [id]: value });
+  const saveIngredientUnit = (id) => {
+    if (editingIngredientUnit[id] !== undefined && editingIngredientUnit[id].trim() !== '') {
+      updateIngredientUnit(id, editingIngredientUnit[id]);
+    }
+    setEditingIngredientUnit({ ...editingIngredientUnit, [id]: undefined });
+  };
+
+  const handleIngredientCostChange = (id, value) => setEditingIngredientCost({ ...editingIngredientCost, [id]: value });
+  const saveIngredientCost = (id) => {
+    if (editingIngredientCost[id] !== undefined) {
+      updateIngredientCost(id, editingIngredientCost[id]);
+      setEditingIngredientCost({ ...editingIngredientCost, [id]: undefined });
+    }
+  };
+
   // §8: eager upload on file selection so the Add-item photo tile can show a
   // real idle -> uploading -> attached sequence, rather than only finding
   // out whether the upload succeeded when the whole form is submitted.
@@ -6058,22 +6086,42 @@ export default function Admin() {
                       return (
                         <tr key={ing.id}>
                           <td>
-                            <input
-                              type="text" className="price-input" style={{ minWidth: '140px' }}
-                              value={editingIngredientName[ing.id] !== undefined ? editingIngredientName[ing.id] : ing.name}
-                              onChange={e => setEditingIngredientName({ ...editingIngredientName, [ing.id]: e.target.value })}
-                              onBlur={() => { if (editingIngredientName[ing.id] !== undefined) { updateIngredientName(ing.id, editingIngredientName[ing.id]); setEditingIngredientName({ ...editingIngredientName, [ing.id]: undefined }); } }}
-                              onKeyDown={e => { if (e.key === 'Enter') { updateIngredientName(ing.id, editingIngredientName[ing.id] ?? ing.name); setEditingIngredientName({ ...editingIngredientName, [ing.id]: undefined }); e.target.blur(); } }}
-                            />
+                            {editingIngredientName[ing.id] !== undefined ? (
+                              <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <input
+                                  type="text" autoFocus className="price-input" style={{ minWidth: '140px' }}
+                                  value={editingIngredientName[ing.id]}
+                                  onChange={e => handleIngredientNameChange(ing.id, e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') saveIngredientName(ing.id); if (e.key === 'Escape') setEditingIngredientName({ ...editingIngredientName, [ing.id]: undefined }); }}
+                                />
+                                <button className="btn btn-sm btn-primary" onClick={() => saveIngredientName(ing.id)}>Save</button>
+                                <button className="btn btn-sm btn-secondary" onClick={() => setEditingIngredientName({ ...editingIngredientName, [ing.id]: undefined })}>Cancel</button>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>{ing.name}</span>
+                                <button className="icon-btn" title="Edit ingredient name" onClick={() => handleIngredientNameChange(ing.id, ing.name)}><Pencil size={12} /></button>
+                              </div>
+                            )}
                           </td>
                           <td className="text-muted">
-                            <input
-                              type="text" className="price-input" style={{ width: '80px' }}
-                              value={editingIngredientUnit[ing.id] !== undefined ? editingIngredientUnit[ing.id] : ing.unit}
-                              onChange={e => setEditingIngredientUnit({ ...editingIngredientUnit, [ing.id]: e.target.value })}
-                              onBlur={() => { if (editingIngredientUnit[ing.id] !== undefined) { updateIngredientUnit(ing.id, editingIngredientUnit[ing.id]); setEditingIngredientUnit({ ...editingIngredientUnit, [ing.id]: undefined }); } }}
-                              onKeyDown={e => { if (e.key === 'Enter') { updateIngredientUnit(ing.id, editingIngredientUnit[ing.id] ?? ing.unit); setEditingIngredientUnit({ ...editingIngredientUnit, [ing.id]: undefined }); e.target.blur(); } }}
-                            />
+                            {editingIngredientUnit[ing.id] !== undefined ? (
+                              <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <input
+                                  type="text" autoFocus className="price-input" style={{ width: '70px' }}
+                                  value={editingIngredientUnit[ing.id]}
+                                  onChange={e => handleIngredientUnitChange(ing.id, e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') saveIngredientUnit(ing.id); if (e.key === 'Escape') setEditingIngredientUnit({ ...editingIngredientUnit, [ing.id]: undefined }); }}
+                                />
+                                <button className="btn btn-sm btn-primary" onClick={() => saveIngredientUnit(ing.id)}>Save</button>
+                                <button className="btn btn-sm btn-secondary" onClick={() => setEditingIngredientUnit({ ...editingIngredientUnit, [ing.id]: undefined })}>Cancel</button>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>{ing.unit}</span>
+                                <button className="icon-btn" title="Edit unit" onClick={() => handleIngredientUnitChange(ing.id, ing.unit)}><Pencil size={12} /></button>
+                              </div>
+                            )}
                           </td>
                           <td>
                             <div className="qty-control">
@@ -6091,14 +6139,24 @@ export default function Admin() {
                             </div>
                           </td>
                           <td>
-                            <input
-                              type="number" min="0" step="0.01" className="price-input" style={{ width: '80px' }}
-                              placeholder="Not set"
-                              value={editingIngredientCost[ing.id] !== undefined ? editingIngredientCost[ing.id] : (ing.cost_per_unit != null ? (ing.cost_per_unit / 100).toFixed(2) : '')}
-                              onChange={e => setEditingIngredientCost({ ...editingIngredientCost, [ing.id]: e.target.value })}
-                              onBlur={() => { if (editingIngredientCost[ing.id] !== undefined) { updateIngredientCost(ing.id, editingIngredientCost[ing.id]); setEditingIngredientCost({ ...editingIngredientCost, [ing.id]: undefined }); } }}
-                              onKeyDown={e => { if (e.key === 'Enter') { updateIngredientCost(ing.id, editingIngredientCost[ing.id] ?? ''); setEditingIngredientCost({ ...editingIngredientCost, [ing.id]: undefined }); e.target.blur(); } }}
-                            />
+                            {editingIngredientCost[ing.id] !== undefined ? (
+                              <div className="price-edit-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <input
+                                  type="number" min="0" step="0.01" autoFocus className="price-input" style={{ width: '80px' }}
+                                  placeholder="Not set"
+                                  value={editingIngredientCost[ing.id]}
+                                  onChange={e => handleIngredientCostChange(ing.id, e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') saveIngredientCost(ing.id); if (e.key === 'Escape') setEditingIngredientCost({ ...editingIngredientCost, [ing.id]: undefined }); }}
+                                />
+                                <button className="btn btn-sm btn-primary" onClick={() => saveIngredientCost(ing.id)}>Save</button>
+                                <button className="btn btn-sm btn-secondary" onClick={() => setEditingIngredientCost({ ...editingIngredientCost, [ing.id]: undefined })}>Cancel</button>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>{ing.cost_per_unit != null ? (ing.cost_per_unit / 100).toFixed(2) : 'Not set'}</span>
+                                <button className="icon-btn" title="Edit cost per unit" onClick={() => handleIngredientCostChange(ing.id, ing.cost_per_unit != null ? (ing.cost_per_unit / 100).toFixed(2) : '')}><Pencil size={12} /></button>
+                              </div>
+                            )}
                           </td>
                           <td>
                             <input
