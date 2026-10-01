@@ -53,21 +53,41 @@ begin
 end $$;
 
 -- Children of orders/profiles first, so nothing fails on a foreign key.
-delete from public.redemptions;              -- prize redemptions (references profiles, no cascade)
-delete from public.waste_log;                -- references orders, no cascade
-delete from public.promo_redemptions;        -- references orders (cascades anyway; explicit for clarity)
-delete from public.addon_deduction_log;
-delete from public.order_items;              -- confirmed unused/always-empty, kept for completeness
-delete from public.referral_rewards_log;
-delete from public.engagement_points_log;
-delete from public.game_plays;
-delete from public.stock_adjustments;
-delete from public.daily_stock_snapshots;
-delete from public.ingredient_adjustments;
-delete from public.admin_audit;
-delete from public.shifts;
-delete from public.store_events;
-delete from public.order_id_counters;        -- so today's first real order is NNN=001 again
+-- Each table is checked for existence before deleting from it: this list
+-- was built from the repo's migration files, but at least one of them
+-- (order_id_counters) turned out to have never actually been applied to
+-- this live project, so the migration history and the real schema have
+-- drifted -- don't assume the rest match perfectly either.
+do $$
+declare
+  tbl text;
+  tables text[] := array[
+    'redemptions',           -- prize redemptions (references profiles, no cascade)
+    'waste_log',             -- references orders, no cascade
+    'promo_redemptions',     -- references orders (cascades anyway; explicit for clarity)
+    'addon_deduction_log',
+    'order_items',           -- confirmed unused/always-empty, kept for completeness
+    'referral_rewards_log',
+    'engagement_points_log',
+    'game_plays',
+    'stock_adjustments',
+    'daily_stock_snapshots',
+    'ingredient_adjustments',
+    'admin_audit',
+    'shifts',
+    'store_events',
+    'order_id_counters'      -- so today's first real order is NNN=001 again, if this exists here
+  ];
+begin
+  foreach tbl in array tables loop
+    if exists (
+      select 1 from information_schema.tables
+      where table_schema = 'public' and table_name = tbl
+    ) then
+      execute format('delete from public.%I', tbl);
+    end if;
+  end loop;
+end $$;
 
 -- Now the orders themselves.
 delete from public.orders;
