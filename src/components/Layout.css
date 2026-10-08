@@ -239,13 +239,16 @@
 /* global.css's .container caps every page at 600px ("mobile first,
    app-like width") -- that was always the real bottleneck no matter how
    wide the outer box (above) or an individual page's own max-width got.
-   Raise it at desktop so pages without their own inner cap (Cart,
-   Profile, Home, Loyalty, Arcade) can actually use the wider box; pages
-   that set their own tighter max-width (Menu, Payment) keep using that
-   instead, since it's the smaller of the two. */
+   Raised at desktop to 1280px to match Home's content column width
+   (Home.css's .craving-page bleeds its own backgrounds edge-to-edge via a
+   negative-margin trick, so this max-width never applies to Home itself --
+   it only widens the boxed pages that stay inside .container: Cart,
+   Profile, Loyalty, Arcade, and now Menu, which previously had its own
+   tighter 1100px cap). Payment keeps its own narrower 1100px cap on
+   purpose -- a checkout form reads better narrower, not wider. */
 @media (min-width: 768px) {
   .app-layout .container {
-    max-width: 1200px;
+    max-width: 1280px;
   }
 }
 
