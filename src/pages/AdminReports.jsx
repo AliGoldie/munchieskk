@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, Calendar } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { supabase } from '../config/supabase';
 
 const REPORT_YEAR = 2026;
@@ -43,6 +41,13 @@ const AdminReports = () => {
       const topItem = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0];
       const mostPopularItem = topItem ? topItem[0] : 'No orders this month';
 
+      // jsPDF/autoTable (~630KB combined) only loads the moment someone
+      // actually downloads a report, instead of on every page that imports
+      // this file.
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ]);
       const doc = new jsPDF();
 
       doc.setFontSize(20);

@@ -13,9 +13,16 @@ import {
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
 import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2, Truck, Plus, X } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import './Admin.css';
+
+// jsPDF/jspdf-autotable (~630KB combined) are loaded on demand, not at
+// module scope -- every admin page load was pulling this in whether or not
+// anyone ever exported a PDF. Both report-generating functions below await
+// this once per call; the browser caches the chunk after the first fetch.
+const loadPdfLibs = () => Promise.all([
+  import('jspdf').then(m => m.default),
+  import('jspdf-autotable').then(m => m.default),
+]);
 
 // Stored timestamps (order created_at, shift opened_at, etc.) are UTC and
 // were being rendered with the *viewing device's* timezone via bare
@@ -1246,7 +1253,8 @@ export default function Admin() {
       .sort((a, b) => a.totalVariance - b.totalVariance);
   }, [stockReportSnapshots, menu]);
 
-  const generateStockReportDoc = () => {
+  const generateStockReportDoc = async () => {
+    const [jsPDF, autoTable] = await loadPdfLibs();
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.text('MunchiesKK Stock Report', 14, 20);
@@ -1273,8 +1281,8 @@ export default function Admin() {
     return doc;
   };
 
-  const downloadStockReportPDF = () => {
-    const doc = generateStockReportDoc();
+  const downloadStockReportPDF = async () => {
+    const doc = await generateStockReportDoc();
     doc.save(`MunchiesKK_Stock_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
@@ -1286,7 +1294,7 @@ export default function Admin() {
   // there's no WhatsApp Business API wired into this project to actually
   // deliver a message server-side.
   const shareStockReportPDF = async () => {
-    const doc = generateStockReportDoc();
+    const doc = await generateStockReportDoc();
     const fileName = `MunchiesKK_Stock_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
     const file = new File([doc.output('blob')], fileName, { type: 'application/pdf' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -2551,7 +2559,8 @@ export default function Admin() {
     }
   };
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
+    const [jsPDF, autoTable] = await loadPdfLibs();
     const doc = new jsPDF();
     const currentMonth = formatStoreDateTime(new Date(), { month: 'long', year: 'numeric' });
 
