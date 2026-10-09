@@ -52,6 +52,7 @@
     rgba(26, 26, 26, .94) 0%, rgba(26, 26, 26, .78) 42%, rgba(26, 26, 26, .15) 100%);
 }
 .c-hero-mascot {
+  width: auto;
   position: absolute;
   top: 24px;
   right: max(20px, calc((100% - 1280px) / 2 + 20px));
