@@ -164,7 +164,7 @@ export default function Home() {
         style={{ backgroundImage: `url('${heroItem?.image || '/images/hero_burger.png'}')` }}
       >
         <div className="c-hero-scrim" />
-        <img src="/images/Trex.png" alt="" className="c-hero-mascot" aria-hidden="true" />
+        <img src="/images/Trex.png" alt="" className="c-hero-mascot" aria-hidden="true" width="180" height="121" />
         <div className="c-hero-content">
           <p className="c-eyebrow">MADE WITH LOVE TO SATISFY YOUR HUNGER</p>
           <h1 className="c-hero-h1">EAT LIKE<br /><span>A MONSTA.</span></h1>
@@ -189,7 +189,7 @@ export default function Home() {
       {/* ================= STICKY BUY BAR ================= */}
       {heroItem && (
         <div className="c-buybar">
-          <img src={heroItem.image} alt="" className="c-buybar-thumb" />
+          <img src={heroItem.image} alt="" className="c-buybar-thumb" width="52" height="52" />
           <div className="c-buybar-info">
             <span className="c-buybar-eyebrow">TONIGHT'S HERO</span>
             <span className="c-buybar-name">
@@ -231,7 +231,7 @@ export default function Home() {
         <h2 className="c-deals-h2">RM {comboPrice != null ? money(comboPrice) : '6.00'} TURNS ANY<br />BURGER INTO A MEAL.</h2>
         <div className="c-deals-grid">
           <div className="c-deal-card">
-            <h4>THE SET ADD-ON</h4>
+            <h3>THE SET ADD-ON</h3>
             {regularFries && pepsi ? (
               <>
                 <p className="c-deal-line">Fries {money(regularFries.price)} + Pepsi {money(pepsi.price)} = <s>RM {money(separatePrice)}</s></p>
@@ -241,7 +241,7 @@ export default function Home() {
             ) : <p className="c-deal-line">Combo pricing unavailable right now.</p>}
           </div>
           <div className="c-deal-card">
-            <h4>FULL MEALS, SET PRICE</h4>
+            <h3>FULL MEALS, SET PRICE</h3>
             {mealLadder.length > 0 ? (
               <>
                 {cheapestMeal && <p className="c-deal-big">FROM RM {money(cheapestMeal.withSet)}</p>}
@@ -254,7 +254,7 @@ export default function Home() {
             ) : <p className="c-deal-line">Menu loading…</p>}
           </div>
           <div className="c-deal-card c-deal-card--highlight">
-            <h4>KAWAN MONSTA</h4>
+            <h3>KAWAN MONSTA</h3>
             {kawanMonsta ? (
               <>
                 <p className="c-deal-line">Feeds 3–4 · RM {money(kawanPerHead)}/head</p>
@@ -310,15 +310,15 @@ export default function Home() {
           </p>
           <div className="c-arcade-games">
             <Link to="/arcade" className="c-game-thumb">
-              <img src="/images/munchman_game.jpg" alt="" />
+              <img src="/images/munchman_game.jpg" alt="" width="1000" height="545" />
               <span><Gamepad2 size={12} /> MUNCH-MAN</span>
             </Link>
             <Link to="/arcade" className="c-game-thumb">
-              <img src="/images/trex_runner_game.jpg" alt="" />
+              <img src="/images/trex_runner_game.jpg" alt="" width="1000" height="558" />
               <span><Gamepad2 size={12} /> T-REX RUNNER</span>
             </Link>
             <Link to="/arcade" className="c-game-thumb">
-              <img src="/images/fry_catch.png" alt="" />
+              <img src="/images/fry_catch.png" alt="" width="1000" height="1000" />
               <span><Gamepad2 size={12} /> SPEED GRAB</span>
             </Link>
           </div>
@@ -350,7 +350,7 @@ export default function Home() {
           <div key={cat} className="c-type-group">
             {menuByCategory[cat].map(item => (
               <button key={item.id} className="c-type-row" onClick={() => openItem(item)} disabled={!item.inStock}>
-                <img src={item.image} alt="" className="c-type-thumb" />
+                <img src={item.image} alt="" className="c-type-thumb" width="56" height="56" />
                 <span className="c-type-name">{item.name.toUpperCase()}</span>
                 <span className="c-type-tag" style={{ color: CATEGORY_TAG_COLOR[cat] || 'var(--munchies-muted-dark)' }}>{cat}</span>
                 <span className="c-type-pts">+{getItemPoints(item)} pts</span>
@@ -366,7 +366,7 @@ export default function Home() {
       {/* ================= FOOTER ================= */}
       <footer className="c-footer">
         <div className="c-footer-brand">
-          <img src="/images/logo.png" alt="MunchiesKK" />
+          <img src="/images/logo.png" alt="MunchiesKK" width="240" height="240" />
           <div>
             <strong>MUNCHIESKK</strong>
             <p>Kota Kinabalu · {formatTime12Hour(shopSettings?.openingTime)}–{formatTime12Hour(shopSettings?.closingTime)} · WhatsApp {siteConfig.whatsappNumber}</p>

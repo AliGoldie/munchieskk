@@ -333,7 +333,7 @@
 @media (hover: hover) {
   .c-deal-card:hover { transform: translateY(-6px); }
 }
-.c-deal-card h4 {
+.c-deal-card h3 {
   font-size: .82rem;
   letter-spacing: .06em;
   color: var(--munchies-muted-dark);
@@ -348,7 +348,7 @@
   border-color: var(--munchies-yellow);
   box-shadow: 0 12px 30px -8px rgba(255, 199, 44, .35);
 }
-.c-deal-card--highlight h4 {
+.c-deal-card--highlight h3 {
   color: var(--munchies-yellow);
 }
 .c-deal-line {
