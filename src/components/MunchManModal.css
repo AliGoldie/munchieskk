@@ -249,3 +249,47 @@
   padding: 0;
 }
 
+/* On a phone this goes fully edge-to-edge instead of floating as a
+   card with margins -- full-bleed, no border/radius/shadow, height
+   pinned to the real viewport (100dvh accounts for the mobile browser
+   chrome showing/hiding, with 100vh as the fallback for browsers that
+   don't support dvh yet) so it reads like a native app screen, not a
+   popup. The canvas and d-pad already scale to fill their container,
+   so handing them the whole screen is what actually makes them bigger
+   -- the old 500px max-width was never the real bottleneck, every
+   phone is already narrower than that. */
+@media (max-width: 480px) {
+  .munchman-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .munchman-modal-content {
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    padding: max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  .munchman-touch-controls {
+    grid-template-columns: 72px 72px 72px;
+    grid-template-rows: 72px 72px 72px;
+    gap: 12px;
+  }
+
+  .munchman-tbtn {
+    font-size: 28px;
+  }
+
+  .munchman-btn {
+    padding: 16px 36px;
+    font-size: 16px;
+  }
+}
+
