@@ -42,7 +42,7 @@ export default function Layout() {
       <div className="admin-layout">
         <header className="admin-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <img src="/images/logo.png" alt="MUNCHIESKK" width="240" height="240" style={{ height: '32px' }} />
+            <img src="/images/logo.png" alt="MUNCHIESKK" width="240" height="240" style={{ height: '32px', width: 'auto' }} />
             <span style={{ fontWeight: 800, color: '#2b3674', fontSize: '1.2rem' }}>ADMIN</span>
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -63,7 +63,7 @@ export default function Layout() {
       <header className="top-header">
         <div className="container header-container">
           <Link to="/" className="logo">
-            <img src="/images/logo.png" alt="MUNCHIESKK" width="240" height="240" style={{ height: '48px' }} />
+            <img src="/images/logo.png" alt="MUNCHIESKK" width="240" height="240" style={{ height: '48px', width: 'auto' }} />
           </Link>
           <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
             {user?.role === 'admin' && (
