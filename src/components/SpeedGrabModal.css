@@ -255,3 +255,40 @@
 .grab-btn:active {
   transform: translateY(1px);
 }
+
+/* On a phone this goes fully edge-to-edge instead of floating as a
+   card with margins -- full-bleed, no border/radius/shadow, height
+   pinned to the real viewport (100dvh accounts for the mobile browser
+   chrome showing/hiding, with 100vh as the fallback) so it reads like
+   a native app screen, not a popup. The grid already fills its
+   container width, so handing it the whole screen is what actually
+   makes the cells bigger -- the old 420px max-width was never the
+   real bottleneck, every phone is already narrower than that. */
+@media (max-width: 480px) {
+  .grab-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .grab-modal-content {
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    padding: max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  .grab-cell {
+    font-size: 34px;
+  }
+
+  .grab-btn {
+    padding: 16px 36px;
+    font-size: 16px;
+  }
+}

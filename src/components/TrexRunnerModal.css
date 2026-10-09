@@ -245,3 +245,41 @@
   color: var(--gold, var(--munchies-yellow));
   transform: scale(0.98);
 }
+
+/* On a phone this goes fully edge-to-edge instead of floating as a
+   card with margins -- full-bleed, no border/radius/shadow, height
+   pinned to the real viewport (100dvh accounts for the mobile browser
+   chrome showing/hiding, with 100vh as the fallback) so it reads like
+   a native app screen, not a popup. The canvas already scales to fill
+   its container, so handing it the whole screen is what actually
+   makes it bigger -- the old 500px max-width was never the real
+   bottleneck, every phone is already narrower than that. */
+@media (max-width: 480px) {
+  .runner-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .runner-modal-content {
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    padding: max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  .runner-jump-btn {
+    padding: 20px;
+    font-size: 16px;
+  }
+
+  .runner-btn {
+    padding: 16px 36px;
+    font-size: 16px;
+  }
+}
