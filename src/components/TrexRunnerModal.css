@@ -283,3 +283,39 @@
     font-size: 16px;
   }
 }
+
+/* The overlay is pinned to the canvas (inset: 0), and the canvas is only
+   ~200px tall -- too short for a title, the how-to list and the Play
+   button, so it had to scroll. While the how-to / game-over screen is
+   up, give the wrap enough height to show it all at once; it drops back
+   to the canvas's own height as soon as a run starts. */
+.runner-canvas-wrap.is-idle {
+  min-height: 330px;
+  align-items: center;
+}
+
+.runner-howto {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: left;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--text-2, #94A3B8);
+}
+
+.runner-howto li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.runner-howto li > span {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}

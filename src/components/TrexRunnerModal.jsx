@@ -831,7 +831,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
             {user && <span>Best: {bestScore}</span>}
           </div>
 
-          <div className="runner-canvas-wrap">
+          <div className={`runner-canvas-wrap${(!gameStarted || gameOver) ? ' is-idle' : ''}`}>
             <button className="runner-mute-btn" onClick={toggleSound} aria-label="Toggle sound">
               {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
@@ -854,7 +854,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                 {!gameOver ? (
                   <>
                     <h2>Ready to Run?</h2>
-                    <p>Tap, click, or press Space to jump your T-Rex between raised platforms and over pits. Grab floating burgers for bonus points, ⚡ speed boosts to rack up distance fast, and 🛡 shields to smash through obstacles -- missing a jump still ends the run!</p>
+                    <ul className="runner-howto">
+                      <li><span>👆</span>Tap the screen (or press Space) to jump</li>
+                      <li><span>🕳️</span>Clear platforms and pits -- one missed jump ends the run</li>
+                      <li><span>🍔</span>Grab burgers for bonus points</li>
+                      <li><span>⚡</span>Speed boost &nbsp;·&nbsp; 🛡 Shield smashes obstacles</li>
+                    </ul>
                     {user && bestScore > 0 && (
                       <p style={{ fontSize: 12, color: 'var(--munchies-yellow)', marginTop: -12 }}>Your Best: {bestScore}</p>
                     )}
