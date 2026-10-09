@@ -97,3 +97,53 @@
   background: var(--ember);
   color: #fff;
 }
+
+/* On a short phone screen the card (title + streak badge + 4 rule items
+   + confirm button, all at desktop spacing) ran taller than the
+   viewport -- with the overlay's overflow set to the default (visible)
+   and no scroll container, that meant the title/close button were
+   clipped off above the top edge and the confirm button below the
+   bottom edge, with no way to scroll to either. overflow-y: auto is a
+   safety net regardless of viewport, but the real fix is tightening
+   spacing enough that every phone sees the whole thing on one screen
+   without needing to scroll at all. */
+.munchman-rules-overlay {
+  overflow-y: auto;
+}
+
+@media (max-width: 480px) {
+  .munchman-rules-overlay {
+    padding: 8px;
+  }
+
+  .munchman-rules-card {
+    padding: 16px 14px;
+  }
+
+  .munchman-rules-title {
+    font-size: 17px;
+    margin-bottom: 8px;
+  }
+
+  .munchman-streak-badge {
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    font-size: 11px;
+  }
+
+  .munchman-rules-list {
+    margin: 10px 0 14px;
+    gap: 6px;
+  }
+
+  .munchman-rule-item {
+    padding: 8px 10px;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.3;
+  }
+
+  .munchman-rule-icon {
+    font-size: 15px;
+  }
+}
