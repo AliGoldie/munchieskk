@@ -182,7 +182,13 @@ export default function MunchManModal({ isOpen, onClose }) {
       }
 
       try {
-        const { data, error } = await supabase.rpc('check_can_play_munchman');
+        // Time-boxed: on a hanging connection these calls never settle, which
+        // left the modal stuck on "Checking play status..." with no way to
+        // play. Falling through to canPlay is safe -- start_munchman_session
+        // enforces the one-play-a-day rule server-side regardless.
+        const { data, error } = await supabase
+          .rpc('check_can_play_munchman')
+          .abortSignal(AbortSignal.timeout(6000));
         if (error) throw error;
 
         if (data) {
@@ -198,7 +204,8 @@ export default function MunchManModal({ isOpen, onClose }) {
           .select('id, played_at')
           .eq('user_id', user.id)
           .eq('game_name', 'munch_man')
-          .gte('played_at', `${todayStr}T00:00:00Z`);
+          .gte('played_at', `${todayStr}T00:00:00Z`)
+          .abortSignal(AbortSignal.timeout(5000));
 
         if (plays && plays.length > 0) {
           setCanPlay(false);
