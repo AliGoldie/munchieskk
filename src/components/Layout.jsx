@@ -47,7 +47,10 @@ export default function Layout() {
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <Link to="/" className="btn btn-secondary">Store View</Link>
-            <button onClick={logout} className="btn btn-secondary"><LogOut size={16} style={{marginRight: '0.5rem'}}/>Logout</button>
+            <button onClick={logout} className="admin-logout" aria-label="Log out">
+              <span className="admin-logout-sign"><LogOut size={17} strokeWidth={2.4} aria-hidden="true" /></span>
+              <span className="admin-logout-text">Logout</span>
+            </button>
           </div>
         </header>
         <main className="admin-main">
