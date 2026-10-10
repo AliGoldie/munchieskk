@@ -15,6 +15,10 @@ const LEAD_DAYS = 5;
 const ALL_TRAYS = [...SLIDER_TRAYS, FRIES_TRAY];
 const MAX_PER_TRAY = 50;
 
+const UNIT = (t) => (t.id === FRIES_TRAY.id ? 'portions' : 'pcs');
+// Customers pick and see actual pieces (20, 40, 60...), never "trays".
+const countLabel = (t, lots) => `${lots * SLIDERS_PER_TRAY} ${UNIT(t)}`;
+
 const rm = (sen) => {
   const v = sen / 100;
   return `RM${Number.isInteger(v) ? v : v.toFixed(2)}`;
@@ -34,13 +38,13 @@ function computeQuote(qty) {
 }
 
 function orderLines(qty) {
-  return ALL_TRAYS.filter(t => qty[t.id] > 0).map(t => `${qty[t.id]} x ${t.name} (${rm(t.price)} each)`);
+  return ALL_TRAYS.filter(t => qty[t.id] > 0).map(t => `${t.name}: ${countLabel(t, qty[t.id])} = ${rm(qty[t.id] * t.price)}`);
 }
 
 function buildDetails(qty, notes) {
   const q = computeQuote(qty);
   const lines = [...orderLines(qty)];
-  if (q.discount > 0) lines.push(`Multi-tray discount: -${rm(q.discount)}`);
+  if (q.discount > 0) lines.push(`Bulk discount: -${rm(q.discount)}`);
   lines.push(`Estimate: ${rm(q.total)} + delivery if any`);
   if (notes.trim()) lines.push(`Notes: ${notes.trim()}`);
   return lines.join('\n');
@@ -97,7 +101,7 @@ export default function Catering() {
       return;
     }
     if (quote.sliderTrays < MIN_SLIDER_TRAYS) {
-      setError(`Please pick at least ${MIN_SLIDER_TRAYS} slider trays -- that's our minimum catering order.`);
+      setError(`Please pick at least ${MIN_SLIDER_TRAYS * SLIDERS_PER_TRAY} sliders -- that's our minimum catering order.`);
       document.getElementById('cat-trays')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -157,16 +161,16 @@ export default function Catering() {
       <header className="cat-hero">
         <p className="cat-eyebrow">SLIDER CATERING</p>
         <h1>ONE BITE IS <span>NEVER ENOUGH.</span></h1>
-        <p className="cat-hero-sub">Foil trays of {SLIDERS_PER_TRAY} sliders each, made fresh for your office lunch, birthday or kenduri.</p>
+        <p className="cat-hero-sub">Our sliders come in {SLIDERS_PER_TRAY}s, made fresh for your office lunch, birthday or kenduri.</p>
         <ul className="cat-chips">
           <li>{LEAD_DAYS} days notice</li>
-          <li>Min. {MIN_SLIDER_TRAYS} trays</li>
+          <li>Min. {MIN_SLIDER_TRAYS * SLIDERS_PER_TRAY} sliders</li>
           <li>{DEPOSIT_PERCENT}% deposit</li>
         </ul>
       </header>
 
       <section className="cat-trays" aria-labelledby="cat-trays-title">
-        <h2 id="cat-trays-title" className="cat-section-title">THE TRAYS</h2>
+        <h2 id="cat-trays-title" className="cat-section-title">THE SLIDERS</h2>
         {SLIDER_TRAYS.map(t => (
           <article key={t.id} className="cat-tray-card">
             <div className="cat-tray-info">
@@ -175,14 +179,14 @@ export default function Catering() {
             </div>
             <div className="cat-tray-price">
               <strong>{rm(t.price)}</strong>
-              <span>{rm(Math.round(t.price / SLIDERS_PER_TRAY))} per slider</span>
+              <span>per {SLIDERS_PER_TRAY} · {rm(Math.round(t.price / SLIDERS_PER_TRAY))} each</span>
             </div>
           </article>
         ))}
         <ul className="cat-extras">
           <li><span>{FRIES_TRAY.name}, {FRIES_TRAY.contents}</span><strong>{rm(FRIES_TRAY.price)}</strong></li>
           <li><span>Delivery, by distance</span><strong>FROM {rm(DELIVERY_FROM)}</strong></li>
-          <li><span>Per slider tray, from {BULK_DISCOUNT.minTrays} trays</span><strong>{rm(BULK_DISCOUNT.perTray)} OFF</strong></li>
+          <li><span>Every {SLIDERS_PER_TRAY} sliders, from {BULK_DISCOUNT.minTrays * SLIDERS_PER_TRAY} sliders</span><strong>{rm(BULK_DISCOUNT.perTray)} OFF</strong></li>
         </ul>
       </section>
 
@@ -196,20 +200,20 @@ export default function Catering() {
         {error && <div className="cat-error" role="alert">{error}</div>}
 
         <fieldset className="cat-step" id="cat-trays">
-          <legend><span className="cat-step-num">1</span>Pick your trays</legend>
+          <legend><span className="cat-step-num">1</span>Pick your sliders</legend>
           <ul className="cat-qty-list">
             {ALL_TRAYS.map(t => (
               <li key={t.id} className={qty[t.id] > 0 ? 'has-qty' : ''}>
                 <div className="cat-qty-label">
                   <strong>{t.name}</strong>
-                  <span>{rm(t.price)}</span>
+                  <span>{rm(t.price)} per {SLIDERS_PER_TRAY}{t.id === FRIES_TRAY.id ? ' portions' : ''}</span>
                 </div>
                 <div className="cat-stepper">
-                  <button type="button" onClick={() => bump(t.id, -1)} disabled={qty[t.id] === 0} aria-label={`One less ${t.name}`}>
+                  <button type="button" onClick={() => bump(t.id, -1)} disabled={qty[t.id] === 0} aria-label={`${SLIDERS_PER_TRAY} fewer ${t.name}`}>
                     <Minus size={18} />
                   </button>
-                  <output aria-live="polite" aria-label={`${t.name} quantity`}>{qty[t.id]}</output>
-                  <button type="button" onClick={() => bump(t.id, 1)} disabled={qty[t.id] >= MAX_PER_TRAY} aria-label={`One more ${t.name}`}>
+                  <output aria-live="polite" aria-label={`${t.name} quantity`}>{qty[t.id] * SLIDERS_PER_TRAY}</output>
+                  <button type="button" onClick={() => bump(t.id, 1)} disabled={qty[t.id] >= MAX_PER_TRAY} aria-label={`${SLIDERS_PER_TRAY} more ${t.name}`}>
                     <Plus size={18} />
                   </button>
                 </div>
@@ -219,18 +223,18 @@ export default function Catering() {
 
           <div className="cat-quote" aria-live="polite">
             {quote.subtotal === 0 ? (
-              <p className="cat-quote-empty">Pick at least {MIN_SLIDER_TRAYS} slider trays to see your estimate.</p>
+              <p className="cat-quote-empty">Pick at least {MIN_SLIDER_TRAYS * SLIDERS_PER_TRAY} sliders to see your estimate.</p>
             ) : (
               <>
                 {quote.discount > 0 && (
-                  <div className="cat-quote-row"><span>Multi-tray discount</span><span>-{rm(quote.discount)}</span></div>
+                  <div className="cat-quote-row"><span>Bulk discount</span><span>-{rm(quote.discount)}</span></div>
                 )}
                 <div className="cat-quote-row cat-quote-total"><span>Estimate</span><span>{rm(quote.total)}</span></div>
                 <p className="cat-quote-note">
                   {quote.sliderTrays < MIN_SLIDER_TRAYS
-                    ? `Add ${MIN_SLIDER_TRAYS - quote.sliderTrays} more slider tray${MIN_SLIDER_TRAYS - quote.sliderTrays === 1 ? '' : 's'} to reach the minimum.`
+                    ? `Add ${(MIN_SLIDER_TRAYS - quote.sliderTrays) * SLIDERS_PER_TRAY} more sliders to reach the minimum.`
                     : quote.sliderTrays < BULK_DISCOUNT.minTrays
-                      ? `Add 1 more slider tray to save ${rm(BULK_DISCOUNT.perTray)} on every tray.`
+                      ? `Add ${SLIDERS_PER_TRAY} more sliders to save ${rm(BULK_DISCOUNT.perTray)} on every ${SLIDERS_PER_TRAY}.`
                       : `${quote.sliderTrays * SLIDERS_PER_TRAY} sliders. Delivery, if any, is quoted on WhatsApp.`}
                 </p>
               </>
@@ -295,7 +299,7 @@ export default function Catering() {
           </div>
           <div className="cat-field">
             <label htmlFor="cat-notes">Anything else? (optional)</label>
-            <textarea id="cat-notes" rows={2} value={form.notes} onChange={set('notes')} maxLength={800} placeholder="e.g. mix the Party Tray with more chicken" />
+            <textarea id="cat-notes" rows={2} value={form.notes} onChange={set('notes')} maxLength={800} placeholder="e.g. mix the Party Sliders with more chicken" />
           </div>
         </fieldset>
 
