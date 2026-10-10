@@ -1,0 +1,139 @@
+.cpm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 9, 7, 0.72);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+}
+
+.cpm-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 26px 20px 18px;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--munchies-dark, #1a1a1a);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  border-top: 5px solid var(--munchies-yellow, #FFC72C);
+}
+
+.cpm-card .cpm-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: none;
+  background: #f3f1ec;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cpm-eyebrow {
+  margin: 0 0 6px;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: .68rem;
+  letter-spacing: .14em;
+  color: var(--munchies-orange, #c73b0f);
+}
+
+.cpm-card h2 {
+  margin: 0 40px 8px 0;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.3rem;
+  line-height: 1.15;
+}
+
+.cpm-text {
+  margin: 0 0 16px;
+  font-size: .92rem;
+  line-height: 1.5;
+  color: #4a463d;
+}
+
+.cpm-wa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 16px;
+  border-radius: 12px;
+  background: #1fa855;
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 8px 18px rgba(31, 168, 85, .3);
+}
+
+.cpm-block {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f7f5f0;
+}
+
+.cpm-block-title {
+  margin: 0 0 4px;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: .9rem;
+}
+
+.cpm-block-text {
+  margin: 0 0 10px;
+  font-size: .84rem;
+  line-height: 1.45;
+  color: #5b564b;
+}
+
+.cpm-block--arcade {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--munchies-dark, #1a1a1a);
+  color: #fff;
+}
+
+.cpm-block--arcade .cpm-block-text { color: rgba(255, 255, 255, .75); }
+.cpm-arcade-icon { flex-shrink: 0; color: var(--munchies-yellow, #FFC72C); margin-top: 2px; }
+
+.cpm-arcade-link {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--munchies-yellow, #FFC72C);
+  color: var(--munchies-dark, #1a1a1a);
+  font-weight: 800;
+  font-size: .84rem;
+  text-decoration: none;
+}
+
+.cpm-card .cpm-browse {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border: 0;
+  box-shadow: none;
+  background: none;
+  color: #6b665c;
+  font-size: .84rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../config/supabase';
+import { useStore } from '../contexts/StoreContext';
 import { getMalaysiaNow } from '../utils/timeUtils';
 import { pinLinks } from '../utils/mapLinks';
 
@@ -45,6 +46,18 @@ export default function AdminCatering() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [view, setView] = useState('upcoming');
+  const { shopSettings, setCateringEnabled } = useStore();
+  const cateringOn = shopSettings?.catering_enabled !== false;
+  const [savingSwitch, setSavingSwitch] = useState(false);
+
+  const toggleCatering = async () => {
+    const turningOff = cateringOn;
+    if (turningOff && !window.confirm('Pause catering? Customers will see a "not taking orders" message and won\'t be able to send requests until you turn it back on.')) return;
+    setSavingSwitch(true);
+    const err = await setCateringEnabled(!cateringOn);
+    setSavingSwitch(false);
+    if (err) alert('Could not change catering: ' + err.message + (/catering_enabled/.test(err.message) ? '\n\nRun the catering switch SQL in Supabase first.' : ''));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,7 +111,7 @@ export default function AdminCatering() {
     <div className="admin-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
         <h3 style={{ margin: 0 }}>Catering Requests {newCount > 0 && <span style={{ fontSize: '0.8rem', background: STATUS_COLORS.NEW, color: '#fff', padding: '2px 8px', borderRadius: 999, marginLeft: 6 }}>{newCount} new</span>}</h3>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {VIEWS.map(([key, label]) => (
             <button key={key} className={`btn btn-sm ${view === key ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setView(key)}>
               {label}
@@ -107,6 +120,22 @@ export default function AdminCatering() {
           <button className="btn btn-sm btn-secondary" onClick={load} disabled={loading}>Refresh</button>
         </div>
       </div>
+      <div className="catering-switch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', margin: '0.75rem 0', padding: '0.75rem 0.9rem', borderRadius: 10, background: cateringOn ? '#f0fdf4' : '#fef2f2', border: `1px solid ${cateringOn ? '#bbf7d0' : '#fecaca'}` }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.9rem', color: cateringOn ? '#166534' : '#b91c1c' }}>
+            {cateringOn ? 'Taking catering orders' : 'Catering paused'}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            {cateringOn ? 'Customers can send requests from the catering page.' : 'Customers see a "not taking orders" pop-up with your WhatsApp.'}
+          </div>
+        </div>
+        <label className="stock-toggle" title={cateringOn ? 'Pause catering' : 'Open catering'}>
+          <input type="checkbox" checked={cateringOn} disabled={savingSwitch} onChange={toggleCatering} aria-label="Take catering orders" />
+          <span className="stock-toggle-track"></span>
+          <span className="stock-toggle-label" style={{ color: cateringOn ? '#0f7a32' : '#ef4444' }}>{cateringOn ? 'On' : 'Off'}</span>
+        </label>
+      </div>
+
       <p className="text-muted" style={{ margin: '0.5rem 0 1rem', fontSize: '0.85rem' }}>
         Pre-orders from the /catering page (minimum 5 days notice). Customers are also asked to send the details on WhatsApp.
       </p>
@@ -168,7 +197,7 @@ export default function AdminCatering() {
                 >
                   WhatsApp
                 </a>
-                <button className="btn btn-sm btn-secondary" style={{ color: '#b91c1c' }} onClick={() => deleteRequest(r)} aria-label={`Delete request from ${r.name}`}>Delete</button>
+                <button className="btn btn-sm btn-danger-ghost" onClick={() => deleteRequest(r)} aria-label={`Delete request from ${r.name}`}>Delete</button>
               </td>
             </tr>
             );

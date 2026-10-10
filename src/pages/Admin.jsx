@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from 'react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -8,6 +8,7 @@ import {
   malaysiaDateStrToUTC, addMalaysiaDays, addMalaysiaMonths, addMalaysiaYears
 } from '../utils/timeUtils';
 import { supabase } from '../config/supabase';
+import CategoryIcon, { CATEGORY_ICONS } from '../components/CategoryIcon';
 import AdminCatering from '../components/AdminCatering';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -82,6 +83,11 @@ function formatAuditDetail(detail) {
 const CUSTOMER_AVATAR_COLORS = {
   ember: '#F04E23', gold: '#FFC72C', green: '#5FD68C', purple: '#C77DFF', blue: '#63A7F5'
 };
+const ADMIN_TABS = [
+  'overview', 'orders', 'analytics', 'customers', 'inventory', 'ingredients',
+  'categories', 'addons', 'promotions', 'history', 'grabfood', 'catering',
+  'loyalty_crm', 'redemptions', 'stock_report', 'audit'
+];
 const CUSTOMER_SEGMENTS = ['First-timer', 'At risk', 'VIP', 'Regular', 'Occasional'];
 
 // Evaluated in this order per the brief -- e.g. a 6th-order customer who
@@ -431,7 +437,58 @@ export default function Admin() {
   const [newCatIcon, setNewCatIcon] = useState('🍔');
   const [newCatColor, setNewCatColor] = useState('#ef4444');
   const [editingCat, setEditingCat] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  // The open tab lives in the URL (?tab=orders) so a refresh, or a staff
+  // member reopening the page, lands back where they were instead of on the
+  // Dashboard.
+  const [activeTab, setActiveTabState] = useState(() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get('tab');
+      return ADMIN_TABS.includes(t) ? t : 'overview';
+    } catch {
+      return 'overview';
+    }
+  });
+  // On phones every Admin table turns into a stack of cards. The cards label
+  // each value from the table's own header, so copy each <th> text onto the
+  // matching cell (data-label) -- covers every table, including ones added later.
+  useEffect(() => {
+    const root = document.querySelector('.admin-page');
+    if (!root) return undefined;
+    const labelTables = () => {
+      root.querySelectorAll('table.admin-table').forEach(table => {
+        const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim());
+        table.querySelectorAll('tbody tr').forEach(tr => {
+          let col = 0;
+          [...tr.children].forEach(td => {
+            if (td.tagName !== 'TD') return;
+            const label = td.colSpan === 1 ? heads[col] : '';
+            if (label) td.setAttribute('data-label', label);
+            else td.removeAttribute('data-label');
+            col += td.colSpan || 1;
+          });
+        });
+      });
+    };
+    let frame = 0;
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(labelTables);
+    };
+    labelTables();
+    const observer = new MutationObserver(schedule);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  }, []);
+
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabState(tab);
+    try {
+      const url = new URL(window.location.href);
+      if (tab === 'overview') url.searchParams.delete('tab');
+      else url.searchParams.set('tab', tab);
+      window.history.replaceState(window.history.state, '', url);
+    } catch { /* URL sync is a convenience only */ }
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'audit') fetchAuditLog();
@@ -2972,9 +3029,9 @@ export default function Admin() {
                       })()}
                     </p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     <span style={{
-                      padding: '6px 16px', borderRadius: '20px', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase',
+                      padding: '5px 12px', borderRadius: '7px', whiteSpace: 'nowrap', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase',
                       background: shopSettings?.status === 'OPEN' ? '#16a34a' : shopSettings?.status === 'PAUSED' ? '#ca8a04' : shopSettings?.status === 'SCHEDULE' ? '#4f46e5' : '#dc2626',
                       color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                     }}>
@@ -2982,16 +3039,16 @@ export default function Admin() {
                     </span>
                     <button onClick={() => openScheduleModal()}
                       style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: 'var(--munchies-yellow)', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                      ⚙️ Manage Schedule
+                      Manage schedule
                     </button>
                   </div>
                 </div>
                 <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '0 0 1rem' }} />
                 {/* Quick Override Buttons */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {[['OPEN','🟢 Open','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close','#ef4444'],['SCHEDULE','📅 Schedule','#6366f1']].map(([s,label,col]) => (
+                <div className="store-quick" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' }}>
+                  {[['OPEN','Open','#22c55e'],['PAUSED','Pause','#eab308'],['CLOSED','Close','#ef4444'],['SCHEDULE','Schedule','#6366f1']].map(([s,label,col]) => (
                     <button key={s} type="button" onClick={() => setShopStatus(s)}
-                      style={{ flex: 1, padding: '9px 4px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.78rem',
+                      style={{ minWidth: 0, padding: '7px 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.72rem',
                         background: shopSettings?.status === s ? col : '#3a3733', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
                   ))}
                 </div>
@@ -3008,7 +3065,7 @@ export default function Admin() {
                     <input type="text" placeholder="e.g. Back at 6pm — online ordering paused for a bit"
                       value={noticeMessageInput}
                       onChange={e => setNoticeMessageInput(e.target.value)}
-                      style={{ flex: 1, minWidth: '220px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.08)', color: '#fff', fontSize: '0.85rem' }} />
+                      style={{ flex: 1, minWidth: '180px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.08)', color: '#fff', fontSize: '0.85rem' }} />
                     <button type="button" disabled={savingNotice} onClick={() => saveNoticeMessage()}
                       style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#eab308', color: '#242320', fontWeight: 'bold', cursor: savingNotice ? 'default' : 'pointer', opacity: savingNotice ? 0.6 : 1, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                       Save
@@ -3906,9 +3963,9 @@ export default function Admin() {
             <div className="admin-grid-4" style={{ alignItems: 'start' }}>
               
               <div className="admin-card col-span-2" style={{ padding: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div className="bsi-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h4 style={{ margin: 0, color: '#1a1a1a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
-                  <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '3px' }}>
+                  <div className="bsi-filters" style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '3px' }}>
                     {['all', 'web', 'loyverse', 'grabfood'].map(filter => (
                       <button
                         key={filter}
@@ -3928,21 +3985,21 @@ export default function Admin() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-secondary)', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem', textTransform: 'uppercase' }}>
+                  <div className="bsi-cols" style={{ display: 'flex', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-secondary)', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem', textTransform: 'uppercase' }}>
                     <div style={{ flex: 3 }}>Item Name</div>
                     <div style={{ flex: 1, textAlign: 'center' }}>Units Sold</div>
                     <div style={{ flex: 2, textAlign: 'right' }}>Gross Revenue</div>
                     <div style={{ flex: 1, textAlign: 'right', marginLeft: '10px' }}>Margin</div>
                   </div>
                   {topItemsData.map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #f8fafc', paddingBottom: '0.75rem', paddingTop: '0.25rem' }}>
-                       <div style={{ flex: 3, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div key={idx} className="bsi-row" style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #f8fafc', paddingBottom: '0.75rem', paddingTop: '0.25rem' }}>
+                       <div className="bsi-name" style={{ flex: 3, display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundImage: `url(${item.image})`, backgroundSize: 'cover' }}></div>
                           <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name}</div>
                        </div>
-                       <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#c73b0f' }}>{item.sales}</div>
-                       <div style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#1a1a1a', fontSize: '0.8rem' }}>RM {item.revenue.toFixed(2)}</div>
-                       <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem', marginLeft: '10px' }}>{item.margin.toFixed(1)}%</div>
+                       <div data-label="Sold" style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#c73b0f' }}>{item.sales}</div>
+                       <div data-label="Revenue" style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#1a1a1a', fontSize: '0.8rem' }}>RM {item.revenue.toFixed(2)}</div>
+                       <div data-label="Margin" style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem', marginLeft: '10px' }}>{item.margin.toFixed(1)}%</div>
                     </div>
                   ))}
                   {topItemsData.length === 0 && <div style={{textAlign: 'center', color: 'var(--text-muted)', padding: '1rem'}}>No sales data yet -- sales data will appear here once orders are placed.</div>}
@@ -4192,8 +4249,8 @@ export default function Admin() {
 
         {activeTab === 'inventory' && (
         <div className="admin-card">
-          <div style={{ display: 'flex', gap: '2rem' }}>
-            <div style={{ flex: 1 }}>
+          <div className="admin-split" style={{ display: 'flex', gap: '2rem' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <h3>Add New Menu Item</h3>
               <form onSubmit={handleAddMenuItem} className="new-item-form">
                 <div className="form-group">
@@ -4204,7 +4261,7 @@ export default function Admin() {
                   <label>Category</label>
                   <select className="price-input" value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})}>
                     {categoriesList.map(c => (
-                      <option key={c.id} value={c.code}>{c.icon || '🏷️'} {c.label}</option>
+                      <option key={c.id} value={c.code}>{c.label}</option>
                     ))}
                   </select>
                 </div>
@@ -4269,7 +4326,7 @@ export default function Admin() {
                 </div>
               </form>
             </div>
-            <div style={{ width: '250px', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem' }}>
+            <div className="admin-split-aside" style={{ width: '250px', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem' }}>
               <h3 style={{ color: '#ef4444' }}>Needs Restock</h3>
               {lowStockItems.length === 0 ? (
                 <p className="text-muted" style={{ fontSize: '0.9rem' }}>All items & add-ons stocked!</p>
@@ -4295,7 +4352,7 @@ export default function Admin() {
           </div>
 
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', marginTop: '2rem' }}>
+          <div className="admin-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', marginTop: '2rem' }}>
             <h3 style={{ margin: 0 }}>Menu Inventory</h3>
             <input 
               type="text" 
@@ -4307,7 +4364,7 @@ export default function Admin() {
             />
           </div>
           <div className="table-responsive">
-            <table className="admin-table sticky-actions">
+            <table className="admin-table sticky-actions has-reorder">
               <thead>
                 <tr>
                   <th>Order</th>
@@ -4599,21 +4656,21 @@ export default function Admin() {
           <div className="admin-card">
             {!selectedCustomerId ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div className="admin-page-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   <h3 style={{ margin: 0 }}>Customer Details</h3>
                   <button className="btn btn-sm btn-primary" onClick={() => setBlastComposer({ channel: 'WhatsApp', message: '' })}>
                     Message segment
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.25rem' }}>
+                <div className="admin-chipbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.25rem' }}>
                   {['All', ...CUSTOMER_SEGMENTS].map(seg => (
                     <button
                       key={seg}
                       className="btn btn-sm"
                       onClick={() => setCustomerSegmentFilter(seg)}
                       style={{
-                        borderRadius: '999px',
+                        borderRadius: '10px',
                         border: customerSegmentFilter === seg ? '1.5px solid #FFC72C' : '1px solid var(--text-secondary)',
                         background: customerSegmentFilter === seg ? '#FFC72C' : 'transparent',
                         color: customerSegmentFilter === seg ? '#17150F' : 'inherit',
@@ -4827,7 +4884,7 @@ export default function Admin() {
           <div className="admin-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
-                <h3 style={{ margin: 0, color: '#242320' }}>🏷️ Category CRM</h3>
+                <h3 style={{ margin: 0, color: '#242320' }}>Category CRM</h3>
                 <p className="text-muted" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
                   Manage storefront menu categories, icons, badge colors, and display labels.
                 </p>
@@ -4861,22 +4918,14 @@ export default function Admin() {
               </div>
 
               <div className="form-group">
-                <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>ICON</label>
+                <label style={{ fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}>ICON <CategoryIcon icon={newCatIcon} size={14} /></label>
                 <select
                   value={newCatIcon}
                   onChange={e => setNewCatIcon(e.target.value)}
                   className="price-input"
-                  style={{ fontWeight: 'bold', textAlign: 'center' }}
+                  style={{ fontWeight: 600 }}
                 >
-                  <option value="🔥">🔥 BBQ</option>
-                  <option value="👑">👑 Premium</option>
-                  <option value="🍽️">🍽️ Platter</option>
-                  <option value="🥗">🥗 Sides</option>
-                  <option value="🥤">🥤 Drinks</option>
-                  <option value="🍦">🍦 Ice Cream</option>
-                  <option value="🍟">🍟 Snacks</option>
-                  <option value="🍔">🍔 Burger</option>
-                  <option value="✨">✨ Special</option>
+                  {CATEGORY_ICONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                 </select>
               </div>
 
@@ -4914,8 +4963,10 @@ export default function Admin() {
                     return (
                       <tr key={cat.id}>
                         <td className="font-medium" style={{ fontSize: '1rem' }}>
-                          <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>{cat.icon || '🏷️'}</span>
-                          <strong>{cat.label}</strong>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                            <CategoryIcon icon={cat.icon} />
+                            <strong>{cat.label}</strong>
+                          </span>
                         </td>
                         <td>
                           <code style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.85rem', color: '#1a1a1a', fontWeight: 'bold' }}>
@@ -4926,13 +4977,16 @@ export default function Admin() {
                           <span style={{
                             backgroundColor: cat.color || '#ef4444',
                             color: '#fff',
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold',
-                            display: 'inline-block'
+                            padding: '3px 9px',
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px'
                           }}>
-                            {cat.icon} {cat.code}
+                            <CategoryIcon icon={cat.icon} variant="inline" size={12} /> {cat.code}
                           </span>
                         </td>
                         <td>
@@ -4946,22 +5000,20 @@ export default function Admin() {
                               type="button"
                               className="btn btn-sm btn-secondary"
                               onClick={() => setEditingCat({ ...cat })}
-                              style={{ background: '#c73b0f', color: '#fff', border: 'none', fontWeight: 'bold' }}
                             >
-                              ✏️ Edit
+                              <Pencil size={14} /> Edit
                             </button>
                             <button
                               type="button"
-                              className="btn btn-sm btn-danger"
+                              className="btn btn-sm btn-danger-ghost"
                               onClick={() => {
                                 if (assignedItemsCount > 0) {
                                   if (!window.confirm(`Warning: ${assignedItemsCount} menu items are currently in category "${cat.label}". Are you sure you want to delete this category?`)) return;
                                 }
                                 deleteCategory(cat.id);
                               }}
-                              style={{ background: '#ef4444', color: '#fff', border: 'none', fontWeight: 'bold' }}
                             >
-                              🗑️ Delete
+                              <Trash2 size={14} /> Delete
                             </button>
                           </div>
                         </td>
@@ -4988,7 +5040,7 @@ export default function Admin() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  ✏️ Edit Category
+                  Edit Category
                 </h3>
                 <button type="button" onClick={() => setEditingCat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
               </div>
@@ -5017,21 +5069,13 @@ export default function Admin() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>EMOJI ICON</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>ICON <span style={{ verticalAlign: 'middle', marginLeft: 6 }}><CategoryIcon icon={editingCat.icon} size={14} /></span></label>
                   <select
                     value={editingCat.icon || '🍔'}
                     onChange={(e) => setEditingCat({ ...editingCat, icon: e.target.value })}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   >
-                    <option value="🔥">🔥 BBQ</option>
-                    <option value="👑">👑 Premium</option>
-                    <option value="🍽️">🍽️ Platter</option>
-                    <option value="🥗">🥗 Sides</option>
-                    <option value="🥤">🥤 Drinks</option>
-                    <option value="🍦">🍦 Ice Cream</option>
-                    <option value="🍟">🍟 Snacks</option>
-                    <option value="🍔">🍔 Burger</option>
-                    <option value="✨">✨ Special</option>
+                    {CATEGORY_ICONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                   </select>
                 </div>
 
@@ -5292,14 +5336,14 @@ export default function Admin() {
         {activeTab === 'history' && (
           <div className="admin-card">
             <h3 style={{ marginBottom: '1rem' }}>Completed & Cancelled Orders</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.5rem' }}>
+            <div className="admin-chipbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.5rem' }}>
               {['All', 'Web', 'Loyverse', 'Grab', 'Cancelled', 'Refunded'].map(f => (
                 <button
                   key={f}
                   className="btn btn-sm"
                   onClick={() => { setHistoryChannelFilter(f); setVisibleHistoryCount(6); }}
                   style={{
-                    borderRadius: '999px',
+                    borderRadius: '10px',
                     border: historyChannelFilter === f ? '1.5px solid #FFC72C' : '1px solid var(--text-secondary)',
                     background: historyChannelFilter === f ? '#FFC72C' : 'transparent',
                     color: historyChannelFilter === f ? '#17150F' : 'inherit',
@@ -6750,7 +6794,7 @@ export default function Admin() {
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 >
                   {categoriesList.map(c => (
-                    <option key={c.id} value={c.code}>{c.icon || '🏷️'} {c.label}</option>
+                    <option key={c.id} value={c.code}>{c.label}</option>
                   ))}
                 </select>
               </div>
@@ -6989,7 +7033,7 @@ export default function Admin() {
                     onClick={() => setCancellingOrder({ ...cancellingOrder, reason: r })}
                     style={{
                       padding: '6px 12px',
-                      borderRadius: '999px',
+                      borderRadius: '10px',
                       border: `1px solid ${cancellingOrder.reason === r ? '#FFC72C' : 'var(--text-secondary)'}`,
                       background: cancellingOrder.reason === r ? '#FFC72C' : '#1a1a1a',
                       color: cancellingOrder.reason === r ? '#17150F' : '#fff',
@@ -7083,7 +7127,7 @@ export default function Admin() {
                         type="button"
                         onClick={() => setRefundingOrder({ ...refundingOrder, reason: r })}
                         style={{
-                          padding: '6px 12px', borderRadius: '999px',
+                          padding: '6px 12px', borderRadius: '10px',
                           border: `1px solid ${refundingOrder.reason === r ? '#FFC72C' : '#3a3733'}`,
                           background: refundingOrder.reason === r ? '#FFC72C' : '#1a1a1a',
                           color: refundingOrder.reason === r ? '#17150F' : '#fff',

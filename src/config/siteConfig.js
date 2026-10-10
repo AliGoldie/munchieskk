@@ -5,6 +5,7 @@ export const siteConfig = {
     instagram: 'https://www.instagram.com/munchieskk.burger/',
     facebook: 'https://www.facebook.com/munchieskk.burger',
     tiktok: 'https://www.tiktok.com/@munchieskk',
+    threads: 'https://www.threads.com/@munchieskk.burger',
   },
   // Direct "write a review" link for the Google Business Profile.
   googleReviewUrl: 'https://g.page/r/CTOahi0b5u-bEAI/review',

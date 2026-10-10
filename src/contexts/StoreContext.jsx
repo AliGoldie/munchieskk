@@ -68,7 +68,7 @@ export function StoreProvider({ children }) {
   // Also seed it immediately so it's valid before first render cycle
   if (shopSettingsRef.current === null) shopSettingsRef.current = loadState('munchies_shop_settings', {
     status: 'OPEN', openingTime: '17:00', closingTime: '23:00',
-    noticeMessage: '', weeklySchedule: defaultWeeklySchedule, specialClosures: [], arcade_enabled: false
+    noticeMessage: '', weeklySchedule: defaultWeeklySchedule, specialClosures: [], arcade_enabled: false, catering_enabled: true
   });
 
   useEffect(() => { localStorage.setItem('munchies_cart', JSON.stringify(cart)); }, [cart]);
@@ -114,6 +114,21 @@ export function StoreProvider({ children }) {
     } catch (e) {
       console.warn('[StoreContext] Could not sync store_settings:', e);
     }
+  };
+
+  // Catering on/off (Admin › Catering). Saved straight to store_settings;
+  // the realtime listener pushes it to every open page.
+  const setCateringEnabled = async (enabled) => {
+    const previous = shopSettingsRef.current;
+    const next = { ...previous, catering_enabled: enabled };
+    shopSettingsRef.current = next;
+    setShopSettings(next);
+    const { error } = await supabase.from('store_settings').update({ catering_enabled: enabled }).eq('id', 'main_store');
+    if (error) {
+      shopSettingsRef.current = previous;
+      setShopSettings(previous);
+    }
+    return error;
   };
 
   const isShopOpenNow = () => {
@@ -186,7 +201,8 @@ export function StoreProvider({ children }) {
             noticeMessage: settingsData.notice_message || '',
             weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
             specialClosures: settingsData.special_closures || [],
-            arcade_enabled: settingsData.arcade_enabled ?? false
+            arcade_enabled: settingsData.arcade_enabled ?? false,
+            catering_enabled: settingsData.catering_enabled ?? true
           };
           shopSettingsRef.current = loaded;
           setShopSettings(loaded);
@@ -240,7 +256,8 @@ export function StoreProvider({ children }) {
             noticeMessage: payload.new.notice_message || '',
             weeklySchedule: { ...defaultWeeklySchedule, ...(payload.new.weekly_schedule || {}) },
             specialClosures: payload.new.special_closures || [],
-            arcade_enabled: payload.new.arcade_enabled ?? false
+            arcade_enabled: payload.new.arcade_enabled ?? false,
+            catering_enabled: payload.new.catering_enabled ?? true
           };
           try { localStorage.setItem('munchies_shop_settings', JSON.stringify(updated)); } catch (e) {}
           shopSettingsRef.current = updated;
@@ -386,7 +403,8 @@ export function StoreProvider({ children }) {
               noticeMessage: settingsData.notice_message || '',
               weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
               specialClosures: settingsData.special_closures || [],
-              arcade_enabled: settingsData.arcade_enabled ?? false
+              arcade_enabled: settingsData.arcade_enabled ?? false,
+              catering_enabled: settingsData.catering_enabled ?? true
             };
             shopSettingsRef.current = merged;
             setShopSettings(merged);
@@ -1789,7 +1807,8 @@ const clearManualOverride = async (id) => {
       fetchRecipe, saveRecipeItem, removeRecipeItem,
       categoriesList, addCategory, updateCategory, deleteCategory,
       shopSettings, updateShopSettings, isShopOpenNow,
-      arcade_enabled: shopSettings?.arcade_enabled ?? false
+      arcade_enabled: shopSettings?.arcade_enabled ?? false,
+      setCateringEnabled
     }}>
       {children}
     </StoreContext.Provider>
