@@ -825,3 +825,14 @@
     animation: none;
   }
 }
+
+/* Loading placeholders that keep the layout steady until the menu arrives */
+.c-skel {
+  background: linear-gradient(90deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.14) 50%, rgba(255,255,255,.06) 100%);
+  background-size: 200% 100%;
+  animation: c-skel-shimmer 1.2s ease-in-out infinite;
+}
+.c-skel-line { display: block; width: 60%; height: 14px; margin-top: 6px; border-radius: 6px; }
+.c-buybar--skeleton .c-buybar-thumb { display: block; }
+@keyframes c-skel-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .c-skel { animation: none; } }
