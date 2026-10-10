@@ -169,7 +169,7 @@ export default function Home() {
           <p className="c-eyebrow">MADE WITH LOVE TO SATISFY YOUR HUNGER</p>
           <h1 className="c-hero-h1">EAT LIKE<br /><span>A MONSTA.</span></h1>
           <p className="c-hero-body">
-            Sabah's loudest burgers. 100g hand-pressed patties, loaded fries, platters that
+            Sabah's loudest burgers. Unique hand-pressed patties, loaded fries, platters that
             feed the whole kawan — stack extra patties, cheese or beef strips on anything.
           </p>
           <button className="btn c-hero-cta" onClick={() => navigate('/menu')}>
