@@ -14,7 +14,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2, Truck, Plus, X, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2, Truck, Plus, X, CalendarDays, Ban, Banknote, BarChart3, Bell, BellOff, CalendarRange, Camera, ChefHat, CircleDot, Download, Eye, Hamburger, Lock, LockOpen, Megaphone, OctagonAlert, Phone, Pin, Receipt, Share2, StickyNote, Store, Wallet, Zap } from 'lucide-react';
 import './Admin.css';
 
 // jsPDF/jspdf-autotable (~630KB combined) are loaded on demand, not at
@@ -83,6 +83,12 @@ function formatAuditDetail(detail) {
 const CUSTOMER_AVATAR_COLORS = {
   ember: '#F04E23', gold: '#FFC72C', green: '#5FD68C', purple: '#C77DFF', blue: '#63A7F5'
 };
+// Line icon used in place of emoji in Admin headings and labels: sits on the
+// text baseline and inherits the surrounding colour.
+function AdminGlyph({ icon: Icon, size = 16 }) {
+  return <Icon size={size} strokeWidth={2.1} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6, flexShrink: 0 }} />;
+}
+
 const ADMIN_TABS = [
   'overview', 'orders', 'analytics', 'customers', 'inventory', 'ingredients',
   'categories', 'addons', 'promotions', 'history', 'grabfood', 'catering',
@@ -724,7 +730,7 @@ export default function Admin() {
   const activePromosFromMenu = useMemo(() => {
     return (menu || []).filter(i => isPromoActive(i)).map(i => ({
       id: `promo-menu-${i.id}`,
-      title: `🔥 PROMO: ${i.name}`,
+      title: `PROMO: ${i.name}`,
       description: `RM ${(i.price / 100).toFixed(2)} - Active Special Price!`,
       type: 'promo',
       isSystemPromo: true
@@ -2878,7 +2884,7 @@ export default function Admin() {
                     {/* Modal Header */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                       <div>
-                        <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>📅 Schedule Manager</h3>
+                        <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}><AdminGlyph icon={CalendarDays} />Schedule Manager</h3>
                         <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Set weekly operating hours and block special closure dates</p>
                       </div>
                       <button onClick={() => setScheduleModalOpen(false)}
@@ -2890,9 +2896,9 @@ export default function Admin() {
 
                       {/* Override Buttons inside Modal */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>⚡ Quick Override</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}><AdminGlyph icon={Zap} />Quick Override</label>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          {[['OPEN','🟢 Open Now','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close Now','#ef4444'],['SCHEDULE','📅 Use Schedule','#6366f1']].map(([s,label,col]) => (
+                          {[['OPEN','Open Now','#22c55e'],['PAUSED','Pause','#eab308'],['CLOSED','Close Now','#ef4444'],['SCHEDULE','Use Schedule','#6366f1']].map(([s,label,col]) => (
                             <button key={s} type="button" onClick={() => setShopStatus(s)}
                               style={{ flex: 1, minWidth: '110px', padding: '9px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem',
                                 background: shopSettings?.status === s ? col : '#3a3733', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
@@ -2900,14 +2906,14 @@ export default function Admin() {
                         </div>
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: '6px 0 0' }}>
                           {shopSettings?.status === 'SCHEDULE'
-                            ? '✅ Following weekly schedule — auto open/close by day & time'
-                            : `⚠️ Manual override active (${shopSettings?.status}). Click "Use Schedule" to follow the weekly timetable.`}
+                            ? 'Following weekly schedule — auto open/close by day & time'
+                            : `Manual override active (${shopSettings?.status}). Click "Use Schedule" to follow the weekly timetable.`}
                         </p>
                       </div>
 
                       {/* Weekly Schedule Grid */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🗓️ Weekly Schedule</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}><AdminGlyph icon={CalendarRange} />Weekly Schedule</label>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
                             const dayFull = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
@@ -2943,7 +2949,7 @@ export default function Admin() {
                                     <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)' }}>({formatTime12Hour(sched.open)} – {formatTime12Hour(sched.close)})</span>
                                   </div>
                                 ) : (
-                                  <span style={{ background: '#ef444420', color: '#fca5a5', padding: '3px 10px', borderRadius: '12px', fontSize: '0.73rem', fontWeight: '700' }}>🚫 CLOSED</span>
+                                  <span style={{ background: '#ef444420', color: '#fca5a5', padding: '3px 10px', borderRadius: '12px', fontSize: '0.73rem', fontWeight: '700' }}><AdminGlyph icon={Ban} />CLOSED</span>
                                 )}
                               </div>
                             );
@@ -2953,7 +2959,7 @@ export default function Admin() {
 
                       {/* Special Closures */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🚨 Special Closures & Holidays</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}><AdminGlyph icon={OctagonAlert} />Special Closures & Holidays</label>
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
                           <input type="date" id="closure-date-input" min={getMalaysiaNow().dateStr}
                             style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold', fontSize: '0.875rem' }} />
@@ -2988,7 +2994,7 @@ export default function Admin() {
                                   borderRadius: '8px', padding: '8px 14px', opacity: isPast ? 0.5 : 1
                                 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <span>{isToday ? '🔴' : isPast ? '✅' : '📅'}</span>
+                                    <span>{isToday ? <CircleDot size={14} /> : isPast ? <CheckCircle size={14} /> : <CalendarDays size={14} />}</span>
                                     <div>
                                       <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#f1f5f9' }}>
                                         {new Date(closure.date + 'T12:00:00').toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
@@ -3019,7 +3025,7 @@ export default function Admin() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>🏪 Store Status</h3>
+                    <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}><AdminGlyph icon={Store} />Store Status</h3>
                     <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                       {(() => {
                         const today = getMalaysiaNow().dayKey;
@@ -3035,7 +3041,7 @@ export default function Admin() {
                       background: shopSettings?.status === 'OPEN' ? '#16a34a' : shopSettings?.status === 'PAUSED' ? '#ca8a04' : shopSettings?.status === 'SCHEDULE' ? '#4f46e5' : '#dc2626',
                       color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                     }}>
-                      {shopSettings?.status === 'OPEN' ? '🟢 OPEN' : shopSettings?.status === 'PAUSED' ? '⏸️ ORDERS PAUSED' : shopSettings?.status === 'SCHEDULE' ? '📅 SCHEDULE' : '🔴 CLOSED'}
+                      {shopSettings?.status === 'OPEN' ? 'OPEN' : shopSettings?.status === 'PAUSED' ? 'ORDERS PAUSED' : shopSettings?.status === 'SCHEDULE' ? 'SCHEDULE' : 'CLOSED'}
                     </span>
                     <button onClick={() => openScheduleModal()}
                       style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: 'var(--munchies-yellow)', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
@@ -3059,7 +3065,7 @@ export default function Admin() {
                     before pausing. */}
                 <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                   <label style={{ display: 'block', fontSize: '0.72rem', color: '#fbbf24', marginBottom: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    📢 Customer Notice
+                    <AdminGlyph icon={Megaphone} />Customer Notice
                   </label>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <input type="text" placeholder="e.g. Back at 6pm — online ordering paused for a bit"
@@ -3082,7 +3088,7 @@ export default function Admin() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>💰 Shift Handover / Cash-Up</h3>
+                    <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}><AdminGlyph icon={Wallet} />Shift Handover / Cash-Up</h3>
                     <p style={{ margin: '3px 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                       {currentShift
                         ? `Open since ${formatStoreDateTime(currentShift.opened_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
@@ -3095,7 +3101,7 @@ export default function Admin() {
                     padding: '6px 16px', borderRadius: '20px', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase',
                     background: currentShift ? '#16a34a' : '#3a3733', color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                   }}>
-                    {currentShift ? '🟢 SHIFT OPEN' : '⚪ NO SHIFT'}
+                    {currentShift ? 'SHIFT OPEN' : 'NO SHIFT'}
                   </span>
                 </div>
                 <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '0 0 1rem' }} />
@@ -3155,7 +3161,7 @@ export default function Admin() {
                       </div>
                       <button type="button" disabled={savingShift} onClick={() => closeShift()}
                         style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: 'bold', cursor: savingShift ? 'default' : 'pointer', opacity: savingShift ? 0.6 : 1, fontSize: '0.85rem' }}>
-                        🔒 Close Shift
+                        <AdminGlyph icon={Lock} />Close Shift
                       </button>
                     </div>
                   </div>
@@ -3186,7 +3192,7 @@ export default function Admin() {
                       </div>
                       <button type="button" disabled={savingShift} onClick={() => openShift()}
                         style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#16a34a', color: '#fff', fontWeight: 'bold', cursor: savingShift ? 'default' : 'pointer', opacity: savingShift ? 0.6 : 1, fontSize: '0.85rem' }}>
-                        🟢 Open Shift
+                        <AdminGlyph icon={LockOpen} />Open Shift
                       </button>
                     </div>
                   </div>
@@ -3355,15 +3361,15 @@ export default function Admin() {
                           // Tooltip description
                           const tooltipParts = [];
                           if (isClosed) {
-                            tooltipParts.push(`🚨 CLOSED: ${closure.reason}`);
+                            tooltipParts.push(`CLOSED: ${closure.reason}`);
                           }
                           if (dayEvents.length > 0) {
                             dayEvents.forEach(e => {
-                              tooltipParts.push(`📌 ${e.title}${e.description ? `: ${e.description}` : ''}`);
+                              tooltipParts.push(`${e.title}${e.description ? `: ${e.description}` : ''}`);
                             });
                           }
                           if (hasOrders) {
-                            tooltipParts.push(`🛒 Orders placed on this day`);
+                            tooltipParts.push(`Orders placed on this day`);
                           }
                           const tooltipText = tooltipParts.length > 0 
                             ? tooltipParts.join('\n') 
@@ -3470,7 +3476,7 @@ export default function Admin() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <div>
                         <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          📌 NOTES & UPCOMING EVENTS
+                          <AdminGlyph icon={Pin} />NOTES & UPCOMING EVENTS
                         </h3>
                         <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                           Store schedule & active promotions. Click calendar dates or button to edit.
@@ -3515,7 +3521,7 @@ export default function Admin() {
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 'bold', color: '#fca5a5', fontSize: '0.85rem' }}>🚨 CLOSED: {closure.reason}</span>
+                            <span style={{ fontWeight: 'bold', color: '#fca5a5', fontSize: '0.85rem' }}><AdminGlyph icon={OctagonAlert} />CLOSED: {closure.reason}</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 600 }}>{closure.date}</span>
                               <span style={{
@@ -3656,7 +3662,7 @@ export default function Admin() {
 
                 {/* Prep Board */}
                 <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                  <h3 style={{ margin: '0 0 0.25rem' }}>🍳 Prep Board</h3>
+                  <h3 style={{ margin: '0 0 0.25rem' }}><AdminGlyph icon={ChefHat} />Prep Board</h3>
                   <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                     Projected demand: average sold on this weekday, last 8 weeks
                   </p>
@@ -3691,7 +3697,7 @@ export default function Admin() {
 
                 {/* Waste Log */}
                 <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                  <h3 style={{ margin: '0 0 0.25rem' }}>🗑️ Waste Log</h3>
+                  <h3 style={{ margin: '0 0 0.25rem' }}><AdminGlyph icon={Trash2} />Waste Log</h3>
                   <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Today's entries</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
                     <select value={wasteItemId} onChange={e => setWasteItemId(e.target.value)}
@@ -3743,13 +3749,13 @@ export default function Admin() {
                 <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                     <div>
-                      <h3 style={{ margin: '0 0 0.25rem' }}>💵 Food Cost Tonight</h3>
+                      <h3 style={{ margin: '0 0 0.25rem' }}><AdminGlyph icon={Banknote} />Food Cost Tonight</h3>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>(COGS + waste) / gross sales, today</p>
                     </div>
                     <button type="button" onClick={openClosingStock}
                       style={{ flexShrink: 0, padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
                       title="Record today's physical stock count">
-                      📋 Closing Stock
+                      <AdminGlyph icon={ClipboardList} />Closing Stock
                     </button>
                   </div>
                   <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#242320', marginBottom: '1rem', marginTop: '1rem' }}>
@@ -3763,7 +3769,7 @@ export default function Admin() {
                   </div>
                   {foodCostTonight.uncostedCount > 0 && (
                     <p style={{ marginTop: '1rem', fontSize: '0.72rem', color: '#d97706', background: 'rgba(245,158,11,0.1)', padding: '8px 10px', borderRadius: '8px' }}>
-                      ⚠️ {foodCostTonight.uncostedCount} item{foodCostTonight.uncostedCount === 1 ? '' : 's'} tonight still estimated at 40% — set a real cost price in Menu CRM for a more accurate figure.
+                      <AdminGlyph icon={AlertTriangle} />{foodCostTonight.uncostedCount} item{foodCostTonight.uncostedCount === 1 ? '' : 's'} tonight still estimated at 40% — set a real cost price in Menu CRM for a more accurate figure.
                     </p>
                   )}
                 </div>
@@ -4034,7 +4040,7 @@ export default function Admin() {
               {/* What-If GrabFood Projection */}
               <div className="admin-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', background: 'linear-gradient(to bottom right, #f0fdf4, #ffffff)', border: '1px solid #bbf7d0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                  <h4 style={{ margin: 0, color: '#166534', fontSize: '1.125rem' }}>GrabFood Projection 📊</h4>
+                  <h4 style={{ margin: 0, color: '#166534', fontSize: '1.125rem' }}>GrabFood Projection <AdminGlyph icon={BarChart3} /></h4>
                   <span style={{ fontSize: '0.65rem', backgroundColor: '#dcfce3', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>ESTIMATE</span>
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -4115,7 +4121,7 @@ export default function Admin() {
                 onClick={toggleSound}
                 title={soundEnabled ? 'Mute new-order alert sound on this device' : 'Unmute new-order alert sound on this device'}
               >
-                {soundEnabled ? '🔔 Sound on' : '🔕 Sound off'}
+                {soundEnabled ? <><Bell size={14} /> Sound on</> : <><BellOff size={14} /> Sound off</>}
               </button>
             </div>
           </div>
@@ -4124,13 +4130,13 @@ export default function Admin() {
           {pendingOrders.map(order => (
             <div key={order.id} className="pending-alert-card">
               <div className="pending-alert-top">
-                <div className="pending-alert-icon">🔔</div>
+                <div className="pending-alert-icon"><Bell size={22} /></div>
                 <div className="pending-alert-info">
                   <div className="pending-alert-title">NEW ORDER INCOMING!</div>
                   <div className="pending-alert-id">{order.id} · RM {(order.total / 100).toFixed(2)}</div>
                   <div className="text-sm mt-1 mb-2">
                     <span className="font-bold">{order.customer_name || 'Guest'}</span>
-                    {order.customer_phone && order.customer_phone !== 'No Phone' && <span className="text-muted ml-2">📞 {order.customer_phone}</span>}
+                    {order.customer_phone && order.customer_phone !== 'No Phone' && <span className="text-muted ml-2"><AdminGlyph icon={Phone} />{order.customer_phone}</span>}
                   </div>
                   <div className="pending-alert-items">
                     {order.items.map((item, i) => (
@@ -4139,7 +4145,7 @@ export default function Admin() {
                   </div>
                   {order.notes && (
                     <div className="text-sm mt-1" style={{ color: 'var(--gold)', fontWeight: 700 }}>
-                      📝 {order.notes}
+                      <AdminGlyph icon={StickyNote} />{order.notes}
                     </div>
                   )}
                 </div>
@@ -4187,7 +4193,7 @@ export default function Admin() {
                         <div className="text-xs text-muted mt-1 font-normal">
                           {order.customer_name || 'Guest'}
                           {order.customer_phone && order.customer_phone !== 'No Phone' && (
-                            <div className="mt-1">📞 {order.customer_phone}</div>
+                            <div className="mt-1"><AdminGlyph icon={Phone} />{order.customer_phone}</div>
                           )}
                         </div>
                       </td>
@@ -4208,7 +4214,7 @@ export default function Admin() {
                         ))}
                         {order.notes && (
                           <div style={{ color: 'var(--gold)', fontWeight: 700, fontSize: '0.8rem' }}>
-                            📝 {order.notes}
+                            <AdminGlyph icon={StickyNote} />{order.notes}
                           </div>
                         )}
                       </div>
@@ -4295,7 +4301,7 @@ export default function Admin() {
                       onChange={e => handleNewItemPhotoSelect(e.target.files?.[0])} />
                     {newItemPhotoStatus === 'idle' && (
                       <>
-                        <span style={{ fontSize: '1.2rem' }}>📷</span>
+                        <span style={{ fontSize: '1.2rem' }}><AdminGlyph icon={Camera} /></span>
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Click or drag a photo here</span>
                       </>
                     )}
@@ -4309,7 +4315,7 @@ export default function Admin() {
                     )}
                     {newItemPhotoStatus === 'attached' && (
                       <>
-                        <span style={{ fontSize: '1.05rem', color: '#22c55e' }}>✅</span>
+                        <span style={{ fontSize: '1.05rem', color: '#22c55e' }}><AdminGlyph icon={CheckCircle} /></span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>{newItemPhotoMeta?.name}</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{((newItemPhotoMeta?.size || 0) / 1024).toFixed(0)} KB</div>
@@ -5405,7 +5411,7 @@ export default function Admin() {
                                 <td className="text-xs text-muted">{formatStoreDateTime(order.created_at)}</td>
                                 <td>
                                   <div className="font-bold text-sm">{order.customer_name || 'Guest'}</div>
-                                  {order.customer_phone && order.customer_phone !== 'No Phone' && <div className="text-xs text-muted">📞 {order.customer_phone}</div>}
+                                  {order.customer_phone && order.customer_phone !== 'No Phone' && <div className="text-xs text-muted"><AdminGlyph icon={Phone} />{order.customer_phone}</div>}
                                 </td>
                                 <td className="font-bold">{(order.total / 100).toFixed(2)}</td>
                                 <td>
@@ -5446,7 +5452,7 @@ export default function Admin() {
                                     )}
                                     {order.notes && (
                                       <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--gold)', fontWeight: 700 }}>
-                                        📝 {order.notes}
+                                        <AdminGlyph icon={StickyNote} />{order.notes}
                                       </div>
                                     )}
                                     {isRefunded ? (
@@ -5508,19 +5514,19 @@ export default function Admin() {
                 className={`btn ${activePromoSubTab === 'codes' ? 'btn-primary' : 'btn-outline'}`}
                 onClick={() => setActivePromoSubTab('codes')}
               >
-                🎟️ Promo Codes
+                <AdminGlyph icon={Ticket} />Promo Codes
               </button>
               <button 
                 className={`btn ${activePromoSubTab === 'referrals' ? 'btn-primary' : 'btn-outline'}`}
                 onClick={() => setActivePromoSubTab('referrals')}
               >
-                👥 Referral Leaderboard
+                <AdminGlyph icon={Users} />Referral Leaderboard
               </button>
               <button 
                 className={`btn ${activePromoSubTab === 'items' ? 'btn-primary' : 'btn-outline'}`}
                 onClick={() => setActivePromoSubTab('items')}
               >
-                🍔 Item-Level Promos
+                <AdminGlyph icon={Hamburger} />Item-Level Promos
               </button>
             </div>
 
@@ -5588,14 +5594,14 @@ export default function Admin() {
                                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: '4px', color: 'var(--text-secondary)' }}
                                 title="Edit Promo Code"
                               >
-                                ✏️
+                                <AdminGlyph icon={Pencil} />
                               </button>
                               <button
                                 onClick={() => deletePromoCode(promo.id)}
                                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '4px', color: '#ef4444' }}
                                 title="Delete Promo Code"
                               >
-                                🗑️
+                                <AdminGlyph icon={Trash2} />
                               </button>
                             </div>
                           </td>
@@ -6304,7 +6310,7 @@ export default function Admin() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="admin-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ margin: '0 0 0.25rem' }}>📊 Stock Report</h3>
+                <h3 style={{ margin: '0 0 0.25rem' }}><AdminGlyph icon={BarChart3} />Stock Report</h3>
                 <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                   Variance trends from daily closing stock takes -- built from the counts recorded via "Closing Stock" on the Dashboard.
                 </p>
@@ -6323,12 +6329,12 @@ export default function Admin() {
                 </div>
                 <button type="button" onClick={downloadStockReportPDF}
                   style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
-                  ⬇️ Download PDF
+                  <AdminGlyph icon={Download} />Download PDF
                 </button>
                 <button type="button" onClick={shareStockReportPDF}
                   style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#25d366', color: '#fff', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
                   title="Shares the PDF via your device's share sheet (WhatsApp, email, etc.) where supported -- otherwise downloads it">
-                  📤 Share
+                  <AdminGlyph icon={Share2} />Share
                 </button>
               </div>
             </div>
@@ -6344,7 +6350,7 @@ export default function Admin() {
                   </p>
                   <button type="button" onClick={openClosingStock}
                     style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#FFC72C', color: '#17150F', fontWeight: 'bold', cursor: 'pointer' }}>
-                    📋 Take Closing Stock Now
+                    <AdminGlyph icon={ClipboardList} />Take Closing Stock Now
                   </button>
                 </div>
               ) : (
@@ -6441,7 +6447,7 @@ export default function Admin() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {promoFormData.id ? '✏️ Edit Promo Code' : '🎟️ Create Promo Code'}
+                {promoFormData.id ? 'Edit Promo Code' : 'Create Promo Code'}
               </h3>
               <button type="button" onClick={() => { setIsPromoModalOpen(false); setPromoFormData(EMPTY_PROMO_FORM); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
@@ -6637,7 +6643,7 @@ export default function Admin() {
 
               {buildPromoPreview(promoFormData) && (
                 <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.35)' }}>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>👁️ Customer sees</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}><AdminGlyph icon={Eye} />Customer sees</div>
                   <div style={{ fontSize: '0.85rem', color: '#e2e8f0' }}>{buildPromoPreview(promoFormData)}</div>
                 </div>
               )}
@@ -6668,7 +6674,7 @@ export default function Admin() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {eventFormData.id ? '✏️ Edit Event / Note' : '📌 Add Event / Note'}
+                {eventFormData.id ? 'Edit Event / Note' : 'Add Event / Note'}
               </h3>
               <button type="button" onClick={() => setIsEventModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
@@ -6692,9 +6698,9 @@ export default function Admin() {
                   onChange={(e) => setEventFormData({ ...eventFormData, type: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 >
-                  <option value="event">🎉 Store Event</option>
-                  <option value="promo">🔥 Promotion</option>
-                  <option value="note">📝 Task / Restock Note</option>
+                  <option value="event">Store Event</option>
+                  <option value="promo">Promotion</option>
+                  <option value="note">Task / Restock Note</option>
                 </select>
               </div>
 
@@ -6764,14 +6770,14 @@ export default function Admin() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ✏️ Edit Item Details
+                <AdminGlyph icon={Pencil} />Edit Item Details
               </h3>
               <button type="button" onClick={() => setEditingMenuItem(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
 
             <button type="button" onClick={() => openRecipeEditor('menu_item', editingMenuItem.id, editingMenuItem.name)}
               style={{ marginBottom: '1rem', padding: '8px 14px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: 'var(--munchies-yellow)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
-              🧾 Manage Recipe (Ingredients)
+              <AdminGlyph icon={Receipt} />Manage Recipe (Ingredients)
             </button>
 
             <form onSubmit={handleSaveMenuItemDetails} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -6932,14 +6938,14 @@ export default function Admin() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ✏️ Edit Add-on
+                <AdminGlyph icon={Pencil} />Edit Add-on
               </h3>
               <button type="button" onClick={() => { setEditingAddon(null); setEditingAddonImageFile(null); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             </div>
 
             <button type="button" onClick={() => openRecipeEditor('addon', editingAddon.id, editingAddon.name)}
               style={{ marginBottom: '1rem', padding: '8px 14px', borderRadius: '8px', border: '1px solid #3a3733', background: '#1a1a1a', color: 'var(--munchies-yellow)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
-              🧾 Manage Recipe (Ingredients)
+              <AdminGlyph icon={Receipt} />Manage Recipe (Ingredients)
             </button>
 
             <form onSubmit={handleSaveAddonDetails} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -7368,7 +7374,7 @@ export default function Admin() {
       {showClosingStock && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => !savingClosingStock && setShowClosingStock(false)}>
           <div style={{ background: '#242320', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '480px', border: '1px solid #3a3733', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}>📋 Daily Closing Stock</h3>
+            <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--munchies-yellow)', fontSize: '1.2rem' }}><AdminGlyph icon={ClipboardList} />Daily Closing Stock</h3>
             <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>
               Walk the shelf and enter what's actually there for each item. Saving reconciles the system count to your physical count and records today's closing snapshot.
             </p>
