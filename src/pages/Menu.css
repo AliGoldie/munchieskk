@@ -51,9 +51,13 @@
   position: sticky;
   top: 60px;
   z-index: 99;
-  margin: 0 -1rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  /* Bleeds edge to edge by cancelling .app-layout .container's 12px side
+     padding (Layout.css). It was -1rem (16px) from when that padding was
+     16px, which overshot the screen by 4px and nudged mobile browsers
+     into zooming the page out. */
+  margin: 0 -12px;
+  padding-left: 12px;
+  padding-right: 12px;
   border-bottom: 1px solid var(--line-strong);
   scrollbar-width: none;
 }
