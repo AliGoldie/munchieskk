@@ -570,3 +570,18 @@
 .cat-suggest span {
   font-weight: 500;
 }
+
+/* Long pack names ("SABAH SIGNATURE PACK") overflowed beside the price on
+   a 320px phone; let them wrap and step the size down on tiny screens. */
+.cat-tray-info h3 {
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 360px) {
+  .cat-tray-info h3 {
+    font-size: 1rem;
+  }
+  .cat-tray-price strong {
+    font-size: 1.45rem;
+  }
+}
