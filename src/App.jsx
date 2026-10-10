@@ -12,6 +12,7 @@ import Payment from './pages/Payment';
 import Loyalty from './pages/Loyalty';
 import Arcade from './pages/Arcade';
 import OrderStatus from './pages/OrderStatus';
+import Catering from './pages/Catering';
 import AdminRoute from './components/AdminRoute';
 import ArcadeRoute from './components/ArcadeRoute';
 
@@ -39,6 +40,7 @@ function App() {
         <Route path="cart" element={<Cart />} />
         <Route path="payment" element={<Payment />} />
         <Route path="order/:id" element={<OrderStatus />} />
+        <Route path="catering" element={<Catering />} />
         <Route element={<AdminRoute />}>
           <Route path="admin" element={
             <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>

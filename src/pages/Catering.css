@@ -1,0 +1,177 @@
+.catering-page {
+  min-height: 90vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-4);
+  background:
+    linear-gradient(180deg, rgba(6, 6, 6, .78) 0%, rgba(6, 6, 6, .6) 35%, rgba(6, 6, 6, .97) 100%),
+    url('/images/premium_platter.jpg') center 30% / cover no-repeat,
+    var(--ink);
+}
+
+.catering-card {
+  width: 100%;
+  max-width: 460px;
+  margin: var(--space-4) 0;
+  padding: var(--space-6) var(--space-4);
+  background-color: rgba(19, 17, 16, .9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+  color: var(--text);
+  text-align: center;
+}
+
+.catering-icon,
+.catering-done-icon {
+  color: var(--munchies-yellow, #FFC72C);
+  margin: 0 auto var(--space-2);
+  display: block;
+}
+
+.catering-card h2 {
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0 0 var(--space-2);
+}
+
+.catering-sub {
+  color: var(--text-muted);
+  font-size: .92rem;
+  line-height: 1.5;
+  margin: 0 0 var(--space-4);
+}
+
+.catering-error {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, .12);
+  border: 1px solid rgba(239, 68, 68, .35);
+  padding: .75rem;
+  border-radius: 8px;
+  margin-bottom: var(--space-4);
+  font-size: .88rem;
+  text-align: left;
+}
+
+.catering-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  text-align: left;
+}
+
+.catering-form .form-group label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 800;
+  font-size: .7rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.catering-form input,
+.catering-form textarea {
+  width: 100%;
+  padding: .7rem .85rem;
+  min-height: 44px;
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-card);
+  font-size: 16px; /* 16px stops iOS Safari from zooming in on focus */
+  font-family: 'Inter', sans-serif;
+  background-color: var(--surface);
+  color: var(--text);
+  color-scheme: dark;
+}
+
+.catering-form textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.catering-form input::placeholder,
+.catering-form textarea::placeholder {
+  color: var(--text-dim);
+}
+
+.catering-form input:focus,
+.catering-form textarea:focus {
+  outline: none;
+  border-color: var(--ember);
+  box-shadow: 0 0 0 3px rgba(240, 78, 35, .25);
+}
+
+.catering-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3, 12px);
+}
+
+/* Native date/time inputs have an intrinsic min-width on mobile that
+   otherwise pushes the second column past the card's edge. */
+.catering-row .form-group,
+.catering-row input {
+  min-width: 0;
+}
+
+.catering-hint {
+  margin: calc(var(--space-4) * -1 + 6px) 0 0;
+  font-size: .78rem;
+  color: var(--munchies-yellow, #FFC72C);
+}
+
+.catering-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.catering-toggle button {
+  min-height: 44px;
+  border-radius: var(--r-card);
+  border: 1px solid var(--line-control);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.catering-toggle button.active {
+  border-color: var(--ember);
+  color: #fff;
+  background: rgba(240, 78, 35, .18);
+}
+
+.catering-done p {
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 var(--space-4);
+}
+
+.catering-wa-btn {
+  display: block;
+  width: 100%;
+  background: #25D366;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: .05em;
+  padding: 14px;
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.catering-back {
+  display: inline-block;
+  margin-top: var(--space-4);
+  color: var(--text-muted);
+  font-size: .85rem;
+}
+
+@media (max-width: 380px) {
+  .catering-row {
+    grid-template-columns: 1fr;
+  }
+}

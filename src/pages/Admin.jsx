@@ -8,11 +8,12 @@ import {
   malaysiaDateStrToUTC, addMalaysiaDays, addMalaysiaMonths, addMalaysiaYears
 } from '../utils/timeUtils';
 import { supabase } from '../config/supabase';
+import AdminCatering from '../components/AdminCatering';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2, Truck, Plus, X } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2, Truck, Plus, X, CalendarDays } from 'lucide-react';
 import './Admin.css';
 
 // jsPDF/jspdf-autotable (~630KB combined) are loaded on demand, not at
@@ -2646,6 +2647,9 @@ export default function Admin() {
           </button>
           <button className={`sidebar-item ${activeTab === 'grabfood' ? 'active' : ''}`} onClick={() => setActiveTab('grabfood')}>
             <Truck size={20} /> GrabFood Entry
+          </button>
+          <button className={`sidebar-item ${activeTab === 'catering' ? 'active' : ''}`} onClick={() => setActiveTab('catering')}>
+            <CalendarDays size={20} /> Catering
           </button>
 
           <button className={`sidebar-item ${activeTab === 'loyalty_crm' ? 'active' : ''}`} onClick={() => setActiveTab('loyalty_crm')}>
@@ -5880,6 +5884,8 @@ export default function Admin() {
             </table></div>
           </div>
         )}
+
+        {activeTab === 'catering' && <AdminCatering />}
 
         {/* GrabFood Daily Entry Tab */}
         {activeTab === 'grabfood' && (

@@ -393,6 +393,9 @@ export default function Home() {
               REFER A MATE
             </button>
           )}
+          <Link to="/catering" className="btn c-footer-pill">
+            CATERING
+          </Link>
           <a
             href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappGreeting)}`}
             target="_blank" rel="noopener noreferrer"
