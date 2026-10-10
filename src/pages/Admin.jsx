@@ -15,7 +15,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2, Truck, Plus, X, CalendarDays, Ban, Banknote, BarChart3, Bell, BellOff, CalendarRange, Camera, ChefHat, CircleDot, Download, Eye, Hamburger, Lock, LockOpen, Megaphone, OctagonAlert, Phone, Pin, Receipt, Share2, StickyNote, Store, Wallet, Zap } from 'lucide-react';
+import { LayoutDashboard, BarChart2, ShoppingBag, Users, Layers, PlusSquare, TrendingUp, CheckCircle, AlertTriangle, Calendar, Archive, ArrowDown, Bookmark, Gift, Ticket, Clock, ChevronDown, ChevronUp, ClipboardList, Pencil, Trash2, Truck, Plus, X, CalendarDays, Ban, Banknote, BarChart3, Bell, BellOff, CalendarRange, Camera, ChefHat, CircleDot, Download, Eye, Hamburger, Lock, LockOpen, Megaphone, OctagonAlert, Phone, Pin, Receipt, Share2, StickyNote, Store, Wallet, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 import './Admin.css';
 
 // jsPDF/jspdf-autotable (~630KB combined) are loaded on demand, not at
@@ -671,7 +671,11 @@ export default function Admin() {
   const [editingPrizePhotoStatus, setEditingPrizePhotoStatus] = useState('idle');
 
   const [now, setNow] = useState(Date.now());
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
+  // Month shown on the dashboard calendar (any day in it), separate from the
+  // selected day so the admin can page through months freely.
+  const [calendarMonth, setCalendarMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
+  const [selectedDayStr, setSelectedDayStr] = useState(null);
+  const [showPastNotes, setShowPastNotes] = useState(false);
   
   // Analytics State Additions
   const [grabFoodShiftPercent, setGrabFoodShiftPercent] = useState(0);
@@ -1770,6 +1774,28 @@ export default function Admin() {
     fetchMarketingData();
   };
 
+
+  // Dashboard notes list: upcoming first; past entries hidden behind a toggle.
+  const todayDateStr = getMalaysiaNow().dateStr;
+  const sortedClosures = [...(shopSettings?.specialClosures || [])].sort((a, b) => a.date.localeCompare(b.date));
+  const sortedNotes = [...eventsNotes].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const visibleClosures = showPastNotes ? sortedClosures : sortedClosures.filter(c => c.date >= todayDateStr);
+  const visibleNotes = showPastNotes ? sortedNotes : sortedNotes.filter(e => !e.date || e.date >= todayDateStr);
+  const pastCount = sortedClosures.filter(c => c.date < todayDateStr).length + sortedNotes.filter(e => e.date && e.date < todayDateStr).length;
+
+  const formatDayLabel = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(`${dateStr}T12:00:00+08:00`).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kuala_Lumpur' });
+  };
+
+  const removeClosure = (closure) => {
+    if (!window.confirm(`Remove the "${closure.reason}" closure on ${formatDayLabel(closure.date)}? The shop will follow its normal hours that day.`)) return;
+    const next = (shopSettings?.specialClosures || []).filter(c => c.date !== closure.date);
+    if (localClosures) setLocalClosures(next);
+    updateShopSettings({ specialClosures: next });
+    logAudit('Special closure removed', closure);
+    pushToast({ msg: `${closure.date} closure removed`, kind: 'info', title: 'Schedule saved' });
+  };
 
   const handleOpenAddEventModal = (dateStr = null) => {
     const targetDate = dateStr || getMalaysiaNow().dateStr;
@@ -3323,118 +3349,98 @@ export default function Admin() {
                 {/* Bottom Row */}
                 {/* Column 1: Calendar & Reports */}
                 <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div className="admin-card" style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <h3 style={{ margin: 0, fontSize: '1rem' }}>{selectedCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
-                      <Calendar size={16} className="text-muted" />
+                  <div className="admin-card dash-cal" style={{ padding: '1.25rem' }}>
+                    <div className="dash-cal-head">
+                      <button type="button" className="dash-cal-nav" aria-label="Previous month"
+                        onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
+                        <ChevronLeft size={18} />
+                      </button>
+                      <h3>{calendarMonth.toLocaleString('en-MY', { month: 'long', year: 'numeric' })}</h3>
+                      <button type="button" className="dash-cal-nav" aria-label="Next month"
+                        onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>
+                        <ChevronRight size={18} />
+                      </button>
+                      <button type="button" className="btn btn-sm btn-secondary dash-cal-today"
+                        onClick={() => {
+                          const t = getMalaysiaNow().dateStr;
+                          setCalendarMonth(new Date(Number(t.slice(0, 4)), Number(t.slice(5, 7)) - 1, 1));
+                          setSelectedDayStr(t);
+                        }}>
+                        Today
+                      </button>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    <div className="dash-cal-grid dash-cal-weekdays" aria-hidden="true">
                       <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+                    <div className="dash-cal-grid">
                       {(() => {
-                        const year = selectedCalendarDate.getFullYear();
-                        const month = selectedCalendarDate.getMonth();
-                        const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun, 1 = Mon, ...
+                        const year = calendarMonth.getFullYear();
+                        const month = calendarMonth.getMonth();
+                        const firstDayIndex = new Date(year, month, 1).getDay();
                         const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-                        const emptyCells = Array.from({ length: firstDayIndex }).map((_, idx) => (
-                          <div key={`empty-${idx}`} />
-                        ));
-
-                        const dayCells = Array.from({ length: daysInMonth }).map((_, i) => {
-                          const dateNum = i + 1;
-                          const isSelected = selectedCalendarDate.getDate() === dateNum;
+                        const todayStr = getMalaysiaNow().dateStr;
+                        const cells = Array.from({ length: firstDayIndex }).map((_, idx) => <div key={`empty-${idx}`} />);
+                        for (let dateNum = 1; dateNum <= daysInMonth; dateNum++) {
                           const dayDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
-                          
-                          // Check for orders (Malaysia calendar date, not
-                          // the viewer's local reading of the UTC timestamp)
                           const hasOrders = orders.some(o => getMalaysiaParts(new Date(o.created_at)).dateStr === dayDateStr);
-
-                          // Check for events
-                          const dayEvents = eventsNotes.filter(e => e.date === dayDateStr);
-                          
-                          // Check for special closures / holidays
-                          const closure = (shopSettings?.specialClosures || []).find(c => c.date === dayDateStr);
-                          const isClosed = !!closure;
-                          const hasEvents = dayEvents.length > 0 || isClosed;
-
-                          // Tooltip description
-                          const tooltipParts = [];
-                          if (isClosed) {
-                            tooltipParts.push(`CLOSED: ${closure.reason}`);
-                          }
-                          if (dayEvents.length > 0) {
-                            dayEvents.forEach(e => {
-                              tooltipParts.push(`${e.title}${e.description ? `: ${e.description}` : ''}`);
-                            });
-                          }
-                          if (hasOrders) {
-                            tooltipParts.push(`Orders placed on this day`);
-                          }
-                          const tooltipText = tooltipParts.length > 0 
-                            ? tooltipParts.join('\n') 
-                            : `Click to add event/note for day ${dateNum}`;
-
-                          // Background & text color styling
-                          let bgColor = 'transparent';
-                          let textColor = '#242320';
-                          if (isSelected) {
-                            bgColor = '#ef4444';
-                            textColor = 'white';
-                          } else if (isClosed) {
-                            bgColor = 'rgba(239, 68, 68, 0.2)';
-                            textColor = '#dc2626';
-                          } else if (hasEvents) {
-                            bgColor = 'rgba(255, 199, 44, 0.3)';
-                            textColor = '#d97706';
-                          } else if (hasOrders) {
-                            bgColor = 'rgba(239, 68, 68, 0.1)';
-                            textColor = '#ef4444';
-                          }
-
-                          return (
-                            <div 
-                              key={i} 
-                              onClick={() => {
-                                const d = new Date(selectedCalendarDate);
-                                d.setDate(dateNum);
-                                setSelectedCalendarDate(d);
-                                handleOpenAddEventModal(dayDateStr);
-                              }}
-                              title={tooltipText}
-                              style={{ 
-                                aspectRatio: '1', 
-                                display: 'flex', 
-                                flexDirection: 'column',
-                                alignItems: 'center', 
-                                justifyContent: 'center', 
-                                fontSize: '0.8rem', 
-                                borderRadius: '50%',
-                                cursor: 'pointer',
-                                backgroundColor: bgColor,
-                                color: textColor,
-                                fontWeight: isSelected || hasOrders || hasEvents ? 'bold' : 'normal',
-                                position: 'relative'
-                              }}
-                            >
+                          const hasNotes = eventsNotes.some(e => e.date === dayDateStr);
+                          const isClosed = (shopSettings?.specialClosures || []).some(c => c.date === dayDateStr);
+                          const cls = ['dash-cal-day'];
+                          if (dayDateStr === selectedDayStr) cls.push('is-selected');
+                          if (dayDateStr === todayStr) cls.push('is-today');
+                          if (isClosed) cls.push('is-closed');
+                          else if (hasNotes) cls.push('has-notes');
+                          else if (hasOrders) cls.push('has-orders');
+                          cells.push(
+                            <button key={dayDateStr} type="button" className={cls.join(' ')}
+                              aria-pressed={dayDateStr === selectedDayStr}
+                              aria-label={`${dateNum} ${calendarMonth.toLocaleString('en-MY', { month: 'long' })}${isClosed ? ', closed' : ''}${hasNotes ? ', has notes' : ''}${hasOrders ? ', has orders' : ''}`}
+                              onClick={() => setSelectedDayStr(prev => (prev === dayDateStr ? null : dayDateStr))}>
                               {dateNum}
-                              {hasEvents && !isSelected && (
-                                <span style={{ 
-                                  width: '4px', 
-                                  height: '4px', 
-                                  borderRadius: '50%', 
-                                  background: isClosed ? '#ef4444' : '#d97706', 
-                                  marginTop: '1px' 
-                                }}></span>
-                              )}
-                            </div>
+                              {(isClosed || hasNotes) && <span className="dash-cal-dot" />}
+                            </button>
                           );
-                        });
-
-                        return [...emptyCells, ...dayCells];
+                        }
+                        return cells;
                       })()}
                     </div>
+                    <div className="dash-cal-legend">
+                      <span><i className="lg-closed" />Closed</span>
+                      <span><i className="lg-notes" />Note</span>
+                      <span><i className="lg-orders" />Orders</span>
+                    </div>
+
+                    {selectedDayStr && (() => {
+                      const closure = (shopSettings?.specialClosures || []).find(c => c.date === selectedDayStr);
+                      const dayNotes = eventsNotes.filter(e => e.date === selectedDayStr);
+                      const dayOrders = orders.filter(o => getMalaysiaParts(new Date(o.created_at)).dateStr === selectedDayStr);
+                      return (
+                        <div className="dash-day-panel">
+                          <div className="dash-day-title">{formatDayLabel(selectedDayStr)}</div>
+                          {closure && (
+                            <div className="dash-day-row is-closed">
+                              <span><AdminGlyph icon={OctagonAlert} />Closed: {closure.reason}</span>
+                              <button type="button" className="btn btn-sm btn-danger-ghost" onClick={() => removeClosure(closure)}>Remove</button>
+                            </div>
+                          )}
+                          {dayNotes.map(n => (
+                            <div key={n.id} className="dash-day-row">
+                              <span><AdminGlyph icon={StickyNote} />{n.title}</span>
+                              <button type="button" className="btn btn-sm btn-secondary" onClick={() => handleOpenEditEventModal(n)}>Edit</button>
+                            </div>
+                          ))}
+                          {dayOrders.length > 0 && (
+                            <div className="dash-day-row"><span>{dayOrders.length} order{dayOrders.length === 1 ? '' : 's'} this day</span></div>
+                          )}
+                          {!closure && dayNotes.length === 0 && dayOrders.length === 0 && (
+                            <div className="dash-day-empty">Nothing on this day.</div>
+                          )}
+                          <button type="button" className="btn btn-sm btn-primary" onClick={() => handleOpenAddEventModal(selectedDayStr)}>
+                            <Plus size={14} /> Add note for this day
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="admin-card" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -3480,7 +3486,7 @@ export default function Admin() {
                           <AdminGlyph icon={Pin} />NOTES & UPCOMING EVENTS
                         </h3>
                         <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                          Store schedule & active promotions. Click calendar dates or button to edit.
+                          Upcoming closures, notes and promos. Tap a note to edit or delete it.
                         </p>
                       </div>
                       <button
@@ -3511,7 +3517,7 @@ export default function Admin() {
                       ))}
 
                       {/* Special Closures / Holidays */}
-                      {(shopSettings?.specialClosures || []).map(closure => (
+                      {visibleClosures.map(closure => (
                         <div
                           key={`closure-${closure.date}`}
                           style={{
@@ -3524,22 +3530,22 @@ export default function Admin() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 'bold', color: '#fca5a5', fontSize: '0.85rem' }}><AdminGlyph icon={OctagonAlert} />CLOSED: {closure.reason}</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 600 }}>{closure.date}</span>
-                              <span style={{
-                                background: '#dc2626',
-                                color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '8px'
-                              }}>
-                                HOLIDAY
-                              </span>
+                              <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 600 }}>{formatDayLabel(closure.date)}</span>
+                              <button type="button" className="notes-remove" aria-label={`Remove closure on ${closure.date}`} onClick={() => removeClosure(closure)}>
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                           </div>
                         </div>
                       ))}
 
                       {/* Custom Events & Notes */}
-                      {eventsNotes.map(evt => (
+                      {visibleNotes.map(evt => (
                         <div
                           key={evt.id}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={e => { if (e.key === 'Enter') handleOpenEditEventModal(evt); }}
                           onClick={() => handleOpenEditEventModal(evt)}
                           style={{
                             background: '#1a1a1a',
@@ -3553,7 +3559,7 @@ export default function Admin() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 'bold', color: '#fff', fontSize: '0.85rem' }}>{evt.title}</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{evt.date}</span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{formatDayLabel(evt.date)}</span>
                               <span style={{
                                 background: evt.type === 'promo' ? '#ef4444' : evt.type === 'event' ? '#0284c7' : '#10b981',
                                 color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '8px'
@@ -3568,10 +3574,15 @@ export default function Admin() {
                         </div>
                       ))}
 
-                      {eventsNotes.length === 0 && activePromosFromMenu.length === 0 && (shopSettings?.specialClosures || []).length === 0 && (
+                      {visibleNotes.length === 0 && activePromosFromMenu.length === 0 && visibleClosures.length === 0 && (
                         <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '0.75rem 0' }}>
-                          No notes or events listed. Click "+ Add Event" to add one!
+                          Nothing coming up. Tap a calendar day or "+ Add Event" to add a note.
                         </div>
+                      )}
+                      {pastCount > 0 && (
+                        <button type="button" className="notes-past-toggle" onClick={() => setShowPastNotes(v => !v)}>
+                          {showPastNotes ? 'Hide past' : `Show past (${pastCount})`}
+                        </button>
                       )}
                     </div>
                   </div>
