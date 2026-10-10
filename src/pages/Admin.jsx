@@ -8,6 +8,7 @@ import {
   malaysiaDateStrToUTC, addMalaysiaDays, addMalaysiaMonths, addMalaysiaYears
 } from '../utils/timeUtils';
 import { supabase } from '../config/supabase';
+import CategoryIcon, { CATEGORY_ICONS } from '../components/CategoryIcon';
 import AdminCatering from '../components/AdminCatering';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -3028,9 +3029,9 @@ export default function Admin() {
                       })()}
                     </p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     <span style={{
-                      padding: '6px 16px', borderRadius: '20px', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase',
+                      padding: '5px 12px', borderRadius: '7px', whiteSpace: 'nowrap', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase',
                       background: shopSettings?.status === 'OPEN' ? '#16a34a' : shopSettings?.status === 'PAUSED' ? '#ca8a04' : shopSettings?.status === 'SCHEDULE' ? '#4f46e5' : '#dc2626',
                       color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                     }}>
@@ -3038,16 +3039,16 @@ export default function Admin() {
                     </span>
                     <button onClick={() => openScheduleModal()}
                       style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,199,44,0.4)', background: 'rgba(255,199,44,0.08)', color: 'var(--munchies-yellow)', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                      ⚙️ Manage Schedule
+                      Manage schedule
                     </button>
                   </div>
                 </div>
                 <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '0 0 1rem' }} />
                 {/* Quick Override Buttons */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {[['OPEN','🟢 Open','#22c55e'],['PAUSED','⏸️ Pause','#eab308'],['CLOSED','🔴 Close','#ef4444'],['SCHEDULE','📅 Schedule','#6366f1']].map(([s,label,col]) => (
+                <div className="store-quick" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' }}>
+                  {[['OPEN','Open','#22c55e'],['PAUSED','Pause','#eab308'],['CLOSED','Close','#ef4444'],['SCHEDULE','Schedule','#6366f1']].map(([s,label,col]) => (
                     <button key={s} type="button" onClick={() => setShopStatus(s)}
-                      style={{ flex: 1, padding: '9px 4px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.78rem',
+                      style={{ minWidth: 0, padding: '7px 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.72rem',
                         background: shopSettings?.status === s ? col : '#3a3733', color: '#fff', transition: 'background 0.2s' }}>{label}</button>
                   ))}
                 </div>
@@ -3064,7 +3065,7 @@ export default function Admin() {
                     <input type="text" placeholder="e.g. Back at 6pm — online ordering paused for a bit"
                       value={noticeMessageInput}
                       onChange={e => setNoticeMessageInput(e.target.value)}
-                      style={{ flex: 1, minWidth: '220px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.08)', color: '#fff', fontSize: '0.85rem' }} />
+                      style={{ flex: 1, minWidth: '180px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.08)', color: '#fff', fontSize: '0.85rem' }} />
                     <button type="button" disabled={savingNotice} onClick={() => saveNoticeMessage()}
                       style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#eab308', color: '#242320', fontWeight: 'bold', cursor: savingNotice ? 'default' : 'pointer', opacity: savingNotice ? 0.6 : 1, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                       Save
@@ -4260,7 +4261,7 @@ export default function Admin() {
                   <label>Category</label>
                   <select className="price-input" value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})}>
                     {categoriesList.map(c => (
-                      <option key={c.id} value={c.code}>{c.icon || '🏷️'} {c.label}</option>
+                      <option key={c.id} value={c.code}>{c.label}</option>
                     ))}
                   </select>
                 </div>
@@ -4883,7 +4884,7 @@ export default function Admin() {
           <div className="admin-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
-                <h3 style={{ margin: 0, color: '#242320' }}>🏷️ Category CRM</h3>
+                <h3 style={{ margin: 0, color: '#242320' }}>Category CRM</h3>
                 <p className="text-muted" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
                   Manage storefront menu categories, icons, badge colors, and display labels.
                 </p>
@@ -4917,22 +4918,14 @@ export default function Admin() {
               </div>
 
               <div className="form-group">
-                <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>ICON</label>
+                <label style={{ fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}>ICON <CategoryIcon icon={newCatIcon} size={14} /></label>
                 <select
                   value={newCatIcon}
                   onChange={e => setNewCatIcon(e.target.value)}
                   className="price-input"
-                  style={{ fontWeight: 'bold', textAlign: 'center' }}
+                  style={{ fontWeight: 600 }}
                 >
-                  <option value="🔥">🔥 BBQ</option>
-                  <option value="👑">👑 Premium</option>
-                  <option value="🍽️">🍽️ Platter</option>
-                  <option value="🥗">🥗 Sides</option>
-                  <option value="🥤">🥤 Drinks</option>
-                  <option value="🍦">🍦 Ice Cream</option>
-                  <option value="🍟">🍟 Snacks</option>
-                  <option value="🍔">🍔 Burger</option>
-                  <option value="✨">✨ Special</option>
+                  {CATEGORY_ICONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                 </select>
               </div>
 
@@ -4970,8 +4963,10 @@ export default function Admin() {
                     return (
                       <tr key={cat.id}>
                         <td className="font-medium" style={{ fontSize: '1rem' }}>
-                          <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>{cat.icon || '🏷️'}</span>
-                          <strong>{cat.label}</strong>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                            <CategoryIcon icon={cat.icon} />
+                            <strong>{cat.label}</strong>
+                          </span>
                         </td>
                         <td>
                           <code style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.85rem', color: '#1a1a1a', fontWeight: 'bold' }}>
@@ -4982,13 +4977,16 @@ export default function Admin() {
                           <span style={{
                             backgroundColor: cat.color || '#ef4444',
                             color: '#fff',
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold',
-                            display: 'inline-block'
+                            padding: '3px 9px',
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px'
                           }}>
-                            {cat.icon} {cat.code}
+                            <CategoryIcon icon={cat.icon} variant="inline" size={12} /> {cat.code}
                           </span>
                         </td>
                         <td>
@@ -5042,7 +5040,7 @@ export default function Admin() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <h3 style={{ margin: 0, color: 'var(--munchies-yellow)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  ✏️ Edit Category
+                  Edit Category
                 </h3>
                 <button type="button" onClick={() => setEditingCat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
               </div>
@@ -5071,21 +5069,13 @@ export default function Admin() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>EMOJI ICON</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>ICON <span style={{ verticalAlign: 'middle', marginLeft: 6 }}><CategoryIcon icon={editingCat.icon} size={14} /></span></label>
                   <select
                     value={editingCat.icon || '🍔'}
                     onChange={(e) => setEditingCat({ ...editingCat, icon: e.target.value })}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                   >
-                    <option value="🔥">🔥 BBQ</option>
-                    <option value="👑">👑 Premium</option>
-                    <option value="🍽️">🍽️ Platter</option>
-                    <option value="🥗">🥗 Sides</option>
-                    <option value="🥤">🥤 Drinks</option>
-                    <option value="🍦">🍦 Ice Cream</option>
-                    <option value="🍟">🍟 Snacks</option>
-                    <option value="🍔">🍔 Burger</option>
-                    <option value="✨">✨ Special</option>
+                    {CATEGORY_ICONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                   </select>
                 </div>
 
@@ -6804,7 +6794,7 @@ export default function Admin() {
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--text-secondary)', background: '#1a1a1a', color: '#fff', fontWeight: 'bold' }}
                 >
                   {categoriesList.map(c => (
-                    <option key={c.id} value={c.code}>{c.icon || '🏷️'} {c.label}</option>
+                    <option key={c.id} value={c.code}>{c.label}</option>
                   ))}
                 </select>
               </div>
