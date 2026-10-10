@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from 'react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -82,6 +82,11 @@ function formatAuditDetail(detail) {
 const CUSTOMER_AVATAR_COLORS = {
   ember: '#F04E23', gold: '#FFC72C', green: '#5FD68C', purple: '#C77DFF', blue: '#63A7F5'
 };
+const ADMIN_TABS = [
+  'overview', 'orders', 'analytics', 'customers', 'inventory', 'ingredients',
+  'categories', 'addons', 'promotions', 'history', 'grabfood', 'catering',
+  'loyalty_crm', 'redemptions', 'stock_report', 'audit'
+];
 const CUSTOMER_SEGMENTS = ['First-timer', 'At risk', 'VIP', 'Regular', 'Occasional'];
 
 // Evaluated in this order per the brief -- e.g. a 6th-order customer who
@@ -431,7 +436,58 @@ export default function Admin() {
   const [newCatIcon, setNewCatIcon] = useState('🍔');
   const [newCatColor, setNewCatColor] = useState('#ef4444');
   const [editingCat, setEditingCat] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  // The open tab lives in the URL (?tab=orders) so a refresh, or a staff
+  // member reopening the page, lands back where they were instead of on the
+  // Dashboard.
+  const [activeTab, setActiveTabState] = useState(() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get('tab');
+      return ADMIN_TABS.includes(t) ? t : 'overview';
+    } catch {
+      return 'overview';
+    }
+  });
+  // On phones every Admin table turns into a stack of cards. The cards label
+  // each value from the table's own header, so copy each <th> text onto the
+  // matching cell (data-label) -- covers every table, including ones added later.
+  useEffect(() => {
+    const root = document.querySelector('.admin-page');
+    if (!root) return undefined;
+    const labelTables = () => {
+      root.querySelectorAll('table.admin-table').forEach(table => {
+        const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim());
+        table.querySelectorAll('tbody tr').forEach(tr => {
+          let col = 0;
+          [...tr.children].forEach(td => {
+            if (td.tagName !== 'TD') return;
+            const label = td.colSpan === 1 ? heads[col] : '';
+            if (label) td.setAttribute('data-label', label);
+            else td.removeAttribute('data-label');
+            col += td.colSpan || 1;
+          });
+        });
+      });
+    };
+    let frame = 0;
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(labelTables);
+    };
+    labelTables();
+    const observer = new MutationObserver(schedule);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  }, []);
+
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabState(tab);
+    try {
+      const url = new URL(window.location.href);
+      if (tab === 'overview') url.searchParams.delete('tab');
+      else url.searchParams.set('tab', tab);
+      window.history.replaceState(window.history.state, '', url);
+    } catch { /* URL sync is a convenience only */ }
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'audit') fetchAuditLog();
@@ -3906,9 +3962,9 @@ export default function Admin() {
             <div className="admin-grid-4" style={{ alignItems: 'start' }}>
               
               <div className="admin-card col-span-2" style={{ padding: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div className="bsi-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h4 style={{ margin: 0, color: '#1a1a1a', fontSize: '1.125rem' }}>Best-Selling Items Intelligence</h4>
-                  <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '3px' }}>
+                  <div className="bsi-filters" style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '3px' }}>
                     {['all', 'web', 'loyverse', 'grabfood'].map(filter => (
                       <button
                         key={filter}
@@ -3928,21 +3984,21 @@ export default function Admin() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-secondary)', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem', textTransform: 'uppercase' }}>
+                  <div className="bsi-cols" style={{ display: 'flex', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-secondary)', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem', textTransform: 'uppercase' }}>
                     <div style={{ flex: 3 }}>Item Name</div>
                     <div style={{ flex: 1, textAlign: 'center' }}>Units Sold</div>
                     <div style={{ flex: 2, textAlign: 'right' }}>Gross Revenue</div>
                     <div style={{ flex: 1, textAlign: 'right', marginLeft: '10px' }}>Margin</div>
                   </div>
                   {topItemsData.map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #f8fafc', paddingBottom: '0.75rem', paddingTop: '0.25rem' }}>
-                       <div style={{ flex: 3, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div key={idx} className="bsi-row" style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #f8fafc', paddingBottom: '0.75rem', paddingTop: '0.25rem' }}>
+                       <div className="bsi-name" style={{ flex: 3, display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundImage: `url(${item.image})`, backgroundSize: 'cover' }}></div>
                           <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name}</div>
                        </div>
-                       <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#c73b0f' }}>{item.sales}</div>
-                       <div style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#1a1a1a', fontSize: '0.8rem' }}>RM {item.revenue.toFixed(2)}</div>
-                       <div style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem', marginLeft: '10px' }}>{item.margin.toFixed(1)}%</div>
+                       <div data-label="Sold" style={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#c73b0f' }}>{item.sales}</div>
+                       <div data-label="Revenue" style={{ flex: 2, textAlign: 'right', fontWeight: 600, color: '#1a1a1a', fontSize: '0.8rem' }}>RM {item.revenue.toFixed(2)}</div>
+                       <div data-label="Margin" style={{ flex: 1, textAlign: 'right', fontWeight: 700, color: '#10b981', fontSize: '0.65rem', marginLeft: '10px' }}>{item.margin.toFixed(1)}%</div>
                     </div>
                   ))}
                   {topItemsData.length === 0 && <div style={{textAlign: 'center', color: 'var(--text-muted)', padding: '1rem'}}>No sales data yet -- sales data will appear here once orders are placed.</div>}
@@ -4192,8 +4248,8 @@ export default function Admin() {
 
         {activeTab === 'inventory' && (
         <div className="admin-card">
-          <div style={{ display: 'flex', gap: '2rem' }}>
-            <div style={{ flex: 1 }}>
+          <div className="admin-split" style={{ display: 'flex', gap: '2rem' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <h3>Add New Menu Item</h3>
               <form onSubmit={handleAddMenuItem} className="new-item-form">
                 <div className="form-group">
@@ -4269,7 +4325,7 @@ export default function Admin() {
                 </div>
               </form>
             </div>
-            <div style={{ width: '250px', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem' }}>
+            <div className="admin-split-aside" style={{ width: '250px', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem' }}>
               <h3 style={{ color: '#ef4444' }}>Needs Restock</h3>
               {lowStockItems.length === 0 ? (
                 <p className="text-muted" style={{ fontSize: '0.9rem' }}>All items & add-ons stocked!</p>
@@ -4295,7 +4351,7 @@ export default function Admin() {
           </div>
 
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', marginTop: '2rem' }}>
+          <div className="admin-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', marginTop: '2rem' }}>
             <h3 style={{ margin: 0 }}>Menu Inventory</h3>
             <input 
               type="text" 
@@ -4307,7 +4363,7 @@ export default function Admin() {
             />
           </div>
           <div className="table-responsive">
-            <table className="admin-table sticky-actions">
+            <table className="admin-table sticky-actions has-reorder">
               <thead>
                 <tr>
                   <th>Order</th>
@@ -4599,14 +4655,14 @@ export default function Admin() {
           <div className="admin-card">
             {!selectedCustomerId ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div className="admin-page-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   <h3 style={{ margin: 0 }}>Customer Details</h3>
                   <button className="btn btn-sm btn-primary" onClick={() => setBlastComposer({ channel: 'WhatsApp', message: '' })}>
                     Message segment
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.25rem' }}>
+                <div className="admin-chipbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.25rem' }}>
                   {['All', ...CUSTOMER_SEGMENTS].map(seg => (
                     <button
                       key={seg}
@@ -5292,7 +5348,7 @@ export default function Admin() {
         {activeTab === 'history' && (
           <div className="admin-card">
             <h3 style={{ marginBottom: '1rem' }}>Completed & Cancelled Orders</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.5rem' }}>
+            <div className="admin-chipbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.5rem' }}>
               {['All', 'Web', 'Loyverse', 'Grab', 'Cancelled', 'Refunded'].map(f => (
                 <button
                   key={f}
