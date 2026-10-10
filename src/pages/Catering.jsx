@@ -1,8 +1,10 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle, Minus, Plus } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useStore } from '../contexts/StoreContext';
+import CateringPausedModal from '../components/CateringPausedModal';
 import { siteConfig } from '../config/siteConfig';
 import {
   SLIDERS_PER_TRAY, SLIDER_TRAYS, FRIES_TRAY, MIN_SLIDER_TRAYS,
@@ -78,6 +80,12 @@ function buildWhatsAppMessage(f, qty, pin) {
 
 export default function Catering() {
   const { user } = useAuth();
+  const { shopSettings } = useStore();
+  // Admin › Catering can switch catering off; the server refuses requests
+  // then too, this just tells the customer up front.
+  const cateringPaused = shopSettings?.catering_enabled === false;
+  const [pausedDismissed, setPausedDismissed] = useState(false);
+  const closePaused = useCallback(() => setPausedDismissed(true), []);
   const minDate = addMalaysiaDays(getMalaysiaNow().dateStr, LEAD_DAYS);
 
   const [form, setForm] = useState({
@@ -108,6 +116,10 @@ export default function Catering() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (cateringPaused) {
+      setPausedDismissed(false);
+      return;
+    }
     if (form.eventDate && form.eventDate < minDate) {
       setError(`Catering needs at least ${LEAD_DAYS} days notice. The earliest date is ${formatDateLabel(minDate)}.`);
       return;
@@ -171,6 +183,10 @@ export default function Catering() {
 
   return (
     <div className="catering-page">
+      {cateringPaused && !pausedDismissed && <CateringPausedModal loggedIn={Boolean(user)} onClose={closePaused} />}
+      {cateringPaused && (
+        <p className="cat-paused-bar" role="status">Catering orders are paused right now. You can still browse the packs.</p>
+      )}
       <header className="cat-hero">
         <p className="cat-eyebrow">SLIDER CATERING</p>
         <h1>ONE BITE IS <span>NEVER ENOUGH.</span></h1>
@@ -337,7 +353,7 @@ export default function Catering() {
         </fieldset>
 
         <button type="submit" className="cat-submit" disabled={submitting}>
-          {submitting ? 'SENDING...' : 'SEND ORDER REQUEST'}
+          {cateringPaused ? 'CATERING PAUSED' : submitting ? 'SENDING...' : 'SEND ORDER REQUEST'}
         </button>
         <p className="cat-foot">We confirm on WhatsApp. Your order is locked in once the {DEPOSIT_PERCENT}% deposit is paid.</p>
       </form>

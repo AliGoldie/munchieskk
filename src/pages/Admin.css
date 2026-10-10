@@ -1033,6 +1033,14 @@ label .cat-icon-tile { width: 24px; height: 24px; border-radius: 6px; }
   .admin-table td:not([data-label]) { grid-column: 1 / -1; }
   .admin-table td:first-child { font-size: 1rem; font-weight: 700; padding-bottom: 0.5rem; border-bottom: 1px solid var(--munchies-canvas) !important; }
   .admin-table td:first-child::before { display: none; }
+  /* empty-state / message rows ("No requests yet") */
+  .admin-table td[colspan] {
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    text-align: center;
+    border-bottom: 0 !important;
+    padding: 1rem 0 !important;
+  }
   .admin-table td:last-child:not(:first-child) {
     display: flex;
     flex-wrap: wrap;

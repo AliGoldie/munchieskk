@@ -585,3 +585,14 @@
     font-size: 1.45rem;
   }
 }
+
+.cat-paused-bar {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 199, 44, .14);
+  border: 1px solid rgba(255, 199, 44, .4);
+  color: var(--munchies-yellow, #FFC72C);
+  font-size: .86rem;
+  font-weight: 700;
+}
