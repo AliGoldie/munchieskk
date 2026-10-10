@@ -540,3 +540,33 @@
 .cat-quote-empty {
   margin: 0;
 }
+
+/* ---------- Delivery map ---------- */
+.cat-map-loading {
+  height: 260px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgba(26, 26, 26, .4);
+  border-radius: 4px;
+  font-size: .85rem;
+  color: #3d3a33;
+}
+
+.cat-suggest {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: .8rem;
+  font-weight: 800;
+  color: var(--munchies-dark, #1a1a1a);
+  background: rgba(26, 26, 26, .08);
+  border: 1.5px dashed rgba(26, 26, 26, .45);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cat-suggest span {
+  font-weight: 500;
+}

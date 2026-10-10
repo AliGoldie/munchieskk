@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle, Minus, Plus } from 'lucide-react';
 import { supabase } from '../config/supabase';
@@ -9,7 +9,12 @@ import {
   BULK_DISCOUNT, DELIVERY_FROM, DEPOSIT_PERCENT
 } from '../config/cateringConfig';
 import { getMalaysiaNow, addMalaysiaDays } from '../utils/timeUtils';
+import { pinLinks } from '../utils/mapLinks';
 import './Catering.css';
+
+// Leaflet (~150KB with its CSS) only downloads when a customer actually
+// picks Delivery, not for every visit to /catering.
+const DeliveryMap = lazy(() => import('../components/DeliveryMap'));
 
 const LEAD_DAYS = 5;
 const ALL_TRAYS = [...SLIDER_TRAYS, FRIES_TRAY];
@@ -41,16 +46,17 @@ function orderLines(qty) {
   return ALL_TRAYS.filter(t => qty[t.id] > 0).map(t => `${t.name}: ${countLabel(t, qty[t.id])} = ${rm(qty[t.id] * t.price)}`);
 }
 
-function buildDetails(qty, notes) {
+function buildDetails(qty, notes, pin) {
   const q = computeQuote(qty);
   const lines = [...orderLines(qty)];
   if (q.discount > 0) lines.push(`Bulk discount: -${rm(q.discount)}`);
   lines.push(`Estimate: ${rm(q.total)} + delivery if any`);
   if (notes.trim()) lines.push(`Notes: ${notes.trim()}`);
+  if (pin) lines.push(`Pin: ${pinLinks(pin).google}`);
   return lines.join('\n');
 }
 
-function buildWhatsAppMessage(f, qty) {
+function buildWhatsAppMessage(f, qty, pin) {
   const lines = [
     'Hi MunchiesKK! Slider catering pre-order:',
     '',
@@ -59,6 +65,9 @@ function buildWhatsAppMessage(f, qty) {
     `Date: ${formatDateLabel(f.eventDate)}${f.eventTime ? ` at ${f.eventTime}` : ''}`,
     `Guests: ${f.headcount}`,
     f.fulfilment === 'delivery' ? `Delivery to: ${f.address}` : 'Self pickup',
+    ...(f.fulfilment === 'delivery' && pin
+      ? [`Google Maps: ${pinLinks(pin).google}`, `Waze: ${pinLinks(pin).waze}`]
+      : []),
     '',
     buildDetails(qty, f.notes)
   ];
@@ -82,6 +91,8 @@ export default function Catering() {
     dietary: ''
   });
   const [qty, setQty] = useState(() => Object.fromEntries(ALL_TRAYS.map(t => [t.id, 0])));
+  const [pin, setPin] = useState(null);
+  const [addrSuggestion, setAddrSuggestion] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
@@ -106,7 +117,8 @@ export default function Catering() {
       return;
     }
     setSubmitting(true);
-    const waUrl = `https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(buildWhatsAppMessage(form, qty))}`;
+    const deliveryPin = form.fulfilment === 'delivery' ? pin : null;
+    const waUrl = `https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(buildWhatsAppMessage(form, qty, deliveryPin))}`;
     const { error: rpcError } = await supabase.rpc('submit_catering_request', {
       p_name: form.name,
       p_phone: form.phone,
@@ -115,7 +127,7 @@ export default function Catering() {
       p_headcount: parseInt(form.headcount, 10),
       p_fulfilment: form.fulfilment,
       p_address: form.fulfilment === 'delivery' ? form.address : null,
-      p_details: buildDetails(qty, form.notes),
+      p_details: buildDetails(qty, form.notes, deliveryPin),
       p_dietary: form.dietary || null
     });
     setSubmitting(false);
@@ -276,10 +288,30 @@ export default function Catering() {
             </div>
           </div>
           {form.fulfilment === 'delivery' && (
-            <div className="cat-field">
-              <label htmlFor="cat-address">Delivery address</label>
-              <textarea id="cat-address" rows={2} value={form.address} onChange={set('address')} required maxLength={300} />
-            </div>
+            <>
+              <div className="cat-field">
+                <span className="cat-label">Pin your delivery spot</span>
+                <Suspense fallback={<div className="cat-map-loading">Loading map...</div>}>
+                  <DeliveryMap value={pin} onChange={setPin} onAddressSuggestion={setAddrSuggestion} />
+                </Suspense>
+              </div>
+              <div className="cat-field">
+                <label htmlFor="cat-address">Delivery address</label>
+                <textarea
+                  id="cat-address" rows={2} value={form.address} onChange={set('address')} required maxLength={300}
+                  placeholder="Unit / floor, building, street"
+                />
+                {addrSuggestion && addrSuggestion !== form.address && (
+                  <button
+                    type="button"
+                    className="cat-suggest"
+                    onClick={() => setForm(prev => ({ ...prev, address: addrSuggestion.slice(0, 300) }))}
+                  >
+                    Use pinned address: <span>{addrSuggestion}</span>
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </fieldset>
 
