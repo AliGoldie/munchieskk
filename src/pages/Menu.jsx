@@ -5,6 +5,7 @@ import { useStore } from '../contexts/StoreContext';
 import ItemModal from '../components/ItemModal';
 import { getItemPoints } from '../utils/pointsCalculator';
 import './Menu.css';
+import { mediumSrc } from '../utils/imageVariants';
 
 // Category color config — same accent family as Home's typographic
 // menu (CATEGORY_TAG_COLOR in Home.jsx) for a consistent identity.
@@ -260,7 +261,7 @@ export default function Menu() {
         <div className={`card menu-hero-card ${!heroItem.inStock ? 'card-oos' : ''}`} onClick={() => { if (heroItem.inStock) setSelectedItem(heroItem); }}>
           <div className="hero-img-bg" style={{ position: 'relative' }}>
             <span className="badge-red hero-badge">MUST TRY!</span>
-            <div className="hero-img" style={{ backgroundImage: `url('${heroItem.image}')` }}></div>
+            <div className="hero-img" style={{ backgroundImage: `url('${mediumSrc(heroItem.image)}')` }}></div>
             {!heroItem.inStock && (
               <div className="oos-overlay">
                 <span className="oos-label">OUT OF STOCK</span>
@@ -321,7 +322,7 @@ export default function Menu() {
                 {categoryItems.map(item => (
                   <div key={item.id} className={`card hot-list-card ${!item.inStock ? 'card-oos' : ''}`} onClick={() => { if (item.inStock) setSelectedItem(item); }}>
                     <div className="hot-list-img-wrap">
-                      <div className="hot-list-img" style={{ backgroundImage: `url('${item.image}')` }}></div>
+                      <div className="hot-list-img" style={{ backgroundImage: `url('${mediumSrc(item.image)}')` }}></div>
                       {!item.inStock && (
                         <div className="oos-overlay">
                           <span className="oos-label">OUT OF STOCK</span>

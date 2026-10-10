@@ -45,7 +45,7 @@ export default function Arcade() {
       difficulty: 'HARD',
       rating: 4.9,
       time: '1m',
-      img: '/images/munchman_game.jpg',
+      img: '/images/munchman_game.webp',
       bgClass: 'game-bg-yellow',
       onClick: () => setIsMunchManOpen(true)
     },
@@ -56,7 +56,7 @@ export default function Arcade() {
       difficulty: 'EASY',
       rating: 4.7,
       time: 'Endless',
-      img: '/images/trex_runner_game.jpg',
+      img: '/images/trex_runner_game.webp',
       bgClass: 'game-bg-blue',
       onClick: () => setIsTrexRunnerOpen(true)
     },
@@ -67,7 +67,7 @@ export default function Arcade() {
       difficulty: 'MEDIUM',
       rating: 4.8,
       time: '30s',
-      img: '/images/fry_catch.png',
+      img: '/images/fry_catch.webp',
       bgClass: 'game-bg-pink',
       onClick: () => setIsSpeedGrabOpen(true)
     }

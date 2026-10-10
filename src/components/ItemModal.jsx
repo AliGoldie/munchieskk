@@ -4,6 +4,7 @@ import { getItemPoints } from '../utils/pointsCalculator';
 import { useStore } from '../contexts/StoreContext';
 import Modal from './Modal';
 import './ItemModal.css';
+import { mediumSrc } from '../utils/imageVariants';
 
 export default function ItemModal({ item, onClose, editMode = false, initialCartItem = null, onSave = null }) {
   const [selectedAddonIds, setSelectedAddonIds] = useState(initialCartItem ? (initialCartItem.selectedAddons || []).map(a => a.id) : []);
@@ -50,7 +51,7 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
 
   return (
     <Modal onClose={onClose} className="item-modal-content" ariaLabel={`Customize ${item.name}`}>
-      <div className="modal-image-container" style={{ backgroundImage: `url('${item.image}')` }}></div>
+      <div className="modal-image-container" style={{ backgroundImage: `url('${mediumSrc(item.image)}')` }}></div>
       <div className="modal-body">
         {/* Base Price Row */}
         <div className="modal-header-row">

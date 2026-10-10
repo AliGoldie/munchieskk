@@ -9,6 +9,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
 import { parseTimeToMinutes, getMalaysiaNow } from '../utils/timeUtils';
+import { compressImage } from '../utils/compressImage';
 
 const StoreContext = createContext();
 
@@ -978,20 +979,34 @@ const clearManualOverride = async (id) => {
     return true;
   };
 
-  const uploadImage = async (file) => {
-    if (!file) return null;
-    
+  const uploadImage = async (originalFile) => {
+    if (!originalFile) return null;
+    const file = await compressImage(originalFile);
+    // Small copy for thumbnails, saved as <name>-thumb.webp next to the
+    // photo (see utils/imageVariants.js). Only when the photo itself became
+    // WebP, so the two names always pair up.
+    const thumb = file.type === 'image/webp' ? await compressImage(originalFile, { maxSide: 192, quality: 0.8 }) : null;
+
     // Generate a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     
     const { data, error } = await supabase.storage
       .from('menu-images')
-      .upload(fileName, file);
+      .upload(fileName, file, { contentType: file.type || undefined, cacheControl: '31536000' });
       
     if (error) {
       console.error('Error uploading image:', error);
       throw error;
+    }
+
+    if (thumb && thumb.type === 'image/webp') {
+      const thumbName = fileName.replace(/\.webp$/i, '-thumb.webp');
+      const { error: thumbErr } = await supabase.storage
+        .from('menu-images')
+        .upload(thumbName, thumb, { contentType: 'image/webp', cacheControl: '31536000' });
+      // Pages fall back to the full photo when a thumb is missing.
+      if (thumbErr) console.warn('Thumbnail upload failed:', thumbErr.message);
     }
     
     // Get public URL
