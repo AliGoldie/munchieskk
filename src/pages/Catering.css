@@ -74,171 +74,98 @@
   border-radius: 999px;
 }
 
-/* ---------- Menu board ---------- */
-.cat-board {
-  background: var(--munchies-ink-2, #242320);
-  border: 2px solid rgba(255, 199, 44, .55);
-  border-radius: 6px;
-  padding: 18px 16px 14px;
-  margin-bottom: 28px;
-  box-shadow: 6px 6px 0 rgba(255, 199, 44, .22);
+/* ---------- Tray menu (mirrors the slider flyer) ---------- */
+.cat-section-title {
+  margin: 0 0 12px;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1rem;
+  letter-spacing: .12em;
+  color: var(--munchies-yellow, #FFC72C);
 }
 
-.cat-board-head {
+.cat-trays {
+  margin-bottom: 30px;
+}
+
+.cat-tray-card {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  border-bottom: 2px dashed rgba(255, 255, 255, .18);
-  padding-bottom: 10px;
-  margin-bottom: 12px;
-}
-
-.cat-board-head h2 {
-  margin: 0;
-  font-family: 'Archivo Black', sans-serif;
-  font-size: 1.05rem;
-  letter-spacing: .06em;
-  color: var(--munchies-yellow, #FFC72C);
-}
-
-.cat-board-head span {
-  font-size: .72rem;
-  color: var(--munchies-muted-dark, #a9a498);
-  text-transform: uppercase;
-  letter-spacing: .06em;
-}
-
-.cat-board-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  background: var(--munchies-yellow, #FFC72C);
+  color: var(--munchies-dark, #1a1a1a);
+  border-radius: 10px;
 }
 
-/* Two columns only once there's room for full item names -- on a phone
-   they were truncating to "BBQ Chi..." / "SUMAND...". */
-@media (min-width: 520px) {
-  .cat-board-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 24px;
-  }
+.cat-tray-info {
+  min-width: 0;
 }
 
-.cat-board-sliders {
-  background: rgba(255, 199, 44, .1);
-  border: 1.5px solid rgba(255, 199, 44, .5);
-  border-radius: 4px;
-  padding: 10px 12px;
-  margin-bottom: 14px;
-}
-
-.cat-board-sliders h3 {
-  margin: 0 0 6px;
+.cat-tray-info h3 {
+  margin: 0 0 4px;
   font-family: 'Archivo Black', sans-serif;
-  font-size: .9rem;
-  letter-spacing: .1em;
-  color: var(--munchies-yellow, #FFC72C);
-}
-
-.cat-board-sliders h3 span {
-  font-family: 'Inter', sans-serif;
-  font-size: .7rem;
-  font-weight: 600;
+  font-size: 1.2rem;
   letter-spacing: .02em;
-  color: var(--munchies-muted-dark, #a9a498);
-  text-transform: none;
-  margin-left: 6px;
+  text-transform: uppercase;
 }
 
-.cat-board-sliders ul {
-  list-style: none;
-  padding: 0;
+.cat-tray-info p {
   margin: 0;
+  font-size: .86rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
-.cat-board-sliders li {
+.cat-tray-price {
+  flex-shrink: 0;
+  text-align: right;
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: .92rem;
-  line-height: 1.6;
+  flex-direction: column;
 }
 
-.cat-board-name small,
-.cat-board-price small {
-  font-size: .72rem;
-  font-weight: 500;
-  color: var(--munchies-muted-dark, #a9a498);
-}
-
-.cat-board-name small {
-  margin-left: 6px;
-}
-
-.cat-board-col h3 {
-  margin: 0 0 6px;
+.cat-tray-price strong {
   font-family: 'Archivo Black', sans-serif;
-  font-size: .78rem;
-  letter-spacing: .1em;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--munchies-orange, #c73b0f);
+}
+
+.cat-tray-price span {
+  margin-top: 4px;
+  font-size: .72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cat-extras {
+  list-style: none;
+  padding: 4px 16px;
+  margin: 0;
+  background: var(--munchies-orange, #c73b0f);
+  border-radius: 10px;
   color: #fff;
 }
 
-.cat-board-col ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.cat-board-col li {
+.cat-extras li {
   display: flex;
+  justify-content: space-between;
   align-items: baseline;
-  gap: 6px;
-  font-size: .86rem;
-  line-height: 1.55;
-  color: #e8e4da;
+  gap: 12px;
+  padding: 9px 0;
+  font-size: .88rem;
+  font-weight: 600;
 }
 
-.cat-board-col li.is-out {
-  opacity: .4;
-  text-decoration: line-through;
+.cat-extras li + li {
+  border-top: 1px solid rgba(255, 255, 255, .35);
 }
 
-.cat-board-name {
+.cat-extras strong {
+  font-family: 'Archivo Black', sans-serif;
+  font-weight: 400;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  flex-shrink: 1;
-}
-
-.cat-board-dots {
-  flex: 1;
-  min-width: 10px;
-  border-bottom: 1.5px dotted rgba(255, 255, 255, .25);
-  transform: translateY(-4px);
-}
-
-.cat-board-price {
-  font-weight: 800;
-  color: var(--munchies-yellow, #FFC72C);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-
-.cat-board-set {
-  margin: 14px 0 0;
-  padding: 10px 12px;
-  background: var(--munchies-yellow, #FFC72C);
-  color: var(--munchies-dark, #1a1a1a);
-  border-radius: 4px;
-  font-size: .86rem;
-  line-height: 1.4;
-}
-
-.cat-board-note {
-  margin: 10px 0 0;
-  font-size: .78rem;
-  color: var(--munchies-muted-dark, #a9a498);
 }
 
 /* ---------- Order ticket (the form) ---------- */
@@ -505,14 +432,111 @@
   }
 }
 
-/* Slider rows carry a note (e.g. "Min. 20 pcs"), so let the name wrap
-   and put the note on its own line instead of truncating both. */
-.cat-board-sliders .cat-board-name {
-  white-space: normal;
-  overflow: visible;
+/* ---------- Tray picker + estimate ---------- */
+.cat-qty-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
 }
 
-.cat-board-sliders .cat-board-name small {
-  display: block;
-  margin-left: 0;
+.cat-qty-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.cat-qty-list li + li {
+  border-top: 1px solid rgba(26, 26, 26, .15);
+}
+
+.cat-qty-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cat-qty-label strong {
+  font-size: .98rem;
+}
+
+.cat-qty-label span {
+  font-size: .8rem;
+  color: #3d3a33;
+}
+
+.cat-stepper {
+  display: flex;
+  align-items: center;
+  border: 2px solid var(--munchies-dark, #1a1a1a);
+  border-radius: 4px;
+  background: #fffdf5;
+  box-shadow: 3px 3px 0 rgba(26, 26, 26, .85);
+  flex-shrink: 0;
+}
+
+.cat-stepper button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--munchies-dark, #1a1a1a);
+  cursor: pointer;
+}
+
+.cat-stepper button:disabled {
+  opacity: .3;
+  cursor: default;
+}
+
+.cat-stepper output {
+  min-width: 34px;
+  text-align: center;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cat-qty-list li.has-qty .cat-stepper {
+  background: var(--munchies-dark, #1a1a1a);
+}
+
+.cat-qty-list li.has-qty .cat-stepper button,
+.cat-qty-list li.has-qty .cat-stepper output {
+  color: var(--munchies-yellow, #FFC72C);
+}
+
+.cat-quote {
+  margin: 4px 0 12px;
+  padding: 12px 14px;
+  background: var(--munchies-dark, #1a1a1a);
+  color: #fff;
+  border-radius: 4px;
+}
+
+.cat-quote-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: .9rem;
+  padding: 2px 0;
+}
+
+.cat-quote-total {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.3rem;
+  color: var(--munchies-yellow, #FFC72C);
+}
+
+.cat-quote-note,
+.cat-quote-empty {
+  margin: 6px 0 0;
+  font-size: .8rem;
+  color: var(--munchies-muted-dark, #a9a498);
+}
+
+.cat-quote-empty {
+  margin: 0;
 }
