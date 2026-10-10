@@ -44,7 +44,7 @@ export default function AdminCatering() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showPast, setShowPast] = useState(false);
+  const [view, setView] = useState('upcoming');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,18 +72,38 @@ export default function AdminCatering() {
     }
   };
 
+  const deleteRequest = async (r) => {
+    if (!window.confirm(`Permanently delete the request from ${r.name}? This cannot be undone.`)) return;
+    const { data, error: deleteError } = await supabase.from('catering_requests').delete().eq('id', r.id).select('id');
+    if (deleteError) {
+      alert('Could not delete: ' + deleteError.message);
+    } else if (!data || data.length === 0) {
+      alert('Nothing was deleted. The delete permission may not be set up yet in Supabase.');
+    } else {
+      setRequests(prev => prev.filter(x => x.id !== r.id));
+    }
+  };
+
   const today = getMalaysiaNow().dateStr;
-  const visible = requests.filter(r => (showPast ? r.event_date < today : r.event_date >= today));
+  // Declined requests get their own list so they stop cluttering upcoming.
+  const visible = requests.filter(r => {
+    if (view === 'declined') return r.status === 'DECLINED';
+    if (r.status === 'DECLINED') return false;
+    return view === 'past' ? r.event_date < today : r.event_date >= today;
+  });
   const newCount = requests.filter(r => r.status === 'NEW' && r.event_date >= today).length;
+  const VIEWS = [['upcoming', 'Upcoming'], ['past', 'Past'], ['declined', 'Declined']];
 
   return (
     <div className="admin-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
         <h3 style={{ margin: 0 }}>Catering Requests {newCount > 0 && <span style={{ fontSize: '0.8rem', background: STATUS_COLORS.NEW, color: '#fff', padding: '2px 8px', borderRadius: 999, marginLeft: 6 }}>{newCount} new</span>}</h3>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="btn btn-sm btn-secondary" onClick={() => setShowPast(p => !p)}>
-            {showPast ? 'Show upcoming' : 'Show past'}
-          </button>
+          {VIEWS.map(([key, label]) => (
+            <button key={key} className={`btn btn-sm ${view === key ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setView(key)}>
+              {label}
+            </button>
+          ))}
           <button className="btn btn-sm btn-secondary" onClick={load} disabled={loading}>Refresh</button>
         </div>
       </div>
@@ -100,7 +120,7 @@ export default function AdminCatering() {
             <tr><td colSpan="7" className="text-center text-muted" style={{ padding: '2rem' }}>Loading...</td></tr>
           ) : visible.length === 0 ? (
             <tr><td colSpan="7" className="text-center text-muted" style={{ padding: '2rem' }}>
-              {showPast ? 'No past catering requests.' : 'No upcoming catering requests yet.'}
+              {view === 'past' ? 'No past catering requests.' : view === 'declined' ? 'No declined requests.' : 'No upcoming catering requests yet.'}
             </td></tr>
           ) : visible.map(r => {
             const { text: detailsText, pin } = splitPin(r.details);
@@ -140,7 +160,7 @@ export default function AdminCatering() {
                   {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </td>
-              <td>
+              <td style={{ display: 'flex', gap: 6 }}>
                 <a
                   className="btn btn-sm btn-primary"
                   href={`https://wa.me/${toWhatsAppNumber(r.phone)}?text=${encodeURIComponent(`Hi ${r.name}, this is MunchiesKK about your catering request for ${formatDate(r.event_date)} (${r.headcount} pax).`)}`}
@@ -148,6 +168,7 @@ export default function AdminCatering() {
                 >
                   WhatsApp
                 </a>
+                <button className="btn btn-sm btn-secondary" style={{ color: '#b91c1c' }} onClick={() => deleteRequest(r)} aria-label={`Delete request from ${r.name}`}>Delete</button>
               </td>
             </tr>
             );

@@ -3721,9 +3721,9 @@ export default function Admin() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.5rem' }}>Analytics & Intelligence</h3>
               
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div className="admin-filter-bar" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 {/* Custom Date Range Picker */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+                <div className="admin-filter-box" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
                   <Calendar size={16} className="text-muted" style={{ marginLeft: '4px' }} />
                   <input 
                     type="date" 
@@ -3752,7 +3752,7 @@ export default function Admin() {
                 {/* Date range presets -- editing a date field directly (below)
                     stops matching any preset's computed range, which is what
                     naturally flips this to "Custom" with no extra state. */}
-                <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '4px' }}>
+                <div className="admin-filter-box admin-presets" style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '4px' }}>
                   {(() => {
                     const activePreset = DATE_RANGE_PRESETS.find(p => {
                       const r = computePresetDateRange(p);
@@ -3791,7 +3791,7 @@ export default function Admin() {
             </div>
 
             {/* Row 1: KPI Top Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+            <div className="admin-kpi-grid">
               <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Total Orders</div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1a1a1a' }}>{kpi.orderCount}</div>
@@ -3806,7 +3806,7 @@ export default function Admin() {
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981' }}>RM {kpi.totalNetProfit.toFixed(2)}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Net Margin: <span style={{fontWeight: 700}}>{kpi.netMarginPercent.toFixed(1)}%</span></div>
               </div>
-              <div className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div className="admin-card admin-kpi-wide" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Inventory Alert</div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, color: lowStockCount > 0 ? '#ef4444' : '#1a1a1a' }}>{lowStockCount}</div>
                 
