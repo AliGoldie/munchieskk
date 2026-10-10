@@ -161,7 +161,7 @@ export default function Home() {
       {/* ================= HERO ================= */}
       <section
         className="c-hero"
-        style={{ backgroundImage: `url('${heroItem?.image || '/images/hero_burger.png'}')` }}
+        style={{ backgroundImage: `url('${heroItem?.image || '/images/hero_burger.webp'}')` }}
       >
         <div className="c-hero-scrim" />
         <img src="/images/Trex.png" alt="" className="c-hero-mascot" aria-hidden="true" width="180" height="121" />
@@ -211,7 +211,7 @@ export default function Home() {
           <div className="c-craving-rail">
             {cravingItems.map((item, i) => (
               <button key={item.id} className="c-craving-card" onClick={() => openItem(item)}>
-                <img src={item.image} alt="" className="c-craving-img" />
+                <img src={item.image} alt="" className="c-craving-img" loading="lazy" decoding="async" />
                 <div className="c-craving-scrim" />
                 {i === 0 && <span className="c-craving-badge"><Star size={12} fill="currentColor" /> BEST SELLER</span>}
                 {/^kawan monsta$/i.test(item.name) && <span className="c-craving-badge"><Users size={12} /> FEEDS 3–4</span>}
@@ -268,7 +268,7 @@ export default function Home() {
 
       {/* ================= PORTION EDITORIAL ================= */}
       <section className="c-section c-portion">
-        <div className="c-portion-img" style={{ backgroundImage: "url('/images/monsta_fries.jpg')" }}>
+        <div className="c-portion-img" style={{ backgroundImage: "url('/images/monsta_fries.webp')" }}>
           <span className="c-portion-badge">150g<small>OF FRIES PER PORTION · +RM 4.50 FOR BEEF STRIPS</small></span>
         </div>
         <div className="c-portion-copy">
@@ -310,15 +310,15 @@ export default function Home() {
           </p>
           <div className="c-arcade-games">
             <Link to="/arcade" className="c-game-thumb">
-              <img src="/images/munchman_game.jpg" alt="" width="1000" height="545" />
+              <img src="/images/munchman_game.webp" alt="" width="1000" height="545" loading="lazy" decoding="async" />
               <span><Gamepad2 size={12} /> MUNCH-MAN</span>
             </Link>
             <Link to="/arcade" className="c-game-thumb">
-              <img src="/images/trex_runner_game.jpg" alt="" width="1000" height="558" />
+              <img src="/images/trex_runner_game.webp" alt="" width="1000" height="558" loading="lazy" decoding="async" />
               <span><Gamepad2 size={12} /> T-REX RUNNER</span>
             </Link>
             <Link to="/arcade" className="c-game-thumb">
-              <img src="/images/fry_catch.png" alt="" width="1000" height="1000" />
+              <img src="/images/fry_catch.webp" alt="" width="1000" height="1000" loading="lazy" decoding="async" />
               <span><Gamepad2 size={12} /> SPEED GRAB</span>
             </Link>
           </div>
@@ -350,7 +350,7 @@ export default function Home() {
           <div key={cat} className="c-type-group">
             {menuByCategory[cat].map(item => (
               <button key={item.id} className="c-type-row" onClick={() => openItem(item)} disabled={!item.inStock}>
-                <img src={item.image} alt="" className="c-type-thumb" width="56" height="56" />
+                <img src={item.image} alt="" className="c-type-thumb" width="56" height="56" loading="lazy" decoding="async" />
                 <span className="c-type-name">{item.name.toUpperCase()}</span>
                 <span className="c-type-tag" style={{ color: CATEGORY_TAG_COLOR[cat] || 'var(--munchies-muted-dark)' }}>{cat}</span>
                 <span className="c-type-pts">+{getItemPoints(item)} pts</span>
@@ -366,7 +366,7 @@ export default function Home() {
       {/* ================= FOOTER ================= */}
       <footer className="c-footer">
         <div className="c-footer-brand">
-          <img src="/images/logo.png" alt="MunchiesKK" width="240" height="240" />
+          <img src="/images/logo.png" alt="MunchiesKK" width="240" height="240" loading="lazy" decoding="async" />
           <div>
             <strong>MUNCHIESKK</strong>
             <p>Kota Kinabalu · {formatTime12Hour(shopSettings?.openingTime)}–{formatTime12Hour(shopSettings?.closingTime)} · WhatsApp {siteConfig.whatsappNumber}</p>

@@ -9,6 +9,7 @@ import {
 } from '../utils/timeUtils';
 import { supabase } from '../config/supabase';
 import CategoryIcon, { CATEGORY_ICONS } from '../components/CategoryIcon';
+import PhotoOptimizer from '../components/PhotoOptimizer';
 import AdminCatering from '../components/AdminCatering';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -4369,6 +4370,7 @@ export default function Admin() {
               style={{ width: '250px' }}
             />
           </div>
+          <PhotoOptimizer menu={menu} addons={addons} uploadImage={uploadImage} updateMenuItem={updateMenuItem} updateAddon={updateAddon} />
           <div className="table-responsive">
             <table className="admin-table sticky-actions has-reorder">
               <thead>
