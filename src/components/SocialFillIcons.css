@@ -1,0 +1,107 @@
+/* Adapted from Uiverse.io (escannord). Changes from the original: real
+   links, TikTok added, labels under each icon for phones (no hover there),
+   tooltip only on mouse devices, tap/focus also triggers the fill, and the
+   un-animatable "overflow" keyframe trick replaced by a plain transition. */
+.sfi-list {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sfi-list li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sfi {
+  --brand: #1a1a1a;
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.12);
+  text-decoration: none;
+  transition: color 0.35s ease, transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Brand colour that rises from the bottom; clipped to the circle */
+.sfi::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--brand);
+  clip-path: inset(100% 0 0 0 round 50%);
+  transition: clip-path 0.3s ease-in-out;
+}
+
+.sfi--instagram { --brand: linear-gradient(45deg, #f09433, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888); }
+.sfi--facebook  { --brand: #1877f2; }
+.sfi--tiktok    { --brand: #111; }
+.sfi--threads   { --brand: #000; }
+.sfi--tiktok:hover svg,
+.sfi--tiktok:focus-visible svg { filter: drop-shadow(-1.5px -1px 0 #25f4ee) drop-shadow(1.5px 1px 0 #fe2c55); }
+
+.sfi:hover,
+.sfi:focus-visible,
+.sfi:active {
+  color: #fff;
+  transform: translateY(-3px);
+}
+.sfi:hover::after,
+.sfi:focus-visible::after,
+.sfi:active::after {
+  clip-path: inset(0 0 0 0 round 50%);
+}
+.sfi:focus-visible { outline: 2px solid var(--munchies-orange, #c73b0f); outline-offset: 3px; }
+
+/* Floating tooltip: mouse devices only */
+.sfi-tip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.15);
+  transition: top 0.3s 0.1s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.2s 0.1s;
+}
+
+@media (hover: hover) {
+  .sfi:hover .sfi-tip { top: -36px; opacity: 1; }
+}
+
+.sfi-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b564b;
+}
+@media (hover: hover) {
+  .sfi-name { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sfi,
+  .sfi::after,
+  .sfi-tip { transition: none; }
+}

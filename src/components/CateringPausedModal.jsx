@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle, Gamepad2, X } from 'lucide-react';
 import { siteConfig } from '../config/siteConfig';
+import SocialFillIcons from './SocialFillIcons';
 import './CateringPausedModal.css';
 
 // Shown on /catering while Admin has catering switched off. The customer can
@@ -50,11 +51,7 @@ export default function CateringPausedModal({ loggedIn, onClose }) {
         <div className="cpm-block">
           <p className="cpm-block-title">Follow us. Win stuff.</p>
           <p className="cpm-block-text">Like our page for giveaways and the first heads-up when catering opens again.</p>
-          <div className="cpm-socials">
-            <a href={siteConfig.social.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
-            <a href={siteConfig.social.facebook} target="_blank" rel="noopener noreferrer">Facebook</a>
-            <a href={siteConfig.social.tiktok} target="_blank" rel="noopener noreferrer">TikTok</a>
-          </div>
+          <SocialFillIcons />
         </div>
 
         <div className="cpm-block cpm-block--arcade">
