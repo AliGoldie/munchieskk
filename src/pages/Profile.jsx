@@ -1,6 +1,6 @@
 import { formatOrderId } from '../contexts/StoreContext';
 import { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, LogOut } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
@@ -160,7 +160,12 @@ export default function Profile() {
 
   return (
     <div className="container profile-page">
-      <h1>My Profile</h1>
+      <div className="profile-header">
+        <h1>My Profile</h1>
+        <button type="button" className="profile-logout" onClick={logout}>
+          <LogOut size={18} /> Log out
+        </button>
+      </div>
 
       <div className="profile-grid">
         <div className="profile-card">
@@ -304,14 +309,6 @@ export default function Profile() {
             </div>
           </div>
           
-          <button
-            className="btn btn-outline w-full logout-btn"
-            style={{ marginTop: '2rem' }}
-            onClick={logout}
-          >
-            LOGOUT
-          </button>
-
           <a
             href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappGreeting)}`}
             target="_blank" rel="noopener noreferrer"

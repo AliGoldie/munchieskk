@@ -219,14 +219,45 @@
   font-family: 'Archivo', sans-serif;
 }
 
-.logout-btn {
-  border-color: var(--ember) !important;
-  color: var(--ember) !important;
-  background: transparent !important;
+/* Logout used to be a dark outlined button at the bottom of the details
+   card -- low contrast on a dark card and below the fold, so people
+   couldn't find it. It now sits top-right of the page, bright yellow. */
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
 }
 
-.logout-btn:hover {
-  background: rgba(240, 78, 35, .1) !important;
+.profile-header h1 {
+  margin: 0;
+}
+
+.profile-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 2px solid var(--munchies-yellow, #FFC72C);
+  border-radius: 999px;
+  background: var(--munchies-yellow, #FFC72C);
+  color: var(--munchies-dark, #1a1a1a);
+  font-weight: 800;
+  font-size: .9rem;
+  letter-spacing: .03em;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 199, 44, .3);
+}
+
+.profile-logout:hover {
+  filter: brightness(1.05);
+}
+
+.profile-logout:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
 }
 
 .order-list {
