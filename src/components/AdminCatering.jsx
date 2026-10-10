@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../config/supabase';
 import { getMalaysiaNow } from '../utils/timeUtils';
+import { pinLinks } from '../utils/mapLinks';
 
 const STATUS_COLORS = {
   NEW: '#b45309',
@@ -16,6 +17,21 @@ function toWhatsAppNumber(phone) {
   if (digits.startsWith('60')) return digits;
   if (digits.startsWith('0')) return `6${digits}`;
   return digits;
+}
+
+// Delivery pins are saved as a "Pin: <google maps link>" line in details.
+// Only plain numeric coordinates are accepted, and the links shown are
+// rebuilt from those numbers -- details text comes from the customer's
+// browser, so a crafted value can never turn into a link elsewhere.
+const PIN_RE = /^Pin: https:\/\/www\.google\.com\/maps\?q=(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)\s*$/m;
+
+function splitPin(details) {
+  const m = (details || '').match(PIN_RE);
+  if (!m) return { text: details, pin: null };
+  const lat = Number(m[1]);
+  const lng = Number(m[2]);
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return { text: details, pin: null };
+  return { text: details.replace(PIN_RE, '').trimEnd(), pin: { lat, lng } };
 }
 
 function formatDate(dateStr) {
@@ -86,16 +102,34 @@ export default function AdminCatering() {
             <tr><td colSpan="7" className="text-center text-muted" style={{ padding: '2rem' }}>
               {showPast ? 'No past catering requests.' : 'No upcoming catering requests yet.'}
             </td></tr>
-          ) : visible.map(r => (
+          ) : visible.map(r => {
+            const { text: detailsText, pin } = splitPin(r.details);
+            const links = pin ? pinLinks(pin) : null;
+            return (
             <tr key={r.id} style={{ opacity: r.status === 'DECLINED' ? 0.55 : 1 }}>
               <td style={{ whiteSpace: 'nowrap' }}><strong>{formatDate(r.event_date)}</strong>{r.event_time && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.event_time}</div>}</td>
               <td><strong>{r.name}</strong><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.phone}</div></td>
               <td><strong>{r.headcount}</strong></td>
               <td style={{ maxWidth: 320, whiteSpace: 'pre-wrap', fontSize: '0.85rem' }}>
-                {r.details}
+                {detailsText}
                 {r.dietary && <div style={{ marginTop: 4, color: '#b45309', fontSize: '0.8rem' }}>Dietary: {r.dietary}</div>}
               </td>
-              <td style={{ fontSize: '0.85rem' }}>{r.fulfilment === 'delivery' ? <>Delivery<div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.address}</div></> : 'Pickup'}</td>
+              <td style={{ fontSize: '0.85rem' }}>
+                {r.fulfilment === 'delivery' ? (
+                  <>
+                    Delivery
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.address}</div>
+                    {links ? (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                        <a className="btn btn-sm btn-secondary" href={links.google} target="_blank" rel="noopener noreferrer">Map</a>
+                        <a className="btn btn-sm btn-secondary" href={links.waze} target="_blank" rel="noopener noreferrer">Waze</a>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: 4 }}>No map pin</div>
+                    )}
+                  </>
+                ) : 'Pickup'}
+              </td>
               <td>
                 <select
                   value={r.status}
@@ -116,7 +150,8 @@ export default function AdminCatering() {
                 </a>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table></div>
     </div>

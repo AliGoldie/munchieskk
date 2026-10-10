@@ -1,0 +1,100 @@
+.dmap {
+  margin-bottom: 12px;
+}
+
+.dmap-frame {
+  position: relative;
+  border: 2px solid var(--munchies-dark, #1a1a1a);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 3px 3px 0 rgba(26, 26, 26, .85);
+  /* Leaflet's panes use z-indexes up to 1000; isolate them so the map
+     can't paint over the sticky site header or bottom nav. */
+  isolation: isolate;
+}
+
+.dmap-map {
+  height: 260px;
+  width: 100%;
+  background: #e8e4da;
+}
+
+.dmap-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* Tip of the pin sits exactly on the map centre. */
+  transform: translate(-50%, -100%);
+  z-index: 1000;
+  pointer-events: none;
+  line-height: 0;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .35));
+}
+
+.dmap-pin-shadow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 6px;
+  margin: -3px 0 0 -7px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .35);
+  z-index: 999;
+  pointer-events: none;
+}
+
+.dmap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+}
+
+.dmap-locate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2px solid var(--munchies-dark, #1a1a1a);
+  border-radius: 4px;
+  background: var(--munchies-dark, #1a1a1a);
+  color: var(--munchies-yellow, #FFC72C);
+  font-weight: 800;
+  font-size: .88rem;
+  cursor: pointer;
+}
+
+.dmap-locate:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.dmap-status {
+  margin: 0;
+  flex: 1 1 180px;
+  font-size: .82rem;
+  color: #3d3a33;
+}
+
+.dmap-status.is-set {
+  font-weight: 700;
+  color: var(--munchies-green, #0f7a32);
+}
+
+.dmap-status a {
+  color: inherit;
+}
+
+.dmap-error {
+  margin: 8px 0 0;
+  font-size: .82rem;
+  color: var(--munchies-orange, #c73b0f);
+  font-weight: 700;
+}
+
+.dmap-map .leaflet-control-attribution {
+  font-size: 10px;
+}
