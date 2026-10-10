@@ -4669,7 +4669,7 @@ export default function Admin() {
                       className="btn btn-sm"
                       onClick={() => setCustomerSegmentFilter(seg)}
                       style={{
-                        borderRadius: '999px',
+                        borderRadius: '10px',
                         border: customerSegmentFilter === seg ? '1.5px solid #FFC72C' : '1px solid var(--text-secondary)',
                         background: customerSegmentFilter === seg ? '#FFC72C' : 'transparent',
                         color: customerSegmentFilter === seg ? '#17150F' : 'inherit',
@@ -5002,22 +5002,20 @@ export default function Admin() {
                               type="button"
                               className="btn btn-sm btn-secondary"
                               onClick={() => setEditingCat({ ...cat })}
-                              style={{ background: '#c73b0f', color: '#fff', border: 'none', fontWeight: 'bold' }}
                             >
-                              ✏️ Edit
+                              <Pencil size={14} /> Edit
                             </button>
                             <button
                               type="button"
-                              className="btn btn-sm btn-danger"
+                              className="btn btn-sm btn-danger-ghost"
                               onClick={() => {
                                 if (assignedItemsCount > 0) {
                                   if (!window.confirm(`Warning: ${assignedItemsCount} menu items are currently in category "${cat.label}". Are you sure you want to delete this category?`)) return;
                                 }
                                 deleteCategory(cat.id);
                               }}
-                              style={{ background: '#ef4444', color: '#fff', border: 'none', fontWeight: 'bold' }}
                             >
-                              🗑️ Delete
+                              <Trash2 size={14} /> Delete
                             </button>
                           </div>
                         </td>
@@ -5355,7 +5353,7 @@ export default function Admin() {
                   className="btn btn-sm"
                   onClick={() => { setHistoryChannelFilter(f); setVisibleHistoryCount(6); }}
                   style={{
-                    borderRadius: '999px',
+                    borderRadius: '10px',
                     border: historyChannelFilter === f ? '1.5px solid #FFC72C' : '1px solid var(--text-secondary)',
                     background: historyChannelFilter === f ? '#FFC72C' : 'transparent',
                     color: historyChannelFilter === f ? '#17150F' : 'inherit',
@@ -7045,7 +7043,7 @@ export default function Admin() {
                     onClick={() => setCancellingOrder({ ...cancellingOrder, reason: r })}
                     style={{
                       padding: '6px 12px',
-                      borderRadius: '999px',
+                      borderRadius: '10px',
                       border: `1px solid ${cancellingOrder.reason === r ? '#FFC72C' : 'var(--text-secondary)'}`,
                       background: cancellingOrder.reason === r ? '#FFC72C' : '#1a1a1a',
                       color: cancellingOrder.reason === r ? '#17150F' : '#fff',
@@ -7139,7 +7137,7 @@ export default function Admin() {
                         type="button"
                         onClick={() => setRefundingOrder({ ...refundingOrder, reason: r })}
                         style={{
-                          padding: '6px 12px', borderRadius: '999px',
+                          padding: '6px 12px', borderRadius: '10px',
                           border: `1px solid ${refundingOrder.reason === r ? '#FFC72C' : '#3a3733'}`,
                           background: refundingOrder.reason === r ? '#FFC72C' : '#1a1a1a',
                           color: refundingOrder.reason === r ? '#17150F' : '#fff',

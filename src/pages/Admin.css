@@ -275,37 +275,64 @@
   color: var(--munchies-orange);
 }
 
-/* Button overrides for Sedap */
-.admin-page .btn {
-  border: none;
-  box-shadow: none;
-  border-radius: 999px;
-  font-weight: 700;
-  padding: 0.6rem 1.2rem;
+/* Admin buttons -- modern, compact. Scoped to .admin-layout so the
+   customer site keeps its own (brutalist) buttons. Squared-soft corners,
+   no chunky outline, a soft shadow and a small lift on hover. Sizes are
+   tighter than the customer site so more fits on a phone screen. */
+.admin-layout {
+  --abtn-radius: 8px;
+  --abtn-radius-sm: 7px;
+  --abtn-shadow: 0 1px 2px rgba(23, 21, 15, 0.10), 0 2px 6px rgba(23, 21, 15, 0.06);
+  --abtn-shadow-hover: 0 2px 4px rgba(23, 21, 15, 0.12), 0 6px 14px rgba(23, 21, 15, 0.10);
 }
+
+.admin-layout .btn {
+  min-height: 36px;
+  min-width: 0;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: var(--abtn-radius);
+  box-shadow: var(--abtn-shadow);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  gap: 6px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+.admin-layout .btn:hover { transform: translateY(-1px); box-shadow: var(--abtn-shadow-hover); }
+.admin-layout .btn:active { transform: translateY(0); box-shadow: none; }
+.admin-layout .btn:focus-visible { outline: 2px solid var(--munchies-orange); outline-offset: 2px; }
+.admin-layout .btn:disabled { opacity: 0.55; transform: none; box-shadow: none; cursor: not-allowed; }
 
 /* .btn-sm's own padding/font-size (global.css) loses to the rule above on
-   specificity, so every "small" button in Admin was silently rendering at
-   full size -- this is what actually made table-row buttons (Edit, Mark
-   Sold Out, Edit Details, Delete...) look oversized. */
-.admin-page .btn-sm {
+   specificity, so it is restated here. */
+.admin-layout .btn-sm {
+  min-height: 30px;
   padding: 0.3rem 0.65rem;
-  font-size: 0.72rem;
-  border-radius: 999px;
+  font-size: 0.74rem;
+  border-radius: var(--abtn-radius-sm);
 }
 
-.admin-page .btn-primary {
-  background-color: var(--munchies-orange);
-  color: white;
-}
-.admin-page .btn-primary:hover {
-  background-color: #a8330d;
-}
+.admin-layout .btn-primary { background-color: var(--munchies-orange); color: #fff; }
+.admin-layout .btn-primary:hover { background-color: #a8330d; }
 
-.admin-page .btn-secondary {
-  background-color: var(--munchies-canvas);
+.admin-layout .btn-secondary,
+.admin-layout .btn-outline {
+  background-color: #fff;
   color: var(--munchies-dark);
+  border-color: rgba(23, 21, 15, 0.16);
 }
+.admin-layout .btn-secondary:hover,
+.admin-layout .btn-outline:hover { border-color: rgba(23, 21, 15, 0.32); }
+
+.admin-layout .btn-dark { background-color: var(--munchies-dark); color: #fff; }
+.admin-layout .btn-yellow { background-color: var(--munchies-yellow); color: var(--munchies-dark); }
+.admin-layout .btn-danger { background-color: var(--danger-color); color: #fff; }
+.admin-layout .btn-success { background-color: var(--success-color); color: #fff; }
+.admin-layout .btn-danger-ghost { background-color: #fff; color: #b91c1c; border-color: rgba(185, 28, 28, 0.3); }
+.admin-layout .btn-danger-ghost:hover { background-color: #fef2f2; border-color: rgba(185, 28, 28, 0.5); }
 
 .new-item-form {
   display: grid;
@@ -620,8 +647,8 @@
   background: var(--munchies-green);
   color: white;
   border: none;
-  padding: 1rem 2rem;
-  border-radius: 999px;
+  padding: 0.8rem 1.6rem;
+  border-radius: 10px;
   font-weight: 800;
   font-size: 1.1rem;
   cursor: pointer;
@@ -1001,8 +1028,7 @@
   }
   .admin-table td:last-child:not(:first-child)::before { display: none; }
   .admin-table td:last-child .btn,
-  .admin-table td:last-child button,
-  .admin-table td:last-child a.btn { min-height: 40px; }
+  .admin-table td:last-child a.btn { min-height: 34px; }
   .admin-table td input,
   .admin-table td select,
   .admin-table td textarea { max-width: 100%; box-sizing: border-box; min-height: 40px; }
@@ -1037,7 +1063,7 @@
      each item is a card with three labelled figures. */
   .bsi-head { flex-direction: column; align-items: stretch !important; gap: 0.75rem; margin-bottom: 1rem !important; }
   .bsi-filters { width: 100%; box-sizing: border-box; display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; }
-  .bsi-filters button { padding: 10px 4px !important; min-height: 44px; font-size: 0.8rem !important; }
+  .bsi-filters button { padding: 8px 4px !important; min-height: 36px; font-size: 0.8rem !important; }
   .bsi-cols { display: none !important; }
   .bsi-row {
     display: grid !important;
@@ -1067,7 +1093,7 @@
   .new-item-form input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
   .new-item-form select,
   .new-item-form textarea { width: 100%; box-sizing: border-box; min-height: 44px; }
-  .new-item-form .btn[type="submit"] { width: 100%; height: 46px !important; }
+  .new-item-form .btn[type="submit"] { width: 100%; height: 42px !important; }
 
   /* Side-by-side panels stack; title + search toolbars stack with a full-width search */
   .admin-split { flex-direction: column; gap: 1.25rem !important; }
@@ -1085,7 +1111,7 @@
   .new-item-form .form-group > button.btn { width: 100% !important; }
 
   /* Page headers with action buttons: button goes full width */
-  .admin-page-head > .btn { width: 100%; min-height: 44px; }
+  .admin-page-head > .btn { width: 100%; min-height: 40px; }
 
   /* Segment chips: one swipeable row instead of wrapping onto 3 lines */
   .admin-chipbar {
@@ -1096,7 +1122,7 @@
     scrollbar-width: none;
   }
   .admin-chipbar::-webkit-scrollbar { display: none; }
-  .admin-chipbar .btn { flex: 0 0 auto; min-height: 40px; white-space: nowrap; }
+  .admin-chipbar .btn { flex: 0 0 auto; min-height: 32px; white-space: nowrap; }
 
   .metric-card {
     padding: 1rem;

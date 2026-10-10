@@ -168,7 +168,7 @@ export default function AdminCatering() {
                 >
                   WhatsApp
                 </a>
-                <button className="btn btn-sm btn-secondary" style={{ color: '#b91c1c' }} onClick={() => deleteRequest(r)} aria-label={`Delete request from ${r.name}`}>Delete</button>
+                <button className="btn btn-sm btn-danger-ghost" onClick={() => deleteRequest(r)} aria-label={`Delete request from ${r.name}`}>Delete</button>
               </td>
             </tr>
             );
