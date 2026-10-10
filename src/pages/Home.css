@@ -836,3 +836,23 @@
 .c-buybar--skeleton .c-buybar-thumb { display: block; }
 @keyframes c-skel-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .c-skel { animation: none; } }
+
+/* About: readable body text on the cream background */
+.c-about {
+  background: var(--munchies-canvas, #f4f1ea);
+  color: var(--munchies-dark);
+}
+.c-about h2 {
+  margin: 0 0 14px;
+  font-size: clamp(1.5rem, 3.2vw, 2.2rem);
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+.c-about p {
+  max-width: 62ch;
+  margin: 0 0 14px;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+.c-about a { color: var(--munchies-orange); font-weight: 700; }
+.c-about-link { display: inline-flex; align-items: center; gap: 4px; }

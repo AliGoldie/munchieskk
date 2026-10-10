@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { User, Menu as MenuIcon, Home, Gift, Gamepad2, LogOut, Star } from 'lucide-react';
 import { BiteBagIcon } from './icons';
+import RouteSeo from './RouteSeo';
 import './Layout.css';
 
 import { useStore } from '../contexts/StoreContext';
@@ -54,6 +55,7 @@ export default function Layout() {
           </div>
         </header>
         <main className="admin-main">
+          <RouteSeo />
           <Outlet />
         </main>
       </div>
@@ -104,6 +106,7 @@ export default function Layout() {
       {/* Main Content Area */}
       <main className="main-content">
         <div className="container page-transition" key={location.pathname}>
+          <RouteSeo />
           <Outlet />
         </div>
       </main>

@@ -369,7 +369,7 @@ export default function Home() {
       <section className="c-section c-typemenu">
         <div className="c-section-head">
           <h2>THE WHOLE MENU</h2>
-          <span className="c-menu-count">{menu.length} items · prices live from your CRM</span>
+          <span className="c-menu-count">{menu.length} items · prices updated live</span>
         </div>
         {orderedCategories.map(cat => (
           <div key={cat} className="c-type-group">
@@ -386,6 +386,23 @@ export default function Home() {
             ))}
           </div>
         ))}
+      </section>
+
+      {/* ================= ABOUT (plain-language text for visitors and search engines) ================= */}
+      <section className="c-section c-about">
+        <h2>BURGERS MADE IN KOTA KINABALU</h2>
+        <p>
+          MunchiesKK is a Kota Kinabalu burger kitchen in Sabah. We hand-press our patties, load our
+          fries and build sharing platters for the whole kawan. Try the Sumandak burger with sambal
+          tuhau, a Sabahan favourite, or Monsta Fries piled with smoky beefacon, melted cheddar and
+          our CZ sauce.
+        </p>
+        <p>
+          Order online for pickup, find us on GrabFood, or book <Link to="/catering">slider catering</Link> for
+          your office, birthday or kenduri. Join free to earn points on every order and unlock free
+          food in the <Link to="/loyalty">Prize Vault</Link>.
+        </p>
+        <p><Link to="/menu" className="c-about-link">See the full menu <ChevronRight size={16} /></Link></p>
       </section>
 
       {/* ================= FOOTER ================= */}

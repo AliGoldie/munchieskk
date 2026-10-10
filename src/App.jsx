@@ -13,6 +13,7 @@ import Loyalty from './pages/Loyalty';
 import Arcade from './pages/Arcade';
 import OrderStatus from './pages/OrderStatus';
 import Catering from './pages/Catering';
+import NotFound from './pages/NotFound';
 import AdminRoute from './components/AdminRoute';
 import ArcadeRoute from './components/ArcadeRoute';
 
@@ -53,6 +54,7 @@ function App() {
             </Suspense>
           } />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );
