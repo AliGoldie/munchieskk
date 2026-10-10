@@ -111,7 +111,7 @@
   overflow-y: auto;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .munchman-rules-overlay {
     padding: 8px;
   }

@@ -272,7 +272,7 @@ export default function Profile() {
                 readOnly
                 aria-label="Your referral link"
                 className="price-input"
-                style={{flex: 1, padding: '0.5rem', backgroundColor: 'var(--surface)', color: 'var(--text-dim)'}}
+                style={{flex: 1, minWidth: 0, padding: '0.5rem', backgroundColor: 'var(--surface)', color: 'var(--text-dim)'}}
                 value={`${window.location.origin}/signup?ref=${user?.short_code || ''}`}
               />
               <button 

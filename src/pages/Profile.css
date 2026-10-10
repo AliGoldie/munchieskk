@@ -8,14 +8,18 @@
 
 .profile-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr), not 1fr: a plain 1fr track grows to fit its widest
+     child's minimum width (the referral link box), which made the page
+     418px wide on a 360px phone -- and a mobile browser then zooms the
+     whole page out to fit, so everything looked smaller after login. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   margin-top: var(--space-6);
 }
 
 @media (min-width: 768px) {
   .profile-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

@@ -258,7 +258,7 @@
    so handing them the whole screen is what actually makes them bigger
    -- the old 500px max-width was never the real bottleneck, every
    phone is already narrower than that. */
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .munchman-modal-overlay {
     padding: 0;
     align-items: stretch;
