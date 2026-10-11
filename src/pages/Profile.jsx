@@ -162,8 +162,9 @@ export default function Profile() {
     <div className="container profile-page">
       <div className="profile-header">
         <h1>My Profile</h1>
-        <button type="button" className="profile-logout" onClick={logout}>
-          <LogOut size={18} /> Log out
+        <button type="button" onClick={logout} className="admin-logout" aria-label="Log out">
+          <span className="admin-logout-sign"><LogOut size={17} strokeWidth={2.4} aria-hidden="true" /></span>
+          <span className="admin-logout-text">Logout</span>
         </button>
       </div>
 
