@@ -5,6 +5,12 @@
       "has": [{ "type": "host", "value": "munchieskk.vercel.app" }],
       "destination": "https://www.munchieskk.my/:path*",
       "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "munchieskk.my" }],
+      "destination": "https://www.munchieskk.my/:path*",
+      "permanent": true
     }
   ],
   "rewrites": [
