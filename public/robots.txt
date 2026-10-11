@@ -5,5 +5,9 @@ Disallow: /payment
 Disallow: /profile
 Disallow: /order/
 Disallow: /login
+Disallow: /reset-password
+Disallow: /arcade
 Disallow: /signup
 Allow: /
+
+Sitemap: https://www.munchieskk.my/sitemap.xml

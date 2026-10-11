@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { User, Menu as MenuIcon, Home, Gift, Gamepad2, LogOut, Star } from 'lucide-react';
 import { BiteBagIcon } from './icons';
+import RouteSeo from './RouteSeo';
 import './Layout.css';
 
 import { useStore } from '../contexts/StoreContext';
@@ -42,7 +43,7 @@ export default function Layout() {
       <div className="admin-layout">
         <header className="admin-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <img src="/images/logo.png" alt="MUNCHIESKK" width="240" height="240" style={{ height: '32px', width: 'auto' }} />
+            <img src="/images/logo-144.webp" alt="MUNCHIESKK" width="144" height="144" style={{ height: '32px', width: 'auto' }} />
             <span style={{ fontWeight: 800, color: '#2b3674', fontSize: '1.2rem' }}>ADMIN</span>
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -54,7 +55,8 @@ export default function Layout() {
           </div>
         </header>
         <main className="admin-main">
-          <Outlet />
+          <RouteSeo />
+          <Suspense fallback={<div className="route-loading" aria-hidden="true" />}><Outlet /></Suspense>
         </main>
       </div>
     );
@@ -66,7 +68,7 @@ export default function Layout() {
       <header className="top-header">
         <div className="container header-container">
           <Link to="/" className="logo">
-            <img src="/images/logo.png" alt="MUNCHIESKK" width="240" height="240" style={{ height: '48px', width: 'auto' }} />
+            <img src="/images/logo-144.webp" alt="MUNCHIESKK" width="144" height="144" style={{ height: '48px', width: 'auto' }} />
           </Link>
           <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
             {user?.role === 'admin' && (
@@ -104,7 +106,8 @@ export default function Layout() {
       {/* Main Content Area */}
       <main className="main-content">
         <div className="container page-transition" key={location.pathname}>
-          <Outlet />
+          <RouteSeo />
+          <Suspense fallback={<div className="route-loading" aria-hidden="true" />}><Outlet /></Suspense>
         </div>
       </main>
 

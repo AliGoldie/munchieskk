@@ -12,8 +12,10 @@ import Modal from '../components/Modal';
 import { BurgerIcon } from '../components/icons';
 import { InstagramIcon, FacebookIcon, TiktokIcon } from '../components/SocialIcons';
 import './Home.css';
-import { thumbSrc, mediumSrc, onThumbError } from '../utils/imageVariants';
+import { thumbSrc, mediumSrc, cardSrc, loadFirst, onThumbError } from '../utils/imageVariants';
 
+// Must match the <link rel="preload"> that scripts/prerender-seo.mjs writes.
+const HERO_FALLBACK = '/images/md/hero_burger.webp';
 const SOCIAL_ICONS = { instagram: InstagramIcon, facebook: FacebookIcon, tiktok: TiktokIcon };
 
 // Category tag colors for the typographic menu -- text color on a dark
@@ -67,6 +69,19 @@ export default function Home() {
     () => findByName(menu, 'Sumandak Burger') || menu[0],
     [menu]
   );
+
+  // The hero starts on the local photo (preloaded in the page head, so it
+  // paints straight away) and swaps to the menu's signature photo only once
+  // that has finished downloading -- no blank hero while Supabase answers.
+  const [heroBg, setHeroBg] = useState(HERO_FALLBACK);
+  useEffect(() => {
+    if (!heroItem?.image) return undefined;
+    let cancelled = false;
+    loadFirst([cardSrc(heroItem.image), mediumSrc(heroItem.image)]).then((url) => {
+      if (!cancelled && url) setHeroBg(url);
+    });
+    return () => { cancelled = true; };
+  }, [heroItem?.image]);
 
   // ---- Real open/closed status (no fake urgency) ----
   // Sabah's wall-clock day, not the visitor's local one -- see getMalaysiaNow.
@@ -164,7 +179,7 @@ export default function Home() {
       {/* ================= HERO ================= */}
       <section
         className="c-hero"
-        style={{ backgroundImage: `url('${heroItem?.image ? mediumSrc(heroItem.image) : '/images/hero_burger.webp'}')` }}
+        style={{ backgroundImage: `url('${heroBg}')` }}
       >
         <div className="c-hero-scrim" />
         <img src="/images/Trex.png" alt="" className="c-hero-mascot" aria-hidden="true" width="180" height="121" />
@@ -236,7 +251,7 @@ export default function Home() {
           <div className="c-craving-rail">
             {cravingItems.map((item, i) => (
               <button key={item.id} className="c-craving-card" onClick={() => openItem(item)}>
-                <img src={mediumSrc(item.image)} alt="" className="c-craving-img" loading="lazy" decoding="async" />
+                <img src={cardSrc(item.image)} onError={onThumbError(item.image)} alt="" className="c-craving-img" loading="lazy" decoding="async" />
                 <div className="c-craving-scrim" />
                 {i === 0 && <span className="c-craving-badge"><Star size={12} fill="currentColor" /> BEST SELLER</span>}
                 {/^kawan monsta$/i.test(item.name) && <span className="c-craving-badge"><Users size={12} /> FEEDS 3–4</span>}
@@ -335,15 +350,15 @@ export default function Home() {
           </p>
           <div className="c-arcade-games">
             <Link to="/arcade" className="c-game-thumb">
-              <img src="/images/munchman_game.webp" alt="" width="1000" height="545" loading="lazy" decoding="async" />
+              <img src="/images/sm/munchman_game.webp" alt="" width="480" height="262" loading="lazy" decoding="async" />
               <span><Gamepad2 size={12} /> MUNCH-MAN</span>
             </Link>
             <Link to="/arcade" className="c-game-thumb">
-              <img src="/images/trex_runner_game.webp" alt="" width="1000" height="558" loading="lazy" decoding="async" />
+              <img src="/images/sm/trex_runner_game.webp" alt="" width="480" height="268" loading="lazy" decoding="async" />
               <span><Gamepad2 size={12} /> T-REX RUNNER</span>
             </Link>
             <Link to="/arcade" className="c-game-thumb">
-              <img src="/images/fry_catch.webp" alt="" width="1000" height="1000" loading="lazy" decoding="async" />
+              <img src="/images/sm/fry_catch.webp" alt="" width="480" height="480" loading="lazy" decoding="async" />
               <span><Gamepad2 size={12} /> SPEED GRAB</span>
             </Link>
           </div>
@@ -369,7 +384,7 @@ export default function Home() {
       <section className="c-section c-typemenu">
         <div className="c-section-head">
           <h2>THE WHOLE MENU</h2>
-          <span className="c-menu-count">{menu.length} items · prices live from your CRM</span>
+          <span className="c-menu-count">{menu.length} items · prices updated live</span>
         </div>
         {orderedCategories.map(cat => (
           <div key={cat} className="c-type-group">
@@ -388,10 +403,27 @@ export default function Home() {
         ))}
       </section>
 
+      {/* ================= ABOUT (plain-language text for visitors and search engines) ================= */}
+      <section className="c-section c-about">
+        <h2>BURGERS MADE IN KOTA KINABALU</h2>
+        <p>
+          MunchiesKK is a Kota Kinabalu burger kitchen in Sabah. We hand-press our patties, load our
+          fries and build sharing platters for the whole kawan. Try the Sumandak burger with sambal
+          tuhau, a Sabahan favourite, or Monsta Fries piled with smoky beefacon, melted cheddar and
+          our CZ sauce.
+        </p>
+        <p>
+          Order online for pickup, find us on GrabFood, or book <Link to="/catering">slider catering</Link> for
+          your office, birthday or kenduri. Join free to earn points on every order and unlock free
+          food in the <Link to="/loyalty">Prize Vault</Link>.
+        </p>
+        <p><Link to="/menu" className="c-about-link">See the full menu <ChevronRight size={16} /></Link></p>
+      </section>
+
       {/* ================= FOOTER ================= */}
       <footer className="c-footer">
         <div className="c-footer-brand">
-          <img src="/images/logo.png" alt="MunchiesKK" width="240" height="240" loading="lazy" decoding="async" />
+          <img src="/images/logo-144.webp" alt="MunchiesKK" width="144" height="144" loading="lazy" decoding="async" />
           <div>
             <strong>MUNCHIESKK</strong>
             <p>Kota Kinabalu · {formatTime12Hour(shopSettings?.openingTime)}–{formatTime12Hour(shopSettings?.closingTime)} · WhatsApp {siteConfig.whatsappNumber}</p>

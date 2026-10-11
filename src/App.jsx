@@ -1,18 +1,10 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Signup from './pages/Signup';
-import ResetPassword from './pages/ResetPassword';
 import Menu from './pages/Menu';
-import Profile from './pages/Profile';
 import Cart from './pages/Cart';
-import Payment from './pages/Payment';
-import Loyalty from './pages/Loyalty';
-import Arcade from './pages/Arcade';
-import OrderStatus from './pages/OrderStatus';
-import Catering from './pages/Catering';
 import AdminRoute from './components/AdminRoute';
 import ArcadeRoute from './components/ArcadeRoute';
 
@@ -20,10 +12,32 @@ import ArcadeRoute from './components/ArcadeRoute';
 // dashboard (7000+ lines), the full recharts library, and jsPDF/autoTable --
 // none of which anyone but staff ever needs. Lazy-loading these two routes
 // keeps that weight out of the bundle every customer actually downloads.
+const Signup = lazy(() => import('./pages/Signup'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Payment = lazy(() => import('./pages/Payment'));
+const Loyalty = lazy(() => import('./pages/Loyalty'));
+const Arcade = lazy(() => import('./pages/Arcade'));
+const OrderStatus = lazy(() => import('./pages/OrderStatus'));
+const Catering = lazy(() => import('./pages/Catering'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 const Admin = lazy(() => import('./pages/Admin'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 
+// Fetch the other customer pages once the home page has settled, so tapping
+// a link never waits on a download.
+const prefetchPages = () => {
+  [() => import('./pages/Payment'), () => import('./pages/Loyalty'), () => import('./pages/Profile'),
+    () => import('./pages/Catering'), () => import('./pages/OrderStatus'), () => import('./pages/Arcade'),
+    () => import('./pages/Signup')].forEach(load => load().catch(() => {}));
+};
+
 function App() {
+  useEffect(() => {
+    const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 3000));
+    const handle = idle(prefetchPages, { timeout: 8000 });
+    return () => (window.cancelIdleCallback || clearTimeout)(handle);
+  }, []);
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
@@ -53,6 +67,7 @@ function App() {
             </Suspense>
           } />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );

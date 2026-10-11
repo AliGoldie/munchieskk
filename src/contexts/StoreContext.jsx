@@ -985,7 +985,10 @@ const clearManualOverride = async (id) => {
     // Small copy for thumbnails, saved as <name>-thumb.webp next to the
     // photo (see utils/imageVariants.js). Only when the photo itself became
     // WebP, so the two names always pair up.
-    const thumb = file.type === 'image/webp' ? await compressImage(originalFile, { maxSide: 192, quality: 0.8 }) : null;
+    const isWebp = file.type === 'image/webp';
+    const thumb = isWebp ? await compressImage(originalFile, { maxSide: 192, quality: 0.8 }) : null;
+    // Card-size copy (<name>-md.webp) so cards don't download the full photo.
+    const medium = isWebp ? await compressImage(originalFile, { maxSide: 800, quality: 0.78 }) : null;
 
     // Generate a unique filename
     const fileExt = file.name.split('.').pop();
@@ -1007,6 +1010,12 @@ const clearManualOverride = async (id) => {
         .upload(thumbName, thumb, { contentType: 'image/webp', cacheControl: '31536000' });
       // Pages fall back to the full photo when a thumb is missing.
       if (thumbErr) console.warn('Thumbnail upload failed:', thumbErr.message);
+    }
+    if (medium && medium.type === 'image/webp') {
+      const { error: mdErr } = await supabase.storage
+        .from('menu-images')
+        .upload(fileName.replace(/\.webp$/i, '-md.webp'), medium, { contentType: 'image/webp', cacheControl: '31536000' });
+      if (mdErr) console.warn('Card-size upload failed:', mdErr.message);
     }
     
     // Get public URL
