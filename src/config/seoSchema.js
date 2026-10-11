@@ -58,6 +58,7 @@ export function restaurantSchema({ weeklySchedule, minPriceCents, maxPriceCents 
   };
   if (SITE.latitude != null && SITE.longitude != null) {
     data.geo = { '@type': 'GeoCoordinates', latitude: SITE.latitude, longitude: SITE.longitude };
+    if (SITE.mapUrl) data.hasMap = SITE.mapUrl;
   }
   if (minPriceCents != null && maxPriceCents != null) {
     data.priceRange = `RM${(minPriceCents / 100).toFixed(0)} - RM${(maxPriceCents / 100).toFixed(0)}`;
