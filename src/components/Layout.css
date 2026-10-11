@@ -528,7 +528,8 @@
   }
 }
 
-/* Admin logout: red circle that slides open to show "Logout" on hover
+/* Logout button, used in the admin header and on the customer Profile page:
+   red circle that slides open to show "Logout" on hover
    (adapted from Uiverse.io, vinodjangid07). Touch screens have no hover,
    so there it is always shown open -- the label must stay visible. */
 .admin-logout {
