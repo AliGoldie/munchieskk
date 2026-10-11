@@ -608,3 +608,4 @@
     padding: 2rem;
   }
 }
+.route-loading { min-height: 60vh; }

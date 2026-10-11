@@ -30,6 +30,9 @@ function headFor(route, seo) {
   const canonical = `${SITE.url}${route === '/' ? '/' : route}`;
   const image = `${SITE.url}${SITE.ogImage}`;
   const lines = [
+    // Home only: start the hero photo download from the HTML itself instead of
+    // waiting for the JS bundle and the menu data (it is the LCP element).
+    ...(route === '/' ? ['<link rel="preload" as="image" href="/images/md/hero_burger.webp" fetchpriority="high" />'] : []),
     `<title>${esc(seo.title)}</title>`,
     `<meta name="description" content="${esc(seo.description)}" />`,
     `<meta name="robots" content="index, follow" />`,
