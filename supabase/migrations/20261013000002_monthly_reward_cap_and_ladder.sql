@@ -40,9 +40,9 @@ CREATE TRIGGER trg_enforce_monthly_reward_cap
   FOR EACH ROW EXECUTE FUNCTION public.enforce_monthly_reward_cap();
 
 -- Starter ladder: FREE FRIES 150, Ice BB 350, Egg add-on 60, Kawan MONSTA 3,000.
--- Minimum orders: fries and egg RM20, Ice BB RM20, Kawan MONSTA RM30 (break-even
--- on the visit) for the first three months. Review in mid-January 2027; any change
--- applies to new redemptions only.
+-- Minimum orders: fries, egg and Ice BB RM20; Kawan MONSTA RM30 (break-even on the
+-- visit) for the launch period to 31 December 2026. Review then; any change applies
+-- to new redemptions only.
 UPDATE public.loyalty_prizes SET points_cost = 150, min_order_cents = 2000 WHERE name = 'FREE FRIES';
 UPDATE public.loyalty_prizes SET points_cost = 350, min_order_cents = 2000 WHERE name = 'Ice BB';
 
@@ -63,5 +63,5 @@ FROM public.menu_items m
 WHERE m.name = 'Kawan MONSTA'
   AND NOT EXISTS (SELECT 1 FROM public.loyalty_prizes WHERE name = 'Free Kawan MONSTA');
 
--- Platter minimum for the launch period (RM30). Already-created row, if any.
+-- Platter minimum for the launch period (RM30), if the row already exists.
 UPDATE public.loyalty_prizes SET min_order_cents = 3000 WHERE name = 'Free Kawan MONSTA';
