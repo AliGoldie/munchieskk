@@ -6,13 +6,15 @@
 
 .payment-layout {
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr): a plain 1fr lets wide content (promo row, textarea)
+     stretch the column past a phone screen, cutting the cards off. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-8);
 }
 
 @media (min-width: 768px) {
   .payment-layout {
-    grid-template-columns: 3fr 2fr;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   }
 }
 

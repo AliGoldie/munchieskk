@@ -5,10 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatTime12Hour, generateOperatingTimeSlots } from '../utils/timeUtils';
 import { supabase } from '../config/supabase';
 import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Clock, AlertTriangle, Zap, Tag } from 'lucide-react';
+import CheckoutRewards from '../components/CheckoutRewards';
+import { rewardBlockReason } from '../utils/rewardRules';
 import './Payment.css';
 
 export default function Payment() {
-  const { cart, cartTotal, placeOrder, shopSettings, isShopOpenNow } = useStore();
+  const { cart, cartTotal, placeOrder, shopSettings, isShopOpenNow, loyaltyPrizes, points, menu, addons, itemAddons, applyOrderReward } = useStore();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -31,6 +33,17 @@ export default function Payment() {
   const [promoFreeItemId, setPromoFreeItemId] = useState(null);
 
   const finalTotal = Math.max(0, cartTotal - promoDiscount);
+
+  // A reward the customer ticked (free item / add-on, paid for with points).
+  const [rewardPrizeId, setRewardPrizeId] = useState(null);
+  const rewardPrize = (loyaltyPrizes || []).find(p => p.id === rewardPrizeId) || null;
+  // A promo code (or anything else) can push the order under a reward's
+  // minimum after it was ticked: untick it instead of failing at payment.
+  useEffect(() => {
+    if (rewardPrize && rewardBlockReason(rewardPrize, { points, menu, addons, itemAddons, cart, orderTotal: finalTotal })) {
+      setRewardPrizeId(null);
+    }
+  }, [rewardPrize, points, menu, addons, itemAddons, cart, finalTotal]);
 
   // Dynamically generate pre-order time slots strictly within business hours
   const timeSlots = useMemo(() => {
@@ -103,6 +116,15 @@ export default function Payment() {
 
         if (!orderId) {
           return;
+        }
+
+        // The order is in. Now spend the points on the reward, if one was
+        // picked. If that fails the order still stands; nothing was charged.
+        if (rewardPrizeId) {
+          const reward = await applyOrderReward(orderId, rewardPrizeId);
+          if (!reward.ok) {
+            alert(`Your order was placed, but we could not add your reward: ${reward.message} No points were used.`);
+          }
         }
 
         setIsSuccess(true);
@@ -390,6 +412,18 @@ export default function Payment() {
             )}
           </div>
 
+          <CheckoutRewards
+            prizes={loyaltyPrizes}
+            points={points}
+            menu={menu}
+            addons={addons}
+            itemAddons={itemAddons}
+            cart={cart}
+            orderTotal={finalTotal}
+            selectedId={rewardPrizeId}
+            onSelect={setRewardPrizeId}
+          />
+
           <div style={{ marginBottom: '1.5rem' }}>
             <label htmlFor="order-notes" style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-2)', marginBottom: '6px' }}>
               Special requests (optional)
@@ -417,6 +451,13 @@ export default function Payment() {
              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--go)', fontWeight: 600, marginBottom: '8px' }}>
                 <span>Discount ({appliedPromoCode})</span>
                 <span>-RM {(promoDiscount / 100).toFixed(2)}</span>
+             </div>
+          )}
+
+          {rewardPrize && (
+             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--go)', fontWeight: 600, marginBottom: '8px' }}>
+                <span>Reward: {rewardPrize.name}</span>
+                <span>FREE (-{Number(rewardPrize.points_cost).toLocaleString()} pts)</span>
              </div>
           )}
 

@@ -1596,6 +1596,17 @@ const clearManualOverride = async (id) => {
     return true;
   };
 
+  // Spend points on a free item / add-on for an order that was just placed.
+  // Everything is checked server-side (apply_order_reward); the order stands
+  // either way, so a failure here only means no reward and no points taken.
+  const applyOrderReward = async (orderId, prizeId) => {
+    const { data, error } = await supabase.rpc('apply_order_reward', { p_order_id: orderId, p_prize_id: prizeId });
+    if (error) return { ok: false, message: error.message || 'The reward could not be added.' };
+    const spent = Number(data?.points_spent) || 0;
+    setUser(prev => prev ? ({ ...prev, points: Math.max(0, (prev.points || 0) - spent) }) : prev);
+    return { ok: true, data };
+  };
+
   const addLoyaltyPrize = async (prizeData) => {
     const { data, error } = await supabase.from('loyalty_prizes').insert([prizeData]).select().single();
     if (error) { alert('Failed to create prize: ' + error.message); return null; }
@@ -1823,7 +1834,7 @@ const clearManualOverride = async (id) => {
       addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, claimShareBonus, fetchSingleOrder,
-      loyaltyPrizes, redemptions, redeemPrize, fetchAdminRedemptions, fulfillRedemption,
+      loyaltyPrizes, redemptions, redeemPrize, applyOrderReward, fetchAdminRedemptions, fulfillRedemption,
       addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize, logGrabfoodDailyEntry, undoGrabfoodEntry,
       ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
       updateIngredientName, updateIngredientUnit,
