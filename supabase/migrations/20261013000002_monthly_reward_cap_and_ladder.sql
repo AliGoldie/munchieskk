@@ -39,7 +39,7 @@ CREATE TRIGGER trg_enforce_monthly_reward_cap
   BEFORE INSERT ON public.redemptions
   FOR EACH ROW EXECUTE FUNCTION public.enforce_monthly_reward_cap();
 
--- Starter ladder: FREE FRIES 150, Ice BB 350, Free Cheese 50, Free Egg 60, Kawan MONSTA 3,000.
+-- Starter ladder: FREE FRIES 150, Ice BB 350, Free Cheese 50, Free Egg 60, Free Mushy2 800, Kawan MONSTA 3,000.
 -- Minimum orders: fries, egg and Ice BB RM20; Kawan MONSTA RM30 (break-even on the
 -- visit) for the launch period to 31 December 2026. Review then; any change applies
 -- to new redemptions only.
@@ -48,7 +48,7 @@ UPDATE public.loyalty_prizes SET points_cost = 350, min_order_cents = 2000 WHERE
 
 UPDATE public.loyalty_prizes
 SET is_active = false
-WHERE name NOT IN ('FREE FRIES', 'Ice BB', 'Free Cheese', 'Free Egg', 'Free Kawan MONSTA')
+WHERE name NOT IN ('FREE FRIES', 'Ice BB', 'Free Cheese', 'Free Egg', 'Free Mushy2', 'Free Kawan MONSTA')
   AND is_active = true;
 
 INSERT INTO public.loyalty_prizes (name, description, points_cost, menu_item_id, addon_id, min_order_cents, deduct_stock, is_active)
@@ -62,6 +62,12 @@ SELECT 'Free Egg', 'An egg on any burger', 60, NULL, a.id, 2000, false, true
 FROM public.addons a
 WHERE a.name = 'Egg'
   AND NOT EXISTS (SELECT 1 FROM public.loyalty_prizes WHERE name = 'Free Egg');
+
+INSERT INTO public.loyalty_prizes (name, description, points_cost, menu_item_id, addon_id, min_order_cents, deduct_stock, is_active)
+SELECT 'Free Mushy2', 'A Mushy2 burger', 800, m.id, NULL, 2000, true, true
+FROM public.menu_items m
+WHERE m.name = 'Mushy2 Burger'
+  AND NOT EXISTS (SELECT 1 FROM public.loyalty_prizes WHERE name = 'Free Mushy2');
 
 INSERT INTO public.loyalty_prizes (name, description, points_cost, menu_item_id, addon_id, min_order_cents, deduct_stock, is_active)
 SELECT 'Free Kawan MONSTA', 'The Kawan MONSTA platter', 3000, m.id, NULL, 3000, true, true
