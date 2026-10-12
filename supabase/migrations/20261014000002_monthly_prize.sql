@@ -190,6 +190,8 @@ SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_cur date := date_trunc('month', now() AT TIME ZONE 'Asia/Kuching')::date;
+  v_leaders jsonb;
+  v_prizes jsonb;
 BEGIN
   IF NOT public.is_admin() THEN
     RAISE EXCEPTION 'permission denied: admin only';
@@ -197,33 +199,31 @@ BEGIN
 
   PERFORM public.finalize_monthly_prizes();
 
-  RETURN jsonb_build_object(
-    'month', v_cur,
-    'leaders', (
-      SELECT COALESCE(jsonb_agg(jsonb_build_object(
-        'rank', x.rnk, 'name', x.name, 'phone', x.phone, 'spend_cents', x.spend_cents
-      ) ORDER BY x.rnk), '[]'::jsonb)
-      FROM (
-        SELECT rk.rnk, pr.name, pr.phone, rk.spend_cents
-        FROM public.monthly_spend_ranking(v_cur) rk
-        JOIN public.profiles pr ON pr.id = rk.user_id
-        ORDER BY rk.rnk
-        LIMIT 10
-      ) x
-    ),
-    'prizes', (
-      SELECT COALESCE(jsonb_agg(jsonb_build_object(
-        'month', m.month, 'prize_name', m.prize_name, 'headline', m.headline,
-        'menu_item_id', m.menu_item_id, 'image_url', m.image_url,
-        'min_spend_cents', m.min_spend_cents, 'status', m.status,
-        'winner_name', pr.name, 'winner_phone', pr.phone,
-        'winner_spend_cents', m.winner_spend_cents, 'claim_code', m.claim_code,
-        'awarded_at', m.awarded_at, 'claimed_at', m.claimed_at
-      ) ORDER BY m.month DESC), '[]'::jsonb)
-      FROM (SELECT * FROM public.monthly_prizes ORDER BY month DESC LIMIT 12) m
-      LEFT JOIN public.profiles pr ON pr.id = m.winner_user_id
-    )
-  );
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+           'rank', x.rnk, 'name', x.name, 'phone', x.phone, 'spend_cents', x.spend_cents
+         ) ORDER BY x.rnk), '[]'::jsonb)
+  INTO v_leaders
+  FROM (
+    SELECT rk.rnk, pr.name, pr.phone, rk.spend_cents
+    FROM public.monthly_spend_ranking(v_cur) rk
+    JOIN public.profiles pr ON pr.id = rk.user_id
+    ORDER BY rk.rnk
+    LIMIT 10
+  ) x;
+
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+           'month', m.month, 'prize_name', m.prize_name, 'headline', m.headline,
+           'menu_item_id', m.menu_item_id, 'image_url', m.image_url,
+           'min_spend_cents', m.min_spend_cents, 'status', m.status,
+           'winner_name', pr.name, 'winner_phone', pr.phone,
+           'winner_spend_cents', m.winner_spend_cents, 'claim_code', m.claim_code,
+           'awarded_at', m.awarded_at, 'claimed_at', m.claimed_at
+         ) ORDER BY m.month DESC), '[]'::jsonb)
+  INTO v_prizes
+  FROM (SELECT * FROM public.monthly_prizes ORDER BY month DESC LIMIT 12) m
+  LEFT JOIN public.profiles pr ON pr.id = m.winner_user_id;
+
+  RETURN jsonb_build_object('month', v_cur, 'leaders', v_leaders, 'prizes', v_prizes);
 END;
 $$;
 

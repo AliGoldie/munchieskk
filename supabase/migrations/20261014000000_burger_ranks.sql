@@ -195,6 +195,7 @@ DECLARE
   nx record;
   v_used integer;
   v_month_start timestamptz;
+  v_tiers jsonb;
 BEGIN
   IF v_uid IS NULL THEN
     RETURN NULL;
@@ -212,6 +213,13 @@ BEGIN
   FROM public.redemptions
   WHERE user_id = v_uid AND status <> 'CANCELLED' AND redeemed_at >= v_month_start;
 
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+           'name', x.name, 'min_spend_cents', x.min_spend_cents,
+           'claims_per_month', x.claims_per_month, 'bonus_percent', x.bonus_percent
+         ) ORDER BY x.sort_order), '[]'::jsonb)
+  INTO v_tiers
+  FROM public.loyalty_tiers x;
+
   RETURN jsonb_build_object(
     'tier', COALESCE(t.name, 'Rookie'),
     'spend_cents', COALESCE(t.spend_cents, 0),
@@ -221,13 +229,7 @@ BEGIN
     'bonus_percent', COALESCE(t.bonus_percent, 0),
     'next_tier', nx.name,
     'next_min_spend_cents', nx.min_spend_cents,
-    'tiers', (
-      SELECT COALESCE(jsonb_agg(jsonb_build_object(
-        'name', x.name, 'min_spend_cents', x.min_spend_cents,
-        'claims_per_month', x.claims_per_month, 'bonus_percent', x.bonus_percent
-      ) ORDER BY x.sort_order), '[]'::jsonb)
-      FROM public.loyalty_tiers x
-    )
+    'tiers', v_tiers
   );
 END;
 $$;
