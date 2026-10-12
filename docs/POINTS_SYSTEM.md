@@ -41,7 +41,10 @@ Live rewards in the Prize Vault right now:
 Prizes CRM before announcing a reward. Only rewards switched on in the app
 exist.)
 
-**How redeeming works today**
+**Rewards at checkout (new, only once the owner confirms it is live)**
+Customers ordering in the app can tick "Use your points" on the payment page and pick one reward: it is added to the order at **RM0.00** (free item) or as a **free add-on on a burger**. The points are taken when the order is placed and **given back if the order is cancelled**. One reward per order, and each reward needs a minimum order value (set per reward by the owner, roughly RM10 / RM20 / RM40 by price tier). Rewards can only be added when the order is placed, not afterwards.
+
+**How redeeming at the counter works (unchanged)**
 1. Customer opens **Loyalty** in the app and taps Redeem. The points leave their balance straight away and they get a 6-character code.
 2. At the counter, after they have paid for their order, they show the code or their name. Staff hand over the reward and tap Fulfil.
 3. **A reward that is not collected within 14 days expires and the points go back to the customer.**

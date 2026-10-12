@@ -666,6 +666,7 @@ export default function Admin() {
   // only way to set an image was pasting a raw URL by hand).
   const [newPrizeImage, setNewPrizeImage] = useState('');
   const [newPrizeMenuItemId, setNewPrizeMenuItemId] = useState('');
+  const [newPrizeAddonId, setNewPrizeAddonId] = useState('');
   const [newPrizePhotoStatus, setNewPrizePhotoStatus] = useState('idle'); // 'idle' | 'uploading'
   const [editingPrizeId, setEditingPrizeId] = useState(null);
   const [editingPrizeData, setEditingPrizeData] = useState({});
@@ -860,8 +861,10 @@ export default function Admin() {
     if (!menuItem || menuItem.cost_price == null) return { state: 'no_cost' };
     return { state: 'costed', amount: menuItem.cost_price / 100 };
   };
-  const totalRedemptionValue = redemptions.reduce((sum, r) => sum + (getRedemptionCost(r) || 0), 0);
-  const redemptionsMissingCost = redemptions.filter(r => getRedemptionCost(r) == null).length;
+  // Cancelled / expired rewards were refunded: they are not food given away.
+  const countedRedemptions = redemptions.filter(r => r.status !== 'CANCELLED' && r.status !== 'EXPIRED');
+  const totalRedemptionValue = countedRedemptions.reduce((sum, r) => sum + (getRedemptionCost(r) || 0), 0);
+  const redemptionsMissingCost = countedRedemptions.filter(r => getRedemptionCost(r) == null).length;
 
   // ── GrabFood Daily Entry: no live order integration -- staff read two
   // numbers off Grab's own merchant portal once a day (items sold, net
@@ -2533,6 +2536,8 @@ export default function Admin() {
       points_cost: prize.points_cost,
       image_url: prize.image_url || '',
       menu_item_id: prize.menu_item_id || '',
+      addon_id: prize.addon_id || '',
+      min_order_rm: prize.min_order_cents != null ? (prize.min_order_cents / 100).toString() : '',
       deduct_stock: !!prize.deduct_stock
     });
   };
@@ -2544,6 +2549,8 @@ export default function Admin() {
       points_cost: parseInt(editingPrizeData.points_cost, 10),
       image_url: editingPrizeData.image_url || null,
       menu_item_id: editingPrizeData.menu_item_id || null,
+      addon_id: editingPrizeData.menu_item_id ? null : (editingPrizeData.addon_id || null),
+      min_order_cents: editingPrizeData.min_order_rm !== '' && editingPrizeData.min_order_rm != null ? Math.round(parseFloat(editingPrizeData.min_order_rm) * 100) : null,
       deduct_stock: !!editingPrizeData.deduct_stock
     });
     if (ok) setEditingPrizeId(null);
@@ -5787,11 +5794,14 @@ export default function Admin() {
                 points_cost: parseInt(fd.get('points_cost')),
                 image_url: newPrizeImage || null,
                 menu_item_id: newPrizeMenuItemId || null,
+                addon_id: newPrizeAddonId || null,
+                min_order_cents: fd.get('min_order') !== '' && fd.get('min_order') != null ? Math.round(parseFloat(fd.get('min_order')) * 100) : null,
                 deduct_stock: fd.get('deduct_stock') === 'true'
               });
               e.target.reset();
               setNewPrizeImage('');
               setNewPrizeMenuItemId('');
+              setNewPrizeAddonId('');
             }} className="new-item-form" style={{ gridTemplateColumns: '1fr 1fr 1fr auto', alignItems: 'end', marginBottom: '2rem' }}>
               <div className="form-group"><label>Prize Name</label><input type="text" name="name" placeholder="e.g. Free Burger" required className="price-input" /></div>
               <div className="form-group"><label>Points Cost</label><input type="number" name="points_cost" placeholder="e.g. 500" required className="price-input" min="1" /></div>
@@ -5801,6 +5811,13 @@ export default function Admin() {
                   {menu.map(m => <option key={m.id} value={m.id}>{m.name} (Stock: {m.stock_quantity})</option>)}
                 </select>
               </div>
+              <div className="form-group" style={{ gridColumn: '1 / span 2' }}><label>Or a free Add-on (instead of a menu item)</label>
+                <select value={newPrizeAddonId} onChange={e => setNewPrizeAddonId(e.target.value)} className="price-input" style={{ width: '100%', height: '42px' }} disabled={!!newPrizeMenuItemId}>
+                  <option value="">-- None --</option>
+                  {addons.map(a => <option key={a.id} value={a.id}>{a.name} (Stock: {a.stock_quantity})</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label>Min. order to use at checkout (RM)</label><input type="number" name="min_order" step="0.01" min="0" placeholder="e.g. 10" className="price-input" /></div>
               <div className="form-group" style={{ gridColumn: '1 / span 3' }}><label>Description</label><input type="text" name="description" placeholder="Short description..." className="price-input" /></div>
               <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
                 <label>Image</label>
@@ -5861,6 +5878,14 @@ export default function Admin() {
                           <option value="">-- None --</option>
                           {menu.map(m => <option key={m.id} value={m.id}>{m.name} (Stock: {m.stock_quantity})</option>)}
                         </select>
+                        <select className="price-input" style={{ width: '100%', marginTop: '6px' }} value={editingPrizeData.addon_id} disabled={!!editingPrizeData.menu_item_id}
+                          onChange={e => setEditingPrizeData(prev => ({ ...prev, addon_id: e.target.value }))}>
+                          <option value="">-- No add-on --</option>
+                          {addons.map(a => <option key={a.id} value={a.id}>{a.name} (Stock: {a.stock_quantity})</option>)}
+                        </select>
+                        <input type="number" min="0" step="0.01" className="price-input" style={{ width: '100%', marginTop: '6px' }} placeholder="Min. order RM"
+                          value={editingPrizeData.min_order_rm}
+                          onChange={e => setEditingPrizeData(prev => ({ ...prev, min_order_rm: e.target.value }))} />
                         <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                           {editingPrizeData.image_url && <img src={editingPrizeData.image_url} alt="" style={{ width: '28px', height: '28px', borderRadius: '5px', objectFit: 'cover' }} />}
                           <label className="btn btn-sm btn-outline" style={{ fontSize: '0.7rem' }}>
@@ -5900,7 +5925,12 @@ export default function Admin() {
                     </div>
                   </td>
                   <td className="text-orange font-bold">{prize.points_cost} PTS</td>
-                  <td>{linked ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>{linked.name} (Stock: {linked.stock_quantity})</span> : <span className="text-muted">-</span>}</td>
+                  <td>
+                    {linked ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>{linked.name} (Stock: {linked.stock_quantity})</span>
+                      : prize.addon_id ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>Add-on: {(addons.find(a => String(a.id) === String(prize.addon_id)) || {}).name || prize.addon_id}</span>
+                      : <span className="text-muted">Counter only</span>}
+                    {(prize.menu_item_id || prize.addon_id) && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Checkout needs RM {(Math.max(prize.min_order_cents ?? 0, 1) / 100).toFixed(2)}+ order</div>}
+                  </td>
                   <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: prize.is_active ? '#166534' : 'var(--text-secondary)', color: '#fff' }}>{prize.is_active ? 'Active' : 'Inactive'}</span></td>
                   <td><div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button className="btn btn-sm btn-outline" onClick={() => startEditingPrize(prize)}>Edit</button>
@@ -5935,14 +5965,14 @@ export default function Admin() {
                   const costState = getRedemptionCostState(r);
                   return (
                   <tr key={r.id} style={{ opacity: r.status === 'FULFILLED' ? 0.6 : 1 }}>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--munchies-yellow)' }}>{r.redemption_code}</td>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--munchies-yellow)' }}>{r.redemption_code}{r.order_id && <div style={{ fontFamily: 'inherit', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)' }}>In order {r.order_id}</div>}</td>
                     <td><strong>{r.profiles?.name || 'Unknown'}</strong><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.profiles?.phone || ''}</div></td>
                     <td><strong>{r.prize_name}</strong><div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>{r.points_spent} pts</div></td>
                     <td style={{ fontSize: '0.85rem', fontWeight: costState.state === 'costed' ? 400 : 700, color: costState.state === 'costed' ? 'var(--text)' : '#b45309' }}>
                       {costState.state === 'costed' ? `RM ${costState.amount.toFixed(2)}` : costState.state === 'no_cost' ? 'No cost set' : 'Not linked'}
                     </td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatStoreDateTime(r.redeemed_at)}</td>
-                    <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : r.status === 'EXPIRED' ? '#6b7280' : '#166534', color: '#fff' }}>{r.status}</span></td>
+                    <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : (r.status === 'EXPIRED' || r.status === 'CANCELLED') ? '#6b7280' : '#166534', color: '#fff' }}>{r.status}</span></td>
                     <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
                     {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Done</span>}</td>
                   </tr>

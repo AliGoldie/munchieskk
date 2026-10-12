@@ -19,5 +19,6 @@ Checked against the live database functions and the website code.
 9. **Redemption does not check a purchase.** Staff must ring up the paid items in Loyverse first, then tap Fulfil.
 10. Rewards cost about 1 to 1.2 sen of food cost per point (figure supplied by the owner's other planning chat, not verified here).
 
-## Next build (release 2, not started)
-Redeem rewards at checkout in the app (free line at RM0, points taken at order placement and refunded on cancel), with minimum paid-order rules for bigger rewards.
+## Release 2: rewards at checkout (built)
+`apply_order_reward` (migration 20261013000000) runs right after `place_order`: re-checks ownership, order still PENDING (and under 15 minutes old), one reward per order, prize active and linked to a menu item or add-on, order total over the prize's `min_order_cents` (default RM10 / RM20 / RM40 by cost), points, and stock. It then takes the points, adds the free RM0 line (or attaches a free add-on to the first burger that can take it, splitting one unit off a multi-unit line), and records a FULFILLED redemption linked to the order. `cancel_order` (migration 20261013000001) refunds the points and marks the redemption CANCELLED; stock comes back through the normal line restore.
+Known limits: place_order and apply_order_reward are two calls, so a network drop between them leaves a placed order with no reward and no points taken (the customer is told). The checkout reward always takes stock, ignoring the prize's "deduct stock" flag, because cancelling restores every line.

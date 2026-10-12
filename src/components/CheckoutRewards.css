@@ -1,0 +1,25 @@
+.checkout-rewards {
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+}
+.checkout-rewards-head {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 700; font-size: .9rem; color: var(--text);
+}
+.checkout-rewards-head span { margin-left: auto; color: var(--text-2); font-weight: 600; font-size: .8rem; }
+.checkout-rewards-sub { margin: 6px 0 10px; font-size: .78rem; color: var(--text-2); }
+.checkout-rewards-list { display: flex; flex-direction: column; gap: 8px; }
+.checkout-reward {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  min-height: 44px; padding: 8px 12px; text-align: left;
+  background: transparent; color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+}
+.checkout-reward:disabled { opacity: .5; cursor: not-allowed; }
+.checkout-reward.selected { border-color: var(--go, #22c55e); background: rgba(34, 197, 94, .1); }
+.checkout-reward-name { font-weight: 700; flex: 1; }
+.checkout-reward-cost { font-size: .8rem; color: var(--text-2); }
+.checkout-reward-tick { color: var(--go, #22c55e); flex-shrink: 0; }
