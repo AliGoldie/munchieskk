@@ -135,6 +135,7 @@ CREATE POLICY "_test_probe_policy" ON public.orders FOR SELECT USING (false);
 -- Tables the points-rework migration builds on (created by older migrations
 -- this test does not load).
 ALTER TABLE orders ADD COLUMN share_bonus_claimed_at timestamptz;
+ALTER TABLE profiles ADD COLUMN created_at timestamptz DEFAULT now();
 CREATE TABLE engagement_points_log (
   id bigserial PRIMARY KEY, user_id uuid, source text, points integer,
   awarded_at timestamptz NOT NULL DEFAULT now()
@@ -153,6 +154,7 @@ CREATE TABLE redemptions (
 \i supabase/migrations/20261011000000_order_integrity_hardening.sql
 \i supabase/migrations/20261012000000_points_rework.sql
 \i supabase/migrations/20261012000001_points_rework_place_order.sql
+\i supabase/migrations/20261012000002_arcade_points_grace_period.sql
 
 INSERT INTO store_settings (id, status, opening_time, closing_time, weekly_schedule, special_closures)
 VALUES ('main_store', 'OPEN', '17:00', '23:00', '{}'::jsonb, '[]'::jsonb);
@@ -251,28 +253,33 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- 3. Arcade points need a live order
+-- 3. Arcade points: free for a new account's first 30 days, then need a purchase
 -- ---------------------------------------------------------------------------
 RESET request.jwt.claim.sub;
+INSERT INTO profiles (id, role, points, created_at) VALUES
+  ('55555555-5555-5555-5555-555555555555', 'user', 0, now() - interval '40 days'),
+  ('66666666-6666-6666-6666-666666666666', 'user', 0, now() - interval '40 days');
 DO $$
-DECLARE v_u uuid := '33333333-3333-3333-3333-333333333333';
+DECLARE
+  v_new uuid := '33333333-3333-3333-3333-333333333333';   -- created just now
+  v_old uuid := '55555555-5555-5555-5555-555555555555';   -- 40 days old, never bought
+  v_buyer uuid := '66666666-6666-6666-6666-666666666666'; -- 40 days old, has bought
 BEGIN
-  PERFORM pg_temp.expect(public.award_engagement_points(v_u, 'trex_runner', 20) = 0,
-    'no live order: arcade must pay 0');
-
-  INSERT INTO orders (id, status, total, user_id, created_at) VALUES ('GATE-OLD', 'COLLECTED', 1000, v_u, now() - interval '3 days');
-  PERFORM pg_temp.expect(public.award_engagement_points(v_u, 'trex_runner', 20) = 0,
-    'an order from 3 days ago must not unlock arcade points');
-
-  INSERT INTO orders (id, status, total, user_id, created_at) VALUES ('GATE-PENDING', 'PENDING', 1000, v_u, now());
-  PERFORM pg_temp.expect(public.award_engagement_points(v_u, 'trex_runner', 20) = 0,
-    'a PENDING order must not unlock arcade points');
-
-  INSERT INTO orders (id, status, total, user_id, created_at) VALUES ('GATE-LIVE', 'COOKING', 1000, v_u, now());
-  PERFORM pg_temp.expect(public.award_engagement_points(v_u, 'trex_runner', 20) = 20,
-    'a cooking order must unlock arcade points');
-  PERFORM pg_temp.expect(public.award_engagement_points(v_u, 'speed_grab', 500) = 130,
+  PERFORM pg_temp.expect(public.award_engagement_points(v_new, 'trex_runner', 20) = 20,
+    'a new account must earn arcade points without any order');
+  PERFORM pg_temp.expect(public.award_engagement_points(v_new, 'speed_grab', 500) = 130,
     'the 150/week ceiling must still apply');
+
+  PERFORM pg_temp.expect(public.award_engagement_points(v_old, 'trex_runner', 20) = 0,
+    'an account older than 30 days with no purchase must earn nothing');
+  INSERT INTO orders (id, status, total, user_id, created_at) VALUES ('GATE-PEND', 'PENDING', 1000, v_old, now());
+  INSERT INTO orders (id, status, total, user_id, created_at) VALUES ('GATE-CANC', 'CANCELLED', 1000, v_old, now());
+  PERFORM pg_temp.expect(public.award_engagement_points(v_old, 'trex_runner', 20) = 0,
+    'pending or cancelled orders must not unlock arcade points');
+
+  INSERT INTO orders (id, status, total, user_id, created_at) VALUES ('GATE-DONE', 'COLLECTED', 1000, v_buyer, now() - interval '20 days');
+  PERFORM pg_temp.expect(public.award_engagement_points(v_buyer, 'trex_runner', 20) = 20,
+    'an old account that has completed a purchase must earn arcade points');
 END $$;
 
 -- ---------------------------------------------------------------------------
