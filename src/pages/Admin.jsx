@@ -11,6 +11,7 @@ import { supabase } from '../config/supabase';
 import CategoryIcon, { CATEGORY_ICONS } from '../components/CategoryIcon';
 import PhotoOptimizer from '../components/PhotoOptimizer';
 import AdminCatering from '../components/AdminCatering';
+import AdminShareProofs from '../components/AdminShareProofs';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
@@ -93,7 +94,7 @@ function AdminGlyph({ icon: Icon, size = 16 }) {
 const ADMIN_TABS = [
   'overview', 'orders', 'analytics', 'customers', 'inventory', 'ingredients',
   'categories', 'addons', 'promotions', 'history', 'grabfood', 'catering',
-  'loyalty_crm', 'redemptions', 'stock_report', 'audit'
+  'loyalty_crm', 'redemptions', 'share_proofs', 'stock_report', 'audit'
 ];
 const CUSTOMER_SEGMENTS = ['First-timer', 'At risk', 'VIP', 'Regular', 'Occasional'];
 
@@ -1032,7 +1033,8 @@ export default function Admin() {
 
   useEffect(() => {
     if (activeTab === 'redemptions') {
-      fetchAdminRedemptions();
+      // Refund anything customers never collected (14+ days), then list.
+      Promise.resolve(supabase.rpc('expire_stale_redemptions')).catch(() => {}).finally(() => fetchAdminRedemptions());
     }
   }, [activeTab]);
 
@@ -2747,6 +2749,9 @@ export default function Admin() {
           </button>
           <button className={`sidebar-item ${activeTab === 'redemptions' ? 'active' : ''}`} onClick={() => setActiveTab('redemptions')}>
             <Ticket size={20} /> Redemptions
+          </button>
+          <button className={`sidebar-item ${activeTab === 'share_proofs' ? 'active' : ''}`} onClick={() => setActiveTab('share_proofs')}>
+            <Camera size={20} /> Share proofs
           </button>
           <button className={`sidebar-item ${activeTab === 'stock_report' ? 'active' : ''}`} onClick={() => setActiveTab('stock_report')}>
             <TrendingUp size={20} /> Stock Report
@@ -5912,7 +5917,7 @@ export default function Admin() {
         {activeTab === 'redemptions' && (
           <div className="admin-card">
             <h3>Pending & Fulfilled Redemptions</h3>
-            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>When customers redeem points, their requests appear here. Click "Fulfill" when you hand over the prize.</p>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>When customers redeem points, their requests appear here. Click "Fulfill" once the customer has paid for their order and you hand over the prize. Prizes nobody collects within 14 days expire and the points go back to the customer.</p>
             {redemptions.length > 0 && (
               <p style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
                 <strong>Total value given away: RM {totalRedemptionValue.toFixed(2)}</strong>
@@ -5937,7 +5942,7 @@ export default function Admin() {
                       {costState.state === 'costed' ? `RM ${costState.amount.toFixed(2)}` : costState.state === 'no_cost' ? 'No cost set' : 'Not linked'}
                     </td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatStoreDateTime(r.redeemed_at)}</td>
-                    <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : '#166534', color: '#fff' }}>{r.status}</span></td>
+                    <td><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: r.status === 'PENDING' ? '#b45309' : r.status === 'EXPIRED' ? '#6b7280' : '#166534', color: '#fff' }}>{r.status}</span></td>
                     <td>{r.status === 'PENDING' && (<button className="btn btn-sm btn-primary" onClick={async () => { if(window.confirm('Mark fulfilled?')) await fulfillRedemption(r.id, user.id); }}>Fulfill</button>)}
                     {r.status === 'FULFILLED' && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Done</span>}</td>
                   </tr>
@@ -5947,6 +5952,8 @@ export default function Admin() {
             </table></div>
           </div>
         )}
+
+        {activeTab === 'share_proofs' && <AdminShareProofs />}
 
         {activeTab === 'catering' && <AdminCatering />}
 

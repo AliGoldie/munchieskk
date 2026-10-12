@@ -1,0 +1,16 @@
+.share-proof {
+  margin-top: var(--space-3, 12px);
+  padding-top: var(--space-3, 12px);
+  border-top: 1px dashed var(--line, rgba(255, 255, 255, .15));
+  font-size: .85rem;
+  text-align: center;
+}
+.share-proof-copy { margin: 0 0 var(--space-2, 8px); color: var(--text-2, #ccc); }
+.share-proof-btn { width: 100%; justify-content: center; gap: 8px; }
+.share-proof-ok, .share-proof-wait, .share-proof-no, .share-proof-err {
+  display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0;
+}
+.share-proof-ok { color: var(--go, #22c55e); font-weight: 700; }
+.share-proof-wait { color: var(--text-2, #ccc); }
+.share-proof-no { color: #f59e0b; margin-bottom: var(--space-2, 8px); text-align: left; }
+.share-proof-err { color: #ef4444; margin-top: var(--space-2, 8px); }
