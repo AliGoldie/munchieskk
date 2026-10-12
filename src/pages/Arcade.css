@@ -304,3 +304,21 @@
   align-items: center;
   gap: 4px;
 }
+
+/* Monthly prize winner's claim code */
+.arcade-page .card.arcade-win-card {
+  background: var(--surface-raised, #1f1c19);
+  border: 1px solid var(--gold, #ffc72c);
+  text-align: center;
+  color: var(--text, #f6f1e7);
+  padding: 16px;
+}
+.arcade-win-card h3 { margin: 0 0 4px; color: var(--gold, #ffc72c); }
+.arcade-win-card p { margin: 0 0 8px; color: var(--text-2, #cfc7b8); font-size: .85rem; }
+.arcade-win-code {
+  font-family: monospace;
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #fff;
+}

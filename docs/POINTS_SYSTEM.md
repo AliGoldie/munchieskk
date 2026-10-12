@@ -57,9 +57,27 @@ Customers ordering in the app can tick "Use your points" on the payment page and
 - "**Free fries** from just **100 points**."
 - "New here? Play the arcade free for your first 30 days and earn bonus points while you wait for your order."
 
+## Burger Ranks (loyalty tiers) and the monthly prize
+
+*(Only once the owner confirms the rank update is live.)*
+
+A customer's rank comes from their **lifetime spend** on collected orders (refunds subtracted). **Games, shares and referrals never change a rank.**
+
+| Rank | Lifetime spend | Rewards per month | Bonus points on orders |
+|---|---|---|---|
+| Rookie | RM0 | 1 | none |
+| Regular | RM200 | 2 | none |
+| Pro | RM850 | 3 | +5% |
+| Master | RM1,500 | 4 | +8% |
+| Ultimate | RM3,000 | 5 | +12% |
+
+- The reward limit counts **claims in a calendar month** (Malaysia time). A cancelled claim gives its slot back.
+- Cancelling an order takes back exactly the points it earned, bonus included.
+- **Monthly prize:** each month the owner picks a prize (the first is a Solero Split). The customer who spends the most on collected orders that month, at least RM100, wins it automatically on the 1st. Winners are shown by first name; the winner gets a claim code to show at the counter within 14 days.
+
 ## Do NOT promise or mention
 
-- **Tiers (Bronze / Silver / Gold).** They are not in the app. Do not mention them or any "tier perks".
+- **Tiers named Bronze / Silver / Gold, or any perks not listed above.** The real ranks are Rookie, Regular, Pro, Master and Ultimate (above).
 - **A free burger.** No burger reward is live. Do not advertise one unless the owner adds it.
 - **Points for counter (Loyverse) purchases.** Only app orders earn points for now.
 - **Points that never expire.** Do not say "points never expire". Uncollected *rewards* expire after 14 days; the owner has not set an expiry on points themselves, so say nothing either way.

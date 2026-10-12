@@ -270,3 +270,44 @@
   font-weight: 800;
   color: var(--gold);
 }
+
+/* Burger Ranks */
+.rank-perks {
+  z-index: 1;
+  margin: 10px 0 0;
+  font-size: .75rem;
+  color: var(--text-2);
+}
+
+.rank-ladder {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(112px, 1fr);
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.rank-step {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--line, rgba(255, 255, 255, .12));
+  border-radius: 10px;
+  font-size: .7rem;
+  color: var(--text-2);
+}
+
+.rank-step strong {
+  font-family: 'Archivo', sans-serif;
+  font-size: .8rem;
+  color: var(--text);
+}
+
+.rank-step.current {
+  border-color: var(--gold);
+  background: rgba(255, 199, 44, .08);
+}
+
+.rank-step.current strong { color: var(--gold); }

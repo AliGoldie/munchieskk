@@ -12,6 +12,7 @@ import CategoryIcon, { CATEGORY_ICONS } from '../components/CategoryIcon';
 import PhotoOptimizer from '../components/PhotoOptimizer';
 import AdminCatering from '../components/AdminCatering';
 import AdminShareProofs from '../components/AdminShareProofs';
+import AdminMonthlyPrize from '../components/AdminMonthlyPrize';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
@@ -708,7 +709,7 @@ export default function Admin() {
   // Promos & Referrals State
   const [promoCodes, setPromoCodes] = useState([]);
   const [referralStats, setReferralStats] = useState([]);
-  const [activePromoSubTab, setActivePromoSubTab] = useState('codes'); // 'codes', 'referrals', 'items'
+  const [activePromoSubTab, setActivePromoSubTab] = useState('codes'); // 'codes', 'referrals', 'items', 'monthly'
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [savingPromo, setSavingPromo] = useState(false);
   const EMPTY_PROMO_FORM = {
@@ -5553,7 +5554,15 @@ export default function Admin() {
               >
                 <AdminGlyph icon={Hamburger} />Item-Level Promos
               </button>
+              <button 
+                className={`btn ${activePromoSubTab === 'monthly' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setActivePromoSubTab('monthly')}
+              >
+                <AdminGlyph icon={Gift} />Monthly Prize
+              </button>
             </div>
+
+            {activePromoSubTab === 'monthly' && <AdminMonthlyPrize />}
 
             {activePromoSubTab === 'codes' && (
               <div>

@@ -379,13 +379,13 @@ export default function Menu() {
       <div className="card loyalty-banner mt-6">
         <SpikyBadgeIcon size={24} color="var(--munchies-white)" />
         <h3 className="mt-2 text-white">LOYALTY PAYS OFF</h3>
-        <p className="text-white-dim">Every 5th burger is on the house. Scan at the arcade!</p>
+        <p className="text-white-dim">Earn 1 point for every RM1 you spend, then swap your points for free food.</p>
       </div>
 
       <div className="card ad-banner mt-4 mb-4">
         <div className="ad-content">
           <h2>WANT IT FREE?</h2>
-          <p>Play the Munchies Run arcade game & unlock rewards!</p>
+          <p>Play the arcade for bonus points and a shot at the monthly prize.</p>
           <Link to="/arcade" className="btn btn-dark w-full mt-3" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>GO TO ARCADE</Link>
         </div>
       </div>
