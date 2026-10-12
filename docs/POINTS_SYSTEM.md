@@ -49,6 +49,10 @@ Customers ordering in the app can tick "Use your points" on the payment page and
 2. At the counter, after they have paid for their order, they show the code or their name. Staff hand over the reward and tap Fulfil.
 3. **A reward that is not collected within 14 days expires and the points go back to the customer.**
 
+## Points expiry
+
+Points expire after **12 months with no activity**. An order, game points or claiming a reward restarts the clock. Orders do not earn points on any delivery charge (the app has none today).
+
 ## Handy examples (all real, safe to use)
 
 - "Spend RM25, earn **25 points**. Collect it for **6 more**. That is 31 points from one burger meal."
@@ -80,7 +84,7 @@ A customer's rank comes from their **lifetime spend** on collected orders (refun
 - **Tiers named Bronze / Silver / Gold, or any perks not listed above.** The real ranks are Rookie, Regular, Pro, Master and Ultimate (above).
 - **A free burger.** No burger reward is live. Do not advertise one unless the owner adds it.
 - **Points for counter (Loyverse) purchases.** Only app orders earn points for now.
-- **Points that never expire.** Do not say "points never expire". Uncollected *rewards* expire after 14 days; the owner has not set an expiry on points themselves, so say nothing either way.
+- **Points that never expire.** Do not say "points never expire". Points expire after **12 months with no activity** (no order, no game points, no reward claimed; any of those restarts the 12 months). Uncollected *rewards* expire after 14 days and the points go back to the customer. Ranks are based on spend, so they never expire with the points.
 - **Unlimited game points.** Always mention the weekly limit if you mention games.
 - **Specific rewards or prices not listed above.**
 

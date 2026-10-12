@@ -166,6 +166,8 @@ CREATE FUNCTION public.generate_unique_redemption_code() RETURNS text LANGUAGE s
 \i supabase/migrations/20261014000000_burger_ranks.sql
 \i supabase/migrations/20261014000001_burger_ranks_cancel.sql
 \i supabase/migrations/20261014000002_monthly_prize.sql
+INSERT INTO loyalty_prizes (name, description, points_cost) VALUES ('FREE FRIES', 'x', 150);
+\i supabase/migrations/20261015000000_points_expiry_fries_100.sql
 
 INSERT INTO store_settings (id, status, opening_time, closing_time, weekly_schedule, special_closures)
 VALUES ('main_store', 'OPEN', '17:00', '23:00', '{}'::jsonb, '[]'::jsonb);
@@ -502,6 +504,42 @@ BEGIN
   PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.monthly_spend_ranking(date)', 'execute'), 'customers cannot read the full ranking');
   PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.admin_monthly_overview()', 'execute'), 'anon must not call the admin overview');
 END $$;
+
+-- ---------------------------------------------------------------------------
+-- 8. Points expire after 12 months of inactivity; Free Fries is 100 points
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE r integer; a text;
+BEGIN
+  PERFORM pg_temp.expect((SELECT points_cost FROM loyalty_prizes WHERE name = 'FREE FRIES') = 100, 'fries costs 100 points');
+  INSERT INTO profiles (id, role, points, created_at) VALUES
+    ('e0000000-0000-0000-0000-000000000001', 'user', 500, now() - interval '14 months'),
+    ('e0000000-0000-0000-0000-000000000002', 'user', 500, now() - interval '14 months'),
+    ('e0000000-0000-0000-0000-000000000003', 'user', 500, now() - interval '11 months');
+  -- #2 ordered 3 months ago, so the clock was reset
+  INSERT INTO orders (id, status, total, user_id, created_at)
+    VALUES ('EXP-OLD', 'COLLECTED', 2000, 'e0000000-0000-0000-0000-000000000002', now());
+  UPDATE orders SET created_at = now() - interval '3 months' WHERE id = 'EXP-OLD';
+  UPDATE profiles SET points = 500 WHERE id = 'e0000000-0000-0000-0000-000000000002';
+
+  SET LOCAL request.jwt.claim.sub = 'e0000000-0000-0000-0000-000000000001';
+  r := public.expire_my_points();
+  PERFORM pg_temp.expect(r = 500 AND pg_temp.pts('e0000000-0000-0000-0000-000000000001') = 0, 'inactive 14 months: points expire');
+  SET LOCAL request.jwt.claim.sub = 'e0000000-0000-0000-0000-000000000002';
+  PERFORM pg_temp.expect(public.expire_my_points() = 0 AND pg_temp.pts('e0000000-0000-0000-0000-000000000002') = 500, 'recent order keeps points');
+  SET LOCAL request.jwt.claim.sub = 'e0000000-0000-0000-0000-000000000003';
+  PERFORM pg_temp.expect(public.expire_my_points() = 0 AND pg_temp.pts('e0000000-0000-0000-0000-000000000003') = 500, 'new account keeps points');
+  RESET request.jwt.claim.sub;
+  PERFORM pg_temp.expect(public.expire_my_points() = 0, 'guests expire nothing');
+  PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.expire_points_if_stale(uuid, text)', 'execute'), 'customers cannot expire others');
+  PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.expire_my_points()', 'execute'), 'anon cannot call expire_my_points');
+
+  -- a lapsed customer's balance is cleared before the new order's points are added
+  UPDATE profiles SET points = 500, created_at = now() - interval '14 months' WHERE id = 'e0000000-0000-0000-0000-000000000001';
+  a := pg_temp.order_of('e0000000-0000-0000-0000-000000000001', 'pepsi', 1);
+  PERFORM pg_temp.expect(pg_temp.pts('e0000000-0000-0000-0000-000000000001') = 4, 'lapsed customer restarts: old 500 gone, new order earns 4');
+END $$;
+RESET request.jwt.claim.sub;
 
 DO $$ BEGIN RAISE NOTICE 'PASS: burger ranks and monthly prize assertions passed'; END $$;
 

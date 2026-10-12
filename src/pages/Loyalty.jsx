@@ -2,12 +2,14 @@
 import { QrCode, Gamepad2, Lock, History, CheckCircle, Gift } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useStore } from '../contexts/StoreContext';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { useCountUp } from '../hooks/useCountUp';
 import RankCard from '../components/RankCard';
 import './Loyalty.css';
 
 export default function Loyalty() {
+  const { setUser } = useAuth();
   const { points, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
   const displayedPoints = useCountUp(points, 800);
 
@@ -17,9 +19,15 @@ export default function Loyalty() {
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(5);
 
   // Rewards not collected within 14 days expire and the points come back.
+  // Points expire after 12 months with no orders, game points or rewards.
   useEffect(() => {
     Promise.resolve(supabase.rpc('expire_stale_redemptions')).catch(() => {});
-  }, []);
+    Promise.resolve(supabase.rpc('expire_my_points'))
+      .then(({ data }) => {
+        if (data > 0) setUser((u) => (u ? { ...u, points: 0 } : u));
+      })
+      .catch(() => {});
+  }, [setUser]);
 
   const handleRedeem = async (prize) => {
     if (loading) return;
