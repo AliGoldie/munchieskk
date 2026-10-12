@@ -4,6 +4,7 @@ import { useParams, Navigate, Link } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { loyaltyConfig } from '../config/loyaltyConfig';
 import { Flame, CheckCircle2, PartyPopper, Share2, ArrowRight } from 'lucide-react';
+import ShareProofUpload from '../components/ShareProofUpload';
 import './OrderStatus.css';
 
 export default function OrderStatus() {
@@ -374,7 +375,9 @@ export default function OrderStatus() {
                 {claimedReview && <p className="text-sm mt-3 font-bold" style={{ color: 'var(--go)' }}>Bonus claimed!</p>}
               </div>
             )}
-            
+            {/* Also shown when the customer comes back to this order later, not only right after tapping Collect. */}
+            <ShareProofUpload orderId={order.id} />
+
             <Link to="/" className="btn btn-dark w-full mt-4 flex items-center justify-center gap-2">
               Back to Home <ArrowRight size={18} />
             </Link>
