@@ -152,6 +152,7 @@ CREATE TABLE redemptions (
 -- The migrations under test (hardening is the base the rework builds on).
 \i supabase/migrations/20261011000000_order_integrity_hardening.sql
 \i supabase/migrations/20261012000000_points_rework.sql
+\i supabase/migrations/20261012000001_points_rework_place_order.sql
 
 INSERT INTO store_settings (id, status, opening_time, closing_time, weekly_schedule, special_closures)
 VALUES ('main_store', 'OPEN', '17:00', '23:00', '{}'::jsonb, '[]'::jsonb);
