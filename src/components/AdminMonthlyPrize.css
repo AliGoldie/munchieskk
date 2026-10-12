@@ -1,0 +1,13 @@
+.mp-form { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+.mp-form label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; font-weight: 600; flex: 1; min-width: 0; }
+.mp-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.mp-row label { min-width: 200px; }
+.mp-list { display: flex; flex-direction: column; gap: 8px; }
+.mp-line { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border, rgba(0,0,0,.12)); border-radius: 8px; }
+.mp-line span:nth-child(2) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mp-amount { font-weight: 700; white-space: nowrap; }
+.mp-card { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--border, rgba(0,0,0,.12)); border-radius: 8px; }
+.mp-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mp-badge { padding: 2px 8px; border-radius: 4px; font-size: .7rem; font-weight: 700; color: #fff; white-space: nowrap; }
+.mp-claim { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+.mp-code { font-family: monospace; font-size: 1.1rem; letter-spacing: 2px; }

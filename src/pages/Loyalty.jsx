@@ -1,16 +1,15 @@
 ﻿import { useEffect, useState } from 'react';
-import { Award, QrCode, Gamepad2, Lock, History, CheckCircle, Gift } from 'lucide-react';
+import { QrCode, Gamepad2, Lock, History, CheckCircle, Gift } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useStore } from '../contexts/StoreContext';
 import { supabase } from '../config/supabase';
 import { useCountUp } from '../hooks/useCountUp';
+import RankCard from '../components/RankCard';
 import './Loyalty.css';
 
 export default function Loyalty() {
   const { points, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
   const displayedPoints = useCountUp(points, 800);
-  const nextRank = 5000;
-  const progress = Math.min(100, (points / nextRank) * 100);
 
   const [redeemedThisSession, setRedeemedThisSession] = useState({});
   const [redemptionResult, setRedemptionResult] = useState(null);
@@ -36,18 +35,7 @@ export default function Loyalty() {
 
   return (
     <div className="loyalty-page">
-      <div className="card rank-header-card">
-        <div className="medal-circle"><Award size={32} color="#fff" /></div>
-        <h1>BURGER MASTER</h1>
-        <p className="rank-level">LOYALTY REWARDS</p>
-        <div className="points-flex">
-          <span>{displayedPoints.toLocaleString()} POINTS</span>
-          <span>{nextRank.toLocaleString()} TARGET</span>
-        </div>
-        <div className="progress-bar-lg">
-          <div className="progress-fill-lg" style={{ transform: `scaleX(${progress / 100})` }}></div>
-        </div>
-      </div>
+      <RankCard points={points} displayedPoints={displayedPoints} />
 
       <div className="actions-row">
         <div className="card action-btn action-scan" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/cart'}>
