@@ -151,6 +151,8 @@ export default function Home() {
   const freeBurgerPrize = loyaltyPrizes.find(p => /free\s*burger/i.test(p.name))
     || (loyaltyPrizes.length > 0 ? loyaltyPrizes[loyaltyPrizes.length - 1] : null);
   const vaultTarget = freeBurgerPrize?.points_cost ?? null;
+  // Prizes arrive cheapest-first (active ones only), so [0] is the first reward within reach.
+  const firstPrize = loyaltyPrizes[0] || null;
   const pointsAway = vaultTarget != null ? Math.max(0, vaultTarget - userPoints) : null;
   const vaultProgress = vaultTarget ? Math.min(100, Math.round((userPoints / vaultTarget) * 100)) : 0;
 
@@ -344,9 +346,10 @@ export default function Home() {
           <p className="c-eyebrow">THE REWARD LAYER</p>
           <h2>ORDER. PLAY.<br /><span>EAT FREE.</span></h2>
           <p className="c-arcade-body">
-            Every paid order unlocks three arcade runs while the kitchen works. Beat the
-            score, the prize drops straight into your vault — free fries, free drinks,
-            {vaultTarget != null ? ` free burger at ${vaultTarget.toLocaleString()} pts.` : ' a free burger at a real points threshold.'}
+            Earn points on every order, and play the games for bonus points: free for your
+            first month, then whenever you have ordered with us. Beat your best score, the points
+            land in your vault and you spend them on free treats
+            {firstPrize ? ` — ${firstPrize.name} from ${firstPrize.points_cost.toLocaleString()} pts.` : '.'}
           </p>
           <div className="c-arcade-games">
             <Link to="/arcade" className="c-game-thumb">
