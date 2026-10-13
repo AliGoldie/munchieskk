@@ -106,7 +106,7 @@ export default function OrderStatus() {
     
     const shareData = {
       title: 'MunchiesKK',
-      text: 'Just enjoyed delicious smash burgers from MunchiesKK! 🍔🔥 #ilovemunchieskk #munchieskkburger',
+      text: 'Just enjoyed delicious burgers from MunchiesKK! 🍔🔥 #ilovemunchieskk #munchieskkburger',
       url: window.location.origin
     };
 

@@ -43,7 +43,7 @@ export function restaurantSchema({ weeklySchedule, minPriceCents, maxPriceCents 
     image: abs(SITE.ogImage),
     logo: abs('/images/logo.png'),
     telephone: SITE.phone,
-    description: 'Smash burgers, loaded fries and sharing platters in Kota Kinabalu, Sabah. Order online for pickup or GrabFood delivery.',
+    description: 'Beef, chicken and lamb burgers, loaded fries and sharing platters in Kota Kinabalu, Sabah. Order online for pickup or GrabFood delivery.',
     servesCuisine: ['Burgers', 'Fast food', 'Loaded fries', 'Sabahan'],
     address,
     areaServed: { '@type': 'City', name: SITE.locality },

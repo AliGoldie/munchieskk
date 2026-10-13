@@ -36,14 +36,14 @@ const cheapestPack = Math.min(...SLIDER_TRAYS.map(t => t.price)) / 100;
 
 export const ROUTE_SEO = {
   '/': {
-    title: 'MunchiesKK | Smash Burgers in Kota Kinabalu, Sabah',
-    description: "MunchiesKK serves hand-pressed smash burgers, loaded fries and sharing platters in Kota Kinabalu, Sabah. Order online for pickup or GrabFood delivery.",
+    title: 'MunchiesKK | Burgers in Kota Kinabalu, Sabah',
+    description: "MunchiesKK serves juicy beef, chicken and lamb burgers, loaded Monsta Fries and sharing platters in Kota Kinabalu, Sabah. Order online for pickup or GrabFood delivery.",
     changefreq: 'daily',
     priority: '1.0',
   },
   '/menu': {
     title: 'Menu: Burgers, Fries & Platters | MunchiesKK Kota Kinabalu',
-    description: 'The full MunchiesKK menu: smash burgers, Sabah-style Sumandak, loaded Monsta Fries, platters and drinks. Order online for pickup in Kota Kinabalu.',
+    description: 'The full MunchiesKK menu: beef, chicken and lamb burgers, Sabah-style Sumandak, loaded Monsta Fries, platters and drinks. Order online for pickup in Kota Kinabalu.',
     changefreq: 'daily',
     priority: '0.9',
   },

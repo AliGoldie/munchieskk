@@ -57,7 +57,7 @@ function headFor(route, seo) {
 }
 
 function noscriptFor(route, seo) {
-  const h1 = route === '/' ? 'MunchiesKK: smash burgers in Kota Kinabalu, Sabah' : seo.title.split(' | ')[0].split(': ')[0];
+  const h1 = route === '/' ? 'MunchiesKK: burgers in Kota Kinabalu, Sabah' : seo.title.split(' | ')[0].split(': ')[0];
   return `<noscript>
       <main style="font-family:sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem">
         <h1>${esc(h1)}</h1>
