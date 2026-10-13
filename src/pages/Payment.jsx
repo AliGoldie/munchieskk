@@ -34,6 +34,19 @@ export default function Payment() {
 
   const finalTotal = Math.max(0, cartTotal - promoDiscount);
 
+  // Points are added when the order is collected. A weekday boost (double
+  // points Tue-Thu by default) is set by the owner in Admin.
+  const [boost, setBoost] = useState(null);
+  useEffect(() => {
+    let active = true;
+    Promise.resolve(supabase.rpc('points_boost_info'))
+      .then(({ data, error }) => { if (active && !error && data) setBoost(data); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+  const boostMultiplier = boost?.active_now ? Number(boost.multiplier) || 1 : 1;
+  const pointsToEarn = Math.round(finalTotal / 100) * boostMultiplier;
+
   // A reward the customer ticked (free item / add-on, paid for with points).
   const [rewardPrizeId, setRewardPrizeId] = useState(null);
   const rewardPrize = (loyaltyPrizes || []).find(p => p.id === rewardPrizeId) || null;
@@ -472,6 +485,13 @@ export default function Payment() {
             <span>Total to Pay</span>
             <span className="text-primary">RM {(finalTotal / 100).toFixed(2)}</span>
           </div>
+
+          {user && pointsToEarn > 0 && (
+            <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: 'var(--text-2)' }}>
+              You will earn about <strong>{pointsToEarn.toLocaleString()} points</strong> (plus 6 bonus) when you collect your order
+              {boostMultiplier > 1 ? ` — ${boostMultiplier}x points today!` : '.'}
+            </p>
+          )}
 
           <button
             className="btn btn-primary w-full pay-btn"

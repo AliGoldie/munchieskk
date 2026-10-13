@@ -13,11 +13,12 @@ and playing games. Spend them on free food. Rank up the more you order.**
 
 | How | Points | Rules to mention |
 |---|---|---|
-| **Order in the app** | **1 point per RM1 spent** | Food total actually paid. Orders must be placed in the app (munchieskk.my). Counter sales rung up in Loyverse do not earn app points. |
-| **Collect your order** | **+6** | Once per order, when it is collected. |
+| **Order in the app** | **1 point per RM1 spent** | Food total actually paid. Orders must be placed in the app (munchieskk.my). Counter sales rung up in Loyverse do not earn app points. **The points are added when the order is collected**, not when it is placed. A cancelled order earns nothing. |
+| **Double points days** | **2x order points on Tuesday, Wednesday and Thursday** | Based on the day the order is placed (Malaysia time). The owner can change the days or switch it off, so confirm before posting. Rank bonus is added on top. |
+| **Collect your order** | **+6** | Once per order, paid together with the order points when the order is collected. |
 | **Share your food** | **+20** | Tap Instagram / Facebook / TikTok after collecting. Once per order. |
 | **Share + screenshot** | **40 in total** (+20 more) | Upload a screenshot of the public post (tag @munchieskk). Points are added after we approve it. Send it within 14 days of the order. |
-| **Invite a friend** | **+150 for you, +30 for them** | Friend signs up with your link or code. The 150 is paid when their **first collected order of RM20 or more** is done. Max 5 friends per person. The friend's 30 points are paid at sign-up. |
+| **Invite a friend** | **+150 for you, +30 for them** | Friend signs up with your link or code. The 150 is paid when their **first collected order of RM20 or more** is done. Max 5 friends per person. **The friend's 30 points are paid at the same moment**, after their first collected order of RM20 or more (not at sign-up). |
 | **Rank bonus** | **+5% / +8% / +12%** extra points on every order | Pro / Master / Ultimate ranks only (see Burger Ranks). |
 | **Play the arcade (T-Rex Runner, Speed Grab, Munch-Man)** | **No loyalty points per run or win.** Your runs build your **Arcade Score** (see below). | Reach the weekly goal for **+25 points**; top scores win free food. |
 
@@ -105,12 +106,17 @@ Safe wording: "Points expire after 12 months of no activity. Order once a year a
 
 ## Handy examples (all real, safe to use)
 
-- "Spend RM25, earn **25 points**. Collect it for **6 more**. That is 31 points from one burger meal."
+- "Spend RM25, earn **25 points**. Collect it for **6 more**. That is 31 points from one burger meal. On a **Tuesday to Thursday** it is **56**."
 - "Share your meal for **20 points**, send us the screenshot and make it **40**."
 - "Bring a friend: you get **150**, they get **30** to start."
 - "**Free fries** from just **100 points**. **Free egg** from 60."
 - "Ice BB for **350 points**. The big one: a **Kawan MONSTA platter** for **3,000**."
 - "New here? Play the arcade free and chase the weekly goal for bonus points while you wait."
+
+## Install the app (new)
+
+On the order page and the Profile page there is an **Install app** button. One tap puts the MunchiesKK icon on the phone's home screen.
+On iPhone the app shows a short hint (Share, then Add to Home Screen). Nothing is downloaded from an app store.
 
 ## Do NOT promise or mention
 
