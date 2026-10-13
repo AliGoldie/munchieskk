@@ -616,58 +616,14 @@ export default function MunchManModal({ isOpen, onClose }) {
 
       const liveUser = userRef.current;
       if (liveUser && liveUser.id) {
-        let ptsAwarded = 0;
-        let msg = '';
-        if (win) {
-          ptsAwarded = 50;
-          msg = '+50 Loyalty Points Earned for Victory!';
-        } else if (state.totalDots > 0 && (state.dotsEaten / state.totalDots) >= 0.5) {
-          ptsAwarded = 20;
-          msg = '+20 Loyalty Points Earned for Progress!';
-        }
-
-        if (ptsAwarded > 0) {
-          setRewardMsg(msg);
-          setUser(prev => prev ? ({ ...prev, points: (prev.points || 0) + ptsAwarded }) : prev);
-
-          // Fallback path only runs if the RPC itself errors — re-read the current
-          // DB value right before writing so this doesn't overwrite points earned
-          // from any other source (an order, another reward) while the game was running.
-          const writeFallbackPoints = async () => {
-            const { data: freshProfile } = await supabase
-              .from('profiles')
-              .select('points')
-              .eq('id', liveUser.id)
-              .maybeSingle();
-            const freshTotal = (freshProfile?.points ?? liveUser.points ?? 0) + ptsAwarded;
-            await supabase.from('profiles').update({ points: freshTotal }).eq('id', liveUser.id);
-          };
-
-          try {
-            const { data, error } = await supabase.rpc('claim_munchman_reward', {
-              p_won: win,
-              p_dots_eaten: state.dotsEaten,
-              p_total_dots: state.totalDots
-            });
-
-            if (error) {
-              await writeFallbackPoints();
-            } else if (data && data.total_points !== undefined) {
-              setUser(prev => prev ? ({ ...prev, points: data.total_points }) : prev);
-            }
-          } catch (err) {
-            await writeFallbackPoints();
-          }
-        }
-
         // The day's score also counts toward the Arcade Score (contest and weekly goal).
         try {
           const { data: scoreData, error: scoreError } = await supabase.rpc('record_munchman_score', { p_score: state.score });
           if (!scoreError && scoreData) {
             if (scoreData.goal_score) setWeekInfo({ week: scoreData.week_score, goal: scoreData.goal_score, bonus: scoreData.goal_points });
+            if (scoreData.message) setRewardMsg(scoreData.message);
             if (scoreData.points_awarded > 0) {
               setUser(prev => prev ? ({ ...prev, points: scoreData.total_points }) : prev);
-              setRewardMsg(prev => (prev ? `${prev} ${scoreData.message}` : scoreData.message));
             }
           }
         } catch (err) {
@@ -1021,9 +977,6 @@ export default function MunchManModal({ isOpen, onClose }) {
         const { data, error } = await supabase.rpc('start_munchman_session');
         if (!error && data) {
           setStreak(data.streak || 0);
-          if (data.bonus_points) {
-            setUser(prev => ({ ...prev, points: (prev.points || 0) + data.bonus_points }));
-          }
         } else {
           await supabase.from('game_plays').insert([{
             user_id: user.id,
