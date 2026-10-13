@@ -323,25 +323,26 @@
 /* Optional landmark info (tap the chip to pause and read) */
 .runner-info-chip {
   position: absolute;
-  top: 74px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 44px;
+  right: 10px;
   z-index: 3;
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--gold, #FFC72C);
-  background: rgba(20, 17, 12, 0.82);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold, #FFC72C);
+  background: rgba(20, 17, 12, 0.8);
   color: var(--gold, #FFC72C);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.5px;
+  line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
-  animation: runner-chip-in 0.25s ease-out;
+  animation: runner-chip-pulse 1.4s ease-in-out infinite;
 }
-@keyframes runner-chip-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+@keyframes runner-chip-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 199, 44, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 199, 44, 0); }
 }
 .runner-info-card {
   position: fixed;
@@ -406,3 +407,8 @@
   line-height: 1.5;
 }
 .runner-landmarks strong { display: block; color: var(--gold, #FFC72C); margin-bottom: 4px; text-align: center; }
+
+.runner-badge-magnet {
+  border-color: #E5483B;
+  color: #ff8a80;
+}
