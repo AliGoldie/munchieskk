@@ -202,7 +202,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const MIN_OBSTACLE_SPACING = 200;
     // Chance a given segment gets a burger, and how much clear room it
     // needs from any obstacle on that same segment (see ensureTerrain).
-    const COLLECTIBLE_CHANCE = 0.75;
+    const COLLECTIBLE_CHANCE = 0.6;
     const MIN_COLLECTIBLE_CLEARANCE = 45;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
@@ -398,21 +398,37 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           }
         }
 
-        // Burgers: placed together with the obstacle so they never sit in
-        // an obstacle's danger zone. Every wide segment past the warm-up gets
-        // something (a burger trail if it had no obstacle), so there are no
-        // empty stretches, and a segment with room gets a little arc of three.
+        // Burgers over the pit just before this segment: a small arc above the
+        // lava/water, so the jump across is the way to collect them.
         let placedCollectible = false;
-        const wantsBurger = last && (Math.random() < COLLECTIBLE_CHANCE || (!inGrace && !placedObstacle && seg.xEnd - seg.xStart > 130));
+        const gapStart = last ? last.xEnd : 0;
+        const gapWidth = last ? seg.xStart - gapStart : 0;
+        if (last && !inGrace && gapWidth >= 40 && Math.random() < 0.75) {
+          const n = gapWidth > 95 ? 3 : gapWidth > 60 ? 2 : 1;
+          const base = Math.min(last.y, seg.y) - PLAYER_H;
+          const heights = n === 1 ? [46] : n === 2 ? [44, 44] : [38, 54, 38];
+          for (let k = 0; k < n; k++) {
+            const gx = gapStart + (gapWidth * (k + 1)) / (n + 1);
+            state.collectibles.push({ x: gx, y: base - heights[k], size: 9 });
+          }
+          placedCollectible = true;
+        }
+
+        // Burgers on the road: a mix of singles, pairs and the odd arc of
+        // three, at varied heights, never in an obstacle's danger zone. Every
+        // wide stretch past the warm-up still gets something.
+        const roll = Math.random();
+        const wantsBurger = last && (roll < COLLECTIBLE_CHANCE || (!inGrace && !placedObstacle && !placedCollectible && seg.xEnd - seg.xStart > 130));
         if (wantsBurger) {
-          const hopHeight = 30 + Math.random() * 34;
+          const hopHeight = 26 + Math.random() * 44;
           const cx = pickClearX(seg, placedObstacle, MIN_COLLECTIBLE_CLEARANCE);
           if (cx != null) {
             const room = seg.xEnd - cx - 12;
-            const trail = room >= 60 && Math.random() < 0.6 ? 3 : 1;
-            for (let k = 0; k < trail; k++) {
-              const lift = trail === 3 ? [0, 12, 0][k] : 0;
-              state.collectibles.push({ x: cx + k * 22, y: seg.y - PLAYER_H - hopHeight - lift, size: 9 });
+            const pick = Math.random();
+            const count = room >= 60 && pick < 0.15 ? 3 : room >= 40 && pick < 0.4 ? 2 : 1;
+            for (let k = 0; k < count; k++) {
+              const lift = count === 3 ? [0, 12, 0][k] : count === 2 ? k * 8 : 0;
+              state.collectibles.push({ x: cx + k * 24, y: seg.y - PLAYER_H - hopHeight - lift, size: 9 });
             }
             placedCollectible = true;
           }
@@ -871,7 +887,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         ctx.drawImage(sprite, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
         return;
       }
-      ctx.fillStyle = p.type === 'speed' ? '#3FA9E0' : p.type === 'magnet' ? '#E5483B' : '#FFD23F';
+      ctx.fillStyle = p.type === 'speed' ? '#3FA9E0' : p.type === 'magnet' ? '#232838' : '#FFD23F';
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();
@@ -879,15 +895,24 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       ctx.lineWidth = 1.5;
       ctx.stroke();
       if (p.type === 'magnet') {
-        // little horseshoe magnet
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#fff';
+        // horseshoe magnet: red body with white tips
+        const r = 5.5;
+        ctx.lineCap = 'butt';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#E5483B';
         ctx.beginPath();
-        ctx.arc(p.x, p.y + 1, 4.5, Math.PI, 0);
-        ctx.moveTo(p.x - 4.5, p.y + 1);
-        ctx.lineTo(p.x - 4.5, p.y + 5);
-        ctx.moveTo(p.x + 4.5, p.y + 1);
-        ctx.lineTo(p.x + 4.5, p.y + 5);
+        ctx.arc(p.x, p.y, r, Math.PI, 0);
+        ctx.moveTo(p.x - r, p.y);
+        ctx.lineTo(p.x - r, p.y + 3);
+        ctx.moveTo(p.x + r, p.y);
+        ctx.lineTo(p.x + r, p.y + 3);
+        ctx.stroke();
+        ctx.strokeStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(p.x - r, p.y + 3);
+        ctx.lineTo(p.x - r, p.y + 7);
+        ctx.moveTo(p.x + r, p.y + 3);
+        ctx.lineTo(p.x + r, p.y + 7);
         ctx.stroke();
       }
     }
