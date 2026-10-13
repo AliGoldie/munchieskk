@@ -21,6 +21,8 @@ CREATE TABLE profiles (
   points integer DEFAULT 0,
   name text,
   phone text,
+  game_streak integer DEFAULT 0,
+  last_game_date date,
   created_at timestamptz DEFAULT now()
 );
 CREATE TABLE orders (
@@ -60,6 +62,7 @@ $$;
 
 \i supabase/migrations/20261012000002_arcade_points_grace_period.sql
 \i supabase/migrations/20261016000000_arcade_contests.sql
+\i supabase/migrations/20261017000000_munchman_match_games.sql
 
 CREATE FUNCTION pg_temp.expect(p_ok boolean, p_msg text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN IF NOT p_ok THEN RAISE EXCEPTION 'FAIL: %', p_msg; END IF; END $$;
@@ -196,6 +199,25 @@ BEGIN
   PERFORM pg_temp.expect((r->>'points_awarded')::int = 0, 'below the goal: nothing yet');
   r := pg_temp.munch(f, 90, 400);
   PERFORM pg_temp.expect((r->>'week_score')::int = 1100 AND (r->>'points_awarded')::int = 25 AND pg_temp.pts(f) = 25, 'three games add up to the goal and it pays even with the weekly cap used');
+END $$;
+
+-- Munch-Man pays no points for a win or a streak; the streak is only a badge
+DO $$
+DECLARE r jsonb;
+  h constant text := 'a0000000-0000-0000-0000-000000000009';
+BEGIN
+  INSERT INTO profiles (id, role, points, name, phone, game_streak, last_game_date)
+  VALUES (h::uuid, 'user', 10, 'Hana Streak', '0191110000', 2, (now() AT TIME ZONE 'UTC')::date - 1);
+  PERFORM pg_temp.as_user(h);
+  r := public.start_munchman_session();
+  PERFORM pg_temp.expect((r->>'streak')::int = 3, 'the streak still counts days');
+  PERFORM pg_temp.expect((r->>'bonus_points')::int = 0 AND pg_temp.pts(h) = 10, 'a day-3 streak pays no points any more');
+  r := public.claim_munchman_reward(true, 100, 100);
+  PERFORM pg_temp.expect((r->>'points_awarded')::int = 0 AND pg_temp.pts(h) = 10, 'a Munch-Man win pays no points any more');
+  r := public.record_munchman_score(1500);
+  PERFORM pg_temp.expect(NOT (r->>'verified')::boolean, 'a 1,500 score a split second after starting is rejected');
+  PERFORM pg_temp.expect_error($q$SELECT public.start_munchman_session()$q$, 'You have already used your free play today!');
+  PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.start_munchman_session()', 'execute'), 'guests cannot start Munch-Man');
 END $$;
 
 -- ---------------------------------------------------------------------

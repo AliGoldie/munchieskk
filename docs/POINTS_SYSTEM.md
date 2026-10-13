@@ -19,15 +19,12 @@ and playing games. Spend them on free food. Rank up the more you order.**
 | **Share + screenshot** | **40 in total** (+20 more) | Upload a screenshot of the public post (tag @munchieskk). Points are added after we approve it. Send it within 14 days of the order. |
 | **Invite a friend** | **+150 for you, +30 for them** | Friend signs up with your link or code. The 150 is paid when their **first collected order of RM20 or more** is done. Max 5 friends per person. The friend's 30 points are paid at sign-up. |
 | **Rank bonus** | **+5% / +8% / +12%** extra points on every order | Pro / Master / Ultimate ranks only (see Burger Ranks). |
-| **Play Munch-Man** | up to +50 a game | One free play a day. Win = 50, eat at least half the dots = 20. |
-| **Munch-Man daily streak** | +30 on day 3, +100 on day 7 | Play on consecutive days. |
-| **T-Rex Runner / Speed Grab** | **No loyalty points per run.** Your runs build your **Arcade Score** (see below). | Reach the weekly goal for a loyalty bonus; top scores win free food. |
+| **Play the arcade (T-Rex Runner, Speed Grab, Munch-Man)** | **No loyalty points per run or win.** Your runs build your **Arcade Score** (see below). | Reach the weekly goal for **+25 points**; top scores win free food. |
 
-**Munch-Man game points have limits (say this clearly):**
-- A **maximum of 150 game bonus points a week** in total (Munch-Man plus the weekly arcade goal).
-- **New accounts earn game points freely for their first 30 days.** After that, game points need at least one collected order on the account.
-- Game days reset at **8:00 am Malaysia time**.
-- Order, collection, share and referral points are **not** part of the 150 limit.
+**Arcade bonus rules (say this clearly):**
+- The only loyalty points from games are the **+25 weekly goal bonus** (once a week).
+- **New accounts qualify freely for their first 30 days.** After that, the weekly goal bonus needs at least one collected order on the account.
+- Munch-Man gives one free play a day. Game days reset at **8:00 am Malaysia time**. The daily streak is just a badge now.
 
 ## How customers SPEND points
 
@@ -68,7 +65,7 @@ Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all 
   - Winners are picked automatically when the contest ends. Only **first names** are shown. Winners show a claim code at the counter
     (claimed **with any order of RM10 or more**; 14 days to claim, unless the contest says otherwise).
   - Scores are checked: impossible scores are not counted, and staff check the top players in person.
-- **Munch-Man still has its own points** (win 50, progress 20, streak bonuses), as listed above. Its score also counts toward Arcade Score.
+- **Munch-Man matches the other two games:** no points for a win or a streak (the streak is only a badge). Its score counts toward Arcade Score.
 - **Do not say** that T-Rex Runner or Speed Grab give loyalty points for every personal best. They no longer do.
 
 For the full plain-language explanation, see `docs/ARCADE_CONTEST_FOR_CONTENT_TEAM.md`.
@@ -99,7 +96,7 @@ first name only and get a claim code to show at the counter within 14 days.
 
 ## Points expiry (new)
 
-- Points **expire only if the account is inactive for 12 months**. An order, game points or claiming a reward each restart the clock.
+- Points **expire only if the account is inactive for 12 months**. An order, a game score or claiming a reward each restart the clock.
 - It is **gradual, not a sudden wipe**: after 12 months of no activity, the balance drops by **25% a month** until it is gone (4 months). **Any order stops it straight away.**
 - We remind customers: a banner in the app from month 11, and a personal WhatsApp message from us for customers who left a phone number.
 - **Rank never expires** (it is based on spend). Only the points balance fades.
@@ -113,7 +110,7 @@ Safe wording: "Points expire after 12 months of no activity. Order once a year a
 - "Bring a friend: you get **150**, they get **30** to start."
 - "**Free fries** from just **100 points**. **Free egg** from 60."
 - "Ice BB for **350 points**. The big one: a **Kawan MONSTA platter** for **3,000**."
-- "New here? Play the arcade free for your first 30 days and earn bonus points while you wait."
+- "New here? Play the arcade free and chase the weekly goal for bonus points while you wait."
 
 ## Do NOT promise or mention
 
@@ -121,7 +118,7 @@ Safe wording: "Points expire after 12 months of no activity. Order once a year a
 - **A free burger.** No plain burger reward exists. Only the items in the table above.
 - **Points for counter (Loyverse) purchases.** Only app orders earn points for now.
 - **"Points never expire."** They fade after 12 months of no activity (above).
-- **Unlimited game points.** Always mention the weekly limit if you mention games.
+- **Points for every game win, or a streak bonus.** Games only pay through the weekly goal.
 - **Any reward, price or discount not in this document.** No "RM5 off" or percent-off codes for points.
 - **A rank leaderboard or other customers' spend.** Monthly winners are first name only.
 

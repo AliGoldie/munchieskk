@@ -34,7 +34,7 @@ export default function MunchManRulesModal({ isOpen, onClose, onConfirm, streak 
         <div className="munchman-rules-list">
           <div className="munchman-rule-item">
             <span className="munchman-rule-icon">🟡</span>
-            <div><strong>Munch All Dots:</strong> Clear the maze to secure a WIN and earn <strong>+50 Loyalty Points</strong>.</div>
+            <div><strong>Munch All Dots:</strong> Clear the maze to secure a WIN. Your score counts toward your <strong>Arcade Score</strong>.</div>
           </div>
           <div className="munchman-rule-item">
             <span className="munchman-rule-icon">👻</span>
@@ -46,7 +46,7 @@ export default function MunchManRulesModal({ isOpen, onClose, onConfirm, streak 
           </div>
           <div className="munchman-rule-item">
             <span className="munchman-rule-icon">🎁</span>
-            <div><strong>Rewards & Streaks:</strong> Clear 50%+ dots on loss for a <strong>+20 Pts</strong> partial reward. Keep a daily streak for 3-day and 7-day bonuses!</div>
+            <div><strong>Arcade Score:</strong> Reach 1,000 in a week across the arcade games for a loyalty bonus, and climb the monthly contest. Keep a daily streak for bragging rights!</div>
           </div>
         </div>
 

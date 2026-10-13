@@ -50,6 +50,13 @@ A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
   - Winners get a **claim code in the app**, shown at the counter **with any order of RM10 or more**, within **14 days** (the owner can change both for a given month).
   - **Staff check the top players** in person before handing over a prize.
 
+## When does the first contest start? **(confirm live)**
+
+The plan is **1 November 2026**, run online through the app for the whole month (1 Nov, 12:00 am to 1 Dec, 12:00 am,
+Malaysia time). Winners are picked automatically on 1 December. Until then, players can already play and chase the weekly goal.
+The prizes are claimed at the counter, so if the shop is not open yet when winners are announced, the owner will extend the
+claim period. Do not promise a pickup date until the owner confirms the shop opening.
+
 ## What players see in the app
 
 - The Arcade page shows the current contest: the prizes, how much time is left, **their own rank and score**, and how far they are from the podium.
@@ -74,7 +81,7 @@ Sample captions (edit freely, keep to the facts above):
 
 ## Please do NOT
 
-- Say that games give loyalty points for every win or personal best. Only the **weekly goal** gives points (and Munch-Man keeps its own win and streak points, listed in the points brief).
+- Say that games give loyalty points for every win, streak or personal best. Only the **weekly goal** gives points.
 - Promise a prize that is not confirmed for that month, or say "free burger" for everyone.
 - Post a full leaderboard, full names, phone numbers or scores of other players.
 - Say "free, no purchase". The prize is claimed **with an order of RM10 or more**. Say "14 days to claim" only for a contest that is set to 14 days.
