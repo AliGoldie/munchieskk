@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Volume2, VolumeX, Trophy, Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { STAGES, stageIndexForScore, drawSky, drawScenery } from './trexStages';
+import { STAGES, stageIndexForScore, drawSky, drawScenery, drawHazard } from './trexStages';
 import './TrexRunnerModal.css';
 
 export default function TrexRunnerModal({ isOpen, onClose }) {
@@ -179,6 +179,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const MIN_COLLECTIBLE_CLEARANCE = 45;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
+    // Feet sit at 105/121 of the sprite height (the rest is transparent).
+    const TREX_FEET_FRAC = 105 / 121;
 
     const trexImg = new Image();
     trexImg.src = '/images/Trex.png';
@@ -586,8 +588,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
       const hitboxX = PLAYER_X + 5;
       const hitboxW = PLAYER_W - 10;
-      const hitboxY = state.player.y + 4;
-      const hitboxH = PLAYER_H - 8;
+      const hitboxY = state.player.y + 7;
+      const hitboxH = PLAYER_H - 9;
 
       for (let i = state.obstacles.length - 1; i >= 0; i--) {
         const o = state.obstacles[i];
@@ -659,6 +661,22 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // previous one when a new stage starts.
       if (blending) drawScenery(ctx, W, LOW_Y, state.prevStageIdx, state.distance, 1, state.elapsed);
       drawScenery(ctx, W, LOW_Y, state.stageIdx, state.distance, blending ? state.stageBlend : 1, state.elapsed);
+      drawHazard(ctx, W, H, LOW_Y, STAGES[state.stageIdx].hazard, state.distance, state.elapsed, 1, null);
+    }
+
+    // Translucent hazard over the gaps in the road only, drawn after the
+    // runner so one that falls in visibly sinks into it.
+    function drawHazardFront() {
+      const segs = [...state.terrain].sort((a, b) => a.xStart - b.xStart);
+      const gaps = [];
+      let edge = 0;
+      for (const seg of segs) {
+        if (seg.xStart > edge) gaps.push([edge, Math.min(W, seg.xStart)]);
+        edge = Math.max(edge, seg.xEnd);
+        if (edge >= W) break;
+      }
+      if (edge < W) gaps.push([edge, W]);
+      if (gaps.length) drawHazard(ctx, W, H, LOW_Y, STAGES[state.stageIdx].hazard, state.distance, state.elapsed, 0.6, gaps);
     }
 
     function drawStageBanner() {
@@ -775,7 +793,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     function drawPlayer() {
       const cx = PLAYER_X + PLAYER_W / 2;
-      const cy = state.player.y + PLAYER_H / 2;
+      // The sprite has transparent padding under the feet, so place it by
+      // where the feet are drawn, not by the image centre: feet rest on the road.
+      const cy = state.player.y + PLAYER_H + 1 - TREX_FEET_FRAC * TREX_DRAW_H + TREX_DRAW_H / 2;
       const running = state.player.onGround && state.running;
       // Stride cycle standing in for a real run-cycle sprite sheet: a bob
       // synced with a small forward/back lean, both speeding up as the
@@ -816,6 +836,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.powerups.forEach(drawPowerup);
       drawEffects();
       drawPlayer();
+      drawHazardFront();
       drawStageBanner();
     }
 
@@ -968,7 +989,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                     {deathReason && (
                       <p style={{ fontSize: 12, color: '#aaa', marginTop: -10, marginBottom: 4 }}>
                         {deathReason === 'wall' && 'Ran into a platform mid-jump'}
-                        {deathReason === 'pit' && 'Missed a jump into a pit'}
+                        {deathReason === 'pit' && (STAGES[stageIdx].hazard === 'lava' ? 'Fell into the lava' : 'Fell into the water')}
                         {deathReason === 'obstacle' && 'Hit an obstacle'}
                       </p>
                     )}

@@ -5,11 +5,11 @@
 // silhouettes below are drawn instead, so the game never shows an empty sky.
 
 export const STAGES = [
-  { name: 'Penampang', from: 0, sky: ['#33405c', '#c9854f'] },
-  { name: 'Gaya Street', from: 400, sky: ['#3a4a5e', '#b89a6a'] },
-  { name: 'KK City Mosque', from: 900, sky: ['#35506b', '#d6a45f'] },
-  { name: 'Tanjung Aru', from: 1500, sky: ['#4a2f5a', '#e0663a'] },
-  { name: 'Mount Kinabalu', from: 2300, sky: ['#0b1026', '#2a2f55'], final: true }
+  { name: 'Penampang', from: 0, sky: ['#33405c', '#c9854f'], hazard: 'lava' },
+  { name: 'Gaya Street', from: 400, sky: ['#3a4a5e', '#b89a6a'], hazard: 'lava' },
+  { name: 'KK City Mosque', from: 900, sky: ['#35506b', '#d6a45f'], hazard: 'water' },
+  { name: 'Tanjung Aru', from: 1500, sky: ['#4a2f5a', '#e0663a'], hazard: 'water' },
+  { name: 'Mount Kinabalu', from: 2300, sky: ['#0b1026', '#2a2f55'], hazard: 'lava', final: true }
 ];
 
 const IMAGES = STAGES.map((_, i) => {
@@ -251,6 +251,67 @@ export function drawScenery(ctx, W, groundY, stageIdx, distance, alpha, time) {
     ctx.fillRect(0, 0, W, groundY);
   } else {
     SCENES[stageIdx](ctx, W, groundY, distance, time);
+  }
+  ctx.restore();
+}
+
+// Pits are lava or water (per stage) so a gap in the road clearly reads as a
+// drop to avoid. Drawn twice: a back pass behind the road, and a translucent
+// front pass over the gaps only, so a falling runner sinks into it.
+export function drawHazard(ctx, W, H, y, kind, distance, time, alpha, gaps) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (gaps) {
+    ctx.beginPath();
+    gaps.forEach(([a, b]) => ctx.rect(a, y - 6, b - a, H - y + 6));
+    ctx.clip();
+  }
+  const lava = kind === 'lava';
+  const grad = ctx.createLinearGradient(0, y, 0, H);
+  if (lava) {
+    grad.addColorStop(0, '#ff8a1f');
+    grad.addColorStop(0.35, '#e2380f');
+    grad.addColorStop(1, '#4d0b04');
+  } else {
+    grad.addColorStop(0, '#3c8bb0');
+    grad.addColorStop(0.4, '#1d5578');
+    grad.addColorStop(1, '#0a2238');
+  }
+  const wave = (x) => y + Math.sin((x + distance * 0.6 + time * 40) / 9) * 2.2 + Math.sin((x - time * 25) / 4) * 0.8;
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  for (let x = 0; x <= W; x += 4) ctx.lineTo(x, wave(x));
+  ctx.lineTo(W, H);
+  ctx.closePath();
+  ctx.fill();
+  // bright surface line
+  ctx.strokeStyle = lava ? 'rgba(255, 224, 120, 0.9)' : 'rgba(220, 245, 255, 0.7)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += 4) (x === 0 ? ctx.moveTo(x, wave(x)) : ctx.lineTo(x, wave(x)));
+  ctx.stroke();
+  if (lava) {
+    // glow above the surface and a few bubbles
+    const glow = ctx.createLinearGradient(0, y - 14, 0, y);
+    glow.addColorStop(0, 'rgba(255, 120, 30, 0)');
+    glow.addColorStop(1, 'rgba(255, 120, 30, 0.35)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, y - 14, W, 14);
+    for (let i = 0; i < 7; i++) {
+      const bx = ((i * 61 - distance * 0.5) % W + W) % W;
+      const by = y + 8 + ((time * 14 + i * 9) % 18);
+      ctx.fillStyle = 'rgba(255, 230, 130, 0.65)';
+      ctx.beginPath();
+      ctx.arc(bx, by, 1.6 + (i % 3) * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    for (let i = 0; i < 6; i++) {
+      const rx = ((i * 73 - distance * 0.4 + time * 10) % W + W) % W;
+      ctx.fillStyle = 'rgba(220, 245, 255, 0.35)';
+      ctx.fillRect(rx, y + 7 + (i % 3) * 6, 16, 1.5);
+    }
   }
   ctx.restore();
 }
