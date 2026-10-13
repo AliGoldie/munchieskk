@@ -56,17 +56,28 @@ function sceneryPenampang(ctx, W, g, d) {
   }
   ctx.lineTo(W, g);
   ctx.fill();
-  // government-style block + a roundabout monument (placeholder shapes)
+  // government-style block + the Siga roundabout monument (placeholder shapes)
   tile(W, 420, d * 0.3, (x) => {
     rect(ctx, x + 20, g - 62, 130, 62, SILHOUETTE);
     rect(ctx, x + 14, g - 68, 142, 8, SILHOUETTE);
     for (let r = 0; r < 2; r++) for (let c = 0; c < 6; c++) rect(ctx, x + 30 + c * 20, g - 52 + r * 24, 10, 12, WINDOW);
-    rect(ctx, x + 262, g - 74, 8, 74, SILHOUETTE);
+    // Roundabout monument: a pedestal topped with a giant Siga (Kadazan
+    // headdress) -- band, crown and two upturned points. Placeholder shape.
+    const mx = x + 270;
+    rect(ctx, mx - 22, g - 8, 44, 8, SILHOUETTE);
+    rect(ctx, mx - 7, g - 34, 14, 28, SILHOUETTE);
     ctx.fillStyle = SILHOUETTE;
     ctx.beginPath();
-    ctx.ellipse(x + 266, g - 76, 16, 7, 0, 0, Math.PI * 2);
+    ctx.moveTo(mx - 30, g - 34);
+    ctx.quadraticCurveTo(mx - 38, g - 62, mx - 24, g - 78);
+    ctx.quadraticCurveTo(mx - 20, g - 66, mx - 12, g - 60);
+    ctx.lineTo(mx, g - 56);
+    ctx.lineTo(mx + 12, g - 60);
+    ctx.quadraticCurveTo(mx + 20, g - 66, mx + 24, g - 78);
+    ctx.quadraticCurveTo(mx + 38, g - 62, mx + 30, g - 34);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillRect(x + 244, g - 6, 44, 6);
+    rect(ctx, mx - 30, g - 42, 60, 6, 'rgba(255, 199, 44, 0.45)');
   });
 }
 
