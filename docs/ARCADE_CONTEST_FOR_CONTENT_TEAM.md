@@ -47,15 +47,15 @@ A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
   - **One account per phone number.** If two accounts share a number, only the better one counts.
   - A **minimum score** applies (300 by default) so that a single quick try does not win.
   - Winners are picked **automatically when the month ends**.
-  - Winners get a **claim code in the app**, shown at the counter **with any order of RM10 or more**, within **14 days** (the owner can change both for a given month).
+  - Winners get a **claim code in the app**, shown at the counter **with any order of RM10 or more**, within **60 days** of winning (set by the owner for this contest).
   - **Staff check the top players** in person before handing over a prize.
 
 ## When does the first contest start? **(confirm live)**
 
 The plan is **1 November 2026**, run online through the app for the whole month (1 Nov, 12:00 am to 1 Dec, 12:00 am,
 Malaysia time). Winners are picked automatically on 1 December. Until then, players can already play and chase the weekly goal.
-The prizes are claimed at the counter, so if the shop is not open yet when winners are announced, the owner will extend the
-claim period. Do not promise a pickup date until the owner confirms the shop opening.
+The prizes are claimed at the counter. The claim window is 60 days from the win, so there is room if the shop opens after 1 December.
+Do not promise a pickup date until the owner confirms the shop opening, and do not say the window will be extended.
 
 ## What players see in the app
 
@@ -84,7 +84,7 @@ Sample captions (edit freely, keep to the facts above):
 - Say that games give loyalty points for every win, streak or personal best. Only the **weekly goal** gives points.
 - Promise a prize that is not confirmed for that month, or say "free burger" for everyone.
 - Post a full leaderboard, full names, phone numbers or scores of other players.
-- Say "free, no purchase". The prize is claimed **with an order of RM10 or more**. Say "14 days to claim" only for a contest that is set to 14 days.
+- Say "free, no purchase". The prize is claimed **with an order of RM10 or more**. Say "60 days to claim" for the November contest.
 - Call it a lucky draw. It is a **skill contest**: the best scores win.
 - Encourage cheating, bots or multiple accounts. Cheated scores are not counted and can lose the prize.
 
