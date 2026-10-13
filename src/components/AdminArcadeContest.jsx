@@ -24,7 +24,7 @@ function wholeMonth(ym) {
 }
 
 const emptyForm = () => ({
-  id: null, title: '', starts: '', ends: '', active: true, min_score: '300', claim_days: '14',
+  id: null, title: '', starts: '', ends: '', active: true, min_score: '300', claim_days: '14', claim_min_rm: '10',
   prizes: DEFAULT_PRIZES.map((name, i) => ({ rank: i + 1, prize_name: name, menu_item_id: '' })),
 });
 
@@ -56,7 +56,7 @@ export default function AdminArcadeContest() {
     const by = Object.fromEntries((c.prizes || []).map((p) => [p.rank, p]));
     setForm({
       id: c.id, title: c.title, starts: toInput(c.starts_at), ends: toInput(c.ends_at), active: c.active,
-      min_score: String(c.min_score), claim_days: String(c.claim_days),
+      min_score: String(c.min_score), claim_days: String(c.claim_days), claim_min_rm: String((c.claim_min_order_cents ?? 1000) / 100),
       prizes: [1, 2, 3].map((r) => ({ rank: r, prize_name: by[r]?.prize_name || '', menu_item_id: by[r]?.menu_item_id || '' })),
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -81,7 +81,7 @@ export default function AdminArcadeContest() {
     const { error: err } = await supabase.rpc('admin_save_arcade_contest', {
       p_id: form.id, p_title: form.title, p_starts: toIso(form.starts), p_ends: toIso(form.ends),
       p_active: form.active, p_min_score: parseInt(form.min_score || '300', 10), p_claim_days: parseInt(form.claim_days || '14', 10),
-      p_prizes: prizes,
+      p_prizes: prizes, p_claim_min_order_cents: Math.round(parseFloat(form.claim_min_rm || '0') * 100),
     });
     setSaving(false);
     if (err) { alert(err.message); return; }
@@ -164,6 +164,9 @@ export default function AdminArcadeContest() {
             <input className="price-input" type="number" min="1" value={form.claim_days} onChange={(e) => setForm((f) => ({ ...f, claim_days: e.target.value }))} />
           </label>
         </div>
+        <label>Minimum order to claim a prize (RM, 0 = no purchase needed)
+          <input className="price-input" type="number" min="0" step="1" value={form.claim_min_rm} onChange={(e) => setForm((f) => ({ ...f, claim_min_rm: e.target.value }))} />
+        </label>
         {form.prizes.map((p) => (
           <div className="mp-row" key={p.rank}>
             <label>{PLACES[p.rank - 1]} prize
@@ -220,7 +223,7 @@ export default function AdminArcadeContest() {
                   {c.finalized_at ? 'Finished' : c.active ? 'Active' : 'Off'}
                 </span>
               </div>
-              <div className="text-muted" style={{ fontSize: '.85rem' }}>{show(c.starts_at)} to {show(c.ends_at)} · min {c.min_score}</div>
+              <div className="text-muted" style={{ fontSize: '.85rem' }}>{show(c.starts_at)} to {show(c.ends_at)} · min score {c.min_score} · claim with RM{((c.claim_min_order_cents ?? 0) / 100).toFixed(0)}+ order</div>
               <div style={{ fontSize: '.85rem' }}>{c.prizes.map((p) => `${PLACES[p.rank - 1]}: ${p.prize_name}`).join(' · ') || 'No prizes set'}</div>
               {c.winners.map((w) => (
                 <div key={w.rank} className="mp-claim">

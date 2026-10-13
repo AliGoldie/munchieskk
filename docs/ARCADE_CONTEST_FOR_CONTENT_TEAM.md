@@ -47,7 +47,7 @@ A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
   - **One account per phone number.** If two accounts share a number, only the better one counts.
   - A **minimum score** applies (300 by default) so that a single quick try does not win.
   - Winners are picked **automatically when the month ends**.
-  - Winners get a **claim code in the app**, shown at the counter. The plan is **no purchase needed** and **14 days to claim** (confirm both).
+  - Winners get a **claim code in the app**, shown at the counter **with any order of RM10 or more**, within **14 days** (the owner can change both for a given month).
   - **Staff check the top players** in person before handing over a prize.
 
 ## What players see in the app
@@ -70,24 +70,25 @@ A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
 Sample captions (edit freely, keep to the facts above):
 - "Play, score, win. Top 3 players each month win free MunchiesKK food. Play now on munchieskk.my."
 - "Weekly goal: 1,000 Arcade Score = +25 loyalty points. Three games, one score."
-- "Congratulations to this month's winners: [first name], [first name] and [first name]! Show your code at the counter."
+- "Congratulations to this month's winners: [first name], [first name] and [first name]! Show your code at the counter with any order of RM10 or more."
 
 ## Please do NOT
 
 - Say that games give loyalty points for every win or personal best. Only the **weekly goal** gives points (and Munch-Man keeps its own win and streak points, listed in the points brief).
 - Promise a prize that is not confirmed for that month, or say "free burger" for everyone.
 - Post a full leaderboard, full names, phone numbers or scores of other players.
-- Say "no purchase needed" or "14 days to claim" until the owner confirms it.
+- Say "free, no purchase". The prize is claimed **with an order of RM10 or more**. Say "14 days to claim" only for a contest that is set to 14 days.
 - Call it a lucky draw. It is a **skill contest**: the best scores win.
 - Encourage cheating, bots or multiple accounts. Cheated scores are not counted and can lose the prize.
 
 ## Quick FAQ for replies and comments
 
 - **Do I need to order food to play?** No. Playing is free for everyone who has an account. (After the first 30 days, the weekly goal bonus needs at least one collected order.)
+- **Do I need to order to collect my prize?** Yes: show the claim code with any order of RM10 or more.
 - **Can I use two accounts?** One account per phone number counts. Please do not.
 - **What if there is a tie?** The player who reached the score first wins.
 - **When are the winners announced?** When the month ends, once the owner confirms them.
-- **Where do I collect my prize?** At the counter, with the claim code from the app.
+- **Where do I collect my prize?** At the counter, with the claim code from the app and an order of RM10 or more.
 - **Why did my score not count?** Make sure you are logged in. Scores that are impossible for the time played are not counted.
 
 ## The pre-opening challenge **(confirm live)**

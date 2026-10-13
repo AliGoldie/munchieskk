@@ -249,7 +249,7 @@ BEGIN
   -- overlap is refused; a second contest after it is fine
   PERFORM pg_temp.expect_error(format($q$SELECT public.admin_save_arcade_contest(NULL, 'Clash', now(), now() + interval '1 day', true, 300, 14, '[]'::jsonb)$q$), 'That overlaps another active contest');
   PERFORM public.admin_save_arcade_contest(NULL, 'Fortnight 2', now() + interval '2 days', now() + interval '16 days', true, 300, 14,
-    '[{"rank":1,"prize_name":"Solero"}]'::jsonb);
+    '[{"rank":1,"prize_name":"Solero"}]'::jsonb, 500);
 
   -- a normal user cannot manage contests or see the admin view
   PERFORM pg_temp.as_user('a0000000-0000-0000-0000-000000000001');
@@ -263,6 +263,8 @@ BEGIN
   PERFORM pg_temp.expect((r->'my'->>'gap_to_podium')::int = 0, 'on the podium: no gap');
   PERFORM pg_temp.expect(jsonb_array_length(r->'current'->'prizes') = 3, 'three prizes listed');
   PERFORM pg_temp.expect(r->'next'->>'title' = 'Fortnight 2', 'next contest shown');
+  PERFORM pg_temp.expect((r->'current'->>'claim_min_order_cents')::int = 1000, 'the claim minimum order defaults to RM10');
+  PERFORM pg_temp.expect((r->'next'->>'claim_min_order_cents')::int = 500, 'a contest can set its own claim minimum');
   PERFORM pg_temp.expect(NOT (r::text ILIKE '%Cara%'), 'no other player is named while a contest is running');
   -- a guest still gets the contest, but no personal data
   PERFORM pg_temp.as_user('');
@@ -283,6 +285,7 @@ BEGIN
   PERFORM pg_temp.expect((r->'last'->'winners'->0->>'first_name') = 'Cara' AND (r->'last'->'winners'->1->>'first_name') = 'Alice', 'public winners are first names, in order');
   PERFORM pg_temp.expect(NOT (r::text ILIKE '%Cara Lim%') AND NOT (r::text ILIKE '%016555%'), 'no full name or phone leaks to players');
   PERFORM pg_temp.expect(jsonb_array_length(r->'my_wins') = 1 AND (r->'my_wins'->0->>'prize') = 'Free fries', 'Alice sees her own claim (2nd: fries)');
+  PERFORM pg_temp.expect((r->'my_wins'->0->>'claim_min_order_cents')::int = 1000, 'the claim card carries the RM10 minimum');
   PERFORM pg_temp.expect((r->'my_wins'->0->>'claim_code') = (SELECT claim_code FROM arcade_contest_winners WHERE contest_id = cid AND rank = 2), 'her claim code is her own');
   PERFORM pg_temp.expect((SELECT count(DISTINCT claim_code) FROM arcade_contest_winners WHERE contest_id = cid) = 3, 'claim codes are unique');
 

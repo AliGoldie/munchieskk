@@ -4,6 +4,7 @@ import { supabase } from '../config/supabase';
 import './ArcadeContestCard.css';
 
 const PLACES = ['1st', '2nd', '3rd'];
+const claimLine = (cents) => (cents > 0 ? `Claim with any order of RM${(cents / 100).toLocaleString('en-MY', { maximumFractionDigits: 2 })} or more.` : 'No purchase needed to claim.');
 const fmtDay = (d) => new Date(d).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'Asia/Kuching' });
 
 function timeLeft(endsAt, now) {
@@ -46,7 +47,7 @@ export default function ArcadeContestCard({ refreshKey }) {
       {wins.map((w) => (
         <div className="card arcade-win-card" key={`${w.contest}-${w.rank}`}>
           <h3>You came {PLACES[w.rank - 1] || `#${w.rank}`} in {w.contest}: {w.prize}!</h3>
-          <p>Show this code at the counter to collect it.</p>
+          <p>Show this code at the counter to collect it. {claimLine(w.claim_min_order_cents ?? 1000)}</p>
           <div className="arcade-win-code">{w.claim_code}</div>
         </div>
       ))}
@@ -81,12 +82,12 @@ export default function ArcadeContestCard({ refreshKey }) {
             ) : (
               <p className="acc-me">Log in and play to join the contest.</p>
             )}
-            <p className="acc-fine">Ends {fmtDay(current.ends_at)}. First names only are shown. One account per phone number.</p>
+            <p className="acc-fine">Ends {fmtDay(current.ends_at)}. {claimLine(current.claim_min_order_cents ?? 1000)} First names only. One account per phone number.</p>
           </>
         ) : next ? (
           <>
             <h3>{next.title}</h3>
-            <p className="acc-sub">Starts {fmtDay(next.starts_at)}. Top 3 win free food.</p>
+            <p className="acc-sub">Starts {fmtDay(next.starts_at)}. Top 3 win free food. {claimLine(next.claim_min_order_cents ?? 1000)}</p>
             <div className="acc-prizes">
               {next.prizes.map((z) => (
                 <div key={z.rank} className={`acc-prize acc-prize-${z.rank}`}>

@@ -68,10 +68,12 @@ CREATE TABLE IF NOT EXISTS public.arcade_contests (
   active boolean NOT NULL DEFAULT true,
   min_score integer NOT NULL DEFAULT 300 CHECK (min_score >= 0),
   claim_days integer NOT NULL DEFAULT 14 CHECK (claim_days > 0),
+  claim_min_order_cents integer NOT NULL DEFAULT 1000 CHECK (claim_min_order_cents >= 0),
   finalized_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK (ends_at > starts_at)
 );
+ALTER TABLE public.arcade_contests ADD COLUMN IF NOT EXISTS claim_min_order_cents integer NOT NULL DEFAULT 1000;
 CREATE TABLE IF NOT EXISTS public.arcade_contest_prizes (
   contest_id uuid NOT NULL REFERENCES public.arcade_contests(id) ON DELETE CASCADE,
   rank smallint NOT NULL CHECK (rank BETWEEN 1 AND 3),
@@ -499,13 +501,15 @@ BEGIN
     SELECT rk.total INTO v_first FROM public.arcade_contest_ranking(cur.id, true) rk WHERE rk.rnk = 1;
     SELECT rk.total INTO v_third FROM public.arcade_contest_ranking(cur.id, true) rk WHERE rk.rnk = 3;
     v_current := jsonb_build_object('id', cur.id, 'title', cur.title, 'starts_at', cur.starts_at,
-                                    'ends_at', cur.ends_at, 'min_score', cur.min_score, 'prizes', v_prizes);
+                                    'ends_at', cur.ends_at, 'min_score', cur.min_score,
+                                    'claim_min_order_cents', cur.claim_min_order_cents, 'prizes', v_prizes);
   END IF;
 
   IF nxt.id IS NOT NULL THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object('rank', z.rank, 'name', z.prize_name, 'image_url', z.image_url) ORDER BY z.rank), '[]'::jsonb)
     INTO v_next_prizes FROM public.arcade_contest_prizes z WHERE z.contest_id = nxt.id;
-    v_next := jsonb_build_object('title', nxt.title, 'starts_at', nxt.starts_at, 'ends_at', nxt.ends_at, 'prizes', v_next_prizes);
+    v_next := jsonb_build_object('title', nxt.title, 'starts_at', nxt.starts_at, 'ends_at', nxt.ends_at,
+                                 'claim_min_order_cents', nxt.claim_min_order_cents, 'prizes', v_next_prizes);
   END IF;
 
   IF lst.id IS NOT NULL THEN
@@ -539,7 +543,8 @@ BEGIN
         'qualifies', COALESCE(me.total, 0) >= cur.min_score);
     END IF;
     SELECT COALESCE(jsonb_agg(jsonb_build_object('contest', k.title, 'rank', w.rank,
-                                                 'prize', z.prize_name, 'claim_code', w.claim_code) ORDER BY w.awarded_at DESC), '[]'::jsonb)
+                                                 'prize', z.prize_name, 'claim_code', w.claim_code,
+                                                 'claim_min_order_cents', k.claim_min_order_cents) ORDER BY w.awarded_at DESC), '[]'::jsonb)
     INTO v_my_wins
     FROM public.arcade_contest_winners w
     JOIN public.arcade_contests k ON k.id = w.contest_id
@@ -607,7 +612,7 @@ BEGIN
 
   SELECT COALESCE(jsonb_agg(y ORDER BY y.starts_at DESC), '[]'::jsonb) INTO v_contests
   FROM (
-    SELECT k.id, k.title, k.starts_at, k.ends_at, k.active, k.min_score, k.claim_days, k.finalized_at,
+    SELECT k.id, k.title, k.starts_at, k.ends_at, k.active, k.min_score, k.claim_days, k.claim_min_order_cents, k.finalized_at,
            (SELECT COALESCE(jsonb_agg(jsonb_build_object('rank', z.rank, 'prize_name', z.prize_name,
                     'menu_item_id', z.menu_item_id, 'image_url', z.image_url) ORDER BY z.rank), '[]'::jsonb)
             FROM public.arcade_contest_prizes z WHERE z.contest_id = k.id) AS prizes,
@@ -641,7 +646,8 @@ CREATE OR REPLACE FUNCTION public.admin_save_arcade_contest(
   p_active boolean,
   p_min_score integer,
   p_claim_days integer,
-  p_prizes jsonb
+  p_prizes jsonb,
+  p_claim_min_order_cents integer DEFAULT 1000
 ) RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -680,12 +686,14 @@ BEGIN
     UPDATE public.arcade_contests
     SET title = trim(p_title), starts_at = p_starts, ends_at = p_ends,
         active = COALESCE(p_active, true), min_score = COALESCE(p_min_score, 300),
-        claim_days = COALESCE(p_claim_days, 14)
+        claim_days = COALESCE(p_claim_days, 14),
+        claim_min_order_cents = GREATEST(COALESCE(p_claim_min_order_cents, 1000), 0)
     WHERE id = v_id;
     DELETE FROM public.arcade_contest_prizes WHERE contest_id = v_id;
   ELSE
-    INSERT INTO public.arcade_contests (title, starts_at, ends_at, active, min_score, claim_days)
-    VALUES (trim(p_title), p_starts, p_ends, COALESCE(p_active, true), COALESCE(p_min_score, 300), COALESCE(p_claim_days, 14))
+    INSERT INTO public.arcade_contests (title, starts_at, ends_at, active, min_score, claim_days, claim_min_order_cents)
+    VALUES (trim(p_title), p_starts, p_ends, COALESCE(p_active, true), COALESCE(p_min_score, 300), COALESCE(p_claim_days, 14),
+            GREATEST(COALESCE(p_claim_min_order_cents, 1000), 0))
     RETURNING id INTO v_id;
   END IF;
 
@@ -699,8 +707,8 @@ BEGIN
   RETURN v_id;
 END;
 $$;
-REVOKE EXECUTE ON FUNCTION public.admin_save_arcade_contest(uuid, text, timestamptz, timestamptz, boolean, integer, integer, jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_save_arcade_contest(uuid, text, timestamptz, timestamptz, boolean, integer, integer, jsonb) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_save_arcade_contest(uuid, text, timestamptz, timestamptz, boolean, integer, integer, jsonb, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_save_arcade_contest(uuid, text, timestamptz, timestamptz, boolean, integer, integer, jsonb, integer) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.admin_delete_arcade_contest(p_id uuid)
 RETURNS void
