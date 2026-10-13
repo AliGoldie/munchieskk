@@ -52,22 +52,26 @@ order is cancelled**. **One reward per order**, and only when the order is place
 code, show it at the counter after paying. A reward not collected within
 **14 days** expires and the points go back.
 
-## Arcade Score, weekly goal and arcade contests (new)
+## Arcade Score, weekly goal and the monthly arcade contest (new)
 
 **Arcade Score is not points.** It cannot be spent. It only decides the contest ranking and the weekly goal.
-Say it that way: *points buy food, Arcade Score wins prizes.* Applies to **T-Rex Runner and Speed Grab**
-(Munch-Man works as before for now).
+Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all three arcade games
+(T-Rex Runner, Speed Grab and Munch-Man).
 
-- **What counts:** your **best score in each game, added together**. Playing more only helps if you beat your best.
+- **What counts:** your **best score in each of the three games, added together**. Playing more only helps if you beat your best.
 - **Three lives** in every game: a crash costs a life, and the run carries on.
 - **Weekly goal:** reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) for **+25 loyalty points**, once a week.
-  (After the first 30 days, game bonuses need at least one collected order.)
-- **Arcade contests:** the owner sets a start and end date. The **top 3** win free food. The plan is **two contests a month**
-  (1st to 15th, 16th to end of month): 1st a burger, 2nd fries, 3rd a drink. Prizes can differ per contest.
+  Because all three games add up, the goal is easy to reach. That is on purpose. (After the first 30 days, game bonuses need at least one collected order.)
+- **Monthly arcade contest:** one contest a month, running the whole calendar month. The **top 3** win free food
+  (the plan: 1st a burger, 2nd fries, 3rd a drink; the owner can change the prizes for each contest).
   - Ties go to whoever reached their score first. **One account per phone number.** A minimum score applies (300 by default).
-  - Winners are picked automatically when the contest ends. Only **first names** are shown. Winners show a claim code at the counter (no purchase needed; 14 days to claim, unless the contest says otherwise).
+  - Winners are picked automatically when the contest ends. Only **first names** are shown. Winners show a claim code at the counter
+    (no purchase needed; 14 days to claim, unless the contest says otherwise).
   - Scores are checked: impossible scores are not counted, and staff check the top players in person.
-- **Do not say** that games give loyalty points for every personal best. They no longer do.
+- **Munch-Man still has its own points** (win 50, progress 20, streak bonuses), as listed above. Its score also counts toward Arcade Score.
+- **Do not say** that T-Rex Runner or Speed Grab give loyalty points for every personal best. They no longer do.
+
+For the full plain-language explanation, see `docs/ARCADE_CONTEST_FOR_CONTENT_TEAM.md`.
 
 ## Burger Ranks
 

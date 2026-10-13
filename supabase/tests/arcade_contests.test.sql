@@ -96,7 +96,9 @@ INSERT INTO profiles (id, role, points, name, phone) VALUES
   ('a0000000-0000-0000-0000-000000000003', 'user', 0, 'Cara Lim', '0165554444'),
   ('a0000000-0000-0000-0000-000000000004', 'user', 0, 'Dan Lee', '0147776666'),
   ('a0000000-0000-0000-0000-000000000005', 'user', 0, 'Alice Sister', '+60 12-3456789'),
-  ('a0000000-0000-0000-0000-000000000006', 'user', 0, 'Eve Low', NULL);
+  ('a0000000-0000-0000-0000-000000000006', 'user', 0, 'Eve Low', NULL),
+  ('a0000000-0000-0000-0000-000000000007', 'user', 0, 'Gus Munch', '0171112222'),
+  ('a0000000-0000-0000-0000-000000000008', 'user', 0, 'Fay Capped', '0183334444');
 
 -- ---------------------------------------------------------------------
 -- 1. Server-side score check
@@ -165,6 +167,38 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------
+-- 2b. Munch-Man counts too, and the goal bonus is not blocked by the weekly cap
+-- ---------------------------------------------------------------------
+CREATE FUNCTION pg_temp.munch(p_user text, p_secs numeric, p_score integer) RETURNS jsonb LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO game_plays (user_id, game_name, played_at) VALUES (p_user::uuid, 'munch_man', now() - make_interval(secs => p_secs));
+  PERFORM pg_temp.as_user(p_user);
+  RETURN public.record_munchman_score(p_score);
+END $$;
+DO $$
+DECLARE r jsonb;
+  g constant text := 'a0000000-0000-0000-0000-000000000007';
+  f constant text := 'a0000000-0000-0000-0000-000000000008';
+BEGIN
+  r := pg_temp.munch(g, 90, 1800);
+  PERFORM pg_temp.expect((r->>'verified')::boolean, 'a plausible Munch-Man score is accepted');
+  PERFORM pg_temp.expect((SELECT count(*) FROM arcade_scores WHERE user_id = g::uuid AND game = 'munch_man') = 1, 'Munch-Man run is recorded as Arcade Score');
+  PERFORM pg_temp.expect((SELECT reward_claimed FROM game_plays WHERE user_id = g::uuid AND game_name = 'munch_man') = false, 'Munch-Man win/streak flow is left untouched');
+  INSERT INTO game_plays (user_id, game_name, played_at) VALUES (f::uuid, 'munch_man', now() - interval '20 seconds');
+  PERFORM pg_temp.as_user(f);
+  r := public.record_munchman_score(5500);
+  PERFORM pg_temp.expect(NOT (r->>'verified')::boolean, 'an impossible Munch-Man score for 20 seconds is rejected');
+  DELETE FROM game_plays WHERE user_id = f::uuid;
+
+  -- Fay has already used up the 150-a-week game points; the goal bonus still pays
+  INSERT INTO engagement_points_log (user_id, source, points) VALUES (f::uuid, 'munchman_win', 150);
+  r := pg_temp.run(f, 'trex_runner', 60, 700);
+  PERFORM pg_temp.expect((r->>'points_awarded')::int = 0, 'below the goal: nothing yet');
+  r := pg_temp.munch(f, 90, 400);
+  PERFORM pg_temp.expect((r->>'week_score')::int = 1100 AND (r->>'points_awarded')::int = 25 AND pg_temp.pts(f) = 25, 'three games add up to the goal and it pays even with the weekly cap used');
+END $$;
+
+-- ---------------------------------------------------------------------
 -- 3. Contest: ranking, ties, minimum score, one account per phone
 -- ---------------------------------------------------------------------
 -- fresh data for the contest, with exact times
@@ -186,6 +220,8 @@ INSERT INTO arcade_scores (user_id, game, score, run_seconds, scored_at) VALUES
   ('a0000000-0000-0000-0000-000000000005', 'trex_runner', 1250, 60, now() - interval '6 hours'),
   -- Eve has no phone
   ('a0000000-0000-0000-0000-000000000006', 'trex_runner', 400, 60, now() - interval '1 hour'),
+  -- Gus plays only Munch-Man: it still counts
+  ('a0000000-0000-0000-0000-000000000007', 'munch_man', 350, 90, now() - interval '4 hours'),
   -- an old score outside the period
   ('a0000000-0000-0000-0000-000000000003', 'trex_runner', 5000, 100, now() - interval '10 days');
 
@@ -205,7 +241,8 @@ BEGIN
   END LOOP;
   -- Cara 1500, then the tie at 1300 goes to Alice (reached her total at -20h vs Bob -5h)... Alice's sister (1250)
   -- shares Alice's phone so is removed, Eve 400; Dan under minimum; Cara's old 5000 is outside the period.
-  PERFORM pg_temp.expect(ids = '3:1500 1:1300 2:1300 6:400 ', 'ranking: ' || ids);
+  PERFORM pg_temp.expect(ids = '3:1500 1:1300 2:1300 6:400 7:350 ', 'ranking: ' || ids);
+  PERFORM pg_temp.expect((SELECT munch FROM public.arcade_contest_ranking(cid, true) WHERE user_id = 'a0000000-0000-0000-0000-000000000007') = 350, 'Munch-Man score is part of the total');
   -- Bob and Alice tie on 1300; Alice's best scores were reached at -20h/-25h -> latest -20h; Bob at -5h
   PERFORM pg_temp.expect((SELECT user_id FROM public.arcade_contest_ranking(cid, true) WHERE rnk = 2) = 'a0000000-0000-0000-0000-000000000001', 'tie goes to the earlier total');
 
@@ -277,6 +314,7 @@ BEGIN
   PERFORM pg_temp.expect(NOT has_table_privilege('authenticated', 'public.arcade_scores', 'insert'), 'players cannot write scores');
   PERFORM pg_temp.expect(NOT has_table_privilege('authenticated', 'public.arcade_contest_winners', 'select'), 'players cannot read claim codes');
   PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.arcade_record_score(text, integer)', 'execute'), 'scoring goes through the claim functions only');
+  PERFORM pg_temp.expect(has_function_privilege('authenticated', 'public.record_munchman_score(integer)', 'execute') AND NOT has_function_privilege('anon', 'public.record_munchman_score(integer)', 'execute'), 'players, not guests, can record a Munch-Man score');
   PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.arcade_check_weekly_goal(uuid)', 'execute'), 'players cannot trigger the goal for others');
   PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.finalize_arcade_contests()', 'execute'), 'players cannot finalize');
   PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.arcade_contest_ranking(uuid, boolean)', 'execute'), 'players cannot read the raw ranking');

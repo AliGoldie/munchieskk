@@ -16,12 +16,11 @@ const toIso = (v) => `${v}:00+08:00`;
 const show = (ts) => new Date(ts).toLocaleString('en-MY', { timeZone: 'Asia/Kuching', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 const pad = (n) => String(n).padStart(2, '0');
 
-function halfMonth(ym, half) {
+function wholeMonth(ym) {
   const [y, m] = ym.split('-').map(Number);
   const next = m === 12 ? `${y + 1}-01` : `${y}-${pad(m + 1)}`;
-  return half === 1
-    ? { start: `${ym}-01T00:00`, end: `${ym}-16T00:00`, title: `1-15 ${new Date(y, m - 1, 1).toLocaleString('en-MY', { month: 'short' })} contest` }
-    : { start: `${ym}-16T00:00`, end: `${next}-01T00:00`, title: `16-end ${new Date(y, m - 1, 1).toLocaleString('en-MY', { month: 'short' })} contest` };
+  const label = new Date(y, m - 1, 1).toLocaleString('en-MY', { month: 'long' });
+  return { start: `${ym}-01T00:00`, end: `${next}-01T00:00`, title: `${label} arcade contest` };
 }
 
 const emptyForm = () => ({
@@ -48,8 +47,8 @@ export default function AdminArcadeContest() {
 
   useEffect(() => { load(); }, [load]);
 
-  const applyHalf = (half) => {
-    const h = halfMonth(ym, half);
+  const applyMonth = () => {
+    const h = wholeMonth(ym);
     setForm((f) => ({ ...f, id: null, title: h.title, starts: h.start, ends: h.end }));
   };
 
@@ -117,7 +116,7 @@ export default function AdminArcadeContest() {
     <div>
       <h4 style={{ margin: '0 0 .5rem' }}>Arcade Contest</h4>
       <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
-        Players' Arcade Score is the best score in each game (T-Rex Runner and Speed Grab) added together during the contest.
+        Players' Arcade Score is the best score in each game (T-Rex Runner, Speed Grab and Munch-Man) added together during the contest.
         Top 3 win the prizes you set. Winners are picked automatically when the contest ends. Check the top players below
         (run speed and shared phones) before you hand anything over.
       </p>
@@ -143,8 +142,7 @@ export default function AdminArcadeContest() {
             <input className="price-input" type="month" value={ym} onChange={(e) => setYm(e.target.value)} />
           </label>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-            <button type="button" className="btn btn-sm btn-outline" onClick={() => applyHalf(1)}>1st to 15th</button>
-            <button type="button" className="btn btn-sm btn-outline" onClick={() => applyHalf(2)}>16th to end</button>
+            <button type="button" className="btn btn-sm btn-outline" onClick={applyMonth}>Whole month</button>
           </div>
         </div>
         <label>Title (shown to players)
@@ -202,7 +200,7 @@ export default function AdminArcadeContest() {
               <span>{l.name || 'Unknown'}{l.phone ? ` · ${l.phone}` : ' · no phone'}</span>
               <span className="mp-amount">{l.total.toLocaleString()}</span>
               <span className="text-muted" style={{ fontSize: '.75rem', flexBasis: '100%' }}>
-                T-Rex {l.trex.toLocaleString()} · Speed Grab {l.grab.toLocaleString()} · fastest run {Number(l.max_rate).toFixed(0)} pts/sec
+                T-Rex {l.trex.toLocaleString()} · Speed Grab {l.grab.toLocaleString()} · Munch-Man {(l.munch || 0).toLocaleString()} · fastest run {Number(l.max_rate).toFixed(0)} pts/sec
                 {Number(l.max_rate) > 40 && <strong style={{ color: '#b45309' }}> · unusually fast, check in person</strong>}
                 {l.same_phone_accounts > 1 && <strong style={{ color: '#b91c1c' }}> · {l.same_phone_accounts} accounts share this phone (only the best counts)</strong>}
               </span>

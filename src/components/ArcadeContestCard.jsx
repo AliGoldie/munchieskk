@@ -76,7 +76,7 @@ export default function ArcadeContestCard({ refreshKey }) {
                   ? <>You are <b>#{my.rank}</b> with <b>{my.total.toLocaleString()}</b>.{my.gap_to_podium > 0 ? ` ${my.gap_to_podium.toLocaleString()} more to reach the podium.` : ' You are on the podium!'}</>
                   : my.total > 0
                     ? <>You have <b>{my.total.toLocaleString()}</b>. Reach {current.min_score.toLocaleString()} to join the ranking.</>
-                    : <>Play T-Rex Runner or Speed Grab to join. Reach {current.min_score.toLocaleString()} to qualify.</>}
+                    : <>Play any arcade game to join. Reach {current.min_score.toLocaleString()} to qualify.</>}
               </p>
             ) : (
               <p className="acc-me">Log in and play to join the contest.</p>
@@ -99,7 +99,7 @@ export default function ArcadeContestCard({ refreshKey }) {
         ) : (
           <>
             <h3>Next contest coming soon</h3>
-            <p className="acc-sub">Play T-Rex Runner and Speed Grab. Top scores will win free food.</p>
+            <p className="acc-sub">Play the three arcade games. Top scores will win free food.</p>
           </>
         )}
 

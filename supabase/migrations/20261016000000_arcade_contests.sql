@@ -1,7 +1,7 @@
 -- Arcade contests, Arcade Score and the weekly goal.
 --
 -- Games stop paying loyalty points for every personal best. Instead:
---   * Every verified T-Rex Runner / Speed Grab run is recorded as an Arcade
+--   * Every verified T-Rex Runner / Speed Grab / Munch-Man run is recorded as an Arcade
 --     Score (never spent; only for the leaderboard and the weekly goal).
 --   * Weekly goal: reach the goal score (default 1,000, the sum of your best
 --     score in each game this week) for a one-off loyalty bonus (default 25).
@@ -13,7 +13,7 @@
 --   * Scores are checked on the server: a score that could not be reached in
 --     the time the run lasted is rejected and never recorded.
 --
--- Munch-Man is unchanged for now (it has no real score yet).
+-- Munch-Man still pays its own win and streak points; its score also counts toward Arcade Score.
 -- Safe to re-run. Run after 20261015000000_points_expiry_fries_100.sql.
 
 -- =====================================================================
@@ -29,7 +29,7 @@ ALTER TABLE public.engagement_points_log ADD CONSTRAINT engagement_points_log_so
 CREATE TABLE IF NOT EXISTS public.arcade_scores (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  game text NOT NULL CHECK (game IN ('trex_runner', 'speed_grab')),
+  game text NOT NULL CHECK (game IN ('trex_runner', 'speed_grab', 'munch_man')),
   score integer NOT NULL CHECK (score >= 0),
   run_seconds numeric NOT NULL,
   scored_at timestamptz NOT NULL DEFAULT now()
@@ -111,6 +111,7 @@ IMMUTABLE
 AS $$
   SELECT CASE p_game
     WHEN 'trex_runner' THEN floor(GREATEST(p_seconds, 0) * 70 + 150)::integer
+    WHEN 'munch_man' THEN LEAST(6000, floor(GREATEST(p_seconds, 0) * 100 + 300))::integer
     ELSE floor(GREATEST(p_seconds, 0) * 110 + 100)::integer
   END;
 $$;
@@ -141,9 +142,24 @@ AS $$
   ) b;
 $$;
 
+-- Same rule as game bonuses: free for the first 30 days, after that the
+-- account needs at least one collected order.
+CREATE OR REPLACE FUNCTION public.arcade_goal_eligible(p_uid uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT COALESCE((SELECT created_at FROM public.profiles WHERE id = p_uid), now()) >= now() - interval '30 days'
+         OR EXISTS (SELECT 1 FROM public.orders WHERE user_id = p_uid AND status = 'COLLECTED');
+$$;
+REVOKE EXECUTE ON FUNCTION public.arcade_goal_eligible(uuid) FROM PUBLIC, anon, authenticated;
+
 -- Pays the weekly goal bonus once a week. Returns the loyalty points paid
 -- now (0 if not reached, already paid, or the account is not eligible for
--- game bonuses yet; see award_engagement_points).
+-- game bonuses yet). It is not held back by the 150-a-week game points cap,
+-- so reaching the goal always pays.
 CREATE OR REPLACE FUNCTION public.arcade_check_weekly_goal(p_uid uuid)
 RETURNS integer
 LANGUAGE plpgsql
@@ -170,11 +186,13 @@ BEGIN
     RETURN 0;
   END IF;
 
-  v_paid := public.award_engagement_points(p_uid, 'arcade_goal', v_bonus);
-  IF v_paid > 0 THEN
-    UPDATE public.arcade_goal_awards SET points = v_paid WHERE user_id = p_uid AND week_start = v_week;
+  IF public.arcade_goal_eligible(p_uid) THEN
+    UPDATE public.profiles SET points = COALESCE(points, 0) + v_bonus WHERE id = p_uid;
+    INSERT INTO public.engagement_points_log (user_id, source, points) VALUES (p_uid, 'arcade_goal', v_bonus);
+    UPDATE public.arcade_goal_awards SET points = v_bonus WHERE user_id = p_uid AND week_start = v_week;
+    v_paid := v_bonus;
   ELSE
-    -- not eligible (or weekly cap used): leave it open so a later run can still earn it
+    -- not eligible yet: leave it open so a later run can still earn it
     DELETE FROM public.arcade_goal_awards WHERE user_id = p_uid AND week_start = v_week;
   END IF;
   RETURN v_paid;
@@ -242,7 +260,7 @@ BEGIN
   WHERE user_id = v_uid
     AND game_name = p_game
     AND (played_at AT TIME ZONE 'UTC')::date = CURRENT_DATE
-    AND reward_claimed = false
+    AND ((p_game = 'munch_man' AND score IS NULL) OR (p_game <> 'munch_man' AND reward_claimed = false))
   ORDER BY played_at DESC
   LIMIT 1
   FOR UPDATE;
@@ -258,10 +276,11 @@ BEGIN
 
   v_ok := p_score <= public.arcade_score_ceiling(p_game, v_seconds);
 
+  -- Munch-Man keeps its own win/streak points flow, so its flags are left alone.
   UPDATE public.game_plays
-  SET reward_claimed = true,
+  SET reward_claimed = CASE WHEN p_game = 'munch_man' THEN reward_claimed ELSE true END,
       score = CASE WHEN v_ok THEN p_score ELSE NULL END,
-      points_awarded = 0
+      points_awarded = CASE WHEN p_game = 'munch_man' THEN points_awarded ELSE 0 END
   WHERE id = v_play_id;
 
   IF v_ok THEN
@@ -317,6 +336,17 @@ AS $$ SELECT public.arcade_record_score('speed_grab', p_score); $$;
 REVOKE EXECUTE ON FUNCTION public.claim_speed_grab_reward(integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.claim_speed_grab_reward(integer) TO authenticated;
 
+-- Munch-Man: record the day's score (its win/streak points still go through
+-- claim_munchman_reward and start_munchman_session as before).
+CREATE OR REPLACE FUNCTION public.record_munchman_score(p_score integer)
+RETURNS jsonb
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$ SELECT public.arcade_record_score('munch_man', p_score); $$;
+REVOKE EXECUTE ON FUNCTION public.record_munchman_score(integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.record_munchman_score(integer) TO authenticated;
+
 -- =====================================================================
 -- PART 4: contest ranking and winners
 -- =====================================================================
@@ -324,7 +354,7 @@ GRANT EXECUTE ON FUNCTION public.claim_speed_grab_reward(integer) TO authenticat
 -- Ranking for one contest (internal). p_dedupe keeps only the best account
 -- per phone number; the admin view turns it off to show duplicates.
 CREATE OR REPLACE FUNCTION public.arcade_contest_ranking(p_contest uuid, p_dedupe boolean DEFAULT true)
-RETURNS TABLE (user_id uuid, total integer, trex integer, grab integer, reached_at timestamptz, max_rate numeric, rnk bigint)
+RETURNS TABLE (user_id uuid, total integer, trex integer, grab integer, munch integer, reached_at timestamptz, max_rate numeric, rnk bigint)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
@@ -345,6 +375,7 @@ AS $$
            SUM(b.score)::integer AS total,
            SUM(CASE WHEN b.game = 'trex_runner' THEN b.score ELSE 0 END)::integer AS trex,
            SUM(CASE WHEN b.game = 'speed_grab' THEN b.score ELSE 0 END)::integer AS grab,
+           SUM(CASE WHEN b.game = 'munch_man' THEN b.score ELSE 0 END)::integer AS munch,
            MAX(b.scored_at) AS reached_at
     FROM best b
     GROUP BY b.user_id
@@ -369,7 +400,7 @@ AS $$
            ) AS pr
     FROM elig e
   )
-  SELECT d.user_id, d.total, d.trex, d.grab, d.reached_at, round(d.max_rate, 1),
+  SELECT d.user_id, d.total, d.trex, d.grab, d.munch, d.reached_at, round(d.max_rate, 1),
          ROW_NUMBER() OVER (ORDER BY d.total DESC, d.reached_at ASC, d.user_id)
   FROM dd d
   WHERE (NOT p_dedupe) OR d.pr = 1;
@@ -494,13 +525,14 @@ BEGIN
       WHERE user_id = v_uid AND week_start = (public.arcade_week_start() AT TIME ZONE 'Asia/Kuching')::date
     );
     IF cur.id IS NOT NULL THEN
-      SELECT rk.rnk, rk.total, rk.trex, rk.grab INTO me
+      SELECT rk.rnk, rk.total, rk.trex, rk.grab, rk.munch INTO me
       FROM public.arcade_contest_ranking(cur.id, true) rk WHERE rk.user_id = v_uid;
       v_my := jsonb_build_object(
         'rank', me.rnk,
         'total', COALESCE(me.total, 0),
         'trex', COALESCE(me.trex, 0),
         'grab', COALESCE(me.grab, 0),
+        'munch', COALESCE(me.munch, 0),
         'gap_to_podium', CASE WHEN me.rnk IS NOT NULL AND me.rnk <= 3 THEN 0
                               WHEN v_third IS NULL THEN GREATEST(cur.min_score - COALESCE(me.total, 0), 0)
                               ELSE GREATEST(v_third - COALESCE(me.total, 0) + 1, 0) END,
@@ -559,7 +591,7 @@ BEGIN
   IF cur.id IS NOT NULL THEN
     SELECT COALESCE(jsonb_agg(x ORDER BY x.rank), '[]'::jsonb) INTO v_leaders
     FROM (
-      SELECT rk.rnk AS rank, p.name, p.phone, rk.total, rk.trex, rk.grab, rk.max_rate,
+      SELECT rk.rnk AS rank, p.name, p.phone, rk.total, rk.trex, rk.grab, rk.munch, rk.max_rate,
              rk.reached_at,
              (SELECT count(*) FROM public.arcade_contest_ranking(cur.id, false) o
               JOIN public.profiles q ON q.id = o.user_id
