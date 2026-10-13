@@ -1,3 +1,4 @@
+import InstallAppButton from '../components/InstallAppButton';
 import { formatOrderId } from '../contexts/StoreContext';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
@@ -150,7 +151,7 @@ export default function OrderStatus() {
       // Neither Instagram nor TikTok has a share-intent URL that accepts a
       // pre-filled caption -- both just open a page, not a post composer.
       if (platform === 'Instagram' || platform === 'TikTok') {
-        alert(`Your caption (with hashtags) was copied! Paste it into your ${platform} post or story, then come back here.`);
+        alert(`Your caption (with hashtags) was copied! Paste it into your ${platform} post or story, then close that tab to get your points.`);
       }
 
       // Clean up any existing listener before attaching a new one
@@ -216,6 +217,8 @@ export default function OrderStatus() {
     <div className="order-status-page">
       <div className="container" style={{maxWidth: '500px'}}>
         
+        <InstallAppButton variant="card" />
+
         {/* PENDING STATE — waiting for admin to accept */}
         {order.status === 'PENDING' && (
           <div className="status-card cooking-card">
@@ -329,7 +332,11 @@ export default function OrderStatus() {
               <button className="btn btn-primary w-full pulse-button" onClick={handleCollect}>
                 TAP TO COLLECT FOOD
               </button>
-              <p className="text-sm mt-2 font-medium">Earn +{loyaltyConfig.COLLECTION_BONUS_PTS} PTS for collecting!</p>
+              <p className="text-sm mt-2 font-medium">
+                {order.points_credited_at || !order.points_earned
+                  ? `Earn +${loyaltyConfig.COLLECTION_BONUS_PTS} PTS for collecting!`
+                  : `Collect it to earn ${(Number(order.points_earned) + loyaltyConfig.COLLECTION_BONUS_PTS).toLocaleString()} PTS (${Number(order.points_earned).toLocaleString()} for your order + ${loyaltyConfig.COLLECTION_BONUS_PTS} bonus)!`}
+              </p>
             </div>
           </div>
         )}
@@ -372,6 +379,7 @@ export default function OrderStatus() {
                     <Share2 size={18} /> TikTok
                   </button>
                 </div>
+                {!claimedReview && <p className="text-sm mt-3" style={{ color: 'var(--text-2)' }}>After you share, close the share tab to get your points.</p>}
                 {claimedReview && <p className="text-sm mt-3 font-bold" style={{ color: 'var(--go)' }}>Bonus claimed!</p>}
               </div>
             )}

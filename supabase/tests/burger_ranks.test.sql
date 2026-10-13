@@ -587,6 +587,124 @@ BEGIN
 END $$;
 RESET request.jwt.claim.sub;
 
+-- ---------------------------------------------------------------------------
+-- 9. Points are paid at collection; friend's 30 after their first collected
+--    order; weekday boost
+-- ---------------------------------------------------------------------------
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS short_code text;
+\i supabase/migrations/20261018000000_points_at_collection.sql
+
+CREATE FUNCTION pg_temp.earned(p_order text) RETURNS integer LANGUAGE sql AS $$ SELECT points_earned FROM public.orders WHERE id = p_order $$;
+
+INSERT INTO profiles (id, role, points, name) VALUES
+  ('b0000000-0000-0000-0000-000000000001', 'user', 0, 'Buyer One'),
+  ('b0000000-0000-0000-0000-000000000003', 'user', 0, 'Referrer Three');
+INSERT INTO profiles (id, role, points, name, referred_by) VALUES
+  ('b0000000-0000-0000-0000-000000000002', 'user', 0, 'Friend Two', 'b0000000-0000-0000-0000-000000000003');
+
+DO $$
+DECLARE
+  b constant text := 'b0000000-0000-0000-0000-000000000001';
+  f constant text := 'b0000000-0000-0000-0000-000000000002';
+  r constant text := 'b0000000-0000-0000-0000-000000000003';
+  o1 text; o2 text; o3 text; o4 text;
+BEGIN
+  UPDATE points_boost SET enabled = false;   -- baseline without the weekday boost
+
+  o1 := pg_temp.order_of(b, 'platter', 1);   -- RM69.90 -> 70 points
+  PERFORM pg_temp.expect(pg_temp.earned(o1) = 70, 'order points are worked out at placement');
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 0, 'but not paid until the order is collected');
+  UPDATE orders SET status = 'COOKING' WHERE id = o1;
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 0, 'still nothing while it is being cooked');
+  UPDATE orders SET status = 'COLLECTED' WHERE id = o1;
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 76, 'collecting pays the order points plus the 6 bonus');
+  PERFORM pg_temp.expect((SELECT points_credited_at FROM orders WHERE id = o1) IS NOT NULL, 'the order is marked as paid');
+  UPDATE orders SET customer_name = 'touch' WHERE id = o1;
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 76, 'editing the order later never pays twice');
+
+  -- a refund takes back the matching share of paid points
+  UPDATE orders SET refund_amount = 3495 WHERE id = o1;
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 76 - 35, 'refunding half takes back half the order points');
+
+  -- cancelling before collection: nothing was paid, nothing is taken back
+  o2 := pg_temp.order_of(b, 'platter', 1);
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 41, 'placing a second order changes nothing yet');
+  PERFORM set_config('request.jwt.claim.sub', b, false);
+  PERFORM public.cancel_order(o2, 'Cancelled by Customer');
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 41, 'cancelling an uncollected order keeps the balance exactly as it was');
+
+  -- an order placed before this change was paid at placement: cancel still takes it back
+  INSERT INTO orders (id, status, total, user_id, points_earned, points_credited_at, created_at)
+  VALUES ('LEGACY-1', 'PENDING', 2000, b::uuid, 20, now() - interval '1 hour', now() - interval '1 hour');
+  UPDATE profiles SET points = points + 20 WHERE id = b::uuid;
+  PERFORM public.cancel_order('LEGACY-1', 'Cancelled by Customer');
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 41, 'a legacy order that was paid at placement is taken back on cancel');
+  RESET request.jwt.claim.sub;
+
+  -- a legacy order (already paid at placement) is not paid a second time on collection
+  INSERT INTO orders (id, status, total, user_id, points_earned, points_credited_at, created_at)
+  VALUES ('LEGACY-2', 'READY', 3000, b::uuid, 30, now() - interval '2 hours', now() - interval '2 hours');
+  UPDATE profiles SET points = points + 30 WHERE id = b::uuid;
+  UPDATE orders SET status = 'COLLECTED' WHERE id = 'LEGACY-2';
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 41 + 30 + 6, 'a legacy order paid at placement only gets the 6 collection bonus on collection');
+  UPDATE profiles SET points = points - 36 WHERE id = b::uuid;
+
+  -- referral: the friend gets 30 on their first collected order of RM20 or more
+  PERFORM pg_temp.expect(pg_temp.pts(f) = 0, 'the friend gets nothing at sign-up');
+  o3 := pg_temp.order_of(f, 'pepsi', 2);     -- RM7: below the RM20 minimum
+  UPDATE orders SET status = 'COLLECTED' WHERE id = o3;
+  PERFORM pg_temp.expect(pg_temp.pts(f) = 7 + 6 AND pg_temp.pts(r) = 0, 'a small first order pays only its own points; no referral yet');
+  o4 := pg_temp.order_of(f, 'platter', 1);
+  UPDATE orders SET status = 'COLLECTED' WHERE id = o4;
+  PERFORM pg_temp.expect(pg_temp.pts(f) = 13 + 70 + 6 + 30, 'the first collected order of RM20+ pays the friend 30 on top');
+  PERFORM pg_temp.expect(pg_temp.pts(r) = 150, 'and pays the referrer 150');
+  PERFORM pg_temp.expect((SELECT count(*) FROM referral_rewards_log WHERE referred_id = f::uuid AND reward_type = 'signup_bonus') = 1, 'the friend bonus is logged once');
+  o3 := pg_temp.order_of(f, 'platter', 1);
+  UPDATE orders SET status = 'COLLECTED' WHERE id = o3;
+  PERFORM pg_temp.expect(pg_temp.pts(f) = 119 + 70 + 6 AND pg_temp.pts(r) = 150, 'later orders do not pay the referral again');
+
+  -- weekday boost
+  UPDATE points_boost SET enabled = true, multiplier = 2, days = '{0,1,2,3,4,5,6}';
+  o1 := pg_temp.order_of(b, 'pepsi', 3);     -- RM10.50 -> 11 points, doubled
+  PERFORM pg_temp.expect(pg_temp.earned(o1) = 22, 'the weekday boost doubles the order points');
+  UPDATE points_boost SET days = '{}';
+  o2 := pg_temp.order_of(b, 'pepsi', 3);
+  PERFORM pg_temp.expect(pg_temp.earned(o2) = 11, 'on a day that is not boosted it is normal');
+  UPDATE points_boost SET days = '{0,1,2,3,4,5,6}', enabled = false;
+  o3 := pg_temp.order_of(b, 'pepsi', 3);
+  PERFORM pg_temp.expect(pg_temp.earned(o3) = 11, 'switched off, it is normal');
+  UPDATE points_boost SET enabled = true, multiplier = 2, days = '{2,3,4}';
+  -- Tuesday to Thursday in Malaysia time
+  PERFORM pg_temp.expect(public.points_boost_multiplier(timestamptz '2026-10-20 12:00+08') = 2, 'Tuesday is boosted');
+  PERFORM pg_temp.expect(public.points_boost_multiplier(timestamptz '2026-10-22 23:30+08') = 2, 'Thursday night is boosted');
+  PERFORM pg_temp.expect(public.points_boost_multiplier(timestamptz '2026-10-23 00:30+08') = 1, 'Friday just after midnight is not');
+  PERFORM pg_temp.expect(public.points_boost_multiplier(timestamptz '2026-10-19 12:00+08') = 1, 'Monday is not');
+
+END $$;
+RESET request.jwt.claim.sub;
+
+SET request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
+DO $$
+BEGIN
+  PERFORM pg_temp.expect_error($q$SELECT public.admin_set_points_boost(true, 3, '{1}')$q$, 'permission denied');
+  PERFORM pg_temp.expect(public.points_boost_info() ? 'multiplier', 'players can read the boost settings');
+END $$;
+SET request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+DO $$
+BEGIN
+  PERFORM public.admin_set_points_boost(true, 3, '{1,5}');
+  PERFORM pg_temp.expect((SELECT multiplier FROM points_boost) = 3 AND (SELECT days FROM points_boost) = '{1,5}', 'the owner can change the boost');
+  PERFORM pg_temp.expect_error($q$SELECT public.admin_set_points_boost(true, 9, '{1}')$q$, 'The multiplier must be between 1 and 5.');
+  PERFORM pg_temp.expect_error($q$SELECT public.admin_set_points_boost(true, 2, '{8}')$q$, 'Days must be 0');
+END $$;
+RESET request.jwt.claim.sub;
+DO $$
+BEGIN
+  PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.points_boost_multiplier(timestamptz)', 'execute'), 'the multiplier helper is internal');
+  PERFORM pg_temp.expect(has_function_privilege('anon', 'public.points_boost_info()', 'execute'), 'guests can see whether the boost is on');
+  PERFORM pg_temp.expect(NOT has_table_privilege('authenticated', 'public.points_boost', 'select'), 'the settings table is private');
+END $$;
+
 DO $$ BEGIN RAISE NOTICE 'PASS: burger ranks and monthly prize assertions passed'; END $$;
 
 ROLLBACK;

@@ -16,6 +16,7 @@ import AdminFadingPoints from '../components/AdminFadingPoints';
 import { whatsAppLink } from '../utils/whatsapp';
 import AdminMonthlyPrize from '../components/AdminMonthlyPrize';
 import AdminArcadeContest from '../components/AdminArcadeContest';
+import AdminPointsBoost from '../components/AdminPointsBoost';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
@@ -5811,6 +5812,7 @@ export default function Admin() {
 {/* Loyalty CRM Tab */}
         {activeTab === 'loyalty_crm' && (
           <div className="admin-card">
+            <AdminPointsBoost />
             <h3>Loyalty Prizes CRM</h3>
             <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Manage prizes that customers can redeem with their loyalty points.</p>
             <form onSubmit={async (e) => {

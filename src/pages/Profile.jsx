@@ -1,3 +1,4 @@
+import InstallAppButton from '../components/InstallAppButton';
 import { formatOrderId } from '../contexts/StoreContext';
 import { useState, useEffect } from 'react';
 import { ChevronDown, LogOut } from 'lucide-react';
@@ -310,6 +311,8 @@ export default function Profile() {
             </div>
           </div>
           
+          <InstallAppButton variant="button" />
+
           <a
             href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappGreeting)}`}
             target="_blank" rel="noopener noreferrer"
