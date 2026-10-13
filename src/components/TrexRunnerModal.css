@@ -319,3 +319,110 @@
   width: 20px;
   text-align: center;
 }
+
+/* Optional landmark info (tap the chip to pause and read) */
+.runner-info-chip {
+  position: absolute;
+  top: 44px;
+  right: 10px;
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold, #FFC72C);
+  background: rgba(20, 17, 12, 0.8);
+  color: var(--gold, #FFC72C);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  animation: runner-chip-pulse 1.4s ease-in-out infinite;
+}
+@keyframes runner-chip-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 199, 44, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 199, 44, 0); }
+}
+.runner-info-card {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(14, 12, 9, 0.88);
+  backdrop-filter: blur(6px);
+}
+.runner-info-card-body {
+  width: 100%;
+  max-width: 360px;
+  max-height: 88vh;
+  overflow-y: auto;
+  text-align: center;
+}
+.runner-info-img {
+  display: block;
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 199, 44, 0.35);
+  margin: 0 0 14px;
+}
+.runner-info-card h2 {
+  margin: 0 0 14px;
+  color: var(--gold, #FFC72C);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.runner-info-card p {
+  margin: 0 0 12px;
+  color: #e8e8e8;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.runner-info-card .runner-btn { margin-top: 8px; }
+.runner-countdown {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  font-weight: 900;
+  color: var(--gold, #FFC72C);
+  background: rgba(20, 17, 12, 0.55);
+  pointer-events: none;
+}
+.runner-landmarks {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #ccc;
+  text-align: left;
+  line-height: 1.5;
+}
+.runner-landmarks strong { display: block; color: var(--gold, #FFC72C); margin-bottom: 4px; text-align: center; }
+
+.runner-badge-magnet {
+  border-color: #E5483B;
+  color: #ff8a80;
+}
+
+.runner-lives {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  font-size: 15px;
+  pointer-events: none;
+}
+.runner-lives .on { color: #ff4d5e; text-shadow: 0 0 6px rgba(255, 77, 94, 0.6); }
+.runner-lives .off { color: rgba(255, 255, 255, 0.25); }

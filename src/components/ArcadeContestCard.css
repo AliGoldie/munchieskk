@@ -1,0 +1,39 @@
+.arcade-page .card.arcade-contest-card {
+  margin: 0 0 1rem;
+  padding: 0.8rem 0.9rem;
+  background: var(--surface-raised, #1f1c19);
+  border: 1px solid rgba(255, 199, 44, 0.35);
+  color: var(--text, #f6f1e7);
+}
+.arcade-contest-card h3 { color: var(--text, #f6f1e7); }
+.acc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gold, #ffc72c);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.acc-left { margin-left: auto; color: var(--text-2, #cfc7b8); font-weight: 700; letter-spacing: 0.3px; }
+.arcade-contest-card h3 { margin: 4px 0 2px; font-size: 1rem; }
+.acc-sub { margin: 0 0 8px; color: var(--text-2, #cfc7b8); font-size: 0.78rem; line-height: 1.35; }
+.acc-prizes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+.acc-prize {
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+.acc-prize b { display: block; margin-bottom: 1px; color: var(--gold, #ffc72c); font-size: 0.68rem; }
+.acc-prize-1 { background: rgba(255, 199, 44, 0.14); }
+.acc-me { margin: 0 0 4px; font-size: 0.84rem; line-height: 1.35; }
+.acc-fine { margin: 3px 0 0; color: var(--text-muted, #9a9285); font-size: 0.7rem; line-height: 1.3; }
+.acc-last { margin: 6px 0 0; font-size: 0.74rem; color: var(--text-2, #cfc7b8); }
+.acc-goal { margin-top: 9px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.acc-goal-row { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; }
+.acc-goal-row b { margin-left: auto; }
+.acc-bar { margin-top: 5px; height: 6px; border-radius: 99px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.acc-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #ffc72c, #ff8a1f); transition: width 0.4s ease; }

@@ -31,6 +31,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
   // Reward state
   const [rewardMsg, setRewardMsg] = useState(null);
+  const [weekInfo, setWeekInfo] = useState(null);
   const [breakdown, setBreakdown] = useState(null);
   const [rankInfo, setRankInfo] = useState(null);
 
@@ -659,6 +660,20 @@ export default function MunchManModal({ isOpen, onClose }) {
           }
         }
 
+        // The day's score also counts toward the Arcade Score (contest and weekly goal).
+        try {
+          const { data: scoreData, error: scoreError } = await supabase.rpc('record_munchman_score', { p_score: state.score });
+          if (!scoreError && scoreData) {
+            if (scoreData.goal_score) setWeekInfo({ week: scoreData.week_score, goal: scoreData.goal_score, bonus: scoreData.goal_points });
+            if (scoreData.points_awarded > 0) {
+              setUser(prev => prev ? ({ ...prev, points: scoreData.total_points }) : prev);
+              setRewardMsg(prev => (prev ? `${prev} ${scoreData.message}` : scoreData.message));
+            }
+          }
+        } catch (err) {
+          console.warn('Could not record the arcade score:', err);
+        }
+
         try {
           const { data: rankData, error: rankError } = await supabase.rpc('get_user_rank');
           if (!rankError && rankData && rankData.rank) {
@@ -997,6 +1012,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
   const executeStartGameSession = async () => {
     setRewardMsg(null);
+    setWeekInfo(null);
     setBreakdown(null);
     setRankInfo(null);
 
@@ -1216,6 +1232,13 @@ export default function MunchManModal({ isOpen, onClose }) {
                           <Trophy size={16} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
                           {rewardMsg}
                         </div>
+                      )}
+
+                      {weekInfo && (
+                        <p style={{ fontSize: 12, color: '#ccc', marginTop: 0, marginBottom: 10 }}>
+                          Arcade Score this week: <b>{Math.min(weekInfo.week, weekInfo.goal).toLocaleString()} / {weekInfo.goal.toLocaleString()}</b>
+                          {weekInfo.week >= weekInfo.goal ? ' (goal reached!)' : ` · reach it for +${weekInfo.bonus} points`}
+                        </p>
                       )}
 
                       {breakdown && (breakdown.dots > 0 || breakdown.pellets > 0 || breakdown.ghosts > 0) && (
