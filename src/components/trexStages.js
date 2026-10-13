@@ -1,7 +1,8 @@
 // Stages for T-Rex Runner: one endless run that passes through Kota Kinabalu
-// landmarks and gets harder as the score climbs. The scenery below is
-// procedural placeholder art (silhouettes) so the structure can be played and
-// tuned now; real illustrated landmark art replaces drawScenery later.
+// landmarks and gets harder as the score climbs. Each stage uses an
+// illustrated panorama (public/images/trex/stageN.webp) that loops
+// horizontally. If an image is missing or still loading, the procedural
+// silhouettes below are drawn instead, so the game never shows an empty sky.
 
 export const STAGES = [
   { name: 'Penampang', from: 0, sky: ['#33405c', '#c9854f'] },
@@ -10,6 +11,12 @@ export const STAGES = [
   { name: 'Tanjung Aru', from: 1500, sky: ['#4a2f5a', '#e0663a'] },
   { name: 'Mount Kinabalu', from: 2300, sky: ['#0b1026', '#2a2f55'], final: true }
 ];
+
+const IMAGES = STAGES.map((_, i) => {
+  const img = new Image();
+  img.src = `/images/trex/stage${i + 1}.webp`;
+  return img;
+});
 
 export function stageIndexForScore(score) {
   let idx = 0;
@@ -232,6 +239,18 @@ export function drawScenery(ctx, W, groundY, stageIdx, distance, alpha, time) {
   if (alpha <= 0) return;
   ctx.save();
   ctx.globalAlpha = alpha;
-  SCENES[stageIdx](ctx, W, groundY, distance, time);
+  const img = IMAGES[stageIdx];
+  if (img.complete && img.naturalWidth > 0) {
+    // The panorama's base line is the bottom edge of the image, which sits
+    // on the road, so scale it to the road height and scroll it slowly for depth.
+    const dw = img.naturalWidth * (groundY / img.naturalHeight);
+    const offset = -((distance * 0.3) % dw);
+    for (let x = offset; x < W; x += dw) ctx.drawImage(img, x, 0, dw + 1, groundY);
+    // A light veil keeps the runner, obstacles and pickups readable.
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillRect(0, 0, W, groundY);
+  } else {
+    SCENES[stageIdx](ctx, W, groundY, distance, time);
+  }
   ctx.restore();
 }
