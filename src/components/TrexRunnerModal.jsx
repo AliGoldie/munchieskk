@@ -136,6 +136,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // you when you fall past the canvas bottom ends the run.
     const LOW_Y = H - 26;
     const HIGH_Y = LOW_Y - 62;
+    // Lava / water sits this far below the road surface so a gap reads as a drop.
+    const HAZARD_DROP = 11;
+    const HAZARD_Y = LOW_Y + HAZARD_DROP;
     // All of the below are in px/second (and px/second^2 for acceleration),
     // not px/frame -- update() multiplies by the real elapsed time each
     // frame (see loop()), so the game runs the same real-world speed
@@ -661,7 +664,13 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // previous one when a new stage starts.
       if (blending) drawScenery(ctx, W, LOW_Y, state.prevStageIdx, state.distance, 1, state.elapsed);
       drawScenery(ctx, W, LOW_Y, state.stageIdx, state.distance, blending ? state.stageBlend : 1, state.elapsed);
-      drawHazard(ctx, W, H, LOW_Y, STAGES[state.stageIdx].hazard, state.distance, state.elapsed, 1, null);
+      // dark pit walls between the road and the hazard, then the hazard itself
+      const wall = ctx.createLinearGradient(0, LOW_Y, 0, H);
+      wall.addColorStop(0, '#241d16');
+      wall.addColorStop(1, '#0d0a07');
+      ctx.fillStyle = wall;
+      ctx.fillRect(0, LOW_Y, W, H - LOW_Y);
+      drawHazard(ctx, W, H, HAZARD_Y, STAGES[state.stageIdx].hazard, state.distance, state.elapsed, 1, null);
     }
 
     // Translucent hazard over the gaps in the road only, drawn after the
@@ -676,7 +685,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         if (edge >= W) break;
       }
       if (edge < W) gaps.push([edge, W]);
-      if (gaps.length) drawHazard(ctx, W, H, LOW_Y, STAGES[state.stageIdx].hazard, state.distance, state.elapsed, 0.6, gaps);
+      if (gaps.length) drawHazard(ctx, W, H, HAZARD_Y, STAGES[state.stageIdx].hazard, state.distance, state.elapsed, 0.6, gaps);
     }
 
     function drawStageBanner() {
