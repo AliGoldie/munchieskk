@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Volume2, VolumeX, Trophy, Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { STAGES, stageIndexForScore, drawSky, drawScenery } from './trexStages';
 import './TrexRunnerModal.css';
 
 export default function TrexRunnerModal({ isOpen, onClose }) {
@@ -19,6 +20,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const [rankInfo, setRankInfo] = useState(null);
   const [activeEffects, setActiveEffects] = useState({ speed: 0, invincible: 0 });
   const [deathReason, setDeathReason] = useState(null);
+  const [stageIdx, setStageIdx] = useState(0);
 
   const gameStateRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -110,6 +112,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const sfxNewBest = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.14, i * 0.13));
   const sfxSmash = () => tone(300, 0.12, 'square', 0.16, 0);
   const sfxPowerupSpeed = () => [500, 700, 900].forEach((f, i) => tone(f, 0.08, 'sawtooth', 0.1, i * 0.05));
+  const sfxStage = () => [440, 554, 659, 880].forEach((f, i) => tone(f, 0.12, 'triangle', 0.13, i * 0.07));
   const sfxPowerupInvincible = () => [400, 600, 800, 1000].forEach((f, i) => tone(f, 0.1, 'triangle', 0.12, i * 0.06));
 
   const toggleSound = () => setSoundOn(prev => !prev);
@@ -200,9 +203,6 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     POWERUP_SPRITES.speed.src = '/images/trex_powerup_speed.png';
     POWERUP_SPRITES.invincible.src = '/images/trex_powerup_shield.png';
 
-    const bgImg = new Image();
-    bgImg.src = '/images/trex_bg_kitchen.png';
-
     const OBSTACLE_VARIANTS = [
       { w: 22, h: 26, spriteKey: 'crate' },
       { w: 34, h: 20, spriteKey: 'pan' },
@@ -221,8 +221,29 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const MIN_POWERUP_SPACING = 500;
     const OBSTACLE_SMASH_BONUS = 15;
 
+    // Variable-height jump: pressing jumps immediately at full power, and
+    // letting go while still rising cuts the jump short. A full hold is the
+    // original jump, so every gap the terrain generator makes is still
+    // clearable; a quick tap is a hop (about half height). Jump buffering
+    // (a press just before landing still counts) and coyote time (a short
+    // grace after running off an edge) keep it feeling fair.
+    const JUMP_CUT = 0.5;
+    const JUMP_CUT_MIN_RISE = -170;
+    const COYOTE_TIME = 0.1;
+    const JUMP_BUFFER = 0.12;
+    // Full difficulty is reached at the start of the Tanjung Aru stage, and
+    // the final stage adds a bit more on top.
+    const DIFFICULTY_FULL_DISTANCE = 12000;
+
     const state = {
-      player: { y: LOW_Y - PLAYER_H, vy: 0, onGround: true },
+      player: { y: LOW_Y - PLAYER_H, vy: 0, onGround: true, coyote: 0 },
+      holding: false,
+      jumpBuffer: 0,
+      jumpCutApplied: false,
+      stageIdx: 0,
+      prevStageIdx: 0,
+      stageBlend: 1,
+      stageBannerUntil: 0,
       terrain: [],
       obstacles: [],
       collectibles: [],
@@ -252,7 +273,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // both push "full difficulty" further out so an average run has more
     // breathing room before tier-change jumps get tight.
     function difficulty() {
-      return Math.min(1, state.distance / 7800);
+      return Math.min(1, state.distance / DIFFICULTY_FULL_DISTANCE);
     }
 
     function maxJumpDistance() {
@@ -320,7 +341,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         // stops back-to-back hazards from stacking into an unfair chain
         // regardless of how the per-segment RNG lands.
         const inGrace = state.segmentsGenerated <= GRACE_SEGMENTS;
-        const obstacleChance = 0.4 + difficulty() * 0.35;
+        const obstacleChance = 0.4 + difficulty() * 0.35 + (STAGES[state.stageIdx].final ? 0.08 : 0);
         let placedObstacle = null;
         if (last && !inGrace && seg.xEnd - seg.xStart > 130 && Math.random() < obstacleChance) {
           const v = OBSTACLE_VARIANTS[Math.floor(Math.random() * OBSTACLE_VARIANTS.length)];
@@ -364,7 +385,14 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
 
     function resetGame() {
-      state.player = { y: LOW_Y - PLAYER_H, vy: 0, onGround: true };
+      state.player = { y: LOW_Y - PLAYER_H, vy: 0, onGround: true, coyote: 0 };
+      state.holding = false;
+      state.jumpBuffer = 0;
+      state.jumpCutApplied = false;
+      state.stageIdx = 0;
+      state.prevStageIdx = 0;
+      state.stageBlend = 1;
+      state.stageBannerUntil = 0;
       state.terrain = [];
       state.obstacles = [];
       state.collectibles = [];
@@ -387,11 +415,31 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       ensureTerrain();
     }
 
-    function jump() {
-      if (!state.running || !state.player.onGround) return;
+    function startJump() {
       state.player.vy = JUMP_VELOCITY;
       state.player.onGround = false;
+      state.player.coyote = 0;
+      state.jumpBuffer = 0;
+      state.jumpCutApplied = false;
       sfxJump();
+    }
+
+    function jump() {
+      if (!state.running) return;
+      state.holding = true;
+      if (state.player.onGround || state.player.coyote > 0) {
+        startJump();
+      } else {
+        state.jumpBuffer = JUMP_BUFFER;
+      }
+    }
+
+    function releaseJump() {
+      state.holding = false;
+      if (!state.player.onGround && !state.jumpCutApplied && state.player.vy < JUMP_CUT_MIN_RISE) {
+        state.player.vy *= JUMP_CUT;
+        state.jumpCutApplied = true;
+      }
     }
     jumpRef.current = jump;
 
@@ -456,6 +504,17 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // invincibility). Distance already accrues faster while boosted, so
       // that alone rewards the speed power-up without a separate multiplier.
       state.score = Math.floor(state.distance / 8) + state.burgersCollected * 5 + state.bonusScore;
+      const nextStage = stageIndexForScore(state.score);
+      if (nextStage !== state.stageIdx) {
+        state.prevStageIdx = state.stageIdx;
+        state.stageIdx = nextStage;
+        state.stageBlend = 0;
+        state.stageBannerUntil = state.elapsed + 2.6;
+        sfxStage();
+        setStageIdx(nextStage);
+      }
+      if (state.stageBlend < 1) state.stageBlend = Math.min(1, state.stageBlend + dt / 1.5);
+      state.jumpBuffer = Math.max(0, state.jumpBuffer - dt);
       state.scoreThrottle += dt;
       if (state.scoreThrottle >= 0.1) {
         state.scoreThrottle = 0;
@@ -506,6 +565,17 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
 
       state.player.onGround = landed;
+      if (landed) {
+        state.player.coyote = COYOTE_TIME;
+        state.jumpCutApplied = false;
+        if (state.jumpBuffer > 0) {
+          startJump();
+          // A tap that was already released before landing is just a hop.
+          if (!state.holding) releaseJump();
+        }
+      } else {
+        state.player.coyote = Math.max(0, state.player.coyote - dt);
+      }
 
       // Fell into a pit -- no platform under the player and they've
       // dropped past the bottom of the canvas.
@@ -583,28 +653,31 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     function drawBackground() {
       ctx.clearRect(0, 0, W, H);
-      const grad = ctx.createLinearGradient(0, 0, 0, H);
-      grad.addColorStop(0, '#242320');
-      grad.addColorStop(1, '#1a1a1a');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
+      const blending = state.stageBlend < 1;
+      drawSky(ctx, W, H, blending ? state.prevStageIdx : state.stageIdx, state.stageIdx, blending ? state.stageBlend : 1);
+      // Parallax scenery for the current stage, cross-fading from the
+      // previous one when a new stage starts.
+      if (blending) drawScenery(ctx, W, LOW_Y, state.prevStageIdx, state.distance, 1, state.elapsed);
+      drawScenery(ctx, W, LOW_Y, state.stageIdx, state.distance, blending ? state.stageBlend : 1, state.elapsed);
+    }
 
-      // Parallax scenery, scrolling slower (0.3x) than the foreground so it
-      // reads as background depth. No-op (just the gradient above) until
-      // the art file exists or if it fails to load.
-      if (bgImg.complete && bgImg.naturalWidth > 0) {
-        const bh = H * 0.7;
-        const bw = bgImg.naturalWidth * (bh / bgImg.naturalHeight);
-        const offset = -(state.distance * 0.3) % bw;
-        // Lowered from 0.5 -- the food-city art is busy enough at full
-        // strength to camouflage small obstacle/pickup sprites in front of
-        // it, which made some deaths look like they came from nowhere.
-        ctx.globalAlpha = 0.38;
-        for (let x = offset - bw; x < W; x += bw) {
-          ctx.drawImage(bgImg, x, H - bh - 26, bw, bh);
-        }
-        ctx.globalAlpha = 1;
-      }
+    function drawStageBanner() {
+      const left = state.stageBannerUntil - state.elapsed;
+      if (left <= 0) return;
+      const alpha = Math.min(1, left / 0.6);
+      const stage = STAGES[state.stageIdx];
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(0, 40, W, 40);
+      ctx.fillStyle = '#FFC72C';
+      ctx.font = '900 12px sans-serif';
+      ctx.fillText(stage.final ? 'FINAL RUN' : `STAGE ${state.stageIdx + 1}`, W / 2, 56);
+      ctx.fillStyle = '#fff';
+      ctx.font = '800 17px sans-serif';
+      ctx.fillText(stage.name.toUpperCase(), W / 2, 74);
+      ctx.restore();
     }
 
     function drawTerrain() {
@@ -743,6 +816,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.powerups.forEach(drawPowerup);
       drawEffects();
       drawPlayer();
+      drawStageBanner();
     }
 
     function loop(timestamp) {
@@ -762,19 +836,34 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.animFrameId = requestAnimationFrame(loop);
     }
 
+    const isJumpKey = (e) => e.code === 'Space' || e.key === ' ' || e.key === 'ArrowUp';
+
     function handleKeyDown(e) {
-      if (e.code === 'Space' || e.key === ' ' || e.key === 'ArrowUp') {
+      if (isJumpKey(e)) {
         e.preventDefault();
-        jump();
+        // A held key auto-repeats; only the first press is a jump.
+        if (!e.repeat) jump();
       }
+    }
+
+    function handleKeyUp(e) {
+      if (isJumpKey(e)) releaseJump();
     }
 
     function handlePointerDown() {
       jump();
     }
 
+    function handlePointerUp() {
+      releaseJump();
+    }
+
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
     canvas.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+    if (import.meta.env.DEV) window.__trex = state;
 
     startSessionRef.current = async () => {
       resetGame();
@@ -786,7 +875,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
       canvas.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
       if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
     };
   }, [isOpen]);
@@ -800,6 +892,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     setBurgersCollected(0);
     setActiveEffects({ speed: 0, invincible: 0 });
     setDeathReason(null);
+    setStageIdx(0);
     ensureAudio();
 
     if (user) {
@@ -828,6 +921,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
           <div className="runner-hud">
             <span>Score: {score}</span>
+            <span>Stage {stageIdx + 1}/{STAGES.length}</span>
             {user && <span>Best: {bestScore}</span>}
           </div>
 
@@ -855,7 +949,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                   <>
                     <h2>Ready to Run?</h2>
                     <ul className="runner-howto">
-                      <li><span>👆</span>Tap the screen (or press Space) to jump</li>
+                      <li><span>👆</span>Tap for a hop, hold for a big jump (or Space)</li>
                       <li><span>🕳️</span>Clear platforms and pits -- one missed jump ends the run</li>
                       <li><span>🍔</span>Grab burgers for bonus points</li>
                       <li><span>⚡</span>Speed boost &nbsp;·&nbsp; 🛡 Shield smashes obstacles</li>
@@ -924,9 +1018,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
           <button
             className="runner-jump-btn"
-            onClick={() => jumpRef.current && jumpRef.current()}
+            onPointerDown={(e) => { e.preventDefault(); if (jumpRef.current) jumpRef.current(); }}
           >
-            TAP TO JUMP
+            TAP = HOP · HOLD = JUMP
           </button>
         </div>
       </div>
