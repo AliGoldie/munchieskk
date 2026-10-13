@@ -21,11 +21,32 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const [activeEffects, setActiveEffects] = useState({ speed: 0, invincible: 0 });
   const [deathReason, setDeathReason] = useState(null);
   const [stageIdx, setStageIdx] = useState(0);
+  // Optional "learn about this place" card: a chip appears when a new stage
+  // starts; tapping it pauses the run, closing the card gives a 3-2-1 resume.
+  const [infoChip, setInfoChip] = useState(null);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [countdown, setCountdown] = useState(null);
+  const pauseRef = useRef(null);
+  const resumeRef = useRef(null);
+  const countdownTimerRef = useRef(null);
+  const chipTimerRef = useRef(null);
 
   const gameStateRef = useRef(null);
   const audioCtxRef = useRef(null);
   const jumpRef = useRef(null);
   const startSessionRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setInfoOpen(false);
+      setCountdown(null);
+      setInfoChip(null);
+    }
+    return () => {
+      clearInterval(countdownTimerRef.current);
+      clearTimeout(chipTimerRef.current);
+    };
+  }, [isOpen]);
 
   // Same stale-closure guard as MunchManModal: the game-loop effect only
   // re-runs on isOpen, so endGame's closure needs a live read of `user`.
@@ -249,6 +270,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       prevStageIdx: 0,
       stageBlend: 1,
       stageBannerUntil: 0,
+      paused: false,
       terrain: [],
       obstacles: [],
       collectibles: [],
@@ -398,6 +420,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.prevStageIdx = 0;
       state.stageBlend = 1;
       state.stageBannerUntil = 0;
+      state.paused = false;
       state.terrain = [];
       state.obstacles = [];
       state.collectibles = [];
@@ -447,6 +470,18 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
     }
     jumpRef.current = jump;
+    pauseRef.current = () => {
+      if (!state.running) return false;
+      state.running = false;
+      state.paused = true;
+      state.holding = false;
+      return true;
+    };
+    resumeRef.current = () => {
+      if (!state.paused) return;
+      state.paused = false;
+      state.running = true;
+    };
 
     function overlap(ax, ay, aw, ah, bx, by, bw, bh) {
       return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
@@ -517,6 +552,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         state.stageBannerUntil = state.elapsed + 2.6;
         sfxStage();
         setStageIdx(nextStage);
+        setInfoChip(nextStage);
+        clearTimeout(chipTimerRef.current);
+        chipTimerRef.current = setTimeout(() => setInfoChip((c) => (c === nextStage ? null : c)), 4500);
       }
       if (state.stageBlend < 1) state.stageBlend = Math.min(1, state.stageBlend + dt / 1.5);
       state.jumpBuffer = Math.max(0, state.jumpBuffer - dt);
@@ -915,6 +953,30 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const openStageInfo = () => {
+    if (pauseRef.current && pauseRef.current()) {
+      setInfoOpen(true);
+      setInfoChip(null);
+    }
+  };
+
+  const closeStageInfo = () => {
+    setInfoOpen(false);
+    let n = 3;
+    setCountdown(n);
+    clearInterval(countdownTimerRef.current);
+    countdownTimerRef.current = setInterval(() => {
+      n -= 1;
+      if (n <= 0) {
+        clearInterval(countdownTimerRef.current);
+        setCountdown(null);
+        if (resumeRef.current) resumeRef.current();
+      } else {
+        setCountdown(n);
+      }
+    }, 800);
+  };
+
   const handlePlayButtonClick = async () => {
     setRewardMsg(null);
     setIsNewBest(false);
@@ -923,6 +985,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     setActiveEffects({ speed: 0, invincible: 0 });
     setDeathReason(null);
     setStageIdx(0);
+    setInfoChip(null);
+    setInfoOpen(false);
+    setCountdown(null);
     ensureAudio();
 
     if (user) {
@@ -973,6 +1038,14 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
               </div>
             )}
 
+            {infoChip != null && !infoOpen && countdown == null && gameStarted && !gameOver && (
+              <button className="runner-info-chip" onClick={openStageInfo}>
+                ⓘ About {STAGES[infoChip].name}
+              </button>
+            )}
+
+            {countdown != null && <div className="runner-countdown">{countdown}</div>}
+
             {(!gameStarted || gameOver) && (
               <div className="runner-overlay-screen">
                 {!gameOver ? (
@@ -982,6 +1055,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                       <li><span>👆</span>Tap for a hop, hold for a big jump (or Space)</li>
                       <li><span>🕳️</span>Clear platforms and pits -- one missed jump ends the run</li>
                       <li><span>🍔</span>Grab burgers for bonus points</li>
+                      <li><span>📍</span>Run through 5 Kota Kinabalu landmarks. Tap the ⓘ chip to learn about each one</li>
                       <li><span>⚡</span>Speed boost &nbsp;·&nbsp; 🛡 Shield smashes obstacles</li>
                     </ul>
                     {user && bestScore > 0 && (
@@ -1006,6 +1080,15 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                     {burgersCollected > 0 && (
                       <div style={{ fontSize: 12, color: '#ccc', marginBottom: 10 }}>
                         🍔 x{burgersCollected} collected
+                      </div>
+                    )}
+
+                    {stageIdx > 0 && (
+                      <div className="runner-landmarks">
+                        <strong>Landmarks you passed</strong>
+                        {STAGES.slice(0, stageIdx + 1).map((st) => (
+                          <div key={st.name}>📍 <b>{st.name}</b> — {st.info.short}</div>
+                        ))}
                       </div>
                     )}
 
@@ -1045,6 +1128,18 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
               </div>
             )}
           </div>
+
+          {infoOpen && (
+            <div className="runner-info-card" role="dialog" aria-label={STAGES[stageIdx].info.title}>
+              <div className="runner-info-card-body">
+                <h2>{STAGES[stageIdx].info.title}</h2>
+                {STAGES[stageIdx].info.lines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+                <button className="runner-btn" onClick={closeStageInfo}>Continue</button>
+              </div>
+            </div>
+          )}
 
           <button
             className="runner-jump-btn"

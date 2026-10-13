@@ -5,11 +5,11 @@
 // silhouettes below are drawn instead, so the game never shows an empty sky.
 
 export const STAGES = [
-  { name: 'Penampang', from: 0, sky: ['#33405c', '#c9854f'], hazard: 'lava' },
-  { name: 'Gaya Street', from: 400, sky: ['#3a4a5e', '#b89a6a'], hazard: 'lava' },
-  { name: 'KK City Mosque', from: 900, sky: ['#35506b', '#d6a45f'], hazard: 'water' },
-  { name: 'Tanjung Aru', from: 1500, sky: ['#4a2f5a', '#e0663a'], hazard: 'water' },
-  { name: 'Mount Kinabalu', from: 2300, sky: ['#0b1026', '#2a2f55'], hazard: 'lava', final: true }
+  { name: 'Penampang', info: { title: 'Penampang', lines: ['The siga (sigah) is the traditional Kadazandusun headgear, made from a folded headcloth.', 'Datuk Peter Mojuntin, a Sabah state minister, died in the 1976 Double Six air crash. A statue of him stands in Donggongon.'], short: 'The siga is Kadazandusun headgear. A statue honours Datuk Peter Mojuntin in Donggongon.' }, from: 0, sky: ['#33405c', '#c9854f'], hazard: 'lava' },
+  { name: 'Gaya Street', info: { title: 'Gaya Street', lines: ['Gaya Street began as a railway path to the Jesselton wharf and is possibly the oldest street in Kota Kinabalu.', 'The shophouses were rebuilt in concrete after World War II. The Sunday market is called the tamu, from temu, meaning to meet.'], short: 'Possibly KK\'s oldest street, home of the Sunday tamu market.' }, from: 400, sky: ['#3a4a5e', '#b89a6a'], hazard: 'lava' },
+  { name: 'KK City Mosque', info: { title: 'KK City Mosque', lines: ['The KK City Mosque sits on Likas Bay. A man-made lagoon around it earned it the nickname the Floating Mosque.', 'It was officially opened on 18 February 2000. Further along the waterfront stands the Yayasan Sabah tower.'], short: 'The Floating Mosque on Likas Bay, opened in 2000.' }, from: 900, sky: ['#35506b', '#d6a45f'], hazard: 'water' },
+  { name: 'Tanjung Aru', info: { title: 'Tanjung Aru', lines: ['Tanjung Aru Beach faces west, near Kota Kinabalu airport, and is famous for its sunsets.', 'Locals come for the glow over the South China Sea, usually around 6 to 6.30 pm.'], short: 'Famous for its sunsets over the South China Sea.' }, from: 1500, sky: ['#4a2f5a', '#e0663a'], hazard: 'water' },
+  { name: 'Mount Kinabalu', info: { title: 'Mount Kinabalu', lines: ['At about 4,095 metres, Mount Kinabalu is the highest peak in Malaysia.', 'Kinabalu Park became Malaysia\'s first UNESCO World Heritage Site in December 2000.'], short: 'Malaysia\'s highest peak, about 4,095 m.' }, from: 2300, sky: ['#0b1026', '#2a2f55'], hazard: 'lava', final: true }
 ];
 
 const IMAGES = STAGES.map((_, i) => {
