@@ -1132,6 +1132,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           {infoOpen && (
             <div className="runner-info-card" role="dialog" aria-label={STAGES[stageIdx].info.title}>
               <div className="runner-info-card-body">
+                <img className="runner-info-img" src={`/images/trex/stage${stageIdx + 1}.webp`} alt="" style={{ objectPosition: `${STAGES[stageIdx].focus}% 50%` }} />
                 <h2>{STAGES[stageIdx].info.title}</h2>
                 {STAGES[stageIdx].info.lines.map((line) => (
                   <p key={line}>{line}</p>
