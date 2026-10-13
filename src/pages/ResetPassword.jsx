@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../config/supabase';
+import { isPasswordPwned } from '../utils/pwnedPassword';
 import './Login.css';
 
 export default function ResetPassword() {
@@ -59,6 +60,10 @@ export default function ResetPassword() {
 
     setIsLoading(true);
     try {
+      if (await isPasswordPwned(password)) {
+        setError('This password has appeared in known data breaches. Please choose a different password.');
+        return;
+      }
       const { error: updateErr } = await supabase.auth.updateUser({ password });
       if (updateErr) throw updateErr;
       setSuccess(true);

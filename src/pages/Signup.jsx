@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import { isPasswordPwned } from '../utils/pwnedPassword';
 import { Mail } from 'lucide-react';
 import './Login.css';
 
@@ -56,6 +57,10 @@ export default function Signup() {
     if (formData.name && formData.email && formData.password) {
       setIsLoading(true);
       try {
+        if (await isPasswordPwned(formData.password)) {
+          setError('This password has appeared in known data breaches. Please choose a different password.');
+          return;
+        }
         const referredByValue = formData.referralCode ? formData.referralCode.trim().toUpperCase() : null;
         await signup(formData.email, formData.password, formData.name, formData.phone, referredByValue);
         navigate('/');
