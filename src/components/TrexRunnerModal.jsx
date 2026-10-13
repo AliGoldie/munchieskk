@@ -16,6 +16,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const [burgersCollected, setBurgersCollected] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
   const [rewardMsg, setRewardMsg] = useState(null);
+  const [weekInfo, setWeekInfo] = useState(null);
   const [isNewBest, setIsNewBest] = useState(false);
   const [rankInfo, setRankInfo] = useState(null);
   const [activeEffects, setActiveEffects] = useState({ speed: 0, invincible: 0, magnet: 0 });
@@ -604,6 +605,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         const { data, error } = await supabase.rpc('claim_trex_runner_reward', { p_score: finalScore });
         if (!error && data) {
           setRewardMsg(data.message || null);
+          if (data.goal_score) setWeekInfo({ week: data.week_score, goal: data.goal_score, bonus: data.goal_points });
           if (data.points_awarded > 0) {
             setUser(prev => prev ? ({ ...prev, points: data.total_points }) : prev);
           }
@@ -1140,6 +1142,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
   const handlePlayButtonClick = async () => {
     setRewardMsg(null);
+    setWeekInfo(null);
     setIsNewBest(false);
     setRankInfo(null);
     setBurgersCollected(0);
@@ -1229,6 +1232,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                       <li><span>❤️</span>You have 3 lives. A crash costs one and you carry on from where you were</li>
                       <li><span>🍔</span>Grab burgers for bonus points</li>
                       <li><span>📍</span>Run through 5 Kota Kinabalu landmarks. Tap the ⓘ chip to learn about each one</li>
+                      <li><span>🏆</span>Your best score counts toward the arcade contest: top 3 win free food</li>
                       <li><span>⚡</span>Speed boost · 🧲 Magnet pulls burgers · 🛡 Shield: smash obstacles and float over lava</li>
                     </ul>
                     {user && bestScore > 0 && (
@@ -1281,6 +1285,13 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                       </div>
                     )}
 
+                    {weekInfo && (
+                      <p style={{ fontSize: 12, color: '#ccc', marginTop: 0, marginBottom: 10 }}>
+                        Arcade Score this week: <b>{Math.min(weekInfo.week, weekInfo.goal).toLocaleString()} / {weekInfo.goal.toLocaleString()}</b>
+                        {weekInfo.week >= weekInfo.goal ? ' (goal reached!)' : ` · reach it for +${weekInfo.bonus} points`}
+                      </p>
+                    )}
+
                     {rankInfo && rankInfo.rank && (
                       <p style={{ fontSize: 13, color: 'var(--munchies-yellow)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 0, marginBottom: 6 }}>
                         <Award size={14} /> You'd rank #{rankInfo.rank} of {rankInfo.total} (top {rankInfo.percentile}%)
@@ -1289,7 +1300,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
                     {!user && (
                       <p style={{ fontSize: 12, color: '#aaa', marginTop: 0, marginBottom: 16 }}>
-                        Log in to save your best score and earn loyalty points!
+                        Log in to save your score and join the arcade contest!
                       </p>
                     )}
 

@@ -15,6 +15,7 @@ import AdminShareProofs from '../components/AdminShareProofs';
 import AdminFadingPoints from '../components/AdminFadingPoints';
 import { whatsAppLink } from '../utils/whatsapp';
 import AdminMonthlyPrize from '../components/AdminMonthlyPrize';
+import AdminArcadeContest from '../components/AdminArcadeContest';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
@@ -5571,9 +5572,16 @@ export default function Admin() {
               >
                 <AdminGlyph icon={Gift} />Monthly Prize
               </button>
+              <button 
+                className={`btn ${activePromoSubTab === 'arcade' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setActivePromoSubTab('arcade')}
+              >
+                <AdminGlyph icon={Gift} />Arcade Contest
+              </button>
             </div>
 
             {activePromoSubTab === 'monthly' && <AdminMonthlyPrize />}
+            {activePromoSubTab === 'arcade' && <AdminArcadeContest />}
 
             {activePromoSubTab === 'codes' && (
               <div>

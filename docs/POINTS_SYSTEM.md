@@ -21,10 +21,10 @@ and playing games. Spend them on free food. Rank up the more you order.**
 | **Rank bonus** | **+5% / +8% / +12%** extra points on every order | Pro / Master / Ultimate ranks only (see Burger Ranks). |
 | **Play Munch-Man** | up to +50 a game | One free play a day. Win = 50, eat at least half the dots = 20. |
 | **Munch-Man daily streak** | +30 on day 3, +100 on day 7 | Play on consecutive days. |
-| **T-Rex Runner / Speed Grab** | points for beating your own best score | Up to 20 points a day per game. |
+| **T-Rex Runner / Speed Grab** | **No loyalty points per run.** Your runs build your **Arcade Score** (see below). | Reach the weekly goal for a loyalty bonus; top scores win free food. |
 
-**Game points have limits (say this clearly):**
-- A **maximum of 150 game bonus points a week** in total.
+**Munch-Man game points have limits (say this clearly):**
+- A **maximum of 150 game bonus points a week** in total (Munch-Man plus the weekly arcade goal).
 - **New accounts earn game points freely for their first 30 days.** After that, game points need at least one collected order on the account.
 - Game days reset at **8:00 am Malaysia time**.
 - Order, collection, share and referral points are **not** part of the 150 limit.
@@ -51,6 +51,23 @@ order is cancelled**. **One reward per order**, and only when the order is place
 **Claim at the counter (older way).** In Loyalty tap Redeem, get a 6-character
 code, show it at the counter after paying. A reward not collected within
 **14 days** expires and the points go back.
+
+## Arcade Score, weekly goal and arcade contests (new)
+
+**Arcade Score is not points.** It cannot be spent. It only decides the contest ranking and the weekly goal.
+Say it that way: *points buy food, Arcade Score wins prizes.* Applies to **T-Rex Runner and Speed Grab**
+(Munch-Man works as before for now).
+
+- **What counts:** your **best score in each game, added together**. Playing more only helps if you beat your best.
+- **Three lives** in every game: a crash costs a life, and the run carries on.
+- **Weekly goal:** reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) for **+25 loyalty points**, once a week.
+  (After the first 30 days, game bonuses need at least one collected order.)
+- **Arcade contests:** the owner sets a start and end date. The **top 3** win free food. The plan is **two contests a month**
+  (1st to 15th, 16th to end of month): 1st a burger, 2nd fries, 3rd a drink. Prizes can differ per contest.
+  - Ties go to whoever reached their score first. **One account per phone number.** A minimum score applies (300 by default).
+  - Winners are picked automatically when the contest ends. Only **first names** are shown. Winners show a claim code at the counter (no purchase needed; 14 days to claim, unless the contest says otherwise).
+  - Scores are checked: impossible scores are not counted, and staff check the top players in person.
+- **Do not say** that games give loyalty points for every personal best. They no longer do.
 
 ## Burger Ranks
 
