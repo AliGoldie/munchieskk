@@ -304,6 +304,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       magnetUntil: 0,
       lives: START_LIVES,
       graceUntil: 0,
+      scoreAdjust: 0,
       running: false,
       animFrameId: null
     };
@@ -492,6 +493,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.magnetUntil = 0;
       state.lives = START_LIVES;
       state.graceUntil = 0;
+      state.scoreAdjust = 0;
       state.running = false;
       ensureTerrain();
     }
@@ -564,7 +566,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         for (const e of state.effects) e.x -= shift;
         state.lastObstacleRightEdge -= shift;
         state.lastPowerupRightEdge -= shift;
+        // keep the scenery moving, but the skipped stretch earns no score
         state.distance += shift;
+        state.scoreAdjust -= shift;
       }
       // clear a little runway so the respawn is not on top of a hazard
       state.obstacles = state.obstacles.filter((o) => o.x > cx + 110 || o.x + o.w < cx - 40);
@@ -639,7 +643,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // Score is distance + burger bonus + smashed-obstacle bonus (from
       // invincibility). Distance already accrues faster while boosted, so
       // that alone rewards the speed power-up without a separate multiplier.
-      state.score = Math.floor(state.distance / 8) + state.burgersCollected * 5 + state.bonusScore;
+      state.score = Math.floor((state.distance + state.scoreAdjust) / 8) + state.burgersCollected * 5 + state.bonusScore;
       const nextStage = stageIndexForScore(state.score);
       if (nextStage !== state.stageIdx) {
         state.prevStageIdx = state.stageIdx;
