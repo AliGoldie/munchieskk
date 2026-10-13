@@ -25,6 +25,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   // starts; tapping it pauses the run, closing the card gives a 3-2-1 resume.
   const [infoChip, setInfoChip] = useState(null);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [lives, setLives] = useState(3);
   const [countdown, setCountdown] = useState(null);
   const pauseRef = useRef(null);
   const resumeRef = useRef(null);
@@ -250,6 +251,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const POWERUP_SPEED_MULTIPLIER = 1.5;
     const POWERUP_CHANCE = 0.3;
     const MIN_POWERUP_SPACING = 380;
+    // Three lives: a crash costs one and the run continues from solid ground
+    // with a short grace period; the run ends on the third.
+    const START_LIVES = 3;
+    const RESPAWN_GRACE = 2.2;
     const MAGNET_RADIUS = 120;
     const MAGNET_PULL = 320;
     const OBSTACLE_SMASH_BONUS = 15;
@@ -297,6 +302,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       speedBoostUntil: 0,
       invincibleUntil: 0,
       magnetUntil: 0,
+      lives: START_LIVES,
+      graceUntil: 0,
       running: false,
       animFrameId: null
     };
@@ -483,6 +490,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.speedBoostUntil = 0;
       state.invincibleUntil = 0;
       state.magnetUntil = 0;
+      state.lives = START_LIVES;
+      state.graceUntil = 0;
       state.running = false;
       ensureTerrain();
     }
@@ -526,6 +535,47 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.paused = false;
       state.running = true;
     };
+
+    // Lose a life. With lives left the run carries on from solid ground (the
+    // world skips ahead past a pit or obstacle) with a short grace period.
+    function crash(reason) {
+      state.lives -= 1;
+      if (state.lives <= 0) {
+        setLives(0);
+        endGame(reason);
+        return;
+      }
+      setLives(state.lives);
+      sfxHit();
+      const cx = PLAYER_X + PLAYER_W / 2;
+      // a segment with room under the runner, else the next one ahead
+      let target = state.terrain.find((sg) => sg.xStart + 10 <= cx && sg.xEnd - cx > 70);
+      let shift = 0;
+      if (!target) {
+        target = state.terrain.find((sg) => sg.xStart > cx - 10 && sg.xEnd - sg.xStart > 60);
+        if (target) shift = target.xStart + 20 - cx;
+      }
+      if (!target) target = state.terrain[0];
+      if (shift > 0) {
+        for (const sg of state.terrain) { sg.xStart -= shift; sg.xEnd -= shift; }
+        for (const o of state.obstacles) o.x -= shift;
+        for (const c of state.collectibles) c.x -= shift;
+        for (const q of state.powerups) q.x -= shift;
+        for (const e of state.effects) e.x -= shift;
+        state.lastObstacleRightEdge -= shift;
+        state.lastPowerupRightEdge -= shift;
+        state.distance += shift;
+      }
+      // clear a little runway so the respawn is not on top of a hazard
+      state.obstacles = state.obstacles.filter((o) => o.x > cx + 110 || o.x + o.w < cx - 40);
+      state.player.y = target.y - PLAYER_H;
+      state.player.vy = 0;
+      state.player.onGround = true;
+      state.player.coyote = COYOTE_TIME;
+      state.holding = false;
+      state.jumpBuffer = 0;
+      state.graceUntil = state.elapsed + RESPAWN_GRACE;
+    }
 
     function overlap(ax, ay, aw, ah, bx, by, bw, bh) {
       return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
@@ -576,7 +626,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.speed = Math.min(MAX_SPEED, state.speed + SPEED_RAMP * dt);
 
       const speedBoostActive = state.elapsed < state.speedBoostUntil;
-      const invincibleActive = state.elapsed < state.invincibleUntil;
+      const shieldActive = state.elapsed < state.invincibleUntil;
+      const graceActive = state.elapsed < state.graceUntil;
+      const invincibleActive = shieldActive || graceActive;
       // The boost multiplies the *effective* scroll speed only -- state.speed
       // itself keeps ramping toward MAX_SPEED underneath it, so the game
       // returns to the normal ramped pace (not a compounded one) once the
@@ -661,7 +713,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         }
       }
       if (hitWall) {
-        endGame('wall');
+        crash('wall');
         return;
       }
 
@@ -691,7 +743,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // Fell into a pit -- no platform under the player and they've
       // dropped past the bottom of the canvas.
       if (!landed && state.player.y > H) {
-        endGame('pit');
+        crash('pit');
         return;
       }
 
@@ -710,13 +762,13 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         const obY = o.tierY - o.h;
         if (overlap(hitboxX, hitboxY, hitboxW, hitboxH, o.x, obY, o.w, o.h)) {
           if (invincibleActive) {
-            state.bonusScore += OBSTACLE_SMASH_BONUS;
+            if (shieldActive) state.bonusScore += OBSTACLE_SMASH_BONUS;
             state.effects.push({ x: o.x + o.w / 2, y: obY + o.h / 2, ttl: 0.25 });
             sfxSmash();
             state.obstacles.splice(i, 1);
             continue;
           }
-          endGame('obstacle');
+          crash('obstacle');
           return;
         }
       }
@@ -958,8 +1010,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       const bob = running ? Math.abs(Math.sin(phase)) * 3 : 0;
       const lean = running ? Math.sin(phase * 2) * 0.06 : 0;
       const invincibleActive = state.elapsed < state.invincibleUntil;
+      const blinking = state.elapsed < state.graceUntil && Math.floor(state.elapsed * 10) % 2 === 0;
 
       ctx.save();
+      if (blinking) ctx.globalAlpha = 0.35;
       ctx.translate(cx, cy - bob);
       if (invincibleActive) {
         ctx.shadowColor = 'rgba(255, 210, 63, 0.9)';
@@ -1088,6 +1142,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     setActiveEffects({ speed: 0, invincible: 0, magnet: 0 });
     setDeathReason(null);
     setStageIdx(0);
+    setLives(3);
     setInfoChip(null);
     setInfoOpen(false);
     setCountdown(null);
@@ -1144,6 +1199,14 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
               </div>
             )}
 
+            {gameStarted && !gameOver && (
+              <div className="runner-lives" aria-label={`${lives} lives left`}>
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className={i < lives ? 'on' : 'off'}>❤</span>
+                ))}
+              </div>
+            )}
+
             {infoChip != null && !infoOpen && countdown == null && gameStarted && !gameOver && (
               <button className="runner-info-chip" onClick={openStageInfo} aria-label={`About ${STAGES[infoChip].name}`}>
                 ⓘ
@@ -1159,7 +1222,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                     <h2>Ready to Run?</h2>
                     <ul className="runner-howto">
                       <li><span>👆</span>Tap for a hop, hold for a big jump (or Space)</li>
-                      <li><span>🕳️</span>Clear platforms and pits -- one missed jump ends the run</li>
+                      <li><span>❤️</span>You have 3 lives. A crash costs one and you carry on from where you were</li>
                       <li><span>🍔</span>Grab burgers for bonus points</li>
                       <li><span>📍</span>Run through 5 Kota Kinabalu landmarks. Tap the ⓘ chip to learn about each one</li>
                       <li><span>⚡</span>Speed boost · 🧲 Magnet pulls burgers · 🛡 Shield: smash obstacles and float over lava</li>

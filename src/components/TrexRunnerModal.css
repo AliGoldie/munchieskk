@@ -412,3 +412,17 @@
   border-color: #E5483B;
   color: #ff8a80;
 }
+
+.runner-lives {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  font-size: 15px;
+  pointer-events: none;
+}
+.runner-lives .on { color: #ff4d5e; text-shadow: 0 0 6px rgba(255, 77, 94, 0.6); }
+.runner-lives .off { color: rgba(255, 255, 255, 0.25); }
