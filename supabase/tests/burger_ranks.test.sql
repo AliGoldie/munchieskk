@@ -166,6 +166,8 @@ CREATE FUNCTION public.generate_unique_redemption_code() RETURNS text LANGUAGE s
 \i supabase/migrations/20261014000000_burger_ranks.sql
 \i supabase/migrations/20261014000001_burger_ranks_cancel.sql
 \i supabase/migrations/20261014000002_monthly_prize.sql
+INSERT INTO loyalty_prizes (name, description, points_cost) VALUES ('FREE FRIES', 'x', 150);
+\i supabase/migrations/20261015000000_points_expiry_fries_100.sql
 
 INSERT INTO store_settings (id, status, opening_time, closing_time, weekly_schedule, special_closures)
 VALUES ('main_store', 'OPEN', '17:00', '23:00', '{}'::jsonb, '[]'::jsonb);
@@ -502,6 +504,88 @@ BEGIN
   PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.monthly_spend_ranking(date)', 'execute'), 'customers cannot read the full ranking');
   PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.admin_monthly_overview()', 'execute'), 'anon must not call the admin overview');
 END $$;
+
+-- ---------------------------------------------------------------------------
+-- 8. Gradual points expiry (25% a month after 12 months of inactivity);
+--    Free Fries is 100 points
+-- ---------------------------------------------------------------------------
+CREATE FUNCTION pg_temp.age_account(p_uid text, p_months numeric) RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE public.profiles SET created_at = now() - make_interval(days => (p_months * 30.4)::int) WHERE id = p_uid::uuid;
+  -- the fade keeps its start date while the customer stays inactive
+  UPDATE public.points_fade SET anchor = (SELECT created_at FROM public.profiles WHERE id = p_uid::uuid) WHERE user_id = p_uid::uuid;
+END $$;
+DO $$
+DECLARE r jsonb; a text;
+  u1 constant text := 'e0000000-0000-0000-0000-000000000001';
+  u2 constant text := 'e0000000-0000-0000-0000-000000000002';
+  u3 constant text := 'e0000000-0000-0000-0000-000000000003';
+  u4 constant text := 'e0000000-0000-0000-0000-000000000004';
+BEGIN
+  PERFORM pg_temp.expect((SELECT points_cost FROM loyalty_prizes WHERE name = 'FREE FRIES') = 100, 'fries costs 100 points');
+  INSERT INTO profiles (id, role, points, name, phone) VALUES
+    (u1::uuid, 'user', 400, 'Lapsed', '0123'),
+    (u2::uuid, 'user', 500, 'Active', '0124'),
+    (u3::uuid, 'user', 500, 'Newish', '0125'),
+    (u4::uuid, 'user', 400, 'Warned', '0126');
+  PERFORM pg_temp.age_account(u1, 12.2);   -- inactive 12.2 months: first step due
+  PERFORM pg_temp.age_account(u2, 14);
+  INSERT INTO orders (id, status, total, user_id) VALUES ('EXP-OLD', 'COLLECTED', 2000, u2::uuid);
+  UPDATE orders SET created_at = now() - interval '3 months' WHERE id = 'EXP-OLD';
+  UPDATE profiles SET points = 500 WHERE id = u2::uuid;
+  PERFORM pg_temp.age_account(u3, 10);
+  PERFORM pg_temp.age_account(u4, 11.5);
+
+  SET LOCAL request.jwt.claim.sub = 'e0000000-0000-0000-0000-000000000001';
+  r := public.my_points_expiry();
+  PERFORM pg_temp.expect(r->>'state' = 'fading' AND (r->>'points')::int = 300, 'step 1: 400 -> 300 (25% of 400 removed)');
+  r := public.my_points_expiry();
+  PERFORM pg_temp.expect((r->>'points')::int = 300, 'asking again does not remove more');
+
+  -- 25 days later is still step 1; 35 days later is step 2 (base 400 -> 200)
+  PERFORM pg_temp.age_account(u1, 13.2);
+  r := public.my_points_expiry();
+  PERFORM pg_temp.expect((r->>'points')::int = 200, 'step 2: down to 200');
+  PERFORM pg_temp.age_account(u1, 16);
+  r := public.my_points_expiry();
+  PERFORM pg_temp.expect((r->>'points')::int = 0, 'after 4 steps the balance is gone');
+
+  SET LOCAL request.jwt.claim.sub = 'e0000000-0000-0000-0000-000000000002';
+  r := public.my_points_expiry();
+  PERFORM pg_temp.expect(r->>'state' = 'ok' AND (r->>'points')::int = 500, 'recent order: nothing fades');
+  SET LOCAL request.jwt.claim.sub = 'e0000000-0000-0000-0000-000000000003';
+  r := public.my_points_expiry();
+  PERFORM pg_temp.expect(r->>'state' = 'ok' AND (r->>'points')::int = 500, '10 months inactive: not yet in the warning window');
+  SET LOCAL request.jwt.claim.sub = 'e0000000-0000-0000-0000-000000000004';
+  r := public.my_points_expiry();
+  PERFORM pg_temp.expect(r->>'state' = 'soon' AND (r->>'points')::int = 400 AND (r->>'next_loss_points')::int = 100, 'warned in month 11.5: 25% would go at the 12 month mark');
+  RESET request.jwt.claim.sub;
+  PERFORM pg_temp.expect(public.my_points_expiry()->>'state' = 'ok', 'guests see nothing');
+
+  -- a returning customer: ordering stops the fade and the new order earns its points
+  UPDATE profiles SET points = 400 WHERE id = u4::uuid;
+  PERFORM pg_temp.age_account(u4, 12.2);
+  a := pg_temp.order_of(u4, 'pepsi', 1);
+  PERFORM pg_temp.expect(pg_temp.pts(u4) = 300 + 4, 'returning at month 12: one step taken (400->300), new order adds 4');
+  SET LOCAL request.jwt.claim.sub = 'e0000000-0000-0000-0000-000000000004';
+  r := public.my_points_expiry();
+  PERFORM pg_temp.expect(r->>'state' = 'ok' AND (r->>'points')::int = 304, 'after ordering: ok, no more fading');
+  RESET request.jwt.claim.sub;
+
+  -- admin list: warned/fading customers only, with phone numbers
+  SET LOCAL request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+  PERFORM pg_temp.age_account(u3, 11.5);
+  r := public.admin_fading_points();
+  PERFORM pg_temp.expect(jsonb_array_length(r) = 1 AND r->0->>'phone' = '0125' AND r->0->>'state' = 'soon', 'admin list shows Newish (soon) with phone');
+  RESET request.jwt.claim.sub;
+  PERFORM pg_temp.expect_error('SELECT public.admin_fading_points()', 'Admins only');
+
+  PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.expire_points_if_stale(uuid, text)', 'execute'), 'customers cannot expire others');
+  PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.my_points_expiry()', 'execute'), 'anon cannot call my_points_expiry');
+  PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.admin_fading_points()', 'execute'), 'anon cannot call the admin list');
+  PERFORM pg_temp.expect(NOT has_table_privilege('authenticated', 'public.points_fade', 'select'), 'fade bookkeeping is private');
+END $$;
+RESET request.jwt.claim.sub;
 
 DO $$ BEGIN RAISE NOTICE 'PASS: burger ranks and monthly prize assertions passed'; END $$;
 

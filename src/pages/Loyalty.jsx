@@ -2,12 +2,16 @@
 import { QrCode, Gamepad2, Lock, History, CheckCircle, Gift } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useStore } from '../contexts/StoreContext';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { useCountUp } from '../hooks/useCountUp';
 import RankCard from '../components/RankCard';
 import './Loyalty.css';
 
+const fmtDate = (d) => new Date(d).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kuching' });
+
 export default function Loyalty() {
+  const { setUser } = useAuth();
   const { points, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
   const displayedPoints = useCountUp(points, 800);
 
@@ -17,9 +21,20 @@ export default function Loyalty() {
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(5);
 
   // Rewards not collected within 14 days expire and the points come back.
+  // Points fade after 12 months with no orders, game points or rewards
+  // (25% a month). This also applies any fade that is due, then tells us
+  // whether to show the reminder banner.
+  const [expiry, setExpiry] = useState(null);
   useEffect(() => {
     Promise.resolve(supabase.rpc('expire_stale_redemptions')).catch(() => {});
-  }, []);
+    Promise.resolve(supabase.rpc('my_points_expiry'))
+      .then(({ data }) => {
+        if (!data) return;
+        setExpiry(data);
+        if (data.removed > 0) setUser((u) => (u ? { ...u, points: data.points } : u));
+      })
+      .catch(() => {});
+  }, [setUser]);
 
   const handleRedeem = async (prize) => {
     if (loading) return;
@@ -35,6 +50,23 @@ export default function Loyalty() {
 
   return (
     <div className="loyalty-page">
+      {expiry && (expiry.state === 'soon' || expiry.state === 'fading') && expiry.points > 0 && (
+        <div className="expiry-banner" role="status">
+          {expiry.state === 'soon' ? (
+            <>
+              <strong>Keep your {expiry.points} points.</strong> They start to fade on {fmtDate(expiry.fade_starts_at)} if there is no order. Order any time before then and you keep them all.
+            </>
+          ) : (
+            <>
+              <strong>Your points are fading ({expiry.points} left).</strong>{' '}
+              {expiry.next_loss_at
+                ? `${expiry.next_loss_points} more go on ${fmtDate(expiry.next_loss_at)}. `
+                : ''}
+              Any order stops it straight away.
+            </>
+          )}
+        </div>
+      )}
       <RankCard points={points} displayedPoints={displayedPoints} />
 
       <div className="actions-row">

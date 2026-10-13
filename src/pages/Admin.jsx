@@ -12,6 +12,8 @@ import CategoryIcon, { CATEGORY_ICONS } from '../components/CategoryIcon';
 import PhotoOptimizer from '../components/PhotoOptimizer';
 import AdminCatering from '../components/AdminCatering';
 import AdminShareProofs from '../components/AdminShareProofs';
+import AdminFadingPoints from '../components/AdminFadingPoints';
+import { whatsAppLink } from '../utils/whatsapp';
 import AdminMonthlyPrize from '../components/AdminMonthlyPrize';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -95,7 +97,7 @@ function AdminGlyph({ icon: Icon, size = 16 }) {
 const ADMIN_TABS = [
   'overview', 'orders', 'analytics', 'customers', 'inventory', 'ingredients',
   'categories', 'addons', 'promotions', 'history', 'grabfood', 'catering',
-  'loyalty_crm', 'redemptions', 'share_proofs', 'stock_report', 'audit'
+  'loyalty_crm', 'redemptions', 'share_proofs', 'fading_points', 'stock_report', 'audit'
 ];
 const CUSTOMER_SEGMENTS = ['First-timer', 'At risk', 'VIP', 'Regular', 'Occasional'];
 
@@ -2761,6 +2763,9 @@ export default function Admin() {
           <button className={`sidebar-item ${activeTab === 'share_proofs' ? 'active' : ''}`} onClick={() => setActiveTab('share_proofs')}>
             <Camera size={20} /> Share proofs
           </button>
+          <button className={`sidebar-item ${activeTab === 'fading_points' ? 'active' : ''}`} onClick={() => setActiveTab('fading_points')}>
+            <Clock size={20} /> Fading points
+          </button>
           <button className={`sidebar-item ${activeTab === 'stock_report' ? 'active' : ''}`} onClick={() => setActiveTab('stock_report')}>
             <TrendingUp size={20} /> Stock Report
           </button>
@@ -4741,6 +4746,12 @@ export default function Admin() {
                           <td className="font-bold text-success">{(customer.lifetimeCents / 100).toFixed(2)}</td>
                           <td>
                             <button className="btn btn-sm btn-secondary" onClick={() => openCustomerDetail(customer)}>View</button>
+                            {customer.phone && (
+                              <a className="btn btn-sm btn-primary" style={{ marginLeft: '6px' }} target="_blank" rel="noopener noreferrer"
+                                href={whatsAppLink(customer.phone, `Hi ${(customer.name || 'there').split(' ')[0]}, this is MunchiesKK 🍔`)}>
+                                WhatsApp
+                              </a>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -5993,6 +6004,7 @@ export default function Admin() {
         )}
 
         {activeTab === 'share_proofs' && <AdminShareProofs />}
+        {activeTab === 'fading_points' && <AdminFadingPoints />}
 
         {activeTab === 'catering' && <AdminCatering />}
 
