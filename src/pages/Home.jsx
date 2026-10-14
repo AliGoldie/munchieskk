@@ -148,12 +148,17 @@ export default function Home() {
 
   // ---- Arcade / loyalty vault -- real prize + real points ----
   const userPoints = points || 0;
-  const freeBurgerPrize = loyaltyPrizes.find(p => /free\s*burger/i.test(p.name))
-    || (loyaltyPrizes.length > 0 ? loyaltyPrizes[loyaltyPrizes.length - 1] : null);
-  const vaultTarget = freeBurgerPrize?.points_cost ?? null;
   // Prizes arrive cheapest-first (active ones only), so [0] is the first reward within reach.
-  const firstPrize = loyaltyPrizes[0] || null;
-  const pointsAway = vaultTarget != null ? Math.max(0, vaultTarget - userPoints) : null;
+  const sortedPrizes = [...loyaltyPrizes].sort((a, b) => a.points_cost - b.points_cost);
+  const firstPrize = sortedPrizes[0] || null;
+  // The vault shows the NEXT reward the customer cannot afford yet (so the goal always feels close).
+  // Once they can afford everything it shows the top reward as ready.
+  const nextPrize = sortedPrizes.find(p => p.points_cost > userPoints) || null;
+  const topPrize = sortedPrizes[sortedPrizes.length - 1] || null;
+  const vaultPrize = nextPrize || topPrize;
+  const vaultTarget = vaultPrize?.points_cost ?? null;
+  const readyPrize = [...sortedPrizes].reverse().find(p => p.points_cost <= userPoints) || null;
+  const pointsAway = nextPrize ? Math.max(0, nextPrize.points_cost - userPoints) : 0;
   const vaultProgress = vaultTarget ? Math.min(100, Math.round((userPoints / vaultTarget) * 100)) : 0;
 
   // ---- Full real menu, grouped for the typographic list ----
@@ -373,10 +378,13 @@ export default function Home() {
             <>
               <div className="c-vault-bar"><div className="c-vault-fill" style={{ width: `${vaultProgress}%` }} /></div>
               <p className="c-vault-sub">
-                {pointsAway > 0
-                  ? `${pointsAway.toLocaleString()} pts away — ${freeBurgerPrize?.name?.toUpperCase() || 'FREE BURGER'} at ${vaultTarget.toLocaleString()}`
-                  : `You have enough for ${freeBurgerPrize?.name || 'a prize'} — tap to claim.`}
+                {nextPrize
+                  ? `${pointsAway.toLocaleString()} pts away — ${nextPrize.name.toUpperCase()} at ${nextPrize.points_cost.toLocaleString()}`
+                  : `You have enough for ${topPrize?.name || 'a prize'} — tap to claim.`}
               </p>
+              {nextPrize && readyPrize && (
+                <p className="c-vault-sub">You can already claim {readyPrize.name} at checkout.</p>
+              )}
             </>
           )}
         </div>

@@ -14,6 +14,8 @@ export default function Loyalty() {
   const { setUser } = useAuth();
   const { points, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
   const displayedPoints = useCountUp(points, 800);
+  // The cheapest reward the customer cannot afford yet.
+  const nextPrize = [...loyaltyPrizes].sort((a, b) => a.points_cost - b.points_cost).find(p => p.points_cost > (points || 0)) || null;
 
   const [redeemedThisSession, setRedeemedThisSession] = useState({});
   const [redemptionResult, setRedemptionResult] = useState(null);
@@ -83,6 +85,15 @@ export default function Loyalty() {
         <Lock size={20} color="var(--text-dim)" />
       </div>
 
+      {nextPrize && (
+        <div className="card next-reward">
+          <p className="next-reward-text">
+            <strong>{(nextPrize.points_cost - (points || 0)).toLocaleString()} PTS</strong> to your next reward: {nextPrize.name}
+          </p>
+          <div className="next-reward-bar"><div className="next-reward-fill" style={{ width: `${Math.min(100, Math.round(((points || 0) / nextPrize.points_cost) * 100))}%` }} /></div>
+        </div>
+      )}
+
       <div className="prize-list">
         {loyaltyPrizes.length === 0 ? (
           <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--surface-raised)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-card)' }}>
@@ -100,7 +111,7 @@ export default function Loyalty() {
                 <div className="prize-info">
                   <h3>{prize.name}</h3>
                   {prize.description && <p style={{ fontSize: '0.75rem', color: 'var(--text-2)', margin: '2px 0 0 0' }}>{prize.description}</p>}
-                  <p className="pts-req">{prize.points_cost.toLocaleString()} PTS</p>
+                  <p className="pts-req">{prize.points_cost.toLocaleString()} PTS{!canRedeem && ` · ${(prize.points_cost - (points || 0)).toLocaleString()} to go`}</p>
                 </div>
                 <button
                   className={`btn ${alreadyRedeemed ? 'btn-dark redeemed' : canRedeem ? 'btn-primary' : 'btn-dark'} prize-btn`}

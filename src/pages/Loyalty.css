@@ -322,3 +322,23 @@
   font-size: 0.9rem;
   line-height: 1.4;
 }
+
+.next-reward {
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.next-reward-text {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+.next-reward-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+.next-reward-fill {
+  height: 100%;
+  background: var(--ember);
+  border-radius: 999px;
+}
