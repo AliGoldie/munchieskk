@@ -385,7 +385,7 @@ export default function Menu() {
       <div className="card ad-banner mt-4 mb-4">
         <div className="ad-content">
           <h2>WANT IT FREE?</h2>
-          <p>Play the arcade for bonus points and a shot at the monthly prize.</p>
+          <p>Play the arcade, chase the weekly goal and win monthly prizes.</p>
           <Link to="/arcade" className="btn btn-dark w-full mt-3" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>GO TO ARCADE</Link>
         </div>
       </div>

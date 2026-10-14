@@ -74,7 +74,7 @@ export default function Loyalty() {
           <QrCode size={32} /><span>Order Now</span>
         </div>
         <div className="card action-btn action-play" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/arcade'}>
-          <Gamepad2 size={32} /><span>Play to Earn</span>
+          <Gamepad2 size={32} /><span>Play Arcade</span>
         </div>
       </div>
 
@@ -141,7 +141,7 @@ export default function Loyalty() {
               )}
             </>
           ) : (
-            <p className="text-muted text-sm p-3">No transactions recorded yet. Place orders or play Munch-Man to earn points!</p>
+            <p className="text-muted text-sm p-3">No transactions recorded yet. Place an order and collect it to earn points!</p>
           )}
         </div>
       </div>

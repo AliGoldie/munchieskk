@@ -346,10 +346,9 @@ export default function Home() {
           <p className="c-eyebrow">THE REWARD LAYER</p>
           <h2>ORDER. PLAY.<br /><span>EAT FREE.</span></h2>
           <p className="c-arcade-body">
-            Earn points on every order, and play the games for bonus points: free for your
-            first month, then whenever you have ordered with us. Beat your best score, the points
-            land in your vault and you spend them on free treats
+            Earn points when you collect your order and spend them on free treats
             {firstPrize ? ` — ${firstPrize.name} from ${firstPrize.points_cost.toLocaleString()} pts.` : '.'}
+            {' '}Play the games to build your Arcade Score, hit the weekly goal for bonus points, and compete for the monthly prizes.
           </p>
           <div className="c-arcade-games">
             <Link to="/arcade" className="c-game-thumb">
