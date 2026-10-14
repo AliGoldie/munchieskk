@@ -1,13 +1,31 @@
 # MunchiesKK points system: brief for the content team
 
-Updated 13 Oct 2026 from the live app and database. Numbers can change: check
+Updated 14 Oct 2026 from the live app and database. Numbers can change: check
 with the owner before printing anything permanent. Items marked
 **(confirm live)** need the owner's OK before you announce them.
 
 ## The one-line version
 
-**Earn points on every order, plus bonus points for sharing, inviting friends
-and playing games. Spend them on free food. Rank up the more you order.**
+**Earn points on every order you collect, plus bonus points for sharing and inviting
+friends. Spend them on free food. Rank up the more you order. Play the arcade to win
+monthly prizes.**
+
+## Step by step: what happens to one customer
+
+1. **Sign up** (free). Nothing is paid yet. If a friend invited them, the link or code is saved.
+2. **Place an order in the app.** The payment page shows the points they will earn
+   (1 point per RM1, **double on Tuesday to Thursday**, plus a rank bonus once they are Pro or higher).
+   No points are paid at this step.
+3. **Collect the order.** Only now the points are added: the order points **plus 6 bonus points**.
+   If the order is cancelled before collection, no points were ever added, so nothing is lost.
+4. **Share the meal** (optional): **+20** after sharing, **+20 more** if a screenshot of the public post is approved.
+5. **Invite a friend** (optional): when the friend's **first collected order is RM20 or more**,
+   the inviter gets **+150** and the friend gets **+30**.
+6. **Spend points** at checkout on the Prize Vault (Free Cheese 50, Free Egg 60, **Free Fries 100**, and more).
+7. **Play the arcade** (optional): games give **no points per run**. They build an **Arcade Score**.
+   Reaching **1,000 in a week = +25 points**. The **top 3 in the month win free food**.
+8. **Rank up**: lifetime spend on collected orders decides the rank (Rookie to Ultimate), which adds bonus points.
+9. **Stay active**: points fade only after 12 months with no activity, 25% a month. Any order stops it.
 
 ## How customers EARN points
 
@@ -56,7 +74,7 @@ code, show it at the counter after paying. A reward not collected within
 Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all three arcade games
 (T-Rex Runner, Speed Grab and Munch-Man).
 
-- **What counts:** your **best score in each of the three games, added together**. Playing more only helps if you beat your best.
+- **What counts:** your **best score in each of the three games, added together**. Each game counts **at most 5,000** (so 15,000 is the top Arcade Score). Playing more only helps if you beat your best.
 - **Three lives** in every game: a crash costs a life, and the run carries on.
 - **Weekly goal:** reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) for **+25 loyalty points**, once a week.
   Because all three games add up, the goal is easy to reach. That is on purpose. (After the first 30 days, game bonuses need at least one collected order.)
@@ -87,13 +105,6 @@ A customer's rank comes from their **lifetime spend on collected orders**
 - Rewards per month counts claims in a calendar month (Malaysia time). A cancelled claim gives its slot back.
 - Cancelling an order takes back exactly the points it earned, bonus included.
 - The app shows each customer their own rank, progress to the next one and the full ladder in a pop-up. (Do not post the thresholds as a public leaderboard.)
-
-## Monthly top-spender prize **(confirm live)**
-
-Each month the owner picks a prize (the first is a **Solero Split**). The
-customer who **spends the most on collected orders that month, minimum RM100**,
-wins it automatically at the start of the next month. Winners are shown by
-first name only and get a claim code to show at the counter within 14 days.
 
 ## Points expiry (new)
 
@@ -127,14 +138,15 @@ On iPhone the app shows a short hint (Share, then Add to Home Screen). Nothing i
 - **Points for every game win, or a streak bonus.** Games only pay through the weekly goal.
 - **Any reward, price or discount not in this document.** No "RM5 off" or percent-off codes for points.
 - **A rank leaderboard or other customers' spend.** Monthly winners are first name only.
+- **A "top spender" monthly prize.** It has been removed. The only monthly prize is the arcade contest.
 
 ## Best days to push
 
-Weekdays are the quietest. A **double-points weekday** would be a natural
-promotion, but it does not exist yet: ask the owner/developer before announcing.
+Weekdays are the quietest, so **Tuesday to Thursday double points** is the natural promotion.
+It is on now, but the owner can switch it off or change the days in Admin, so confirm before posting.
 
 ## Before you post
 
-Ask the owner to confirm the latest update is live (ranks, monthly prize,
-12-month expiry, fries at 100) and that stock is back on, because rewards show
+Ask the owner to confirm the latest update is live (points at collection, double
+points days, ranks, 12-month expiry, fries at 100, the November arcade contest) and that stock is back on, because rewards show
 "Out of stock" while the shop is closed or an item is at 0.

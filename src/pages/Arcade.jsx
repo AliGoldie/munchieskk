@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Award, Star, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Star, Clock } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../config/supabase';
 import MunchManModal from '../components/MunchManModal';
 import TrexRunnerModal from '../components/TrexRunnerModal';
 import SpeedGrabModal from '../components/SpeedGrabModal';
@@ -15,26 +14,6 @@ export default function Arcade() {
   const [isMunchManOpen, setIsMunchManOpen] = useState(false);
   const [isTrexRunnerOpen, setIsTrexRunnerOpen] = useState(false);
   const [isSpeedGrabOpen, setIsSpeedGrabOpen] = useState(false);
-  // Monthly top-spender prize: the prize, this customer's place this month,
-  // and (for the winner) the claim code. Works for guests too (no personal part).
-  const [monthly, setMonthly] = useState(null);
-
-  useEffect(() => {
-    let active = true;
-    Promise.resolve(supabase.rpc('monthly_prize_status'))
-      .then(({ data, error }) => { if (active && !error && data) setMonthly(data); })
-      .catch((err) => console.error('Error fetching monthly prize:', err));
-    return () => { active = false; };
-  }, [user?.id, points]);
-
-  const rm = (cents) => `RM${(Number(cents || 0) / 100).toLocaleString('en-MY', { maximumFractionDigits: 0 })}`;
-  const prize = monthly?.prize || null;
-  const my = monthly?.my || null;
-  const lastWinner = monthly?.last_month?.winner_first_name && ['AWARDED', 'CLAIMED'].includes(monthly.last_month.status)
-    ? `Last month: ${monthly.last_month.winner_first_name} won ${monthly.last_month.prize_name}`
-    : null;
-  const prizeImage = prize?.image_url || '/images/cz_chix_burger.png';
-
   const games = [
     {
       id: 1,
@@ -76,65 +55,6 @@ export default function Arcade() {
       
       {/* Arcade contest, weekly goal and any contest claim codes */}
       <ArcadeContestCard refreshKey={`${user?.id || 'guest'}-${isTrexRunnerOpen}-${isSpeedGrabOpen}`} />
-
-      {/* Winner's claim code */}
-      {monthly?.my_win && (
-        <div className="card arcade-win-card">
-          <h3>You won {monthly.my_win.prize_name}!</h3>
-          <p>Show this code at the counter within 14 days.</p>
-          <div className="arcade-win-code">{monthly.my_win.claim_code}</div>
-        </div>
-      )}
-
-      {/* Monthly prize banner: set by the owner in Admin > Promotions > Monthly Prize */}
-      <div
-        className="card arcade-prize-banner"
-        style={{
-          backgroundImage: `linear-gradient(rgba(10, 10, 10, .35), rgba(10, 10, 10, .96)), url('${prizeImage}')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <div className="prize-content">
-          <span className="badge-light-blue">MONTHLY PRIZE</span>
-          {prize ? (
-            <>
-              <h2>WIN A FREE<br />{String(prize.name).toUpperCase()}!</h2>
-              <p>{String(prize.headline || 'The top spender this month wins').replace(/[.!\s]+$/, '')}. Spend {rm(prize.min_spend_cents)}+ to qualify.</p>
-            </>
-          ) : (
-            <>
-              <h2>NEW PRIZE<br />EVERY MONTH</h2>
-              <p>The top spender each month wins a free treat. This month's prize is coming soon.</p>
-            </>
-          )}
-          {lastWinner && <p style={{ fontSize: '.8rem', opacity: .85 }}>{lastWinner}</p>}
-          <button className="btn btn-dark mt-2" onClick={() => setIsMunchManOpen(true)}>PLAY NOW</button>
-        </div>
-        <div className="prize-img-wrapper">
-          <div className="prize-img-circle">
-            <div className="prize-burger" style={{ backgroundImage: `url('${prizeImage}')` }}></div>
-          </div>
-        </div>
-      </div>
-
-      {/* This month's rank (by spend on collected orders) */}
-      <div className="card rank-card">
-        <Award size={24} className="rank-icon" color="var(--ember)" />
-        <p className="rank-label">THIS MONTH'S RANK</p>
-        <h2 className="rank-number">
-          {my?.rank ? `#${my.rank}` : user ? '—' : '—'}
-        </h2>
-        <span className="rank-sub">
-          {!user
-            ? 'Log in to see your rank'
-            : !my?.rank
-              ? 'Place an order to join the race'
-              : my.rank === 1
-                ? `You lead with ${rm(my.spend_cents)} spent`
-                : `${rm(my.gap_to_first_cents)} to reach #1`}
-        </span>
-      </div>
 
       {/* High Contrast Colorful My Points Card */}
       <div className="card points-card">

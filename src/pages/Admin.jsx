@@ -14,7 +14,6 @@ import AdminCatering from '../components/AdminCatering';
 import AdminShareProofs from '../components/AdminShareProofs';
 import AdminFadingPoints from '../components/AdminFadingPoints';
 import { whatsAppLink } from '../utils/whatsapp';
-import AdminMonthlyPrize from '../components/AdminMonthlyPrize';
 import AdminArcadeContest from '../components/AdminArcadeContest';
 import AdminPointsBoost from '../components/AdminPointsBoost';
 import {
@@ -713,7 +712,7 @@ export default function Admin() {
   // Promos & Referrals State
   const [promoCodes, setPromoCodes] = useState([]);
   const [referralStats, setReferralStats] = useState([]);
-  const [activePromoSubTab, setActivePromoSubTab] = useState('codes'); // 'codes', 'referrals', 'items', 'monthly'
+  const [activePromoSubTab, setActivePromoSubTab] = useState('codes'); // 'codes', 'referrals', 'items', 'arcade'
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [savingPromo, setSavingPromo] = useState(false);
   const EMPTY_PROMO_FORM = {
@@ -5568,12 +5567,6 @@ export default function Admin() {
                 <AdminGlyph icon={Hamburger} />Item-Level Promos
               </button>
               <button 
-                className={`btn ${activePromoSubTab === 'monthly' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setActivePromoSubTab('monthly')}
-              >
-                <AdminGlyph icon={Gift} />Monthly Prize
-              </button>
-              <button 
                 className={`btn ${activePromoSubTab === 'arcade' ? 'btn-primary' : 'btn-outline'}`}
                 onClick={() => setActivePromoSubTab('arcade')}
               >
@@ -5581,7 +5574,6 @@ export default function Admin() {
               </button>
             </div>
 
-            {activePromoSubTab === 'monthly' && <AdminMonthlyPrize />}
             {activePromoSubTab === 'arcade' && <AdminArcadeContest />}
 
             {activePromoSubTab === 'codes' && (

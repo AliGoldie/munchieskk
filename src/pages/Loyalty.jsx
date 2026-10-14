@@ -6,14 +6,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { useCountUp } from '../hooks/useCountUp';
 import RankCard from '../components/RankCard';
+import { ordersToGoText } from '../utils/ordersToReward';
 import './Loyalty.css';
 
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kuching' });
 
 export default function Loyalty() {
   const { setUser } = useAuth();
-  const { points, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
+  const { points, orders, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
   const displayedPoints = useCountUp(points, 800);
+  // The cheapest reward the customer cannot afford yet.
+  const nextPrize = [...loyaltyPrizes].sort((a, b) => a.points_cost - b.points_cost).find(p => p.points_cost > (points || 0)) || null;
 
   const [redeemedThisSession, setRedeemedThisSession] = useState({});
   const [redemptionResult, setRedemptionResult] = useState(null);
@@ -74,7 +77,7 @@ export default function Loyalty() {
           <QrCode size={32} /><span>Order Now</span>
         </div>
         <div className="card action-btn action-play" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/arcade'}>
-          <Gamepad2 size={32} /><span>Play to Earn</span>
+          <Gamepad2 size={32} /><span>Play Arcade</span>
         </div>
       </div>
 
@@ -82,6 +85,15 @@ export default function Loyalty() {
         <h2>PRIZE VAULT</h2>
         <Lock size={20} color="var(--text-dim)" />
       </div>
+
+      {nextPrize && (
+        <div className="card next-reward">
+          <p className="next-reward-text">
+            <strong>{(nextPrize.points_cost - (points || 0)).toLocaleString()} PTS</strong> to your next reward: {nextPrize.name} ({ordersToGoText(nextPrize.points_cost - (points || 0), orders)})
+          </p>
+          <div className="next-reward-bar"><div className="next-reward-fill" style={{ width: `${Math.min(100, Math.round(((points || 0) / nextPrize.points_cost) * 100))}%` }} /></div>
+        </div>
+      )}
 
       <div className="prize-list">
         {loyaltyPrizes.length === 0 ? (
@@ -100,7 +112,7 @@ export default function Loyalty() {
                 <div className="prize-info">
                   <h3>{prize.name}</h3>
                   {prize.description && <p style={{ fontSize: '0.75rem', color: 'var(--text-2)', margin: '2px 0 0 0' }}>{prize.description}</p>}
-                  <p className="pts-req">{prize.points_cost.toLocaleString()} PTS</p>
+                  <p className="pts-req">{prize.points_cost.toLocaleString()} PTS{!canRedeem && ` · ${(prize.points_cost - (points || 0)).toLocaleString()} to go`}</p>
                 </div>
                 <button
                   className={`btn ${alreadyRedeemed ? 'btn-dark redeemed' : canRedeem ? 'btn-primary' : 'btn-dark'} prize-btn`}
@@ -141,7 +153,7 @@ export default function Loyalty() {
               )}
             </>
           ) : (
-            <p className="text-muted text-sm p-3">No transactions recorded yet. Place orders or play Munch-Man to earn points!</p>
+            <p className="text-muted text-sm p-3">No transactions recorded yet. Place an order and collect it to earn points!</p>
           )}
         </div>
       </div>
