@@ -74,7 +74,7 @@ code, show it at the counter after paying. A reward not collected within
 Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all three arcade games
 (T-Rex Runner, Speed Grab and Munch-Man).
 
-- **What counts:** your **best score in each of the three games, added together**. Each game counts **at most 3,000** (so 9,000 is the top Arcade Score). Playing more only helps if you beat your best.
+- **What counts:** your **best score in each of the three games, added together**. Each game counts **at most 5,000** (so 15,000 is the top Arcade Score). Playing more only helps if you beat your best.
 - **Three lives** in every game: a crash costs a life, and the run carries on.
 - **Weekly goal:** reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) for **+25 loyalty points**, once a week.
   Because all three games add up, the goal is easy to reach. That is on purpose. (After the first 30 days, game bonuses need at least one collected order.)

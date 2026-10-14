@@ -51,8 +51,8 @@ Any order stops it.
 
 ## 4. The arcade (games) and the monthly contest
 
-Three games: T-Rex Runner, Speed Grab, Munch-Man. Each run adds to Arcade Score. Only a player's **best score in each game** counts, and each game counts **at most 3,000**.
-The highest possible Arcade Score is 9,000.
+Three games: T-Rex Runner, Speed Grab, Munch-Man. Each run adds to Arcade Score. Only a player's **best score in each game** counts, and each game counts **at most 5,000**.
+The highest possible Arcade Score is 15,000.
 
 - **Weekly goal:** 1,000 Arcade Score in a week gives **+25 Order Points**, once a week. At most about 100 points in a new account's first month.
 - **Monthly contest:** the top 3 players for the calendar month win a **free burger, free fries and a free drink**.
@@ -78,7 +78,7 @@ In practice not all points are spent and some fade, so this is a ceiling for tha
 ## 7. Controls the owner has, without a developer
 
 The double-points days and multiplier; the weekly goal size and points; each reward's point price and stock; the contest prizes, dates, minimum score, claim minimum and claim window; and
-whether each reward is available. The flat +6 collection bonus and the 3,000-per-game cap need a developer to change.
+whether each reward is available. The flat +6 collection bonus and the 5,000-per-game cap need a developer to change.
 
 ## 8. Things I'd ask finance to look at
 

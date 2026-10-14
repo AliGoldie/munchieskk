@@ -332,7 +332,7 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------
--- 3b. Each game counts at most 3,000
+-- 3b. Each game counts at most 5,000
 -- ---------------------------------------------------------------------
 DO $$
 DECLARE
@@ -347,18 +347,18 @@ BEGIN
   PERFORM pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
   cid := public.admin_save_arcade_contest(NULL, 'Cap test', now() - interval '3 days', now() + interval '2 days', true, 300, 14, '[]'::jsonb);
   INSERT INTO arcade_scores (user_id, game, score, run_seconds, scored_at) VALUES
-    -- Fay: a 9,000 T-Rex run counts as 3,000, plus 500 grab = 3,500
+    -- Fay: a 9,000 T-Rex run counts as 5,000, plus 500 grab = 5,500
     (fay::uuid, 'trex_runner', 9000, 200, now() - interval '5 hours'),
     (fay::uuid, 'speed_grab', 500, 30, now() - interval '4 hours'),
-    -- Gus reaches the same 3,000 cap later with a bigger raw score, plus 500 grab: ties Fay, but later
+    -- Gus reaches the same 5,000 cap later with a bigger raw score, plus 500 grab: ties Fay, but later
     (gus::uuid, 'trex_runner', 12000, 300, now() - interval '2 hours'),
     (gus::uuid, 'speed_grab', 500, 30, now() - interval '3 hours');
   SELECT * INTO rk FROM public.arcade_contest_ranking(cid, true) WHERE user_id = fay::uuid;
-  PERFORM pg_temp.expect(rk.total = 3500 AND rk.trex = 3000, 'a game counts at most 3,000');
+  PERFORM pg_temp.expect(rk.total = 5500 AND rk.trex = 5000, 'a game counts at most 5,000');
   SELECT * INTO rk FROM public.arcade_contest_ranking(cid, true) WHERE user_id = gus::uuid;
-  PERFORM pg_temp.expect(rk.total = 3500, 'a bigger raw score does not beat the cap');
+  PERFORM pg_temp.expect(rk.total = 5500, 'a bigger raw score does not beat the cap');
   PERFORM pg_temp.expect((SELECT user_id FROM public.arcade_contest_ranking(cid, true) WHERE rnk = 1) = fay::uuid, 'tie at the cap goes to whoever reached it first');
-  PERFORM pg_temp.expect(public.arcade_week_score(fay::uuid) = 3500, 'the weekly score uses the same cap');
+  PERFORM pg_temp.expect(public.arcade_week_score(fay::uuid) = 5500, 'the weekly score uses the same cap');
 END $$;
 
 -- ---------------------------------------------------------------------

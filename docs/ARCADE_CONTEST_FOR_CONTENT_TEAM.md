@@ -20,7 +20,7 @@ A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
 
 ## How Arcade Score works
 
-- Your Arcade Score is your **best score in each of the three games, added together**. Each game counts **at most 3,000**, so the highest possible Arcade Score is 9,000.
+- Your Arcade Score is your **best score in each of the three games, added together**. Each game counts **at most 5,000**, so the highest possible Arcade Score is 15,000.
   Example: best T-Rex 800 + best Speed Grab 500 + best Munch-Man 300 = **1,600**.
 - Playing more only helps if you **beat your own best**. Replaying with a lower score changes nothing.
 - Every game gives you **3 lives**. A crash costs a life and you carry on.
@@ -43,7 +43,7 @@ A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
   - **3rd: a free drink**
   The owner can change the prizes for any month. Confirm before announcing.
 - **Rules to state clearly:**
-  - Ranking = best score in each game (**3,000 maximum per game**), added together. A **tie goes to the player who reached the score first**.
+  - Ranking = best score in each game (**5,000 maximum per game**), added together. A **tie goes to the player who reached the score first**.
   - **One account per phone number.** If two accounts share a number, only the better one counts.
   - A **minimum score** applies (300 by default) so that a single quick try does not win.
   - Winners are picked **automatically when the month ends**.

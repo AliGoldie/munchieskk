@@ -1,4 +1,4 @@
--- Each game counts at most 3,000 toward a player's Arcade Score.
+-- Each game counts at most 5,000 toward a player's Arcade Score.
 --
 -- T-Rex Runner has no end, so without a cap a patient player could out-score
 -- everyone. The cap applies to the weekly goal and to the monthly contest
@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION public.arcade_game_cap()
 RETURNS integer
 LANGUAGE sql
 IMMUTABLE
-AS $$ SELECT 3000 $$;
+AS $$ SELECT 5000 $$;
 REVOKE EXECUTE ON FUNCTION public.arcade_game_cap() FROM PUBLIC, anon, authenticated;
 
 -- This week's score: the best verified score in each game (at most the cap), added together.
