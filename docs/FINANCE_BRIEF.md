@@ -72,7 +72,7 @@ No cash is ever paid out. Points have no cash value and cannot be transferred. E
 ## 6. Illustrative scale (assumptions, not data)
 
 200 active customers, 2 orders each a month, average order RM25: sales RM10,000. If 40% of orders fall on double days, average points per order are about 35 plus 6 = 41.
-400 orders gives about 16,400 points. If every point were spent on Free Fries (100 points each) that is about 164 fries; at an assumed RM3 cost that is about RM490, or about 5% of sales.
+400 orders gives about 16,400 points. If every point were spent on Free Fries (100 points each) that is about 164 fries; at the food cost finance supplied (RM1.60 a fries) that is about RM262, or about 2.6% of sales (about 3.4% with oil and gas).
 In practice not all points are spent and some fade, so this is a ceiling for that scenario.
 
 ## 7. Controls the owner has, without a developer
