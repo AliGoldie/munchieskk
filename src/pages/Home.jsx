@@ -4,6 +4,7 @@ import { ChevronRight, Gamepad2, Star, Users } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getItemPoints } from '../utils/pointsCalculator';
+import { ordersToGoText } from '../utils/ordersToReward';
 import { formatTime12Hour, getMalaysiaNow } from '../utils/timeUtils';
 import { loyaltyConfig } from '../config/loyaltyConfig';
 import { siteConfig } from '../config/siteConfig';
@@ -55,7 +56,7 @@ function findByPattern(list, pattern) {
 export default function Home() {
   const {
     menu, menuLoadError, addons, isPromoActive,
-    points, loyaltyPrizes, shopSettings, isShopOpenNow,
+    points, orders, loyaltyPrizes, shopSettings, isShopOpenNow,
   } = useStore();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -379,7 +380,7 @@ export default function Home() {
               <div className="c-vault-bar"><div className="c-vault-fill" style={{ width: `${vaultProgress}%` }} /></div>
               <p className="c-vault-sub">
                 {nextPrize
-                  ? `${pointsAway.toLocaleString()} pts away — ${nextPrize.name.toUpperCase()} at ${nextPrize.points_cost.toLocaleString()}`
+                  ? `${pointsAway.toLocaleString()} pts away — ${nextPrize.name.toUpperCase()} at ${nextPrize.points_cost.toLocaleString()} · ${ordersToGoText(pointsAway, orders)}`
                   : `You have enough for ${topPrize?.name || 'a prize'} — tap to claim.`}
               </p>
               {nextPrize && readyPrize && (

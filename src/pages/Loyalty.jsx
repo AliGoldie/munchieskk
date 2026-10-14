@@ -6,13 +6,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { useCountUp } from '../hooks/useCountUp';
 import RankCard from '../components/RankCard';
+import { ordersToGoText } from '../utils/ordersToReward';
 import './Loyalty.css';
 
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kuching' });
 
 export default function Loyalty() {
   const { setUser } = useAuth();
-  const { points, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
+  const { points, orders, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
   const displayedPoints = useCountUp(points, 800);
   // The cheapest reward the customer cannot afford yet.
   const nextPrize = [...loyaltyPrizes].sort((a, b) => a.points_cost - b.points_cost).find(p => p.points_cost > (points || 0)) || null;
@@ -88,7 +89,7 @@ export default function Loyalty() {
       {nextPrize && (
         <div className="card next-reward">
           <p className="next-reward-text">
-            <strong>{(nextPrize.points_cost - (points || 0)).toLocaleString()} PTS</strong> to your next reward: {nextPrize.name}
+            <strong>{(nextPrize.points_cost - (points || 0)).toLocaleString()} PTS</strong> to your next reward: {nextPrize.name} ({ordersToGoText(nextPrize.points_cost - (points || 0), orders)})
           </p>
           <div className="next-reward-bar"><div className="next-reward-fill" style={{ width: `${Math.min(100, Math.round(((points || 0) / nextPrize.points_cost) * 100))}%` }} /></div>
         </div>
