@@ -16,7 +16,7 @@ GitHub: AliGoldie/munchieskk. Live Supabase project id: zlxuxxlnczpqmlcpzawm. Th
 - Double points Tue/Wed/Thu (Malaysia time), switch in Admin > Prizes CRM (`points_boost` table).
 - Share +20 (+20 more with approved screenshot). Referral: referrer +150 and friend +30, both after the friend's first collected order of RM20 or more.
 - Points expire gradually after 12 months of inactivity (25% per month fade). Free Fries costs 100 points.
-- Games (T-Rex Runner, Speed Grab, Munch-Man) pay NO points per run. They add to Arcade Score; 1,000 weekly Arcade Score = +25 points once a week; a monthly contest gives prizes to the top 3.
+- Games (T-Rex Runner, Speed Grab, Munch-Man) pay NO points per run. They add to Arcade Score; 1,000 weekly Arcade Score = +25 points once a week; a monthly contest gives prizes to the top 3. Each game counts at most 5,000 toward Arcade Score (`arcade_game_cap()`). The old monthly top-spender prize was removed (its database objects are dormant; do not rebuild it without Ali asking).
 - Sign-up has NO privacy/age checkbox (owner decision). No staff "give points by phone" button (owner decision). Catering stays Off. Wording is "sliders/packs", not "tray". Never say "smash burger".
 
 ## Where things live
