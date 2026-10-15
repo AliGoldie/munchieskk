@@ -33,4 +33,5 @@ GitHub: AliGoldie/munchieskk. Live Supabase project id: zlxuxxlnczpqmlcpzawm. Th
 - Security: never expose the Supabase service-role key; the browser only uses the anon key from env vars.
 
 ## When you finish a change
+Add a dated line to `docs/CONTENT_TEAM_SYNC.md` for any change that affects what the content team says (rules, names, prizes, dates). Their agents read it at the start of every session.
 Update the relevant file in `docs/` and this file if a rule changed, and tell Ali exactly which SQL (if any) he must run and in what order.
