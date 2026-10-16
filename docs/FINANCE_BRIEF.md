@@ -24,7 +24,7 @@ Two kinds of numbers exist, and they must not be confused:
 | Ordering | **1 point per RM1** of food paid | Worked out when the order is placed, **paid only when the order is collected**. A cancelled order earns nothing. Only orders placed in the app earn points; counter sales rung up in the till do not. |
 | Collection bonus | **+6 per collected order** | Flat amount, paid with the order points. |
 | Double points days | **x2 on Tuesday, Wednesday, Thursday** | By the day the order is placed (Malaysia time). The owner can switch it off, change the multiplier (1 to 5) or the days. |
-| Rank bonus | **+5% / +8% / +12%** of the order points | Ranks Pro / Master / Ultimate, from lifetime spend on collected orders: Regular RM200, Pro RM850, Master RM1,500, Ultimate RM3,000. |
+| Rank bonus | **+5% / +8% / +12%** of the order points | Ranks Pro / Master / Ultimate, from lifetime spend on collected orders: Regular RM100, Pro RM300, Master RM600, Ultimate RM1,200 (approved 16 Oct 2026; ranks never go down). Rank perks (free Cheese once, birthday Ice BB yearly, free Egg monthly, free platter yearly) need a paid order and are one reward per order. |
 | Sharing a meal | **+20**, or **+40 in total** with an approved screenshot | Once per order, collected orders only. |
 | Inviting a friend | **+150 to the inviter, +30 to the friend** | Paid when the friend's **first collected order is RM20 or more**. Each person can earn this for a maximum of 5 friends. |
 | Arcade weekly goal | **+25 per week** | When a player's Arcade Score reaches 1,000 in a Monday to Sunday week. After the account's first 30 days, the player must also have at least one collected order. |

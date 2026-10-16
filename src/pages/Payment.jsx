@@ -10,7 +10,7 @@ import { rewardBlockReason } from '../utils/rewardRules';
 import './Payment.css';
 
 export default function Payment() {
-  const { cart, cartTotal, placeOrder, shopSettings, isShopOpenNow, loyaltyPrizes, points, menu, addons, itemAddons, applyOrderReward } = useStore();
+  const { cart, cartTotal, placeOrder, shopSettings, isShopOpenNow, loyaltyPrizes, rankPerkPrizes, points, menu, addons, itemAddons, applyOrderReward } = useStore();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -49,11 +49,15 @@ export default function Payment() {
 
   // A reward the customer ticked (free item / add-on, paid for with points).
   const [rewardPrizeId, setRewardPrizeId] = useState(null);
-  const rewardPrize = (loyaltyPrizes || []).find(p => p.id === rewardPrizeId) || null;
+  const rewardPrize = [...(loyaltyPrizes || []), ...(rankPerkPrizes || [])].find(p => p.id === rewardPrizeId) || null;
   // A promo code (or anything else) can push the order under a reward's
   // minimum after it was ticked: untick it instead of failing at payment.
   useEffect(() => {
-    if (rewardPrize && rewardBlockReason(rewardPrize, { points, menu, addons, itemAddons, cart, orderTotal: finalTotal })) {
+    // (A rank perk costs no points; the server checks rank and period, so only the minimum is checked here.)
+    const blocked = rewardPrize && (rewardPrize.perk_rank_order != null
+      ? finalTotal < Math.max(rewardPrize.min_order_cents ?? 0, 1)
+      : rewardBlockReason(rewardPrize, { points, menu, addons, itemAddons, cart, orderTotal: finalTotal }));
+    if (blocked) {
       setRewardPrizeId(null);
     }
   }, [rewardPrize, points, menu, addons, itemAddons, cart, finalTotal]);
@@ -427,6 +431,7 @@ export default function Payment() {
 
           <CheckoutRewards
             prizes={loyaltyPrizes}
+            perks={rankPerkPrizes}
             points={points}
             menu={menu}
             addons={addons}
@@ -470,7 +475,7 @@ export default function Payment() {
           {rewardPrize && (
              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--go)', fontWeight: 600, marginBottom: '8px' }}>
                 <span>Reward: {rewardPrize.name}</span>
-                <span>FREE (-{Number(rewardPrize.points_cost).toLocaleString()} pts)</span>
+                <span>{rewardPrize.perk_rank_order != null ? 'FREE (rank perk)' : `FREE (-${Number(rewardPrize.points_cost).toLocaleString()} pts)`}</span>
              </div>
           )}
 

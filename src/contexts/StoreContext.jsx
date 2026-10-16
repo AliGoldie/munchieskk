@@ -23,6 +23,7 @@ export function StoreProvider({ children }) {
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loyaltyPrizes, setLoyaltyPrizes] = useState([]);
+  const [rankPerkPrizes, setRankPerkPrizes] = useState([]);
   const [redemptions, setRedemptions] = useState([]);
   const [ingredients, setIngredients] = useState([]);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
@@ -185,7 +186,12 @@ export function StoreProvider({ children }) {
       // 0a. Fetch Loyalty Prizes
       try {
         const { data: prizesData } = await supabase.from('loyalty_prizes').select('*').eq('is_active', true).order('points_cost', { ascending: true });
-        if (prizesData) setLoyaltyPrizes(prizesData);
+        if (prizesData) {
+          // Rank perks (free for a rank, no points) share the table but are not
+          // Prize Vault items; they are offered at checkout and on the rank card.
+          setLoyaltyPrizes(prizesData.filter(p => p.perk_rank_order == null));
+          setRankPerkPrizes(prizesData.filter(p => p.perk_rank_order != null));
+        }
       } catch (e) { console.warn('loyalty_prizes fetch failed:', e); }
 
             // 0. Fetch Store Settings
@@ -1868,7 +1874,7 @@ const clearManualOverride = async (id) => {
       addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, claimShareBonus, fetchSingleOrder,
-      loyaltyPrizes, redemptions, redeemPrize, applyOrderReward, fetchAdminRedemptions, fulfillRedemption,
+      loyaltyPrizes, rankPerkPrizes, redemptions, redeemPrize, applyOrderReward, fetchAdminRedemptions, fulfillRedemption,
       addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize, logGrabfoodDailyEntry, undoGrabfoodEntry,
       ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
       updateIngredientName, updateIngredientUnit,

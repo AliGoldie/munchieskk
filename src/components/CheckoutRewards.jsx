@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Gift, CheckCircle2 } from 'lucide-react';
+import { supabase } from '../config/supabase';
 import { rewardBlockReason } from '../utils/rewardRules';
 import './CheckoutRewards.css';
 
@@ -8,11 +10,29 @@ import './CheckoutRewards.css';
 // apply_order_reward, so this is only guidance, never the authority.
 const pts = (n) => Number(n || 0).toLocaleString();
 
-export default function CheckoutRewards({ prizes, points, menu, addons, itemAddons, cart, orderTotal, selectedId, onSelect }) {
-  const options = (prizes || []).filter(p => p.menu_item_id || p.addon_id);
+export default function CheckoutRewards({ prizes, perks, points, menu, addons, itemAddons, cart, orderTotal, selectedId, onSelect }) {
+  const [perkState, setPerkState] = useState(null);
+  const hasPerks = (perks || []).length > 0;
+
+  // What this customer can use right now (rank, once per period). Guests and an
+  // older database simply see no perks.
+  useEffect(() => {
+    if (!hasPerks) return undefined;
+    let active = true;
+    Promise.resolve(supabase.rpc('my_perks'))
+      .then(({ data, error }) => {
+        if (!active || error || !Array.isArray(data)) return;
+        setPerkState(Object.fromEntries(data.map(x => [x.id, x])));
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [hasPerks]);
+
+  const unlockedPerks = (perks || []).filter(p => perkState?.[p.id]?.unlocked);
+  const options = [...(prizes || []), ...unlockedPerks].filter(p => p.menu_item_id || p.addon_id);
   if (options.length === 0) return null;
 
-  const ctx = { points, menu, addons, itemAddons, cart, orderTotal };
+  const ctx = { points, menu, addons, itemAddons, cart, orderTotal, perkState };
 
   return (
     <div className="checkout-rewards">
@@ -33,7 +53,7 @@ export default function CheckoutRewards({ prizes, points, menu, addons, itemAddo
               onClick={() => onSelect(selected ? null : p.id)}
             >
               <span className="checkout-reward-name">{p.name}</span>
-              <span className="checkout-reward-cost">{blocked ? blocked : `${pts(p.points_cost)} pts`}</span>
+              <span className="checkout-reward-cost">{blocked ? blocked : p.perk_rank_order != null ? 'Rank perk' : `${pts(p.points_cost)} pts`}</span>
               {selected && <CheckCircle2 size={18} className="checkout-reward-tick" aria-hidden="true" />}
             </button>
           );
