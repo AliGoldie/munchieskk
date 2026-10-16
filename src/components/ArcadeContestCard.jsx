@@ -121,7 +121,7 @@ export default function ArcadeContestCard({ refreshKey }) {
             ) : (
               <p className="acc-me">Log in and play to join the contest.</p>
             )}
-            <p className="acc-fine">Ends {fmtDay(current.ends_at)}. {claimLine(current.claim_min_order_cents ?? 1000)} First names only. One account per phone number.</p>
+            <p className="acc-fine">Ends {fmtDay(current.ends_at)}. {claimLine(current.claim_min_order_cents ?? 1000)} First names only. One prize per person.</p>
           </>
         ) : next ? (
           <>

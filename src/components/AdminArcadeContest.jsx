@@ -24,7 +24,7 @@ function wholeMonth(ym) {
 }
 
 const emptyForm = () => ({
-  id: null, title: '', starts: '', ends: '', active: true, min_score: '300', claim_days: '14', claim_min_rm: '10',
+  id: null, title: '', starts: '', ends: '', active: true, min_score: '300', claim_days: '90', claim_min_rm: '10',
   prizes: DEFAULT_PRIZES.map((name, i) => ({ rank: i + 1, prize_name: name, menu_item_id: '' })),
 });
 
@@ -80,7 +80,7 @@ export default function AdminArcadeContest() {
       });
     const { error: err } = await supabase.rpc('admin_save_arcade_contest', {
       p_id: form.id, p_title: form.title, p_starts: toIso(form.starts), p_ends: toIso(form.ends),
-      p_active: form.active, p_min_score: parseInt(form.min_score || '300', 10), p_claim_days: parseInt(form.claim_days || '14', 10),
+      p_active: form.active, p_min_score: parseInt(form.min_score || '300', 10), p_claim_days: parseInt(form.claim_days || '90', 10),
       p_prizes: prizes, p_claim_min_order_cents: Math.round(parseFloat(form.claim_min_rm || '0') * 100),
     });
     setSaving(false);
