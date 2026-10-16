@@ -26,9 +26,11 @@ most of the ranking is won.
 
 ## Needed from you (the site cannot know these)
 
-1. **Street address, postcode and map pin** of the kitchen. Add them in
-   `SITE` in `src/config/seoConfig.js` (`streetAddress`, `postalCode`,
-   `latitude`, `longitude`) and Google will show the exact location.
+1. **Shop address: do NOT put it in this repo.** This repo is public and the
+   shop location is deliberately undisclosed (owner decision, 12 Oct 2026). If
+   Ali later decides to publish an address, that is a separate decision; it
+   would go through Google Business Profile first, and only then be discussed
+   for `SITE` in `src/config/seoConfig.js`.
 2. **Confirm the Threads address** `threads.com/@munchieskk.burger`.
 
 ## Do these this week (biggest impact first)
@@ -57,7 +59,7 @@ most of the ranking is won.
 
 ## Keep doing
 
-- Post on Instagram/TikTok/Threads and tag the location (Kota Kinabalu); link the
+- Post on Instagram/TikTok/Threads and tag the location as Sabah; link the
   site in every bio.
 - Check Search Console monthly: which searches show you, which pages are indexed,
   any errors. Look for "burger kota kinabalu", "burger near me", "makanan sabah".

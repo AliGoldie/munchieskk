@@ -1,5 +1,11 @@
 # Points system audit (owner notes), 12 Oct 2026
 
+> **Status update, 16 Oct 2026: partly resolved. Do not read this as current.**
+> - Gap 1 (points paid at placement): FIXED. Order points are now paid when the order is collected, with the +6 bonus.
+> - Gap 4 (friend's +30 paid at signup): FIXED. Inviter +150 and friend +30 are both paid after the friend's first collected order of RM20 or more.
+> - Arcade rules changed: games pay no points per run. See `docs/POINTS_SYSTEM.md`.
+> - The other gaps were not re-checked. `docs/POINTS_SYSTEM.md` and `docs/CONTENT_TEAM_SYNC.md` are the source of truth.
+
 Checked against the live database functions and the website code.
 
 ## Confirmed working as designed
