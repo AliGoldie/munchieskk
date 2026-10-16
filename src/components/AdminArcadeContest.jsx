@@ -228,7 +228,7 @@ export default function AdminArcadeContest() {
               {c.winners.map((w) => (
                 <div key={w.rank} className="mp-claim">
                   <span>
-                    <strong>{PLACES[w.rank - 1]}</strong> {w.name || w.first_name}{w.phone ? ` · ${w.phone}` : ''} · {w.total_score.toLocaleString()} ·
+                    <strong>{PLACES[w.rank - 1]}</strong> {w.name || w.first_name}{w.phone ? ` · ${w.phone}` : ' · no phone yet'} · {w.total_score.toLocaleString()} ·
                     code <strong className="mp-code">{w.claim_code}</strong>
                     {w.status === 'CLAIMED' && ' · claimed'}
                   </span>

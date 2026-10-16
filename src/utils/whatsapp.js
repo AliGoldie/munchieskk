@@ -7,6 +7,12 @@ export function toWhatsAppNumber(phone) {
   return digits;
 }
 
+// Message a winner sends to the shop to confirm their contest prize. The code
+// lets staff match the chat to the winner at the counter.
+export function contestWinMessage(place, contest, code) {
+  return `Hi MunchiesKK! I won ${place} place in ${contest}. My claim code: ${code}`;
+}
+
 export function whatsAppLink(phone, text) {
   return `https://wa.me/${toWhatsAppNumber(phone)}?text=${encodeURIComponent(text)}`;
 }
