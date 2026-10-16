@@ -65,6 +65,7 @@ $$;
 \i supabase/migrations/20261017000000_munchman_match_games.sql
 \i supabase/migrations/20261019000000_arcade_score_cap.sql
 \i supabase/migrations/20261020000000_contest_claim_needs_phone.sql
+\i supabase/migrations/20261023000000_weekly_goal_rules.sql
 
 CREATE FUNCTION pg_temp.expect(p_ok boolean, p_msg text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN IF NOT p_ok THEN RAISE EXCEPTION 'FAIL: %', p_msg; END IF; END $$;
@@ -169,6 +170,44 @@ BEGIN
   INSERT INTO orders (id, user_id, status, total) VALUES ('O-1', u::uuid, 'COLLECTED', 2000);
   r := pg_temp.run(u, 'trex_runner', 60, 1300);
   PERFORM pg_temp.expect((r->>'points_awarded')::int = 25 AND pg_temp.pts(u) = 25, 'after a collected order the goal bonus is paid');
+END $$;
+
+-- 2a. Weekly goal rules (20261023000000): order within 30 days, and a monthly limit
+INSERT INTO profiles (id, role, points, name, phone, created_at) VALUES
+  ('a0000000-0000-0000-0000-0000000000f1', 'user', 0, 'Hal Monthly', '0121110009', now()),
+  ('a0000000-0000-0000-0000-0000000000f2', 'user', 0, 'Ivy Stale', '0121110011', now() - interval '90 days');
+DO $$
+DECLARE r jsonb;
+  hal constant text := 'a0000000-0000-0000-0000-0000000000f1';
+  ivy constant text := 'a0000000-0000-0000-0000-0000000000f2';
+  v_week date := (public.arcade_week_start() AT TIME ZONE 'Asia/Kuching')::date;
+  v_first date;
+BEGIN
+  PERFORM pg_temp.expect((SELECT goal_max_per_month FROM arcade_settings) = 4, 'monthly limit defaults to 4 goal bonuses');
+
+  -- monthly limit: four bonuses already paid this month, so the fifth is held back
+  v_first := date_trunc('month', v_week::timestamp)::date;
+  INSERT INTO arcade_goal_awards (user_id, week_start, points)
+  SELECT hal::uuid, d::date, 25
+  FROM (SELECT v_first + i AS d FROM generate_series(0, 8) i) x
+  WHERE d::date <> v_week LIMIT 4;
+  r := pg_temp.run(hal, 'trex_runner', 60, 1200);
+  PERFORM pg_temp.expect((r->>'points_awarded')::int = 0 AND pg_temp.pts(hal) = 0, 'the fifth goal bonus in a month is not paid');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM arcade_goal_awards WHERE user_id = hal::uuid AND week_start = v_week), 'a held-back week is left open, not marked paid');
+  DELETE FROM arcade_goal_awards WHERE user_id = hal::uuid AND week_start = (SELECT min(week_start) FROM arcade_goal_awards WHERE user_id = hal::uuid);
+  r := pg_temp.run(hal, 'trex_runner', 60, 1300);
+  PERFORM pg_temp.expect((r->>'points_awarded')::int = 25 AND pg_temp.pts(hal) = 25, 'with one slot free the goal bonus is paid');
+
+  -- a collected order must be within the last 30 days
+  INSERT INTO orders (id, user_id, status, total, created_at) VALUES ('O-OLD', ivy::uuid, 'COLLECTED', 2000, now() - interval '45 days');
+  r := pg_temp.run(ivy, 'trex_runner', 60, 1200);
+  PERFORM pg_temp.expect((r->>'points_awarded')::int = 0 AND pg_temp.pts(ivy) = 0, 'an order from 45 days ago does not qualify');
+  INSERT INTO orders (id, user_id, status, total, created_at) VALUES ('O-CANCELLED', ivy::uuid, 'CANCELLED', 2000, now() - interval '2 days');
+  r := pg_temp.run(ivy, 'trex_runner', 60, 1250);
+  PERFORM pg_temp.expect((r->>'points_awarded')::int = 0 AND pg_temp.pts(ivy) = 0, 'a recent cancelled order does not qualify');
+  INSERT INTO orders (id, user_id, status, total, created_at) VALUES ('O-RECENT', ivy::uuid, 'COLLECTED', 2000, now() - interval '10 days');
+  r := pg_temp.run(ivy, 'trex_runner', 60, 1300);
+  PERFORM pg_temp.expect((r->>'points_awarded')::int = 25 AND pg_temp.pts(ivy) = 25, 'a collected order in the last 30 days qualifies');
 END $$;
 
 -- ---------------------------------------------------------------------

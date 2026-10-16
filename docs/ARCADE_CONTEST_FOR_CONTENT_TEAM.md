@@ -31,7 +31,7 @@ A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
 
 - Reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) and get **+25 loyalty points**. Once a week.
 - Because the three games add together, most regular players can reach it. That is on purpose.
-- New accounts qualify freely for their first 30 days. After that, an account needs at least one collected order.
+- New accounts qualify freely for their first 30 days. After that, an account needs a collected order in the last 30 days. It pays at most 4 times in a calendar month.
 - The owner can change the goal and the bonus. Always check the numbers with the owner before printing them.
 
 ## The monthly contest **(confirm live)**
@@ -90,7 +90,7 @@ Sample captions (edit freely, keep to the facts above):
 
 ## Quick FAQ for replies and comments
 
-- **Do I need to order food to play?** No. Playing is free for everyone who has an account. (After the first 30 days, the weekly goal bonus needs at least one collected order.)
+- **Do I need to order food to play?** No. Playing is free for everyone who has an account. (After the first 30 days, the weekly goal bonus needs a collected order in the last 30 days.)
 - **Do I need to order to collect my prize?** Yes: show the claim code with any order of RM10 or more.
 - **Can I use two accounts?** One account per phone number counts. Please do not.
 - **What if there is a tie?** The player who reached the score first wins.

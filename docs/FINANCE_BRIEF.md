@@ -27,7 +27,7 @@ Two kinds of numbers exist, and they must not be confused:
 | Rank bonus | **+5% / +8% / +12%** of the order points | Ranks Pro / Master / Ultimate, from lifetime spend on collected orders: Regular RM200, Pro RM850, Master RM1,500, Ultimate RM3,000. |
 | Sharing a meal | **+20**, or **+40 in total** with an approved screenshot | Once per order, collected orders only. |
 | Inviting a friend | **+150 to the inviter, +30 to the friend** | Paid when the friend's **first collected order is RM20 or more**. Each person can earn this for a maximum of 5 friends. |
-| Arcade weekly goal | **+25 per week** | When a player's Arcade Score reaches 1,000 in a Monday to Sunday week. After the account's first 30 days, the player must also have at least one collected order. |
+| Arcade weekly goal | **+25 per week** | When a player's Arcade Score reaches 1,000 in a Monday to Sunday week. After the account's first 30 days, the player must also have a collected order in the last 30 days. Maximum 4 goal bonuses per account per calendar month. |
 
 Games pay **no** points per play. There is no daily game payout.
 
