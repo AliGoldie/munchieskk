@@ -342,3 +342,17 @@
   background: var(--ember);
   border-radius: 999px;
 }
+
+/* Rank-up message and rank perks */
+.rank-up-card { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; border: 1px solid var(--go, #2e9d5b); }
+.rank-perks-card h3 { margin: 0 0 4px; }
+.rank-perk-sub { margin: 0 0 10px; font-size: .85rem; opacity: .8; }
+.rank-perk { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid rgba(128, 128, 128, .25); }
+.rank-perk.locked { opacity: .55; }
+.rank-perk span { font-size: .85rem; opacity: .85; }
+.rank-perk .rank-perk-status { font-weight: 600; opacity: 1; }
+.rank-birthday { margin-top: 10px; }
+.rank-birthday label { display: block; font-size: .85rem; margin-bottom: 6px; }
+.rank-birthday div { display: flex; gap: 8px; flex-wrap: wrap; }
+.rank-birthday select { padding: 8px; border-radius: 8px; }
+.rank-birthday p { color: var(--danger, #c0392b); font-size: .85rem; margin: 6px 0 0; }

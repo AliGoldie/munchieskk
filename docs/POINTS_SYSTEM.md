@@ -97,10 +97,23 @@ A customer's rank comes from their **lifetime spend on collected orders**
 | Rank | Lifetime spend | Rewards per month | Bonus points on orders |
 |---|---|---|---|
 | Rookie | RM0 | 1 | none |
-| Regular | RM200 | 2 | none |
-| Pro | RM850 | 3 | +5% |
-| Master | RM1,500 | 4 | +8% |
-| Ultimate | RM3,000 | 5 | +12% |
+| Regular | RM100 | 2 | none |
+| Pro | RM300 | 3 | +5% |
+| Master | RM600 | 4 | +8% |
+| Ultimate | RM1,200 | 5 | +12% |
+
+(These thresholds were approved on 16 Oct 2026 and go live when the owner runs the rank SQL; the older ladder was RM200 / 850 / 1,500 / 3,000.)
+
+**Ranks never go down.** The app remembers the highest rank a customer reached. A refund, or a later change to the thresholds, never takes a rank away.
+
+**Rank perks.** Claimed on a paid order at checkout, as the one reward for that order (order RM20 or more, RM30 for the platter). A perk costs no points and does **not** use up the monthly rewards. A higher rank keeps the lower perks. Cancelling the order gives the perk back.
+
+| Rank | Perk | How often |
+|---|---|---|
+| Regular | Free Cheese add-on | once |
+| Pro | Birthday Ice BB | once a year, in the birthday month (month and day only, optional, saved once) |
+| Master | Free Egg add-on | every month |
+| Ultimate | Free Kawan MONSTA platter | once a year |
 
 - Rewards per month counts claims in a calendar month (Malaysia time). A cancelled claim gives its slot back.
 - Cancelling an order takes back exactly the points it earned, bonus included.
