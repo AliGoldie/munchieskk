@@ -27,6 +27,7 @@ Ask questions by opening a GitHub issue titled `Content question: ...`. Answers 
 
 ## Changed since last sync
 - **16 Oct 2026** Developer added a "launch profile v2" switch (Rewards Plan v2 values: weekly goal 10, Ice BB 250, Mushy2 500, platter 2,000, ranks at RM100/300/600/1,200). It is **OFF**. Nothing above changed. Announce nothing from Plan v2 until this file says the switch is on.
+- **16 Oct 2026** The contest card now says "One prize per person" (was "One account per phone number"). The Admin form now defaults to **90 days to claim**. Every prize in a contest shares the same claim window.
 - **16 Oct 2026** Ali decided **90 days to claim**.
 - **16 Oct 2026** Phone number required to claim a contest prize (winners without one are asked to add it before their claim code appears; staff cannot mark a prize claimed without it). Pending Ali running the SQL.
 - **16 Oct 2026** Answered content issue #109. Sync file restructured into the three sections the content team asked for. Added the phone note and the exact double-points and weekly-goal rules.
