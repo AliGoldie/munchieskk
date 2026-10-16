@@ -11,21 +11,22 @@ Ask questions by opening a GitHub issue titled `Content question: ...`. Answers 
 - **Referral:** inviter +150, friend +30, both paid after the friend's first collected order of RM20 or more. Max 5 friends per inviter.
 - **Arcade Score:** best score in each of the 3 games, added together. Each game counts at most **5,000** (so 15,000 is the maximum). Games give no points per run.
 - **Weekly goal:** 1,000 Arcade Score in a Monday to Sunday week gives **+25 points**, once a week. Accounts under 30 days old qualify freely. **Older accounts need at least one collected order ever.** The app cannot take orders before the shop opens, so an account older than 30 days with no collected order does not get the bonus until its first collected order after opening. Safe wording: "New accounts can earn it in their first 30 days. After that, order and collect once to keep earning it." Do not promise it to everyone.
+- **Decided (16 Oct): days to claim a contest prize = 90**, counted from the win (1 Dec), so about 1 March. You may publish "90 days to claim". The claim also needs an order of RM10 or more.
 - **Top-spender monthly prize: removed.** The arcade contest is the only monthly prize.
 - **Progress display:** Home and Loyalty show points to the next reward and "about N more orders".
 
 ## Decisions still open (do not publish)
 - **Contest dates:** planned 1 Nov to 1 Dec 2026 (Malaysia time), winners announced 1 Dec.
-- **Days to claim:** 60 or 90. The developer recommends 90 (the opening may slip). Ali to confirm. Do not print a number.
 - **Opening date:** unconfirmed (mid-November at the earliest, 1 December at the latest, pending council health approval). Never promise a date.
-- **Phone number for the contest:** see the note below. Wording must not claim strict "one entry per person".
+- **Phone required to claim:** decided, being built. Wording must not claim strict "one entry per person".
 - **Names of the two point types:** not decided. Keep "points" and "Arcade Score".
 - **Weekly goal size** (25 now, finance suggests 15) and **Mushy2 / platter point prices:** not decided.
 - Contest prize cost and the RM19 figure: internal.
 
-**Phone number note.** Phone is **optional at sign-up** (sign-up is email, password, name, optional phone). The contest rule "one account per phone number" only applies to accounts that gave a phone. Someone can enter with an email-only account, and one person could in theory make several. So a phone number is **not required to enter or win**. Winners are checked at the counter. Say "one prize per person", not "one account per phone". Ali is deciding whether to ask for a phone before a prize is claimed.
+**Phone number note.** Phone is **optional at sign-up** (sign-up is email, password, name, optional phone). The contest rule "one account per phone number" only applies to accounts that gave a phone. Someone can enter with an email-only account, and one person could in theory make several. So a phone number is **not required to enter or win**. Winners are checked at the counter. Say "one prize per person", not "one account per phone". **Decided (16 Oct): a phone number will be required to claim a prize**, so the shop can contact winners. It is **not built yet**: do not publish this until the sync file says it is live.
 
 ## Changed since last sync
+- **16 Oct 2026** Ali decided: **90 days to claim**, and a **phone number will be required to claim a prize** (being built).
 - **16 Oct 2026** Answered content issue #109. Sync file restructured into the three sections the content team asked for. Added the phone note and the exact double-points and weekly-goal rules.
 - **15 Oct 2026** Arcade Score cap is **5,000 per game** (max 15,000), live on the database. Ties go to whoever reached the score first.
 - **15 Oct 2026** Home and Loyalty pages show "points to your next reward" and "about N more orders".

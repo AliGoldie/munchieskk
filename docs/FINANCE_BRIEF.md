@@ -58,7 +58,7 @@ The highest possible Arcade Score is 15,000.
 - **Monthly contest:** the top 3 players for the calendar month win a **free burger, free fries and a free drink**.
   The first contest runs 1 Nov to 1 Dec 2026, before the shop opens.
   A player needs at least 300 Arcade Score to qualify. Ties go to whoever reached the score first, and one account per phone number counts.
-  Winners show a claim code at the counter and must **place an order of RM10 or more** to claim, within **60 days** of winning. Unclaimed prizes cost nothing.
+  Winners show a claim code at the counter and must **place an order of RM10 or more** to claim, within **90 days** of winning. Unclaimed prizes cost nothing.
 
 ## 5. Where the cost comes from
 
