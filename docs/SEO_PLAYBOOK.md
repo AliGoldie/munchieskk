@@ -24,6 +24,14 @@ most of the ranking is won.
   links to the menu, catering and rewards.
 - Speed work (images, fonts, layout shift) also counts: speed is a ranking input.
 
+## Search angle and wording (Ali, 16 Oct 2026)
+
+- Angle: **local Sabahan flavours and homemade sauces**, with **SUMANDAK** (Sabahan-style burger with sambal tuhau) as the hero.
+- Approved search description: "MunchiesKK: burgers, loaded fries and platters with local Sabahan flavours and homemade sauces. Try SUMANDAK, our Sabahan-style burger with sambal tuhau."
+- Public text never says what is inside the patties (no meat types in generic lines, no ingredients, weights, suppliers or origin). Menu item names and toppings/sauces are fine. "Handcrafted patties" is allowed; buns are not handcrafted.
+- The developers apply the wording in `src/config/seoConfig.js` and `src/config/seoSchema.js` (tracked in the GitHub issue comment). This playbook only records the decision.
+- Location words (area, landmark, parking) stay out of public text until Ali announces the opening.
+
 ## Needed from you (the site cannot know these)
 
 1. **Shop address: do NOT put it in this repo.** This repo is public and the
