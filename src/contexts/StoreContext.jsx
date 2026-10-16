@@ -343,6 +343,23 @@ export function StoreProvider({ children }) {
 
     if (!user.id) return;
 
+    // Points are paid by the database when staff mark an order collected, so the
+    // customer's open page must pick up the new balance without a refresh.
+    const applyPoints = (points) => {
+      if (typeof points !== 'number') return;
+      setUser(prev => (prev && prev.id === user.id && prev.points !== points ? { ...prev, points } : prev));
+    };
+    const refreshOwnPoints = () => {
+      supabase.from('profiles').select('points').eq('id', user.id).maybeSingle()
+        .then(({ data }) => { if (data) applyPoints(data.points); });
+    };
+    const onOwnOrderChange = (payload) => {
+      if (payload.eventType === 'UPDATE' && payload.new?.user_id === user.id &&
+          (payload.new.status === 'COLLECTED' || payload.new.status === 'CANCELLED')) {
+        refreshOwnPoints();
+      }
+    };
+
     let privateChannel = supabase.channel('schema-db-changes-private-' + user.id);
     if (user.role === 'admin') {
       privateChannel = privateChannel
@@ -352,10 +369,14 @@ export function StoreProvider({ children }) {
           } else if (payload.eventType === 'UPDATE') {
             setOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
           }
+          onOwnOrderChange(payload);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
           if (payload.eventType === 'INSERT') setCustomers(prev => [...prev, payload.new]);
-          else if (payload.eventType === 'UPDATE') setCustomers(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
+          else if (payload.eventType === 'UPDATE') {
+            setCustomers(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
+            if (payload.new.id === user.id) applyPoints(payload.new.points);
+          }
         });
     } else {
       privateChannel = privateChannel
@@ -365,6 +386,10 @@ export function StoreProvider({ children }) {
           } else if (payload.eventType === 'UPDATE') {
             setOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
           }
+          onOwnOrderChange(payload);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: 'id=eq.' + user.id }, payload => {
+          applyPoints(payload.new.points);
         });
     }
     privateChannel.subscribe();
@@ -493,6 +518,15 @@ export function StoreProvider({ children }) {
       if (error) {
         console.warn('[fetchSingleOrder] error:', error.message);
         return null;
+      }
+      // Fallback if realtime is down: once the order is finished, the points
+      // were paid by the database, so refresh the balance shown on the page.
+      if (data && user?.id && data.user_id === user.id && (data.status === 'COLLECTED' || data.status === 'CANCELLED')) {
+        supabase.from('profiles').select('points').eq('id', user.id).maybeSingle().then(({ data: prof }) => {
+          if (prof && typeof prof.points === 'number') {
+            setUser(prev => (prev && prev.id === user.id && prev.points !== prof.points ? { ...prev, points: prof.points } : prev));
+          }
+        });
       }
       return data;
     } catch (e) {
