@@ -82,7 +82,7 @@ Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all 
   (the plan: 1st a burger, 2nd fries, 3rd a drink; the owner can change the prizes for each contest).
   - Ties go to whoever reached their score first. **One account per phone number.** A minimum score applies (300 by default).
   - Winners are picked automatically when the contest ends. Only **first names** are shown. Winners show a claim code at the counter
-    (claimed **with any order of RM10 or more**; the claim window is set per contest: 60 or 90 days for November, the owner confirms, so do not print a number until then).
+    (claimed **with any order of RM10 or more**; the claim window is set per contest: **90 days** for the November contest).
   - Scores are checked: impossible scores are not counted, and staff check the top players in person.
 - **Munch-Man matches the other two games:** no points for a win or a streak (the streak is only a badge). Its score counts toward Arcade Score.
 - **Do not say** that T-Rex Runner or Speed Grab give loyalty points for every personal best. They no longer do.
