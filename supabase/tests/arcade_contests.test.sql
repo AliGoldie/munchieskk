@@ -64,6 +64,7 @@ $$;
 \i supabase/migrations/20261016000000_arcade_contests.sql
 \i supabase/migrations/20261017000000_munchman_match_games.sql
 \i supabase/migrations/20261019000000_arcade_score_cap.sql
+\i supabase/migrations/20261020000000_contest_claim_needs_phone.sql
 
 CREATE FUNCTION pg_temp.expect(p_ok boolean, p_msg text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN IF NOT p_ok THEN RAISE EXCEPTION 'FAIL: %', p_msg; END IF; END $$;
@@ -323,6 +324,28 @@ BEGIN
   PERFORM public.admin_mark_arcade_claimed(cid, 1);
   PERFORM pg_temp.expect((SELECT status FROM arcade_contest_winners WHERE contest_id = cid AND rank = 1) = 'CLAIMED', 'claim marked');
   PERFORM pg_temp.expect_error(format($q$SELECT public.admin_mark_arcade_claimed(%L, 1)$q$, cid), 'That prize is not waiting to be claimed');
+
+  -- phone required to claim (20261020000000): Alice (2nd) loses her number
+  UPDATE profiles SET phone = NULL WHERE id = 'a0000000-0000-0000-0000-000000000001';
+  PERFORM pg_temp.as_user('a0000000-0000-0000-0000-000000000001');
+  r := public.arcade_contest_status();
+  PERFORM pg_temp.expect((r->'my_wins'->0->>'needs_phone')::boolean AND (r->'my_wins'->0->>'claim_code') IS NULL
+    AND NOT (r::text ILIKE '%' || (SELECT claim_code FROM arcade_contest_winners WHERE contest_id = cid AND rank = 2) || '%'),
+    'winner without a phone: needs_phone and the code is not sent to the browser');
+  PERFORM pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
+  PERFORM pg_temp.expect_error(format($q$SELECT public.admin_mark_arcade_claimed(%L, 2)$q$, cid), 'The winner has no phone number');
+  PERFORM pg_temp.as_user('a0000000-0000-0000-0000-000000000001');
+  PERFORM pg_temp.expect_error($q$SELECT public.save_my_phone('abc')$q$, 'Please enter a valid phone number');
+  PERFORM pg_temp.expect_error($q$SELECT public.save_my_phone('12345')$q$, 'Please enter a valid phone number');
+  PERFORM pg_temp.expect_error($q$SELECT public.save_my_phone(NULL)$q$, 'Please enter a valid phone number');
+  PERFORM public.save_my_phone('012-345 6789');
+  r := public.arcade_contest_status();
+  PERFORM pg_temp.expect(NOT (r->'my_wins'->0->>'needs_phone')::boolean AND (r->'my_wins'->0->>'claim_code') = (SELECT claim_code FROM arcade_contest_winners WHERE contest_id = cid AND rank = 2),
+    'after saving a phone the claim code is shown');
+  PERFORM pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
+  PERFORM public.admin_mark_arcade_claimed(cid, 2);
+  PERFORM pg_temp.expect((SELECT status FROM arcade_contest_winners WHERE contest_id = cid AND rank = 2) = 'CLAIMED', 'staff can mark it claimed once the winner has a phone');
+  PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.save_my_phone(text)', 'execute'), 'guests cannot save a phone');
 
   -- the weekly goal can be changed by the owner only
   PERFORM public.admin_set_arcade_goal(1500, 30);

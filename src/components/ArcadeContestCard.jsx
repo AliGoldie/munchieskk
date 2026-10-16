@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Trophy, Target } from 'lucide-react';
 import { supabase } from '../config/supabase';
+import { siteConfig } from '../config/siteConfig';
+import { contestWinMessage } from '../utils/whatsapp';
 import './ArcadeContestCard.css';
 
 const PLACES = ['1st', '2nd', '3rd'];
@@ -19,11 +21,38 @@ function timeLeft(endsAt, now) {
   return `${m}m left`;
 }
 
+// A winner without a phone number must add one before the claim code shows.
+function PhoneGate({ onSaved }) {
+  const [phone, setPhone] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const save = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setErr('');
+    const { error } = await supabase.rpc('save_my_phone', { p_phone: phone });
+    setBusy(false);
+    if (error) setErr(error.message || 'Could not save the number. Please try again.');
+    else onSaved();
+  };
+  return (
+    <form onSubmit={save}>
+      <p>Add your phone number so we can WhatsApp you your pickup details. Your claim code will show right after.</p>
+      <input className="price-input" type="tel" inputMode="tel" autoComplete="tel" placeholder="e.g. 012-345 6789"
+        value={phone} onChange={(e) => setPhone(e.target.value)} required />
+      {err && <p className="acc-fine" role="alert">{err}</p>}
+      <button type="submit" className="btn btn-sm btn-primary" disabled={busy}>{busy ? 'Saving...' : 'Save and show my code'}</button>
+    </form>
+  );
+}
+
 // Arcade contest + weekly goal. The score here is never spent: it only
 // decides the contest podium and the weekly goal bonus. Safe for guests.
 export default function ArcadeContestCard({ refreshKey }) {
   const [data, setData] = useState(null);
   const [now, setNow] = useState(() => Date.now());
+
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -31,7 +60,7 @@ export default function ArcadeContestCard({ refreshKey }) {
       .then(({ data: d, error }) => { if (active && !error && d) setData(d); })
       .catch((err) => console.error('Error fetching arcade contest:', err));
     return () => { active = false; };
-  }, [refreshKey]);
+  }, [refreshKey, reload]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
@@ -47,8 +76,18 @@ export default function ArcadeContestCard({ refreshKey }) {
       {wins.map((w) => (
         <div className="card arcade-win-card" key={`${w.contest}-${w.rank}`}>
           <h3>You came {PLACES[w.rank - 1] || `#${w.rank}`} in {w.contest}: {w.prize}!</h3>
-          <p>Show this code at the counter to collect it. {claimLine(w.claim_min_order_cents ?? 1000)}</p>
-          <div className="arcade-win-code">{w.claim_code}</div>
+          {w.needs_phone ? (
+            <PhoneGate onSaved={() => setReload((n) => n + 1)} />
+          ) : (
+            <>
+              <p>Show this code at the counter to collect it. {claimLine(w.claim_min_order_cents ?? 1000)}</p>
+              <div className="arcade-win-code">{w.claim_code}</div>
+              <a className="btn btn-sm btn-primary" target="_blank" rel="noopener noreferrer"
+                href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(contestWinMessage(PLACES[w.rank - 1] || `#${w.rank}`, w.contest, w.claim_code))}`}>
+                Confirm on WhatsApp
+              </a>
+            </>
+          )}
         </div>
       ))}
 

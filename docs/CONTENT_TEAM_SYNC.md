@@ -18,14 +18,15 @@ Ask questions by opening a GitHub issue titled `Content question: ...`. Answers 
 - **Contest dates:** planned 1 Nov to 1 Dec 2026 (Malaysia time), winners announced 1 Dec.
 - **Days to claim:** 60 or 90. The developer recommends 90 (the opening may slip). Ali to confirm. Do not print a number.
 - **Opening date:** unconfirmed (mid-November at the earliest, 1 December at the latest, pending council health approval). Never promise a date.
-- **Phone number for the contest:** see the note below. Wording must not claim strict "one entry per person".
+- **Phone number for the contest:** DECIDED, see the note below. Still do not claim strict "one entry per person".
 - **Names of the two point types:** not decided. Keep "points" and "Arcade Score".
 - **Weekly goal size** (25 now, finance suggests 15) and **Mushy2 / platter point prices:** not decided.
 - Contest prize cost and the RM19 figure: internal.
 
-**Phone number note.** Phone is **optional at sign-up** (sign-up is email, password, name, optional phone). The contest rule "one account per phone number" only applies to accounts that gave a phone. Someone can enter with an email-only account, and one person could in theory make several. So a phone number is **not required to enter or win**. Winners are checked at the counter. Say "one prize per person", not "one account per phone". Ali is deciding whether to ask for a phone before a prize is claimed.
+**Phone number note.** Phone is **optional at sign-up** (sign-up is email, password, name, optional phone). The contest rule "one account per phone number" only applies to accounts that gave a phone. Someone can enter with an email-only account, and one person could in theory make several. So a phone number is **not required to enter or win**. Winners are checked at the counter. Say "one prize per person", not "one account per phone". **Decided 16 Oct 2026: a winner must add a phone number before the claim code is shown** (code ready in the repo, goes live once Ali runs the database update; until the content team is told it is live, do not publish it as active). Sign-up stays unchanged (phone optional). Safe wording: "Winners add a phone number so we can contact them about their prize." Do not say a phone is needed to play or enter.
 
 ## Changed since last sync
+- **16 Oct 2026** Phone number required to claim a contest prize (winners without one are asked to add it before their claim code appears; staff cannot mark a prize claimed without it). Pending Ali running the SQL.
 - **16 Oct 2026** Answered content issue #109. Sync file restructured into the three sections the content team asked for. Added the phone note and the exact double-points and weekly-goal rules.
 - **15 Oct 2026** Arcade Score cap is **5,000 per game** (max 15,000), live on the database. Ties go to whoever reached the score first.
 - **15 Oct 2026** Home and Loyalty pages show "points to your next reward" and "about N more orders".
