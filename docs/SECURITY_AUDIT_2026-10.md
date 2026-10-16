@@ -1,5 +1,10 @@
 # Security audit: 11 Oct 2026
 
+> **Status update, 16 Oct 2026: dated record, not current status.**
+> - Open items 2 and 5 (referral abuse): both referral bonuses (inviter +150, friend +30) are now paid when the friend's first order is COLLECTED, not when placed.
+> - Open items 1, 3 and 4 were not re-checked and may still apply.
+> - Rules source of truth: `docs/POINTS_SYSTEM.md`.
+
 Scope: Supabase database (tables, row-level security, functions, storage, auth
 advisors), the website code, HTTP headers, dependencies. Method: read the
 live function code and policies, then **reproduced each suspected hole on a
