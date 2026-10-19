@@ -494,7 +494,7 @@ export default function Payment() {
           {user && pointsToEarn > 0 && (
             <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: 'var(--text-2)' }}>
               You will earn about <strong>{pointsToEarn.toLocaleString()} points</strong> (plus 6 bonus) when you collect your order
-              {boostMultiplier > 1 ? ` — ${boostMultiplier}x points today!` : '.'}
+              {boostMultiplier > 1 ? ` — ${boostMultiplier}x Monsta Coins today!` : '.'}
             </p>
           )}
 

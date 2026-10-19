@@ -158,7 +158,7 @@ export default function ArcadeContestCard({ refreshKey }) {
             </div>
             <div className="acc-bar"><div className="acc-bar-fill" style={{ width: `${goalPct}%` }} /></div>
             <p className="acc-fine">
-              {goal.done ? `Goal reached this week. +${goal.goal_points} points paid.` : `Reach it this week for +${goal.goal_points} loyalty points.`}
+              {goal.done ? `Goal reached this week. +${goal.goal_points} Monsta Coins paid.` : `Reach it this week for +${goal.goal_points} Monsta Coins.`}
             </p>
           </div>
         )}

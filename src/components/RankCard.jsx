@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
+import { COINS } from '../config/rewardNames';
 
 // Burger Rank card for the Loyalty page. The rank comes from lifetime spend on
 // collected orders (never from points), so games and bonuses can't raise it.
@@ -66,9 +67,9 @@ export default function RankCard({ points, displayedPoints }) {
       <div className="card rank-header-card">
         <div className="medal-circle"><Award size={32} color="#fff" /></div>
         <h1>{rank ? rank.tier.toUpperCase() : 'LOYALTY REWARDS'}</h1>
-        <p className="rank-level">{rank ? 'BURGER RANK' : 'YOUR POINTS'}</p>
+        <p className="rank-level">{rank ? 'BURGER RANK' : COINS.toUpperCase()}</p>
         <div className="points-flex">
-          <span>{displayedPoints.toLocaleString()} POINTS</span>
+          <span>{displayedPoints.toLocaleString()} {COINS.toUpperCase()}</span>
           {rank && <span>{next ? `${rm(toGo)} TO ${next.toUpperCase()}` : 'TOP RANK'}</span>}
         </div>
         {rank && (
@@ -79,7 +80,7 @@ export default function RankCard({ points, displayedPoints }) {
         {rank && (
           <p className="rank-perks">
             {rank.claims_used} of {rank.claims_per_month} reward{rank.claims_per_month === 1 ? '' : 's'} used this month
-            {rank.bonus_percent > 0 ? ` · +${rank.bonus_percent}% bonus points on orders` : ''}
+            {rank.bonus_percent > 0 ? ` · +${rank.bonus_percent}% bonus ${COINS} on orders` : ''}
           </p>
         )}
       </div>

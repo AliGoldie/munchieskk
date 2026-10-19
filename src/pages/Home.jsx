@@ -234,7 +234,7 @@ export default function Home() {
               {heroItem.name.toUpperCase()} · RM {money(isPromoActive(heroItem) ? heroItem.promo_price : heroItem.price)}
             </span>
           </div>
-          <span className="c-buybar-pts">+{getItemPoints(heroItem)} PTS</span>
+          <span className="c-buybar-pts">+{getItemPoints(heroItem)} Coins</span>
           <button className="btn c-buybar-add" onClick={() => openItem(heroItem)}>ADD TO CART</button>
         </div>
       )}
@@ -354,7 +354,7 @@ export default function Home() {
           <p className="c-arcade-body">
             Earn points when you collect your order and spend them on free treats
             {firstPrize ? ` — ${firstPrize.name} from ${firstPrize.points_cost.toLocaleString()} pts.` : '.'}
-            {' '}Play the games to build your Arcade Score, hit the weekly goal for bonus points, and compete for the monthly prizes.
+            {' '}Play the games to build your Burger XP, hit the weekly goal for bonus Monsta Coins, and compete for the monthly prizes.
           </p>
           <div className="c-arcade-games">
             <Link to="/arcade" className="c-game-thumb">
@@ -374,7 +374,7 @@ export default function Home() {
         </div>
         <div className="c-vault-card">
           <p className="c-vault-label">YOUR VAULT</p>
-          <p className="c-vault-points">{userPoints.toLocaleString()} PTS</p>
+          <p className="c-vault-points">{userPoints.toLocaleString()} Coins</p>
           {vaultTarget != null && (
             <>
               <div className="c-vault-bar"><div className="c-vault-fill" style={{ width: `${vaultProgress}%` }} /></div>
@@ -425,7 +425,7 @@ export default function Home() {
         </p>
         <p>
           Order online for pickup, find us on GrabFood, or book <Link to="/catering">slider catering</Link> for
-          your office, birthday or kenduri. Join free to earn points on every order and unlock free
+          your office, birthday or kenduri. Join free to earn Monsta Coins on every order and unlock free
           food in the <Link to="/loyalty">Prize Vault</Link>.
         </p>
         <p><Link to="/menu" className="c-about-link">See the full menu <ChevronRight size={16} /></Link></p>
