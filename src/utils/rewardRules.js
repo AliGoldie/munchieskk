@@ -1,9 +1,16 @@
 // Client-side mirror of the checks in the apply_order_reward database
 // function, used only to grey out rewards that would be refused. The server
 // stays the authority.
-export function rewardBlockReason(p, { points, menu, addons, itemAddons, cart, orderTotal }) {
+export function rewardBlockReason(p, { points, menu, addons, itemAddons, cart, orderTotal, perkState }) {
   const n = (v) => Number(v || 0).toLocaleString();
-  if ((points || 0) < p.points_cost) return `${n(p.points_cost - (points || 0))} more pts`;
+  if (p.perk_rank_order != null) {
+    const s = perkState?.[p.id];
+    if (!s) return 'Unavailable';
+    if (!s.unlocked) return `Unlocks at ${s.rank}`;
+    if (s.used) return 'Already used';
+    if (s.needs_birthday) return 'Add your birthday first';
+    if (!s.birthday_month_now) return 'Birthday month only';
+  } else if ((points || 0) < p.points_cost) return `${n(p.points_cost - (points || 0))} more coins`;
   const min = Math.max(p.min_order_cents ?? 0, 1);
   if (orderTotal < min) return `Spend RM ${(min / 100).toFixed(2)}+`;
   if (p.menu_item_id) {

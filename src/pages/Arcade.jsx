@@ -59,12 +59,12 @@ export default function Arcade() {
       {/* High Contrast Colorful My Points Card */}
       <div className="card points-card">
         <div className="points-card-left">
-          <h2 className="points-card-title">MY POINTS</h2>
+          <h2 className="points-card-title">MY MONSTA COINS</h2>
           <div className="points-badge">
             <div className="points-star-circle">
               <Star size={16} fill="#ffffff" color="#ffffff" />
             </div>
-            <span>{user ? `${points || 0} PTS` : 'Log in to earn'}</span>
+            <span>{user ? `${points || 0} Coins` : 'Log in to earn'}</span>
           </div>
         </div>
       </div>

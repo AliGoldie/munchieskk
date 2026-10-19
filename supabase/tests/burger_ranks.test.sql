@@ -705,6 +705,171 @@ BEGIN
   PERFORM pg_temp.expect(NOT has_table_privilege('authenticated', 'public.points_boost', 'select'), 'the settings table is private');
 END $$;
 
+
+-- ---------------------------------------------------------------------------
+-- 10. Rewards Plan v2.1: new rank thresholds, ranks never go down, rank perks
+-- ---------------------------------------------------------------------------
+-- Customers whose rank changes under the new thresholds (spend on COLLECTED orders):
+--   A RM250 (Regular -> Regular)   B RM120 (Rookie -> Regular)   C RM700 (Regular -> Master)
+--   D RM1,300 (Master -> Ultimate) E RM350 (Regular -> Pro)      R no orders (Rookie)
+INSERT INTO profiles (id, role, points, name) VALUES
+  ('c0000000-0000-0000-0000-00000000000a', 'user', 1000, 'Cust A'),
+  ('c0000000-0000-0000-0000-00000000000b', 'user', 1000, 'Cust B'),
+  ('c0000000-0000-0000-0000-00000000000c', 'user', 1000, 'Cust C'),
+  ('c0000000-0000-0000-0000-00000000000d', 'user', 1000, 'Cust D'),
+  ('c0000000-0000-0000-0000-00000000000e', 'user', 1000, 'Cust E'),
+  ('c0000000-0000-0000-0000-00000000000f', 'user', 1000, 'Cust R');
+INSERT INTO orders (id, status, total, user_id, created_at) VALUES
+  ('V-A', 'COLLECTED', 25000,  'c0000000-0000-0000-0000-00000000000a', now() - interval '3 days'),
+  ('V-B', 'COLLECTED', 12000,  'c0000000-0000-0000-0000-00000000000b', now() - interval '3 days'),
+  ('V-C', 'COLLECTED', 70000,  'c0000000-0000-0000-0000-00000000000c', now() - interval '3 days'),
+  ('V-D', 'COLLECTED', 130000, 'c0000000-0000-0000-0000-00000000000d', now() - interval '3 days'),
+  ('V-E', 'COLLECTED', 35000,  'c0000000-0000-0000-0000-00000000000e', now() - interval '3 days');
+
+-- things the perks hand out
+INSERT INTO menu_items (id, name, category, price, stock_quantity, in_stock) VALUES
+  ('icebb', 'Ice BB', 'DRINKS', 990, 20, true),
+  ('monsta', 'Kawan MONSTA', 'PLATTERS', 6990, 20, true);
+INSERT INTO addons (id, name, price, stock_quantity, in_stock) VALUES
+  ('cheese', 'Cheese', 200, 50, true),
+  ('egg', 'Egg', 200, 50, true);
+INSERT INTO item_addons (menu_item_id, addon_id) VALUES ('platter', 'cheese'), ('platter', 'egg');
+-- an ordinary points reward, to prove perks do not use up the monthly limit
+INSERT INTO loyalty_prizes (name, description, points_cost, menu_item_id, min_order_cents, deduct_stock, is_active)
+VALUES ('Test Pepsi', 'x', 10, 'pepsi', 2000, true, true);
+
+\i supabase/migrations/20261024000000_ranks_v2_1.sql
+-- run twice on purpose: the migration must be safe to repeat
+\i supabase/migrations/20261024000000_ranks_v2_1.sql
+
+CREATE FUNCTION pg_temp.perk(p_name text) RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.loyalty_prizes WHERE name = p_name $$;
+CREATE FUNCTION pg_temp.tier_now(p_user text) RETURNS text LANGUAGE sql AS $$ SELECT name FROM public.customer_tier(p_user::uuid) $$;
+CREATE FUNCTION pg_temp.use_perk(p_user text, p_perk text, p_item text DEFAULT 'platter') RETURNS jsonb LANGUAGE plpgsql AS $$
+DECLARE v_order text;
+BEGIN
+  v_order := pg_temp.order_of(p_user, p_item, 1);   -- leaves the session as this user
+  RETURN public.apply_order_reward(v_order, pg_temp.perk(p_perk));
+END $$;
+
+DO $$
+DECLARE
+  a constant text := 'c0000000-0000-0000-0000-00000000000a';
+  b constant text := 'c0000000-0000-0000-0000-00000000000b';
+  c constant text := 'c0000000-0000-0000-0000-00000000000c';
+  d constant text := 'c0000000-0000-0000-0000-00000000000d';
+  e constant text := 'c0000000-0000-0000-0000-00000000000e';
+  r constant text := 'c0000000-0000-0000-0000-00000000000f';
+  o text; j jsonb; t jsonb; n integer;
+BEGIN
+  -- new thresholds
+  PERFORM pg_temp.expect((SELECT string_agg(name || ':' || min_spend_cents, ',' ORDER BY sort_order) FROM loyalty_tiers)
+    = 'Rookie:0,Regular:10000,Pro:30000,Master:60000,Ultimate:120000', 'new thresholds are live');
+  PERFORM pg_temp.expect((SELECT string_agg(bonus_percent || '/' || claims_per_month, ',' ORDER BY sort_order) FROM loyalty_tiers)
+    = '0/1,0/2,5/3,8/4,12/5', 'bonuses and monthly limits are unchanged');
+  PERFORM pg_temp.expect(pg_temp.tier_now(a) = 'Regular' AND pg_temp.tier_now(b) = 'Regular' AND pg_temp.tier_now(c) = 'Master'
+    AND pg_temp.tier_now(d) = 'Ultimate' AND pg_temp.tier_now(e) = 'Pro' AND pg_temp.tier_now(r) = 'Rookie', 'everyone lands on the right rank under the new thresholds');
+  PERFORM pg_temp.expect((SELECT count(*) FROM loyalty_prizes WHERE perk_rank_order IS NOT NULL) = 4, 'four perks exist, once each (the migration ran twice)');
+
+  -- ranks never go down
+  PERFORM pg_temp.expect((SELECT top_tier_sort FROM profiles WHERE id = a::uuid) = 2 AND (SELECT top_tier_sort FROM profiles WHERE id = d::uuid) = 5, 'the highest rank is remembered');
+  UPDATE orders SET refund_amount = 30000 WHERE id = 'V-E';      -- spend falls to RM50
+  PERFORM pg_temp.expect(pg_temp.tier_now(e) = 'Pro', 'a refund never drops a rank');
+  UPDATE loyalty_tiers SET min_spend_cents = 5000000 WHERE name = 'Ultimate';
+  UPDATE loyalty_tiers SET min_spend_cents = 4000000 WHERE name = 'Master';
+  PERFORM pg_temp.expect(pg_temp.tier_now(d) = 'Ultimate' AND pg_temp.tier_now(c) = 'Master', 'raising the thresholds later does not take a rank away');
+  PERFORM pg_temp.expect(pg_temp.tier_now(r) = 'Rookie', 'it does not give ranks away either');
+  UPDATE loyalty_tiers SET min_spend_cents = 120000 WHERE name = 'Ultimate';
+  UPDATE loyalty_tiers SET min_spend_cents = 60000 WHERE name = 'Master';
+
+  -- a new collected order raises the remembered rank
+  INSERT INTO orders (id, status, total, user_id, created_at) VALUES ('V-R', 'COLLECTED', 31000, r::uuid, now());
+  PERFORM pg_temp.expect(pg_temp.tier_now(r) = 'Pro' AND (SELECT top_tier_sort FROM profiles WHERE id = r::uuid) = 3, 'collecting an order raises the remembered rank');
+  UPDATE orders SET status = 'CANCELLED' WHERE id = 'V-R';
+  UPDATE profiles SET top_tier_sort = 1 WHERE id = r::uuid;       -- reset for the perk tests below
+  DELETE FROM orders WHERE id = 'V-R';
+  PERFORM pg_temp.expect(pg_temp.tier_now(r) = 'Rookie', 'rookie again for the next tests');
+
+  -- RM to next rank
+  PERFORM set_config('request.jwt.claim.sub', e, false);
+  t := public.my_tier();
+  PERFORM pg_temp.expect((t->>'tier') = 'Pro' AND (t->>'next_tier') = 'Master' AND (t->>'rm_to_next_cents')::int = 60000 - 5000, 'RM to the next rank counts from the next rank above the current one');
+  PERFORM set_config('request.jwt.claim.sub', d, false);
+  PERFORM pg_temp.expect((public.my_tier()->>'next_tier') IS NULL AND (public.my_tier()->'rm_to_next_cents') = 'null'::jsonb, 'the top rank has nothing to climb to');
+  PERFORM set_config('request.jwt.claim.sub', b, false);
+  t := public.my_tier();
+  PERFORM pg_temp.expect((t->>'tier') = 'Regular' AND (t->>'next_tier') = 'Pro' AND (t->>'rm_to_next_cents')::int = 18000, 'a RM120 customer is Regular and RM180 away from Pro');
+
+  -- perks list
+  PERFORM set_config('request.jwt.claim.sub', a, false);
+  t := public.my_perks();
+  PERFORM pg_temp.expect(jsonb_array_length(t) = 4 AND (t->0->>'unlocked')::boolean AND NOT (t->1->>'unlocked')::boolean AND NOT (t->3->>'unlocked')::boolean, 'a Regular sees one unlocked perk and three locked');
+
+  -- Regular: free Cheese, once
+  j := pg_temp.use_perk(b, 'Regular perk: free Cheese');
+  PERFORM pg_temp.expect((j->>'points_spent')::int = 0 AND pg_temp.pts(b) = 1000, 'a perk costs no points');
+  PERFORM pg_temp.expect((SELECT stock_quantity FROM addons WHERE id = 'cheese') = 49, 'a perk takes stock');
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Regular perk: free Cheese')$q$, b), 'You have already used this perk');
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Regular perk: free Cheese')$q$, r), 'This perk is for a higher rank');
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Master perk: monthly free Egg')$q$, b), 'This perk is for a higher rank');
+  -- one reward per order still holds
+  o := pg_temp.order_of(a, 'platter', 1);
+  PERFORM public.apply_order_reward(o, pg_temp.perk('Regular perk: free Cheese'));
+  PERFORM pg_temp.expect_error(format($q$SELECT public.apply_order_reward(%L, %L)$q$, o, pg_temp.perk('Test Pepsi')), 'This order already has a reward');
+  -- cancelling the order gives the perk back
+  PERFORM public.cancel_order(o, 'Cancelled by Customer');
+  PERFORM pg_temp.expect((SELECT stock_quantity FROM addons WHERE id = 'cheese') = 49, 'cancel gives the perk stock back');
+  PERFORM pg_temp.use_perk(a, 'Regular perk: free Cheese');
+  PERFORM pg_temp.expect((SELECT count(*) FROM redemptions WHERE user_id = a::uuid AND status <> 'CANCELLED') = 1, 'the perk can be used again after a cancelled order');
+
+  -- perks never use up the monthly limit (Regular: 2 rewards a month, B already used the cheese perk)
+  PERFORM pg_temp.use_perk(b, 'Test Pepsi');
+  PERFORM pg_temp.use_perk(b, 'Test Pepsi');
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Test Pepsi')$q$, b), 'You have used your 2 reward(s) for this month');
+  t := (SELECT public.my_tier());
+  PERFORM set_config('request.jwt.claim.sub', b, false);
+  PERFORM pg_temp.expect((public.my_tier()->>'claims_used')::int = 2, 'the monthly count shows ordinary rewards only');
+
+  -- Master: free Egg every month
+  PERFORM pg_temp.use_perk(c, 'Master perk: monthly free Egg');
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Master perk: monthly free Egg')$q$, c), 'You have already used this perk');
+  UPDATE redemptions SET redeemed_at = now() - interval '40 days' WHERE user_id = c::uuid AND prize_name = 'Master perk: monthly free Egg';
+  PERFORM pg_temp.use_perk(c, 'Master perk: monthly free Egg');
+  PERFORM pg_temp.expect((SELECT count(*) FROM redemptions WHERE user_id = c::uuid AND prize_name = 'Master perk: monthly free Egg') = 2, 'the egg perk comes back next month');
+
+  -- Ultimate: free platter once a year (it is its own RM0 line and takes stock)
+  j := pg_temp.use_perk(d, 'Ultimate perk: yearly free platter');
+  PERFORM pg_temp.expect((SELECT stock_quantity FROM menu_items WHERE id = 'monsta') = 19, 'the free platter takes stock');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM orders o2, jsonb_array_elements(o2.items) i WHERE o2.user_id = d::uuid AND (i->>'price')::int = 0 AND i->>'name' LIKE 'Kawan MONSTA%'), 'the platter is a RM0 line on the order');
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Ultimate perk: yearly free platter')$q$, d), 'You have already used this perk');
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Ultimate perk: yearly free platter')$q$, e), 'This perk is for a higher rank');
+  UPDATE redemptions SET redeemed_at = now() - interval '400 days' WHERE user_id = d::uuid AND prize_name = 'Ultimate perk: yearly free platter';
+  PERFORM pg_temp.use_perk(d, 'Ultimate perk: yearly free platter');
+  PERFORM pg_temp.expect((SELECT count(*) FROM redemptions WHERE user_id = d::uuid AND prize_name = 'Ultimate perk: yearly free platter') = 2, 'the platter perk comes back next year');
+  -- the RM30 minimum applies to the platter
+  PERFORM pg_temp.expect((SELECT min_order_cents FROM loyalty_prizes WHERE name = 'Ultimate perk: yearly free platter') = 3000, 'platter needs RM30');
+
+  -- Pro: birthday Ice BB, in the birthday month, once a year
+  PERFORM set_config('request.jwt.claim.sub', e, false);
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Pro perk: birthday Ice BB')$q$, e), 'Add your birthday');
+  PERFORM public.save_my_birthday(CASE WHEN EXTRACT(MONTH FROM now() AT TIME ZONE 'Asia/Kuching') = 3 THEN 4 ELSE 3 END, 15);
+  PERFORM pg_temp.expect_error($q$SELECT public.save_my_birthday(5, 5)$q$, 'Your birthday is already saved');
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Pro perk: birthday Ice BB')$q$, e), 'This perk can only be used in your birthday month');
+  UPDATE profiles SET birth_month = EXTRACT(MONTH FROM now() AT TIME ZONE 'Asia/Kuching')::integer WHERE id = e::uuid;
+  PERFORM pg_temp.use_perk(e, 'Pro perk: birthday Ice BB');
+  PERFORM pg_temp.expect_error(format($q$SELECT pg_temp.use_perk(%L, 'Pro perk: birthday Ice BB')$q$, e), 'You have already used this perk');
+  PERFORM set_config('request.jwt.claim.sub', r, false);
+  PERFORM pg_temp.expect_error($q$SELECT public.save_my_birthday(2, 30)$q$ , 'Please enter a real day and month');
+  PERFORM pg_temp.expect_error($q$SELECT public.save_my_birthday(13, 1)$q$ , 'Please enter a real day and month');
+  PERFORM pg_temp.expect_error($q$SELECT public.save_my_birthday(NULL, 1)$q$ , 'Please enter a real day and month');
+  RESET request.jwt.claim.sub;
+  PERFORM pg_temp.expect_error($q$SELECT public.save_my_birthday(2, 3)$q$ , 'Please log in');
+
+  -- who can call what
+  PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.my_perks()', 'execute') AND has_function_privilege('authenticated', 'public.my_perks()', 'execute'), 'only signed-in customers can list perks');
+  PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.save_my_birthday(integer, integer)', 'execute'), 'guests cannot save a birthday');
+  PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.lock_in_ranks()', 'execute'), 'customers cannot run the rank lock');
+END $$;
+
 DO $$ BEGIN RAISE NOTICE 'PASS: burger ranks and monthly prize assertions passed'; END $$;
 
 ROLLBACK;

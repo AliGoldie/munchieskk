@@ -116,7 +116,7 @@ export default function AdminArcadeContest() {
     <div>
       <h4 style={{ margin: '0 0 .5rem' }}>Arcade Contest</h4>
       <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
-        Players' Arcade Score is the best score in each game (T-Rex Runner, Speed Grab and Munch-Man) added together during the contest.
+        Players' Burger XP is the best score in each game (T-Rex Runner, Speed Grab and Munch-Man) added together during the contest.
         Top 3 win the prizes you set. Winners are picked automatically when the contest ends. Check the top players below
         (run speed and shared phones) before you hand anything over.
       </p>
@@ -125,7 +125,7 @@ export default function AdminArcadeContest() {
       <h4 style={{ margin: '1rem 0 .5rem' }}>Weekly goal</h4>
       <form onSubmit={saveGoal} className="mp-form">
         <div className="mp-row">
-          <label>Arcade Score to reach in a week
+          <label>Burger XP to reach in a week
             <input className="price-input" type="number" min="1" value={goal.score} onChange={(e) => setGoal((g) => ({ ...g, score: e.target.value }))} />
           </label>
           <label>Loyalty points paid (once a week)
@@ -157,7 +157,7 @@ export default function AdminArcadeContest() {
           </label>
         </div>
         <div className="mp-row">
-          <label>Minimum Arcade Score to qualify
+          <label>Minimum Burger XP to qualify
             <input className="price-input" type="number" min="0" value={form.min_score} onChange={(e) => setForm((f) => ({ ...f, min_score: e.target.value }))} />
           </label>
           <label>Days to claim

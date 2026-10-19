@@ -149,7 +149,7 @@ export default function Profile() {
             <span className="avatar-badge" aria-hidden="true">🍔</span>
           </div>
           <h3>Log in to see your profile</h3>
-          <p className="text-muted">Save your details, track orders, pick your avatar, and start earning loyalty points.</p>
+          <p className="text-muted">Save your details, track orders, pick your avatar, and start earning Monsta Coins.</p>
           <div className="profile-guest-actions">
             <a href="/login" className="btn btn-primary w-full">Log In</a>
             <a href="/signup" className="btn btn-outline w-full">Sign Up</a>
@@ -289,7 +289,7 @@ export default function Profile() {
                   if (navigator.share) {
                     navigator.share({
                       url: shareUrl,
-                      text: 'Use my code to get bonus points at MunchiesKK!'
+                      text: 'Use my code to get bonus Monsta Coins at MunchiesKK!'
                     }).catch(() => {});
                   } else {
                     navigator.clipboard.writeText(shareUrl);

@@ -27,6 +27,9 @@ GitHub: AliGoldie/munchieskk. Live Supabase project id: zlxuxxlnczpqmlcpzawm. Th
 - PWA: `public/manifest.webmanifest`, `public/sw.js` (passthrough, no caching), `src/hooks/useInstallApp.js`.
 - Docs: `docs/` (points system, security audit, SEO playbook, arcade contest brief).
 
+## Never publish what is inside our patties
+No ingredients, seasoning, meat blend, fillers or weights in app text, menu descriptions, customer-visible admin screens, public pages or code comments. Keep descriptions to the approved wording. Saying where the meat comes from ("NZ lamb", "premium Australian beef") and quality words ("handcrafted", "premium") are allowed (owner decision, 16 Oct 2026); sizes and weights stay behind the scenes in Admin-only data, never in the repo. If you find such text, report it to Ali; do not invent replacement wording.
+
 ## Known facts
 - Preview deploys on Vercel probably talk to the LIVE database. Do not test destructive actions on a preview.
 - The shop may be closed with stock at 0; do not "fix" that in code.
