@@ -42,7 +42,7 @@ monthly prizes.**
 
 **Arcade bonus rules (say this clearly):**
 - The only loyalty points from games are the **+25 weekly goal bonus** (once a week).
-- **New accounts qualify freely for their first 30 days.** After that, the weekly goal bonus needs at least one collected order on the account.
+- **New accounts qualify freely for their first 30 days.** After that, the weekly goal bonus needs a collected order in the last 30 days. At most 4 goal bonuses per account per calendar month (setting `goal_max_per_month`).
 - Munch-Man gives one free play a day. Game days reset at **8:00 am Malaysia time**. The daily streak is just a badge now.
 
 ## How customers SPEND points
@@ -77,7 +77,7 @@ Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all 
 - **What counts:** your **best score in each of the three games, added together**. Each game counts **at most 5,000** (so 15,000 is the top Arcade Score). Playing more only helps if you beat your best.
 - **Three lives** in every game: a crash costs a life, and the run carries on.
 - **Weekly goal:** reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) for **+25 loyalty points**, once a week.
-  Because all three games add up, the goal is easy to reach. That is on purpose. (After the first 30 days, game bonuses need at least one collected order.)
+  Because all three games add up, the goal is easy to reach. That is on purpose. (After the first 30 days, game bonuses need a collected order in the last 30 days.)
 - **Monthly arcade contest:** one contest a month, running the whole calendar month. The **top 3** win free food
   (the plan: 1st a burger, 2nd fries, 3rd a drink; the owner can change the prizes for each contest).
   - Ties go to whoever reached their score first. **One account per phone number.** A minimum score applies (300 by default).
