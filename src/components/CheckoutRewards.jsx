@@ -36,8 +36,8 @@ export default function CheckoutRewards({ prizes, perks, points, menu, addons, i
 
   return (
     <div className="checkout-rewards">
-      <div className="checkout-rewards-head"><Gift size={16} /> Use your points <span>{pts(points)} pts</span></div>
-      <p className="checkout-rewards-sub">Add one free reward to this order. The points are taken when you pay and given back if you cancel.</p>
+      <div className="checkout-rewards-head"><Gift size={16} /> Use your Monsta Coins <span>{pts(points)} coins</span></div>
+      <p className="checkout-rewards-sub">Add one free reward to this order. The Monsta Coins are taken when you pay and given back if you cancel.</p>
       <div className="checkout-rewards-list" role="radiogroup" aria-label="Rewards">
         {options.map(p => {
           const blocked = rewardBlockReason(p, ctx);
@@ -53,7 +53,7 @@ export default function CheckoutRewards({ prizes, perks, points, menu, addons, i
               onClick={() => onSelect(selected ? null : p.id)}
             >
               <span className="checkout-reward-name">{p.name}</span>
-              <span className="checkout-reward-cost">{blocked ? blocked : p.perk_rank_order != null ? 'Rank perk' : `${pts(p.points_cost)} pts`}</span>
+              <span className="checkout-reward-cost">{blocked ? blocked : p.perk_rank_order != null ? 'Rank perk' : `${pts(p.points_cost)} coins`}</span>
               {selected && <CheckCircle2 size={18} className="checkout-reward-tick" aria-hidden="true" />}
             </button>
           );

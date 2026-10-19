@@ -274,7 +274,7 @@ export default function Menu() {
             {isPromoActive(heroItem) ? (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div className="price-row mt-2" style={{ alignItems: 'baseline', gap: '8px' }}>
-                  <span className="pts-badge">+{getItemPoints(heroItem)} PTS</span>
+                  <span className="pts-badge">+{getItemPoints(heroItem)} Coins</span>
                   <span className="price-large text-danger font-black">RM {(heroItem.promo_price / 100).toFixed(2)}</span>
                   <span className="text-muted" style={{ textDecoration: 'line-through', fontSize: '1.2rem', fontWeight: 600 }}>RM {(heroItem.price / 100).toFixed(2)}</span>
                 </div>
@@ -282,7 +282,7 @@ export default function Menu() {
               </div>
             ) : (
               <div className="price-row mt-2">
-                <span className="pts-badge">+{getItemPoints(heroItem)} PTS</span>
+                <span className="pts-badge">+{getItemPoints(heroItem)} Coins</span>
                 <span className="price-large">RM {(heroItem.price / 100).toFixed(2)}</span>
               </div>
             )}
@@ -379,7 +379,7 @@ export default function Menu() {
       <div className="card loyalty-banner mt-6">
         <SpikyBadgeIcon size={24} color="var(--munchies-white)" />
         <h3 className="mt-2 text-white">LOYALTY PAYS OFF</h3>
-        <p className="text-white-dim">Earn 1 point for every RM1 you spend, then swap your points for free food.</p>
+        <p className="text-white-dim">Earn 1 Monsta Coin for every RM1 you spend, then swap your Monsta Coins for free food.</p>
       </div>
 
       <div className="card ad-banner mt-4 mb-4">

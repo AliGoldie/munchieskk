@@ -57,11 +57,11 @@ export default function Loyalty() {
         <div className="expiry-banner" role="status">
           {expiry.state === 'soon' ? (
             <>
-              <strong>Keep your {expiry.points} points.</strong> They start to fade on {fmtDate(expiry.fade_starts_at)} if there is no order. Order any time before then and you keep them all.
+              <strong>Keep your {expiry.points} Monsta Coins.</strong> They start to fade on {fmtDate(expiry.fade_starts_at)} if there is no order. Order any time before then and you keep them all.
             </>
           ) : (
             <>
-              <strong>Your points are fading ({expiry.points} left).</strong>{' '}
+              <strong>Your Monsta Coins are fading ({expiry.points} left).</strong>{' '}
               {expiry.next_loss_at
                 ? `${expiry.next_loss_points} more go on ${fmtDate(expiry.next_loss_at)}. `
                 : ''}
@@ -89,7 +89,7 @@ export default function Loyalty() {
       {nextPrize && (
         <div className="card next-reward">
           <p className="next-reward-text">
-            <strong>{(nextPrize.points_cost - (points || 0)).toLocaleString()} PTS</strong> to your next reward: {nextPrize.name} ({ordersToGoText(nextPrize.points_cost - (points || 0), orders)})
+            <strong>{(nextPrize.points_cost - (points || 0)).toLocaleString()} Coins</strong> to your next reward: {nextPrize.name} ({ordersToGoText(nextPrize.points_cost - (points || 0), orders)})
           </p>
           <div className="next-reward-bar"><div className="next-reward-fill" style={{ width: `${Math.min(100, Math.round(((points || 0) / nextPrize.points_cost) * 100))}%` }} /></div>
         </div>
@@ -112,7 +112,7 @@ export default function Loyalty() {
                 <div className="prize-info">
                   <h3>{prize.name}</h3>
                   {prize.description && <p style={{ fontSize: '0.75rem', color: 'var(--text-2)', margin: '2px 0 0 0' }}>{prize.description}</p>}
-                  <p className="pts-req">{prize.points_cost.toLocaleString()} PTS{!canRedeem && ` · ${(prize.points_cost - (points || 0)).toLocaleString()} to go`}</p>
+                  <p className="pts-req">{prize.points_cost.toLocaleString()} Coins{!canRedeem && ` · ${(prize.points_cost - (points || 0)).toLocaleString()} to go`}</p>
                 </div>
                 <button
                   className={`btn ${alreadyRedeemed ? 'btn-dark redeemed' : canRedeem ? 'btn-primary' : 'btn-dark'} prize-btn`}
@@ -153,7 +153,7 @@ export default function Loyalty() {
               )}
             </>
           ) : (
-            <p className="text-muted text-sm p-3">No transactions recorded yet. Place an order and collect it to earn points!</p>
+            <p className="text-muted text-sm p-3">No transactions recorded yet. Place an order and collect it to earn Monsta Coins!</p>
           )}
         </div>
       </div>
@@ -169,7 +169,7 @@ export default function Loyalty() {
         >
           <CheckCircle size={48} color="var(--go)" style={{ marginBottom: '12px' }} />
           <h2 style={{ color: 'var(--gold)', margin: '0 0 4px 0', fontSize: '1.3rem', fontFamily: "'Archivo', sans-serif" }}>Redeemed!</h2>
-          <p style={{ color: 'var(--text-2)', margin: '0 0 1.5rem 0', fontSize: '0.9rem' }}>{redemptionResult.prizeName} - {redemptionResult.pointsSpent.toLocaleString()} pts spent</p>
+          <p style={{ color: 'var(--text-2)', margin: '0 0 1.5rem 0', fontSize: '0.9rem' }}>{redemptionResult.prizeName} - {redemptionResult.pointsSpent.toLocaleString()} coins spent</p>
           <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-card)', padding: '1.2rem', marginBottom: '1.5rem', border: '1px solid var(--line)' }}>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0 0 6px 0', fontWeight: 'bold', letterSpacing: '1px' }}>YOUR REDEMPTION CODE</p>
             <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--gold)', letterSpacing: '4px', fontFamily: 'monospace' }}>{redemptionResult.code}</div>

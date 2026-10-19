@@ -151,7 +151,7 @@ export default function OrderStatus() {
       // Neither Instagram nor TikTok has a share-intent URL that accepts a
       // pre-filled caption -- both just open a page, not a post composer.
       if (platform === 'Instagram' || platform === 'TikTok') {
-        alert(`Your caption (with hashtags) was copied! Paste it into your ${platform} post or story, then close that tab to get your points.`);
+        alert(`Your caption (with hashtags) was copied! Paste it into your ${platform} post or story, then close that tab to get your Monsta Coins.`);
       }
 
       // Clean up any existing listener before attaching a new one
@@ -184,7 +184,7 @@ export default function OrderStatus() {
             try {
               await claimShareBonus(id, loyaltyConfig.REVIEW_BONUS_PTS, `Social Share (${platform})`);
               setClaimedReview(true);
-              alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus points added.`);
+              alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus Monsta Coins added.`);
             } catch (err) {
               alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
             }
@@ -334,8 +334,8 @@ export default function OrderStatus() {
               </button>
               <p className="text-sm mt-2 font-medium">
                 {order.points_credited_at || !order.points_earned
-                  ? `Earn +${loyaltyConfig.COLLECTION_BONUS_PTS} PTS for collecting!`
-                  : `Collect it to earn ${(Number(order.points_earned) + loyaltyConfig.COLLECTION_BONUS_PTS).toLocaleString()} PTS (${Number(order.points_earned).toLocaleString()} for your order + ${loyaltyConfig.COLLECTION_BONUS_PTS} bonus)!`}
+                  ? `Earn +${loyaltyConfig.COLLECTION_BONUS_PTS} Coins for collecting!`
+                  : `Collect it to earn ${(Number(order.points_earned) + loyaltyConfig.COLLECTION_BONUS_PTS).toLocaleString()} Coins (${Number(order.points_earned).toLocaleString()} for your order + ${loyaltyConfig.COLLECTION_BONUS_PTS} bonus)!`}
               </p>
             </div>
           </div>
@@ -352,7 +352,7 @@ export default function OrderStatus() {
               <div className="social-prompt mt-4">
                 <div className="prompt-header">
                   <Flame size={20} style={{ color: 'var(--ember)' }} />
-                  <h4>EARN {loyaltyConfig.REVIEW_BONUS_PTS} BONUS POINTS</h4>
+                  <h4>EARN {loyaltyConfig.REVIEW_BONUS_PTS} BONUS MONSTA COINS</h4>
                 </div>
                 <p className="text-sm mt-2 mb-3" style={{ color: 'var(--text-2)' }}>Snap a pic of your food and tag us on social media to claim your reward instantly!</p>
 
@@ -379,7 +379,7 @@ export default function OrderStatus() {
                     <Share2 size={18} /> TikTok
                   </button>
                 </div>
-                {!claimedReview && <p className="text-sm mt-3" style={{ color: 'var(--text-2)' }}>After you share, close the share tab to get your points.</p>}
+                {!claimedReview && <p className="text-sm mt-3" style={{ color: 'var(--text-2)' }}>After you share, close the share tab to get your Monsta Coins.</p>}
                 {claimedReview && <p className="text-sm mt-3 font-bold" style={{ color: 'var(--go)' }}>Bonus claimed!</p>}
               </div>
             )}

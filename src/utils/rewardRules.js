@@ -10,7 +10,7 @@ export function rewardBlockReason(p, { points, menu, addons, itemAddons, cart, o
     if (s.used) return 'Already used';
     if (s.needs_birthday) return 'Add your birthday first';
     if (!s.birthday_month_now) return 'Birthday month only';
-  } else if ((points || 0) < p.points_cost) return `${n(p.points_cost - (points || 0))} more pts`;
+  } else if ((points || 0) < p.points_cost) return `${n(p.points_cost - (points || 0))} more coins`;
   const min = Math.max(p.min_order_cents ?? 0, 1);
   if (orderTotal < min) return `Spend RM ${(min / 100).toFixed(2)}+`;
   if (p.menu_item_id) {

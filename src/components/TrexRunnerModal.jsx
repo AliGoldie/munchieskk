@@ -1230,7 +1230,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                     <ul className="runner-howto">
                       <li><span>👆</span>Tap for a hop, hold for a big jump (or Space)</li>
                       <li><span>❤️</span>You have 3 lives. A crash costs one and you carry on from where you were</li>
-                      <li><span>🍔</span>Grab burgers for bonus points</li>
+                      <li><span>🍔</span>Grab burgers for bonus Burger XP</li>
                       <li><span>📍</span>Run through 5 Kota Kinabalu landmarks. Tap the ⓘ chip to learn about each one</li>
                       <li><span>🏆</span>Your best score counts toward the arcade contest: top 3 win free food</li>
                       <li><span>⚡</span>Speed boost · 🧲 Magnet pulls burgers · 🛡 Shield: smash obstacles and float over lava</li>
@@ -1287,7 +1287,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
                     {weekInfo && (
                       <p style={{ fontSize: 12, color: '#ccc', marginTop: 0, marginBottom: 10 }}>
-                        Arcade Score this week: <b>{Math.min(weekInfo.week, weekInfo.goal).toLocaleString()} / {weekInfo.goal.toLocaleString()}</b>
+                        Burger XP this week: <b>{Math.min(weekInfo.week, weekInfo.goal).toLocaleString()} / {weekInfo.goal.toLocaleString()}</b>
                         {weekInfo.week >= weekInfo.goal ? ' (goal reached!)' : ` · reach it for +${weekInfo.bonus} points`}
                       </p>
                     )}
