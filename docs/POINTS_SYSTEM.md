@@ -64,9 +64,12 @@ reward. It is added to the order at **RM0.00** (or as a free add-on on a
 burger). Points are taken when the order is placed and **given back if the
 order is cancelled**. **One reward per order**, and only when the order is placed.
 
-**Claim at the counter (older way).** In Loyalty tap Redeem, get a 6-character
-code, show it at the counter after paying. A reward not collected within
-**14 days** expires and the points go back.
+**There are no counter codes for rewards any more** (owner decision, 20 Oct 2026).
+Rewards are claimed in the app at checkout only, so every reward comes with a real
+paid order (RM20 minimum, RM30 for the platter), shows as a RM0 line, takes stock,
+and the kitchen is notified like any order. In the Prize Vault the button now says
+"Use at checkout". (Arcade contest prizes are different: winners still show their
+claim code at the counter.)
 
 ## Arcade Score, weekly goal and the monthly arcade contest (new)
 

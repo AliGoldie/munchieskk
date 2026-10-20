@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
-import { QrCode, Gamepad2, Lock, History, CheckCircle, Gift } from 'lucide-react';
-import Modal from '../components/Modal';
+import { Link } from 'react-router-dom';
+import { QrCode, Gamepad2, Lock, History, Gift } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
@@ -13,14 +13,11 @@ const fmtDate = (d) => new Date(d).toLocaleDateString('en-MY', { day: 'numeric',
 
 export default function Loyalty() {
   const { setUser } = useAuth();
-  const { points, orders, pointHistory, loyaltyPrizes, redeemPrize } = useStore();
+  const { points, orders, pointHistory, loyaltyPrizes } = useStore();
   const displayedPoints = useCountUp(points, 800);
   // The cheapest reward the customer cannot afford yet.
   const nextPrize = [...loyaltyPrizes].sort((a, b) => a.points_cost - b.points_cost).find(p => p.points_cost > (points || 0)) || null;
 
-  const [redeemedThisSession, setRedeemedThisSession] = useState({});
-  const [redemptionResult, setRedemptionResult] = useState(null);
-  const [loading, setLoading] = useState(null);
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(5);
 
   // Rewards not collected within 14 days expire and the points come back.
@@ -38,18 +35,6 @@ export default function Loyalty() {
       })
       .catch(() => {});
   }, [setUser]);
-
-  const handleRedeem = async (prize) => {
-    if (loading) return;
-    if (redeemedThisSession[prize.id]) return;
-    setLoading(prize.id);
-    const result = await redeemPrize(prize.id);
-    setLoading(null);
-    if (result) {
-      setRedeemedThisSession(prev => ({ ...prev, [prize.id]: true }));
-      setRedemptionResult({ code: result.redemption_code, prizeName: prize.name, pointsSpent: result.points_spent });
-    }
-  };
 
   return (
     <div className="loyalty-page">
@@ -104,8 +89,6 @@ export default function Loyalty() {
         ) : (
           loyaltyPrizes.map(prize => {
             const canRedeem = points >= prize.points_cost;
-            const alreadyRedeemed = redeemedThisSession[prize.id];
-            const isLoading = loading === prize.id;
             return (
               <div key={prize.id} className="card prize-card">
                 <div className="prize-img" style={{ backgroundImage: `url('${prize.image_url || '/images/prize_placeholder.png'}')` }}></div>
@@ -114,13 +97,14 @@ export default function Loyalty() {
                   {prize.description && <p style={{ fontSize: '0.75rem', color: 'var(--text-2)', margin: '2px 0 0 0' }}>{prize.description}</p>}
                   <p className="pts-req">{prize.points_cost.toLocaleString()} Coins{!canRedeem && ` · ${(prize.points_cost - (points || 0)).toLocaleString()} to go`}</p>
                 </div>
-                <button
-                  className={`btn ${alreadyRedeemed ? 'btn-dark redeemed' : canRedeem ? 'btn-primary' : 'btn-dark'} prize-btn`}
-                  disabled={!canRedeem || alreadyRedeemed || isLoading}
-                  onClick={() => handleRedeem(prize)}
-                >
-                  {isLoading ? '...' : alreadyRedeemed ? 'REDEEMED' : canRedeem ? 'REDEEM' : 'LOCKED'}
-                </button>
+                {/* Rewards are claimed in the app at checkout (no counter codes). */}
+                {canRedeem ? (
+                  <Link to="/menu" className="btn btn-primary prize-btn" style={{ textAlign: 'center', textDecoration: 'none' }}>
+                    USE AT CHECKOUT
+                  </Link>
+                ) : (
+                  <button className="btn btn-dark prize-btn" disabled>LOCKED</button>
+                )}
               </div>
             );
           })
@@ -157,29 +141,6 @@ export default function Loyalty() {
           )}
         </div>
       </div>
-
-      {redemptionResult && (
-        <Modal
-          onClose={() => setRedemptionResult(null)}
-          closeOnBackdropClick={false}
-          closeOnEscape={false}
-          showCloseButton={false}
-          contentStyle={{ background: 'var(--surface-raised)', borderRadius: 'var(--r-card)', padding: '2rem', width: '100%', maxWidth: '360px', textAlign: 'center', border: '1px solid rgba(255, 199, 44, .4)', boxShadow: '0 0 40px rgba(255,199,44,0.15)' }}
-          ariaLabel="Prize Redemption Code"
-        >
-          <CheckCircle size={48} color="var(--go)" style={{ marginBottom: '12px' }} />
-          <h2 style={{ color: 'var(--gold)', margin: '0 0 4px 0', fontSize: '1.3rem', fontFamily: "'Archivo', sans-serif" }}>Redeemed!</h2>
-          <p style={{ color: 'var(--text-2)', margin: '0 0 1.5rem 0', fontSize: '0.9rem' }}>{redemptionResult.prizeName} - {redemptionResult.pointsSpent.toLocaleString()} coins spent</p>
-          <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-card)', padding: '1.2rem', marginBottom: '1.5rem', border: '1px solid var(--line)' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0 0 6px 0', fontWeight: 'bold', letterSpacing: '1px' }}>YOUR REDEMPTION CODE</p>
-            <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--gold)', letterSpacing: '4px', fontFamily: 'monospace' }}>{redemptionResult.code}</div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '8px 0 0 0' }}>Show this to the counter staff to claim your prize</p>
-          </div>
-          <button onClick={() => setRedemptionResult(null)} style={{ width: '100%', padding: '14px', minHeight: '48px', borderRadius: 'var(--r-pill)', border: 'none', background: 'var(--ember)', color: '#fff', fontWeight: '900', fontSize: '1rem', cursor: 'pointer' }}>
-            GOT IT!
-          </button>
-        </Modal>
-      )}
     </div>
   );
 }
