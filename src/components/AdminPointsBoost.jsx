@@ -41,9 +41,9 @@ export default function AdminPointsBoost() {
 
   return (
     <div style={{ marginBottom: '1.5rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--line, rgba(0,0,0,.12))' }}>
-      <h3 style={{ marginTop: 0 }}>Weekday points boost</h3>
+      <h3 style={{ marginTop: 0 }}>Weekday Monsta Coins boost</h3>
       <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-        Orders placed on the chosen days (Malaysia time) earn extra order points. The points are added when the order is collected.
+        Orders placed on the chosen days (Malaysia time) earn extra order Monsta Coins. They are added when the order is collected.
         {info?.active_now ? ' The boost is on right now.' : ''}
       </p>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontWeight: 600 }}>

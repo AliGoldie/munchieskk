@@ -128,7 +128,7 @@ export default function AdminArcadeContest() {
           <label>Burger XP to reach in a week
             <input className="price-input" type="number" min="1" value={goal.score} onChange={(e) => setGoal((g) => ({ ...g, score: e.target.value }))} />
           </label>
-          <label>Loyalty points paid (once a week)
+          <label>Monsta Coins paid (once a week)
             <input className="price-input" type="number" min="0" max="200" value={goal.points} onChange={(e) => setGoal((g) => ({ ...g, points: e.target.value }))} />
           </label>
         </div>

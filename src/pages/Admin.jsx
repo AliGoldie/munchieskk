@@ -2765,7 +2765,7 @@ export default function Admin() {
             <Camera size={20} /> Share proofs
           </button>
           <button className={`sidebar-item ${activeTab === 'fading_points' ? 'active' : ''}`} onClick={() => setActiveTab('fading_points')}>
-            <Clock size={20} /> Fading points
+            <Clock size={20} /> Fading Monsta Coins
           </button>
           <button className={`sidebar-item ${activeTab === 'stock_report' ? 'active' : ''}`} onClick={() => setActiveTab('stock_report')}>
             <TrendingUp size={20} /> Stock Report
@@ -4726,7 +4726,7 @@ export default function Admin() {
                       <tr>
                         <th>Name</th>
                         <th>Segment</th>
-                        <th>Points</th>
+                        <th>Monsta Coins</th>
                         <th>Total Orders</th>
                         <th>Lifetime Spend (RM)</th>
                         <th>Action</th>
@@ -4796,7 +4796,7 @@ export default function Admin() {
                       <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700 }}>RM {(customer.avgCents / 100).toFixed(2)}</p>
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
-                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Points</h4>
+                      <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Monsta Coins</h4>
                       <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', fontWeight: 700, color: '#c73b0f' }}>{customer.points || 0}</p>
                     </div>
                     <div className="admin-card" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', margin: 0 }}>
@@ -5806,7 +5806,7 @@ export default function Admin() {
           <div className="admin-card">
             <AdminPointsBoost />
             <h3>Loyalty Prizes CRM</h3>
-            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Manage prizes that customers can redeem with their loyalty points.</p>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Manage prizes that customers can add to an app order with their Monsta Coins.</p>
             <form onSubmit={async (e) => {
               e.preventDefault();
               const fd = new FormData(e.target);
@@ -5969,7 +5969,7 @@ export default function Admin() {
         {activeTab === 'redemptions' && (
           <div className="admin-card">
             <h3>Pending & Fulfilled Redemptions</h3>
-            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>When customers redeem points, their requests appear here. Click "Fulfill" once the customer has paid for their order and you hand over the prize. Prizes nobody collects within 14 days expire and the points go back to the customer.</p>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Rewards are added to an app order at checkout (there are no counter codes any more). Each reward customers use shows here with the order it belongs to, so you can see what was given free. "Fulfill" only appears for an old counter code, if one ever exists.</p>
             {redemptions.length > 0 && (
               <p style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
                 <strong>Total value given away: RM {totalRedemptionValue.toFixed(2)}</strong>
