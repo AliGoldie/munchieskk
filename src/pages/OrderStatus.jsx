@@ -4,9 +4,24 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
 import { loyaltyConfig } from '../config/loyaltyConfig';
+import { supabase } from '../config/supabase';
 import { Flame, CheckCircle2, PartyPopper, Share2, ArrowRight } from 'lucide-react';
 import ShareProofUpload from '../components/ShareProofUpload';
 import './OrderStatus.css';
+
+// " (double Coins day!)" when the order was placed on a boosted day (Malaysia
+// time) and really earned more than the plain RM1 = 1 Coin. The 6-coin bonus is
+// never boosted. Empty text on normal days.
+const KK_DAYS = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+function boostLabel(order, boost) {
+  if (!boost || !boost.enabled || !(Number(boost.multiplier) > 1) || !Array.isArray(boost.days) || !order?.created_at) return '';
+  const wd = new Date(order.created_at).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Kuching' });
+  if (!boost.days.includes(KK_DAYS[wd])) return '';
+  const plain = Math.round(Number(order.total || 0) / 100);
+  if (!(Number(order.points_earned) > plain)) return '';
+  const m = Number(boost.multiplier);
+  return m === 2 ? ' - double Coins day!' : ` - ${m}x Coins day!`;
+}
 
 export default function OrderStatus() {
   const { id } = useParams();
@@ -55,6 +70,15 @@ export default function OrderStatus() {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [claimedReview, setClaimedReview] = useState(false);
+  // Double-coins days (shop setting). Only used to explain why an order earns more.
+  const [boostInfo, setBoostInfo] = useState(null);
+  useEffect(() => {
+    let active = true;
+    Promise.resolve(supabase.rpc('points_boost_info'))
+      .then(({ data, error }) => { if (active && !error && data) setBoostInfo(data); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
   const shareListenerCleanupRef = useRef(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -339,7 +363,7 @@ export default function OrderStatus() {
               <p className="text-sm mt-2 font-medium">
                 {order.points_credited_at || !order.points_earned
                   ? `Earn +${loyaltyConfig.COLLECTION_BONUS_PTS} Coins for collecting!`
-                  : `Collect it to earn ${(Number(order.points_earned) + loyaltyConfig.COLLECTION_BONUS_PTS).toLocaleString()} Coins (${Number(order.points_earned).toLocaleString()} for your order + ${loyaltyConfig.COLLECTION_BONUS_PTS} bonus)!`}
+                  : `Collect it to earn ${(Number(order.points_earned) + loyaltyConfig.COLLECTION_BONUS_PTS).toLocaleString()} Coins (${Number(order.points_earned).toLocaleString()} for your order${boostLabel(order, boostInfo)} + ${loyaltyConfig.COLLECTION_BONUS_PTS} bonus)!`}
               </p>
             </div>
           </div>
