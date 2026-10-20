@@ -48,7 +48,7 @@ export default function AdminShareProofs() {
   const review = async (row, approve) => {
     let reason = null;
     if (approve) {
-      if (!window.confirm(`Approve ${row.profiles?.name || 'this customer'}'s screenshot? Points are added straight away.`)) return;
+      if (!window.confirm(`Approve ${row.profiles?.name || 'this customer'}'s screenshot? Monsta Coins are added straight away.`)) return;
     } else {
       reason = window.prompt('Why is it rejected? (shown to the customer, optional)', 'Post is not public or does not tag @munchieskk');
       if (reason === null) return;
@@ -58,7 +58,7 @@ export default function AdminShareProofs() {
       p_proof_id: row.id, p_approve: approve, p_reason: reason
     });
     setBusyId(null);
-    if (err) { alert(err.message || 'Could not save.'); } else if (approve) { alert(`Approved: ${data} points added.`); }
+    if (err) { alert(err.message || 'Could not save.'); } else if (approve) { alert(`Approved: ${data} Monsta Coins added.`); }
     load();
   };
 
@@ -69,7 +69,7 @@ export default function AdminShareProofs() {
       <h3>Share screenshots{pending > 0 ? ` (${pending} waiting)` : ''}</h3>
       <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
         Customers who shared their food on social media can upload a screenshot of the post. Check that it is a real,
-        public post that tags @munchieskk, then approve to top their share bonus up to 40 points in total.
+        public post that tags @munchieskk, then approve to top their share bonus up to 40 Monsta Coins in total.
       </p>
       {error && <p style={{ color: '#ef4444' }}>{error}</p>}
       {loading ? <p className="text-muted">Loading…</p> : rows.length === 0 ? (
