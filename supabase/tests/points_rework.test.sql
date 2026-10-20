@@ -423,6 +423,60 @@ BEGIN
     'award_engagement_points must stay server-only');
 END $$;
 
+
+-- ---------------------------------------------------------------------------
+-- 4b. Share bonus monthly cap (20261025000000): 4 instant shares a month
+-- ---------------------------------------------------------------------------
+\i supabase/migrations/20261025000000_share_bonus_monthly_cap.sql
+\i supabase/migrations/20261025000000_share_bonus_monthly_cap.sql
+
+RESET request.jwt.claim.sub;
+INSERT INTO profiles (id, role, points) VALUES ('77777777-7777-7777-7777-777777777777', 'user', 0);
+INSERT INTO orders (id, status, total, user_id, created_at) VALUES
+  ('CAP-1', 'COLLECTED', 1000, '77777777-7777-7777-7777-777777777777', now()),
+  ('CAP-2', 'COLLECTED', 1000, '77777777-7777-7777-7777-777777777777', now()),
+  ('CAP-3', 'COLLECTED', 1000, '77777777-7777-7777-7777-777777777777', now()),
+  ('CAP-4', 'COLLECTED', 1000, '77777777-7777-7777-7777-777777777777', now()),
+  ('CAP-5', 'COLLECTED', 1000, '77777777-7777-7777-7777-777777777777', now()),
+  ('CAP-6', 'COLLECTED', 1000, '77777777-7777-7777-7777-777777777777', now());
+
+SET request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+DO $$
+DECLARE
+  u constant text := '77777777-7777-7777-7777-777777777777';
+  b integer;
+BEGIN
+  b := pg_temp.pts(u::uuid);   -- starting balance (the test orders earn their own order points)
+  PERFORM pg_temp.expect((SELECT share_max_per_month FROM share_settings) = 4, 'the share limit defaults to 4 a month');
+  PERFORM public.claim_share_bonus('CAP-1');
+  PERFORM public.claim_share_bonus('CAP-2');
+  PERFORM public.claim_share_bonus('CAP-3');
+  PERFORM public.claim_share_bonus('CAP-4');
+  PERFORM pg_temp.expect(pg_temp.pts(u::uuid) - b = 80, 'four shares pay 20 each');
+
+  PERFORM pg_temp.expect_error($q$SELECT public.claim_share_bonus('CAP-5')$q$, 'You have used your 4 share bonuses for this month');
+  PERFORM pg_temp.expect(pg_temp.pts(u::uuid) - b = 80, 'a capped share pays nothing');
+  PERFORM pg_temp.expect((SELECT share_bonus_claimed_at FROM orders WHERE id = 'CAP-5') IS NULL, 'a capped order stays unclaimed');
+
+  -- last month's shares do not count: move one claim to 40 days ago
+  UPDATE orders SET share_bonus_claimed_at = now() - interval '40 days' WHERE id = 'CAP-1';
+  PERFORM public.claim_share_bonus('CAP-5');
+  PERFORM pg_temp.expect(pg_temp.pts(u::uuid) - b = 100, 'a freed slot pays again');
+  PERFORM pg_temp.expect_error($q$SELECT public.claim_share_bonus('CAP-6')$q$, 'You have used your 4 share bonuses');
+
+  -- the limit is a setting
+  UPDATE share_settings SET share_max_per_month = 6;
+  PERFORM public.claim_share_bonus('CAP-6');
+  PERFORM pg_temp.expect(pg_temp.pts(u::uuid) - b = 120, 'raising the limit lets another share through');
+  UPDATE share_settings SET share_max_per_month = 4;
+
+  -- the old rules still hold
+  PERFORM pg_temp.expect_error($q$SELECT public.claim_share_bonus('CAP-2')$q$, 'You have used your 4 share bonuses');
+  PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.claim_share_bonus(text)', 'execute'), 'guests cannot claim a share bonus');
+  PERFORM pg_temp.expect(NOT has_table_privilege('authenticated', 'public.share_settings', 'select'), 'players cannot read the limit table');
+END $$;
+RESET request.jwt.claim.sub;
+
 DO $$ BEGIN RAISE NOTICE 'PASS: points rework assertions passed'; END $$;
 
 ROLLBACK;
