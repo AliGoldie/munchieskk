@@ -13,8 +13,9 @@ GitHub: AliGoldie/munchieskk. Live Supabase project id: zlxuxxlnczpqmlcpzawm. Th
 
 ## Current loyalty rules (source of truth is `docs/POINTS_SYSTEM.md`; read it before touching points)
 - RM1 = 1 point, plus rank bonus 5/8/12% (Pro/Master/Ultimate, from lifetime spend on COLLECTED orders). Points are worked out when the order is placed (`orders.points_earned`) but PAID when the order is collected, together with a +6 bonus (`orders.points_credited_at`). No points for delivery.
+- A refund after collection takes back the order coins plus the +6 bonus, in proportion; the balance never goes below 0 (owner decision, 21 Oct 2026).
 - Double points Tue/Wed/Thu (Malaysia time), switch in Admin > Prizes CRM (`points_boost` table).
-- Share +20 (+20 more with approved screenshot). Referral: referrer +150 and friend +30, both after the friend's first collected order of RM20 or more.
+- Share +20 (max 4 instant shares a month per account; +20 more with approved screenshot). Referral: referrer +150 and friend +30, both after the friend's first collected order of RM20 or more.
 - Points expire gradually after 12 months of inactivity (25% per month fade). Free Fries costs 100 points.
 - Games (T-Rex Runner, Speed Grab, Munch-Man) pay NO points per run. They add to Arcade Score; 1,000 weekly Arcade Score = +25 points once a week; a monthly contest gives prizes to the top 3. Each game counts at most 5,000 toward Arcade Score (`arcade_game_cap()`). The old monthly top-spender prize was removed (its database objects are dormant; do not rebuild it without Ali asking).
 - Sign-up has NO privacy/age checkbox (owner decision). No staff "give points by phone" button (owner decision). Catering stays Off. Wording is "sliders/packs", not "tray". Never say "smash burger".

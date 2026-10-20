@@ -593,6 +593,7 @@ RESET request.jwt.claim.sub;
 -- ---------------------------------------------------------------------------
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS short_code text;
 \i supabase/migrations/20261018000000_points_at_collection.sql
+\i supabase/migrations/20261027000000_refund_takes_back_bonus.sql
 
 CREATE FUNCTION pg_temp.earned(p_order text) RETURNS integer LANGUAGE sql AS $$ SELECT points_earned FROM public.orders WHERE id = p_order $$;
 
@@ -624,21 +625,21 @@ BEGIN
 
   -- a refund takes back the matching share of paid points
   UPDATE orders SET refund_amount = 3495 WHERE id = o1;
-  PERFORM pg_temp.expect(pg_temp.pts(b) = 76 - 35, 'refunding half takes back half the order points');
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 76 - 38, 'refunding half takes back half of the order coins and the +6');
 
   -- cancelling before collection: nothing was paid, nothing is taken back
   o2 := pg_temp.order_of(b, 'platter', 1);
-  PERFORM pg_temp.expect(pg_temp.pts(b) = 41, 'placing a second order changes nothing yet');
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 38, 'placing a second order changes nothing yet');
   PERFORM set_config('request.jwt.claim.sub', b, false);
   PERFORM public.cancel_order(o2, 'Cancelled by Customer');
-  PERFORM pg_temp.expect(pg_temp.pts(b) = 41, 'cancelling an uncollected order keeps the balance exactly as it was');
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 38, 'cancelling an uncollected order keeps the balance exactly as it was');
 
   -- an order placed before this change was paid at placement: cancel still takes it back
   INSERT INTO orders (id, status, total, user_id, points_earned, points_credited_at, created_at)
   VALUES ('LEGACY-1', 'PENDING', 2000, b::uuid, 20, now() - interval '1 hour', now() - interval '1 hour');
   UPDATE profiles SET points = points + 20 WHERE id = b::uuid;
   PERFORM public.cancel_order('LEGACY-1', 'Cancelled by Customer');
-  PERFORM pg_temp.expect(pg_temp.pts(b) = 41, 'a legacy order that was paid at placement is taken back on cancel');
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 38, 'a legacy order that was paid at placement is taken back on cancel');
   RESET request.jwt.claim.sub;
 
   -- a legacy order (already paid at placement) is not paid a second time on collection
@@ -646,7 +647,7 @@ BEGIN
   VALUES ('LEGACY-2', 'READY', 3000, b::uuid, 30, now() - interval '2 hours', now() - interval '2 hours');
   UPDATE profiles SET points = points + 30 WHERE id = b::uuid;
   UPDATE orders SET status = 'COLLECTED' WHERE id = 'LEGACY-2';
-  PERFORM pg_temp.expect(pg_temp.pts(b) = 41 + 30 + 6, 'a legacy order paid at placement only gets the 6 collection bonus on collection');
+  PERFORM pg_temp.expect(pg_temp.pts(b) = 38 + 30 + 6, 'a legacy order paid at placement only gets the 6 collection bonus on collection');
   UPDATE profiles SET points = points - 36 WHERE id = b::uuid;
 
   -- referral: the friend gets 30 on their first collected order of RM20 or more
@@ -869,6 +870,62 @@ BEGIN
   PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.save_my_birthday(integer, integer)', 'execute'), 'guests cannot save a birthday');
   PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'public.lock_in_ranks()', 'execute'), 'customers cannot run the rank lock');
 END $$;
+
+
+-- ---------------------------------------------------------------------------
+-- 11. Refund after collection takes back the +6 bonus too; stops at 0
+--     (20261027000000_refund_takes_back_bonus.sql)
+-- ---------------------------------------------------------------------------
+RESET request.jwt.claim.sub;
+UPDATE points_boost SET enabled = false;
+INSERT INTO profiles (id, role, points, name) VALUES ('d0000000-0000-0000-0000-000000000001', 'user', 0, 'Refund Rita');
+
+DO $$
+DECLARE
+  u constant text := 'd0000000-0000-0000-0000-000000000001';
+  o text; o2 text;
+BEGIN
+  -- full refund: order coins (70) + the +6 bonus all come back
+  o := pg_temp.order_of(u, 'platter', 1);
+  UPDATE orders SET status = 'COLLECTED' WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 76, 'collecting pays 70 + 6');
+  UPDATE orders SET refund_amount = 6990 WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 0, 'a full refund takes back the order coins and the +6');
+  PERFORM pg_temp.expect((SELECT points_taken_back FROM orders WHERE id = o) = 76, 'what was taken is recorded');
+
+  -- undoing the refund gives back exactly that
+  UPDATE orders SET refund_amount = NULL WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 76 AND (SELECT points_taken_back FROM orders WHERE id = o) = 0, 'undoing a refund gives back everything');
+
+  -- half, then the rest
+  UPDATE orders SET refund_amount = 3495 WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 38, 'half the order refunded takes back half of 76');
+  UPDATE orders SET refund_amount = 6990 WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 0, 'refunding the other half takes back the rest');
+  UPDATE orders SET refund_amount = NULL WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 76, 'undoing returns the whole 76');
+
+  -- coins already spent: the balance stops at 0, and undo returns only what was taken
+  UPDATE profiles SET points = 10 WHERE id = u::uuid;
+  UPDATE orders SET refund_amount = 6990 WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 0, 'a refund never takes the balance below 0');
+  PERFORM pg_temp.expect((SELECT points_taken_back FROM orders WHERE id = o) = 10, 'only the 10 really taken is recorded');
+  UPDATE orders SET refund_amount = NULL WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 10, 'undoing a refund after spending returns only the 10 that was taken');
+
+  -- an order that was credited but not collected has no +6 to take back
+  UPDATE profiles SET points = 100 WHERE id = u::uuid;
+  INSERT INTO orders (id, status, total, user_id, points_earned, points_credited_at, created_at)
+  VALUES ('REF-LEG', 'READY', 3000, u::uuid, 30, now() - interval '1 hour', now() - interval '1 hour');
+  UPDATE orders SET refund_amount = 1500 WHERE id = 'REF-LEG';
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 85, 'a not-collected order loses only its share of the order coins (15 of 30)');
+
+  -- cancelled and unpaid orders are untouched
+  o2 := pg_temp.order_of(u, 'platter', 1);
+  UPDATE orders SET refund_amount = 6990 WHERE id = o2;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 85, 'refunding an order that was never collected changes nothing');
+END $$;
+RESET request.jwt.claim.sub;
 
 DO $$ BEGIN RAISE NOTICE 'PASS: burger ranks and monthly prize assertions passed'; END $$;
 
