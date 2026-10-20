@@ -381,7 +381,7 @@ export default function Home() {
               <p className="c-vault-sub">
                 {nextPrize
                   ? `${pointsAway.toLocaleString()} coins away — ${nextPrize.name.toUpperCase()} at ${nextPrize.points_cost.toLocaleString()} · ${ordersToGoText(pointsAway, orders)}`
-                  : `You have enough for ${topPrize?.name || 'a prize'} — tap to claim.`}
+                  : `You have enough for ${topPrize?.name || 'a prize'} — choose it at checkout.`}
               </p>
               {nextPrize && readyPrize && (
                 <p className="c-vault-sub">You can already claim {readyPrize.name} at checkout.</p>
