@@ -150,7 +150,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const ctx = canvas.getContext('2d');
 
     const W = 408;
-    const H = 200;
+    // Taller frame (was 200) so the game fills more of a phone screen instead
+    // of a thin strip. Everything is anchored to the ground (LOW_Y = H - 26),
+    // and the background art is drawn up to the ground line, so the extra
+    // height simply adds sky and scales the scenery -- jump height, gaps and
+    // all gameplay stay exactly the same.
+    const H = 300;
     canvas.width = W;
     canvas.height = H;
 
