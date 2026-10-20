@@ -128,7 +128,7 @@ export default function Loyalty() {
       </div>
 
       <div className="card history-card">
-        <div className="history-header"><History size={20} /><h3>POINT HISTORY</h3></div>
+        <div className="history-header"><History size={20} /><h3>MONSTA COIN HISTORY</h3></div>
         <div className="history-list">
           {pointHistory && pointHistory.length > 0 ? (
             <>

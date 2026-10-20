@@ -58,7 +58,7 @@ export default function CateringPausedModal({ loggedIn, onClose }) {
           <Gamepad2 size={22} className="cpm-arcade-icon" />
           <div>
             <p className="cpm-block-title">Members play. Members win.</p>
-            <p className="cpm-block-text">Join MunchiesKK for free and play our arcade games to win points, free food and prizes.</p>
+            <p className="cpm-block-text">Join MunchiesKK for free and play our arcade games to win Monsta Coins, free food and prizes.</p>
             <Link to={loggedIn ? '/arcade' : '/signup'} className="cpm-arcade-link">
               {loggedIn ? 'Play the arcade' : 'Join free'} &rarr;
             </Link>

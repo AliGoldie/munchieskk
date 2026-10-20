@@ -140,7 +140,7 @@ export default function Payment() {
         if (rewardPrizeId) {
           const reward = await applyOrderReward(orderId, rewardPrizeId);
           if (!reward.ok) {
-            alert(`Your order was placed, but we could not add your reward: ${reward.message} No points were used.`);
+            alert(`Your order was placed, but we could not add your reward: ${reward.message} No Monsta Coins were used.`);
           }
         }
 
@@ -475,7 +475,7 @@ export default function Payment() {
           {rewardPrize && (
              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--go)', fontWeight: 600, marginBottom: '8px' }}>
                 <span>Reward: {rewardPrize.name}</span>
-                <span>{rewardPrize.perk_rank_order != null ? 'FREE (rank perk)' : `FREE (-${Number(rewardPrize.points_cost).toLocaleString()} pts)`}</span>
+                <span>{rewardPrize.perk_rank_order != null ? 'FREE (rank perk)' : `FREE (-${Number(rewardPrize.points_cost).toLocaleString()} coins)`}</span>
              </div>
           )}
 
@@ -493,7 +493,7 @@ export default function Payment() {
 
           {user && pointsToEarn > 0 && (
             <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: 'var(--text-2)' }}>
-              You will earn about <strong>{pointsToEarn.toLocaleString()} points</strong> (plus 6 bonus) when you collect your order
+              You will earn about <strong>{pointsToEarn.toLocaleString()} Monsta Coins</strong> (plus 6 bonus) when you collect your order
               {boostMultiplier > 1 ? ` — ${boostMultiplier}x Monsta Coins today!` : '.'}
             </p>
           )}

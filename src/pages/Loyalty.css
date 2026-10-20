@@ -343,16 +343,128 @@
   border-radius: 999px;
 }
 
-/* Rank-up message and rank perks */
-.rank-up-card { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; border: 1px solid var(--go, #2e9d5b); }
-.rank-perks-card h3 { margin: 0 0 4px; }
-.rank-perk-sub { margin: 0 0 10px; font-size: .85rem; opacity: .8; }
-.rank-perk { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid rgba(128, 128, 128, .25); }
-.rank-perk.locked { opacity: .55; }
-.rank-perk span { font-size: .85rem; opacity: .85; }
-.rank-perk .rank-perk-status { font-weight: 600; opacity: 1; }
-.rank-birthday { margin-top: 10px; }
-.rank-birthday label { display: block; font-size: .85rem; margin-bottom: 6px; }
+/* The page is dark, but the global .card is white. Every card on this page
+   needs the dark treatment, otherwise light text lands on a white card. */
+.card.next-reward {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--line-strong) !important;
+  box-shadow: none !important;
+  color: var(--text);
+}
+.next-reward-text { color: var(--text-2); }
+.next-reward-text strong { color: var(--gold); }
+
+/* ---- Rank-up message ---- */
+.rank-up-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 199, 44, .16), rgba(199, 59, 15, .18));
+  border: 1px solid rgba(255, 199, 44, .55);
+  color: var(--text);
+}
+.rank-up-emoji { font-size: 1.6rem; }
+.rank-up-card div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.rank-up-card strong { font-family: 'Archivo', sans-serif; color: var(--gold); }
+.rank-up-card div span { font-size: .85rem; color: var(--text-2); }
+.rank-up-dismiss {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---- Rank perks ---- */
+.rank-perks-card {
+  margin: 14px 0 12px;
+  padding: 16px;
+  border-radius: var(--r-card);
+  background: linear-gradient(180deg, #2c2925 0%, #23211e 100%);
+  border: 1px solid rgba(255, 199, 44, .28);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+  color: var(--text);
+}
+.perk-head h3 {
+  margin: 0 0 4px;
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.perk-head p { margin: 0 0 14px; font-size: .85rem; color: var(--text-2); }
+
+.perk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+.perk-tile {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  grid-template-areas: "icon body" "chip chip";
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .3);
+  border: 1px solid rgba(255, 255, 255, .16);
+}
+.perk-icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 1.4rem;
+  background: rgba(255, 255, 255, .06);
+}
+.perk-body { grid-area: body; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.perk-body strong { font-family: 'Archivo', sans-serif; font-size: .95rem; color: var(--text); }
+.perk-meta { font-size: .78rem; color: var(--text-2); }
+.perk-min { font-size: .75rem; color: var(--text-dim); }
+.perk-chip {
+  grid-area: chip;
+  justify-self: start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, .08);
+  color: var(--text-2);
+}
+.perk-ready { border-color: rgba(255, 199, 44, .6); background: rgba(255, 199, 44, .07); }
+.perk-ready .perk-icon { background: rgba(255, 199, 44, .18); }
+.perk-chip-ready { background: var(--gold); color: #1a1a1a; }
+.perk-chip-wait { background: rgba(199, 59, 15, .25); color: #ffb59b; }
+.perk-used { opacity: .7; }
+.perk-chip-used { background: rgba(127, 211, 154, .18); color: var(--go); }
+.perk-locked { opacity: .75; border-style: dashed; }
+.perk-locked .perk-body strong { color: var(--text-2); }
+
+.rank-birthday {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+}
+.rank-birthday label { display: block; font-size: .85rem; color: var(--text-2); margin-bottom: 8px; }
 .rank-birthday div { display: flex; gap: 8px; flex-wrap: wrap; }
-.rank-birthday select { padding: 8px; border-radius: 8px; }
-.rank-birthday p { color: var(--danger, #c0392b); font-size: .85rem; margin: 6px 0 0; }
+.rank-birthday select {
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+}
+.rank-birthday p { color: #ffb59b; font-size: .85rem; margin: 8px 0 0; }

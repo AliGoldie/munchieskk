@@ -1288,7 +1288,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                     {weekInfo && (
                       <p style={{ fontSize: 12, color: '#ccc', marginTop: 0, marginBottom: 10 }}>
                         Burger XP this week: <b>{Math.min(weekInfo.week, weekInfo.goal).toLocaleString()} / {weekInfo.goal.toLocaleString()}</b>
-                        {weekInfo.week >= weekInfo.goal ? ' (goal reached!)' : ` · reach it for +${weekInfo.bonus} points`}
+                        {weekInfo.week >= weekInfo.goal ? ' (goal reached!)' : ` · reach it for +${weekInfo.bonus} Monsta Coins`}
                       </p>
                     )}
 

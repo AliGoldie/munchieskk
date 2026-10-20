@@ -55,7 +55,7 @@ export const ROUTE_SEO = {
   },
   '/loyalty': {
     title: 'Rewards & Prize Vault | MunchiesKK',
-    description: 'Join MunchiesKK free: earn points on every order and unlock free burgers, fries and drinks from the Prize Vault.',
+    description: 'Join MunchiesKK free: earn Monsta Coins on every order and unlock free burgers, fries and drinks from the Prize Vault.',
     changefreq: 'weekly',
     priority: '0.5',
   },
