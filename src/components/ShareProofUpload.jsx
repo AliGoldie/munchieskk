@@ -73,7 +73,7 @@ export default function ShareProofUpload({ orderId }) {
   }
   if (proof?.status === 'PENDING') {
     return (
-      <p className="share-proof share-proof-wait"><Clock size={16} /> Screenshot received. We'll check it soon and add +{extra} points.</p>
+      <p className="share-proof share-proof-wait"><Clock size={16} /> Screenshot received. We'll check it soon and add +{extra} Monsta Coins.</p>
     );
   }
 
@@ -83,7 +83,7 @@ export default function ShareProofUpload({ orderId }) {
         <p className="share-proof-no"><XCircle size={16} /> We couldn't approve your last screenshot{proof.reject_reason ? `: ${proof.reject_reason}` : '.'} You can send another.</p>
       )}
       <p className="share-proof-copy">
-        Posted it? Upload a screenshot of your post (tag <strong>@munchieskk</strong>) and get <strong>+{extra} more points</strong> ({total} in total) once we approve it.
+        Posted it? Upload a screenshot of your post (tag <strong>@munchieskk</strong>) and get <strong>+{extra} more Monsta Coins</strong> ({total} in total) once we approve it.
       </p>
       <input ref={inputRef} type="file" accept="image/*" hidden onChange={onPick} />
       <button type="button" className="btn btn-outline share-proof-btn" disabled={busy} onClick={() => inputRef.current?.click()}>

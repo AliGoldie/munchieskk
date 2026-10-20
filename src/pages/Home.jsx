@@ -352,8 +352,8 @@ export default function Home() {
           <p className="c-eyebrow">THE REWARD LAYER</p>
           <h2>ORDER. PLAY.<br /><span>EAT FREE.</span></h2>
           <p className="c-arcade-body">
-            Earn points when you collect your order and spend them on free treats
-            {firstPrize ? ` — ${firstPrize.name} from ${firstPrize.points_cost.toLocaleString()} pts.` : '.'}
+            Earn Monsta Coins when you collect your order and spend them on free treats
+            {firstPrize ? ` — ${firstPrize.name} from ${firstPrize.points_cost.toLocaleString()} coins.` : '.'}
             {' '}Play the games to build your Burger XP, hit the weekly goal for bonus Monsta Coins, and compete for the monthly prizes.
           </p>
           <div className="c-arcade-games">
@@ -380,7 +380,7 @@ export default function Home() {
               <div className="c-vault-bar"><div className="c-vault-fill" style={{ width: `${vaultProgress}%` }} /></div>
               <p className="c-vault-sub">
                 {nextPrize
-                  ? `${pointsAway.toLocaleString()} pts away — ${nextPrize.name.toUpperCase()} at ${nextPrize.points_cost.toLocaleString()} · ${ordersToGoText(pointsAway, orders)}`
+                  ? `${pointsAway.toLocaleString()} coins away — ${nextPrize.name.toUpperCase()} at ${nextPrize.points_cost.toLocaleString()} · ${ordersToGoText(pointsAway, orders)}`
                   : `You have enough for ${topPrize?.name || 'a prize'} — tap to claim.`}
               </p>
               {nextPrize && readyPrize && (
@@ -404,7 +404,7 @@ export default function Home() {
                 <img src={thumbSrc(item.image)} onError={onThumbError(item.image)} alt="" className="c-type-thumb" width="56" height="56" loading="lazy" decoding="async" />
                 <span className="c-type-name">{item.name.toUpperCase()}</span>
                 <span className="c-type-tag" style={{ color: CATEGORY_TAG_COLOR[cat] || 'var(--munchies-muted-dark)' }}>{cat}</span>
-                <span className="c-type-pts">+{getItemPoints(item)} pts</span>
+                <span className="c-type-pts">+{getItemPoints(item)} coins</span>
                 <span className="c-type-price">
                   {!item.inStock ? 'SOLD OUT' : `RM ${money(isPromoActive(item) ? item.promo_price : item.price)}`}
                 </span>

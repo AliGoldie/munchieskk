@@ -265,8 +265,9 @@ export default function Profile() {
           </div>
           
           <div className="loyalty-teaser">
-            <h4>MunchiesKK Rewards</h4>
-            <p className="points-display mb-2" style={{fontSize: '2rem'}}><span className="text-primary">{points}</span> pts</p>
+            <h4>My Monsta Coins</h4>
+            <p className="points-display mb-2" style={{fontSize: '2rem'}}><span className="text-primary">{Number(points || 0).toLocaleString()}</span> Monsta Coins</p>
+            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0 0 12px' }}>Earn 1 coin for every RM1 you spend. Spend them on free food in the Prize Vault.</p>
             <a href="/loyalty" className="btn btn-primary w-full">View Prize Vault</a>
           </div>
 
@@ -406,7 +407,7 @@ export default function Profile() {
                     <span className="order-date">{new Date(r.redeemed_at).toLocaleDateString()}</span>
                   </div>
                   <div className="order-total" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    {r.prize_name} - {r.points_spent.toLocaleString()} pts
+                    {r.prize_name} - {r.points_spent.toLocaleString()} coins
                     <span className={`order-status ${r.status === 'FULFILLED' ? 'completed' : ''}`}>{r.status}</span>
                   </div>
                   {r.status === 'PENDING' && (
