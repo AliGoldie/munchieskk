@@ -186,7 +186,11 @@ export default function OrderStatus() {
               setClaimedReview(true);
               alert(`Thank you for sharing on ${platform}! ${loyaltyConfig.REVIEW_BONUS_PTS} bonus Monsta Coins added.`);
             } catch (err) {
-              alert("We couldn't complete that right now. Please try again, or contact us via WhatsApp.");
+              // The monthly share limit has its own friendly message from the server.
+              const msg = err && typeof err.message === 'string' && err.message.startsWith('You have used your')
+                ? err.message
+                : "We couldn't complete that right now. Please try again, or contact us via WhatsApp.";
+              alert(msg);
             }
           }
         }

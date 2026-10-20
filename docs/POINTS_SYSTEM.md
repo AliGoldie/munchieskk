@@ -18,7 +18,7 @@ monthly prizes.**
    No points are paid at this step.
 3. **Collect the order.** Only now the points are added: the order points **plus 6 bonus points**.
    If the order is cancelled before collection, no points were ever added, so nothing is lost.
-4. **Share the meal** (optional): **+20** after sharing, **+20 more** if a screenshot of the public post is approved.
+4. **Share the meal** (optional): **+20** after sharing (at most 4 of these a month per account), **+20 more** if a screenshot of the public post is approved.
 5. **Invite a friend** (optional): when the friend's **first collected order is RM20 or more**,
    the inviter gets **+150** and the friend gets **+30**.
 6. **Spend points** at checkout on the Prize Vault (Free Cheese 50, Free Egg 60, **Free Fries 100**, and more).
@@ -34,7 +34,7 @@ monthly prizes.**
 | **Order in the app** | **1 point per RM1 spent** | Food total actually paid. Orders must be placed in the app (munchieskk.my). Counter sales rung up in Loyverse do not earn app points. **The points are added when the order is collected**, not when it is placed. A cancelled order earns nothing. |
 | **Double points days** | **2x order points on Tuesday, Wednesday and Thursday** | Based on the day the order is placed (Malaysia time). The owner can change the days or switch it off, so confirm before posting. Rank bonus is added on top. |
 | **Collect your order** | **+6** | Once per order, paid together with the order points when the order is collected. |
-| **Share your food** | **+20** | Tap Instagram / Facebook / TikTok after collecting. Once per order. |
+| **Share your food** | **+20** | Tap Instagram / Facebook / TikTok after collecting. Once per order, and at most 4 a month per account (Malaysia time). The tap cannot check that a post was made, so the cap limits it; the screenshot bonus is checked by staff. |
 | **Share + screenshot** | **40 in total** (+20 more) | Upload a screenshot of the public post (tag @munchieskk). Points are added after we approve it. Send it within 14 days of the order. |
 | **Invite a friend** | **+150 for you, +30 for them** | Friend signs up with your link or code. The 150 is paid when their **first collected order of RM20 or more** is done. Max 5 friends per person. **The friend's 30 points are paid at the same moment**, after their first collected order of RM20 or more (not at sign-up). |
 | **Rank bonus** | **+5% / +8% / +12%** extra points on every order | Pro / Master / Ultimate ranks only (see Burger Ranks). |
