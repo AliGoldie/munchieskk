@@ -107,6 +107,8 @@ A customer's rank comes from their **lifetime spend on collected orders**
 
 (These thresholds were approved on 16 Oct 2026 and go live when the owner runs the rank SQL; the older ladder was RM200 / 850 / 1,500 / 3,000.)
 
+**Refunds after collection.** A refund takes back the same share of the order's Monsta Coins **plus the +6 collection bonus**: a full refund returns everything, a half refund returns half, and undoing a refund gives back exactly what was taken. If the customer has already spent the coins, the balance **stops at 0** (no negative balance; the shop absorbs that loss). A refund does not lower a rank.
+
 **Ranks never go down.** The app remembers the highest rank a customer reached. A refund, or a later change to the thresholds, never takes a rank away.
 
 **Rank perks.** Claimed on a paid order at checkout, as the one reward for that order (order RM20 or more, RM30 for the platter). A perk costs no points and does **not** use up the monthly rewards. A higher rank keeps the lower perks. Cancelling the order gives the perk back.
