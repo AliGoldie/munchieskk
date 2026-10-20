@@ -71,7 +71,7 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
         
         <div className="modal-points-banner">
           <Gift size={20} />
-          <span>Points you'll earn: <strong>{pointsEarned}</strong></span>
+          <span>Monsta Coins you'll earn: <strong>{pointsEarned}</strong></span>
         </div>
 
         {/* Add-ons Section */}

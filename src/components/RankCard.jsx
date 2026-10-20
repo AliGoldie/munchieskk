@@ -8,6 +8,17 @@ import { COINS } from '../config/rewardNames';
 // If the rank data can't be loaded (older database, offline) the card falls
 // back to the plain points header instead of breaking the page.
 const PERIOD_TEXT = { once: 'one time', month: 'every month', year: 'once a year', birthday: 'in your birthday month, once a year' };
+// A friendly icon per perk (matched on the perk name).
+const perkIcon = (name = '') => {
+  const n = name.toLowerCase();
+  if (n.includes('cheese')) return '🧀';
+  if (n.includes('birthday')) return '🎂';
+  if (n.includes('egg')) return '🥚';
+  if (n.includes('platter')) return '🍔';
+  return '🎁';
+};
+// "Regular perk: free Cheese" -> "Free Cheese"
+const perkTitle = (name = '') => { const t = name.replace(/^[^:]+: /, ''); return t.charAt(0).toUpperCase() + t.slice(1); };
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const rm = (cents) => `RM${(Number(cents || 0) / 100).toLocaleString('en-MY', { maximumFractionDigits: 0 })}`;
 
@@ -86,26 +97,43 @@ export default function RankCard({ points, displayedPoints }) {
       </div>
 
       {rankUp && (
-        <div className="card rank-up-card" role="status">
-          <strong>You reached {rankUp}!</strong>
-          <span>Check your perks below. Pick one at checkout with a paid order.</span>
-          <button type="button" className="btn btn-sm btn-outline" onClick={() => setRankUp('')}>Got it</button>
+        <div className="rank-up-card" role="status">
+          <span className="rank-up-emoji" aria-hidden="true">🎉</span>
+          <div>
+            <strong>You reached {rankUp}!</strong>
+            <span>Check your perks below. Pick one at checkout with a paid order.</span>
+          </div>
+          <button type="button" className="rank-up-dismiss" onClick={() => setRankUp('')}>Got it</button>
         </div>
       )}
 
       {perks.length > 0 && (
-        <div className="card rank-perks-card">
-          <h3>Your rank perks</h3>
-          <p className="rank-perk-sub">Free with a paid order. One reward per order, and perks do not use up your monthly rewards.</p>
-          {perks.map(p => (
-            <div key={p.id} className={`rank-perk${p.unlocked ? '' : ' locked'}`}>
-              <strong>{p.name.replace(/^[^:]+: /, '')}</strong>
-              <span>{p.rank} rank · {PERIOD_TEXT[p.period] || ''} · order RM{(p.min_order_cents / 100).toFixed(0)}+</span>
-              <span className="rank-perk-status">
-                {!p.unlocked ? `Unlocks at ${p.rank}` : p.used ? 'Used for now' : p.needs_birthday ? 'Add your birthday to use it' : !p.birthday_month_now ? 'Ready in your birthday month' : 'Ready: pick it at checkout'}
-              </span>
-            </div>
-          ))}
+        <section className="rank-perks-card" aria-label="Your rank perks">
+          <header className="perk-head">
+            <h3>Your rank perks</h3>
+            <p>Free with a paid order. One reward per order, and perks never use up your monthly rewards.</p>
+          </header>
+          <div className="perk-grid">
+            {perks.map(p => {
+              const state = !p.unlocked ? 'locked' : p.used ? 'used' : (p.needs_birthday || !p.birthday_month_now) ? 'wait' : 'ready';
+              const chip = state === 'locked' ? `Unlocks at ${p.rank}`
+                : state === 'used' ? 'Used for now'
+                : p.needs_birthday ? 'Add your birthday'
+                : !p.birthday_month_now ? 'Birthday month only'
+                : 'Ready at checkout';
+              return (
+                <article key={p.id} className={`perk-tile perk-${state}`}>
+                  <span className="perk-icon" aria-hidden="true">{state === 'locked' ? '🔒' : perkIcon(p.name)}</span>
+                  <div className="perk-body">
+                    <strong>{perkTitle(p.name)}</strong>
+                    <span className="perk-meta">{p.rank} rank · {PERIOD_TEXT[p.period] || ''}</span>
+                    <span className="perk-min">With an order of RM{(p.min_order_cents / 100).toFixed(0)}+</span>
+                  </div>
+                  <span className={`perk-chip perk-chip-${state}`}>{chip}</span>
+                </article>
+              );
+            })}
+          </div>
           {needsBirthday && (
             <form className="rank-birthday" onSubmit={saveBirthday}>
               <label>Birthday (month and day only, saved once)</label>
@@ -123,7 +151,7 @@ export default function RankCard({ points, displayedPoints }) {
               {bErr && <p role="alert">{bErr}</p>}
             </form>
           )}
-        </div>
+        </section>
       )}
 
       {rank && Array.isArray(rank.tiers) && rank.tiers.length > 0 && (
