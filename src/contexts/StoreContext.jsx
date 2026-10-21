@@ -5,7 +5,7 @@ export const formatOrderId = (id) => {
   return id.includes('-') ? id.split('-')[0].toUpperCase() : id.toUpperCase().substring(0, 8);
 };
 
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
 import { parseTimeToMinutes, getMalaysiaNow } from '../utils/timeUtils';
@@ -26,6 +26,10 @@ export function StoreProvider({ children }) {
   const [rankPerkPrizes, setRankPerkPrizes] = useState([]);
   const [redemptions, setRedemptions] = useState([]);
   const [ingredients, setIngredients] = useState([]);
+  // Cost prices live in the admin-only item_costs table (never on the public
+  // menu rows). { menu: { [id]: cents }, addon: { [id]: cents } } once loaded
+  // for an admin; null for everyone else, or before that table exists.
+  const [itemCosts, setItemCosts] = useState(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   // Lets Menu.jsx tell "still loading" apart from "failed to load" -- both
   // used to render the same infinite shimmer with no way for a customer to
@@ -183,44 +187,49 @@ export function StoreProvider({ children }) {
   // --- Supabase Real-time Sync ---
   useEffect(() => {
     const fetchInitialData = async () => {
-      // 0a. Fetch Loyalty Prizes
-      try {
-        const { data: prizesData } = await supabase.from('loyalty_prizes').select('*').eq('is_active', true).order('points_cost', { ascending: true });
-        if (prizesData) {
-          // Rank perks (free for a rank, no points) share the table but are not
-          // Prize Vault items; they are offered at checkout and on the rank card.
-          setLoyaltyPrizes(prizesData.filter(p => p.perk_rank_order == null));
-          setRankPerkPrizes(prizesData.filter(p => p.perk_rank_order != null));
-        }
-      } catch (e) { console.warn('loyalty_prizes fetch failed:', e); }
+      // All five reads go out at once; they used to wait for each other, so the
+      // menu only started loading after prizes and shop settings came back.
+      const settle = (q) => Promise.resolve(q).catch((e) => ({ data: null, error: e }));
+      const [prizesRes, settingsRes, menuRes, addonsRes, assignmentsRes] = await Promise.all([
+        settle(supabase.from('loyalty_prizes').select('*').eq('is_active', true).order('points_cost', { ascending: true })),
+        settle(supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle()),
+        settle(supabase.from('menu_items').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true })),
+        settle(supabase.from('addons').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true })),
+        settle(supabase.from('item_addons').select('*')),
+      ]);
 
-            // 0. Fetch Store Settings
-      try {
-        const { data: settingsData, error: settingsErr } = await supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle();
-        if (settingsErr) {
-          console.warn('[StoreContext] Failed to fetch store_settings:', settingsErr.message);
-        } else if (settingsData) {
-          console.log('[StoreContext] Loaded store_settings from DB:', settingsData.status, 'closures:', settingsData.special_closures?.length || 0);
-          const loaded = {
-            status: settingsData.status || 'OPEN',
-            openingTime: settingsData.opening_time || '17:00',
-            closingTime: settingsData.closing_time || '23:00',
-            noticeMessage: settingsData.notice_message || '',
-            weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
-            specialClosures: settingsData.special_closures || [],
-            arcade_enabled: settingsData.arcade_enabled ?? false,
-            catering_enabled: settingsData.catering_enabled ?? true
-          };
-          shopSettingsRef.current = loaded;
-          setShopSettings(loaded);
-        } else {
-          console.warn('[StoreContext] No store_settings row found for main_store');
-        }
-      } catch (e) {
-        console.warn('[StoreContext] store_settings fetch exception:', e);
+      // 0a. Loyalty Prizes
+      const prizesData = prizesRes.data;
+      if (prizesData) {
+        // Rank perks (free for a rank, no points) share the table but are not
+        // Prize Vault items; they are offered at checkout and on the rank card.
+        setLoyaltyPrizes(prizesData.filter(p => p.perk_rank_order == null));
+        setRankPerkPrizes(prizesData.filter(p => p.perk_rank_order != null));
+      } else if (prizesRes.error) console.warn('loyalty_prizes fetch failed:', prizesRes.error);
+
+      // 0. Store Settings
+      const { data: settingsData, error: settingsErr } = settingsRes;
+      if (settingsErr) {
+        console.warn('[StoreContext] Failed to fetch store_settings:', settingsErr.message);
+      } else if (settingsData) {
+        const loaded = {
+          status: settingsData.status || 'OPEN',
+          openingTime: settingsData.opening_time || '17:00',
+          closingTime: settingsData.closing_time || '23:00',
+          noticeMessage: settingsData.notice_message || '',
+          weeklySchedule: { ...defaultWeeklySchedule, ...(settingsData.weekly_schedule || {}) },
+          specialClosures: settingsData.special_closures || [],
+          arcade_enabled: settingsData.arcade_enabled ?? false,
+          catering_enabled: settingsData.catering_enabled ?? true
+        };
+        shopSettingsRef.current = loaded;
+        setShopSettings(loaded);
+      } else {
+        console.warn('[StoreContext] No store_settings row found for main_store');
       }
-      // 1. Fetch Menu
-      const { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
+
+      // 1. Menu
+      const { data: menuData, error: menuErr } = menuRes;
       if (menuData) {
         setMenu(menuData.map(item => ({...item, inStock: item.in_stock, low_stock_threshold: item.low_stock_threshold ?? 10})));
         setMenuLoadError(false);
@@ -229,13 +238,13 @@ export function StoreProvider({ children }) {
         setMenuLoadError(true);
       }
 
-      // 2. Fetch Addons
-      const { data: addonsData, error: addonsErr } = await supabase.from('addons').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
+      // 2. Addons
+      const { data: addonsData, error: addonsErr } = addonsRes;
       if (addonsData) setAddons(addonsData);
       else if (addonsErr) console.error('Addons fetch error:', addonsErr.message, addonsErr);
 
-      // 3. Fetch Item-Addon assignments
-      const { data: assignmentsData, error: assignmentsErr } = await supabase.from('item_addons').select('*');
+      // 3. Item-Addon assignments
+      const { data: assignmentsData, error: assignmentsErr } = assignmentsRes;
       if (!assignmentsData && assignmentsErr) console.error('Item-addons fetch error:', assignmentsErr.message, assignmentsErr);
       if (assignmentsData) {
         const mapping = {};
@@ -312,6 +321,44 @@ export function StoreProvider({ children }) {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Admins only: cost prices from the private item_costs table. If the table
+  // is not there yet, costs are still on the menu rows and nothing changes.
+  useEffect(() => {
+    if (user?.role !== 'admin') { setItemCosts(null); return undefined; }
+    let active = true;
+    supabase.from('item_costs').select('item_kind, item_id, cost_price')
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error || !data) { setItemCosts(null); return; }
+        const next = { menu: {}, addon: {} };
+        data.forEach(r => { if (next[r.item_kind]) next[r.item_kind][r.item_id] = r.cost_price; });
+        setItemCosts(next);
+      });
+    return () => { active = false; };
+  }, [user?.role]);
+
+  // Saves one cost price (cents or null) to item_costs. Until that table
+  // exists it falls back to the old cost_price column on the row.
+  const saveItemCost = async (kind, id, cents) => {
+    const { error } = await supabase.from('item_costs')
+      .upsert({ item_kind: kind, item_id: String(id), cost_price: cents, updated_at: new Date().toISOString() });
+    if (!error) {
+      setItemCosts(prev => ({
+        menu: { ...(prev?.menu || {}) },
+        addon: { ...(prev?.addon || {}) },
+        [kind]: { ...(prev?.[kind] || {}), [String(id)]: cents }
+      }));
+      return true;
+    }
+    const { error: legacyErr } = await supabase.from(kind === 'menu' ? 'menu_items' : 'addons').update({ cost_price: cents }).eq('id', id);
+    if (legacyErr) {
+      console.error('Failed to save cost price:', error, legacyErr);
+      alert('Failed to save cost price: ' + error.message);
+      return false;
+    }
+    return true;
+  };
 
   // Fetch user-scoped orders (or admin orders + profiles) whenever auth state resolves or user changes,
   // and open a PRIVATE realtime channel scoped to what this specific user is allowed to see:
@@ -686,15 +733,26 @@ export function StoreProvider({ children }) {
     // Optimistic UI update (makes UI instant instead of waiting for realtime)
     setMenu(prev => [...prev, { ...newItem, inStock: newItem.in_stock }]);
 
-    const { error } = await supabase.from('menu_items').insert([newItem]);
+    const { cost_price: newCost, ...newRow } = newItem;
+    const { error } = await supabase.from('menu_items').insert([newRow]);
     if (error) {
       console.error('Failed to add menu item:', error);
       alert('Failed to add menu item: ' + error.message);
       setMenu(prev => prev.filter(i => i.id !== newItem.id));
+      return;
     }
+    if (newCost != null) await saveItemCost('menu', newItem.id, newCost);
   };
 
-  const updateMenuItem = async (id, fields) => {
+  const updateMenuItem = async (id, allFields) => {
+    // The cost price goes to the private item_costs table, never the menu row.
+    const { cost_price: costCents, ...fields } = allFields;
+    if (Object.prototype.hasOwnProperty.call(allFields, 'cost_price')) {
+      if (await saveItemCost('menu', id, costCents ?? null)) {
+        setMenu(prev => prev.map(item => String(item.id) === String(id) ? { ...item, cost_price: costCents ?? null } : item));
+      }
+    }
+    if (Object.keys(fields).length === 0) return;
     const dbPayload = { ...fields };
     if (fields.price !== undefined) {
       dbPayload.price = Math.round(Number(fields.price));
@@ -1082,7 +1140,8 @@ const clearManualOverride = async (id) => {
     };
     
     // Insert into DB FIRST, only update UI if successful
-    const { error } = await supabase.from('addons').insert([newAddon]);
+    const { cost_price: newCost, ...newRow } = newAddon;
+    const { error } = await supabase.from('addons').insert([newRow]);
     if (error) {
       console.error('Failed to add addon:', error);
       alert('Failed to add addon: ' + error.message);
@@ -1091,6 +1150,7 @@ const clearManualOverride = async (id) => {
     
     // Only add to UI after DB confirms success
     setAddons(prev => [...prev, newAddon]);
+    if (newCost != null) await saveItemCost('addon', newAddon.id, newCost);
   };
   
   const deleteAddon = async (id) => {
@@ -1155,7 +1215,15 @@ const clearManualOverride = async (id) => {
   };
   
   // Generic addon field updater (name/image today) -- mirrors updateMenuItem.
-  const updateAddon = async (id, fields) => {
+  const updateAddon = async (id, allFields) => {
+    // The cost price goes to the private item_costs table, never the add-on row.
+    const { cost_price: costCents, ...fields } = allFields;
+    if (Object.prototype.hasOwnProperty.call(allFields, 'cost_price')) {
+      if (await saveItemCost('addon', id, costCents ?? null)) {
+        setAddons(prev => prev.map(a => a.id === id ? { ...a, cost_price: costCents ?? null } : a));
+      }
+    }
+    if (Object.keys(fields).length === 0) return;
     const previousAddons = addons;
     setAddons(prev => prev.map(a => a.id === id ? { ...a, ...fields } : a));
     const { error } = await supabase.from('addons').update(fields).eq('id', id);
@@ -1863,10 +1931,17 @@ const clearManualOverride = async (id) => {
     }
   };
 
+  // Admin screens read item.cost_price as before; it now comes from item_costs.
+  const withCosts = (rows, costs) => (costs
+    ? rows.map(r => (costs[String(r.id)] === undefined ? r : { ...r, cost_price: costs[String(r.id)] }))
+    : rows);
+  const menuView = useMemo(() => withCosts(menu, itemCosts?.menu), [menu, itemCosts]);
+  const addonsView = useMemo(() => withCosts(addons, itemCosts?.addon), [addons, itemCosts]);
+
   return (
     <StoreContext.Provider value={{
-      menu, menuLoadError, cart, cartTotal, cartCount,
-      points, tier, pointHistory, orders, addons, itemAddons, customers,
+      menu: menuView, menuLoadError, cart, cartTotal, cartCount,
+      points, tier, pointHistory, orders, addons: addonsView, itemAddons, customers,
       syncWarnings, removeSyncWarning,
       toggleStock, updatePrice, updateLowStockThreshold, addMenuItem, updateMenuItem, deleteMenuItem, moveMenuItem, updateOrderState, collectOrder, acceptOrder, cancelOrder,
       updateStock, setStockQuantity, clearManualOverride, fetchStockHistory, recordClosingStock,
