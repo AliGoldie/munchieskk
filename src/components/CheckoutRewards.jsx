@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Gift, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { rewardBlockReason } from '../utils/rewardRules';
+import { rewardValueText } from '../utils/rewardValue';
 import './CheckoutRewards.css';
 
 // "Use a reward" picker for the Payment page. Shows the rewards a customer
@@ -52,7 +53,7 @@ export default function CheckoutRewards({ prizes, perks, points, menu, addons, i
               className={`checkout-reward${selected ? ' selected' : ''}`}
               onClick={() => onSelect(selected ? null : p.id)}
             >
-              <span className="checkout-reward-name">{p.name}</span>
+              <span className="checkout-reward-name">{p.name}{rewardValueText(p, menu, addons) && <small> ({rewardValueText(p, menu, addons)})</small>}</span>
               <span className="checkout-reward-cost">{blocked ? blocked : p.perk_rank_order != null ? 'Rank perk' : `${pts(p.points_cost)} coins`}</span>
               {selected && <CheckCircle2 size={18} className="checkout-reward-tick" aria-hidden="true" />}
             </button>
