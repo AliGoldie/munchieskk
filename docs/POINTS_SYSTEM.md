@@ -32,6 +32,7 @@ monthly prizes.**
 | How | Points | Rules to mention |
 |---|---|---|
 | **Order in the app** | **1 point per RM1 spent** | Food total actually paid. Orders must be placed in the app (munchieskk.my). Counter sales rung up in Loyverse do not earn app points. **The points are added when the order is collected**, not when it is placed. A cancelled order earns nothing. |
+| **Optional limit per order** | **Off** | A setting (`points_boost.max_coins_per_order`) can limit the Monsta Coins one order earns, as a safety net. It is switched on only by the owner. When on, the +6 collection bonus is still added on top. Do not mention it in posts unless Ali turns it on. |
 | **Double points days** | **2x order points on Tuesday, Wednesday and Thursday** | Based on the day the order is placed (Malaysia time). The owner can change the days or switch it off, so confirm before posting. Rank bonus is added on top. |
 | **Collect your order** | **+6** | Once per order, paid together with the order points when the order is collected. |
 | **Share your food** | **+20** | Tap Instagram / Facebook / TikTok after collecting. Once per order, and at most 4 a month per account (Malaysia time). The tap cannot check that a post was made, so the cap limits it; the screenshot bonus is checked by staff. |

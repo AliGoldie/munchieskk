@@ -45,7 +45,10 @@ export default function Payment() {
     return () => { active = false; };
   }, []);
   const boostMultiplier = boost?.active_now ? Number(boost.multiplier) || 1 : 1;
-  const pointsToEarn = Math.round(finalTotal / 100) * boostMultiplier;
+  // The shop can set a limit on the coins one order earns (off unless set).
+  const maxCoins = Number(boost?.max_coins_per_order) > 0 ? Number(boost.max_coins_per_order) : null;
+  const rawCoins = Math.round(finalTotal / 100) * boostMultiplier;
+  const pointsToEarn = maxCoins ? Math.min(rawCoins, maxCoins) : rawCoins;
 
   // A reward the customer ticked (free item / add-on, paid for with points).
   const [rewardPrizeId, setRewardPrizeId] = useState(null);

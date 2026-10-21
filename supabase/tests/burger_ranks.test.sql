@@ -927,6 +927,69 @@ BEGIN
 END $$;
 RESET request.jwt.claim.sub;
 
+
+-- ---------------------------------------------------------------------------
+-- 12. Optional limit on coins per order, OFF by default
+--     (20261028000000_max_coins_per_order.sql)
+-- ---------------------------------------------------------------------------
+\i supabase/migrations/20261028000000_max_coins_per_order.sql
+\i supabase/migrations/20261028000000_max_coins_per_order.sql
+
+RESET request.jwt.claim.sub;
+INSERT INTO profiles (id, role, points, name) VALUES ('e9999999-9999-9999-9999-999999999991', 'user', 0, 'Cap Cara');
+
+DO $$
+DECLARE
+  u constant text := 'e9999999-9999-9999-9999-999999999991';
+  o text; o_before text;
+BEGIN
+  UPDATE points_boost SET enabled = false;
+  PERFORM pg_temp.expect((SELECT max_coins_per_order FROM points_boost) IS NULL, 'the limit is off by default');
+  PERFORM pg_temp.expect(public.points_boost_info() ? 'max_coins_per_order', 'the checkout page can read the setting');
+
+  -- off: a RM69.90 order earns 70 as normal
+  o_before := pg_temp.order_of(u, 'platter', 1);
+  PERFORM pg_temp.expect(pg_temp.earned(o_before) = 70, 'with the limit off an order earns its full 70');
+
+  -- on at 50: the same order earns 50, and collecting pays 50 + 6
+  UPDATE points_boost SET max_coins_per_order = 50;
+  o := pg_temp.order_of(u, 'platter', 1);
+  PERFORM pg_temp.expect(pg_temp.earned(o) = 50, 'with a limit of 50 the order earns 50');
+  UPDATE orders SET status = 'COLLECTED' WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 56, 'collecting pays the limited 50 plus the +6 bonus');
+
+  -- an earlier order is not changed by turning the limit on
+  PERFORM pg_temp.expect(pg_temp.earned(o_before) = 70, 'an order placed before the limit keeps its coins');
+
+  -- a limit above what the order earns changes nothing
+  UPDATE points_boost SET max_coins_per_order = 500;
+  o := pg_temp.order_of(u, 'platter', 1);
+  PERFORM pg_temp.expect(pg_temp.earned(o) = 70, 'a limit above the order coins does not reduce them');
+
+  -- a double-coins day does not get past the limit
+  UPDATE points_boost SET enabled = true, multiplier = 2, days = '{0,1,2,3,4,5,6}', max_coins_per_order = 100;
+  o := pg_temp.order_of(u, 'platter', 1);
+  PERFORM pg_temp.expect(pg_temp.earned(o) = 100, 'double coins would be 140, the limit holds it at 100');
+
+  -- a refund and a cancel still work off the stored (limited) amount
+  UPDATE points_boost SET enabled = false, max_coins_per_order = 50;
+  o := pg_temp.order_of(u, 'platter', 1);
+  UPDATE orders SET status = 'COLLECTED' WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 56 + 56, 'the second limited order paid 50 + 6');
+  UPDATE orders SET refund_amount = 6990 WHERE id = o;
+  PERFORM pg_temp.expect(pg_temp.pts(u) = 56, 'a full refund takes back exactly the limited 50 + 6');
+
+  -- off again
+  UPDATE points_boost SET max_coins_per_order = NULL;
+  o := pg_temp.order_of(u, 'platter', 1);
+  PERFORM pg_temp.expect(pg_temp.earned(o) = 70, 'turned off again, orders earn their full amount');
+
+  -- the setting must be positive
+  PERFORM pg_temp.expect_error($q$UPDATE points_boost SET max_coins_per_order = 0$q$, 'new row for relation "points_boost" violates check constraint');
+  PERFORM pg_temp.expect(NOT has_table_privilege('authenticated', 'public.points_boost', 'update'), 'customers cannot change the limit');
+END $$;
+RESET request.jwt.claim.sub;
+
 DO $$ BEGIN RAISE NOTICE 'PASS: burger ranks and monthly prize assertions passed'; END $$;
 
 ROLLBACK;
