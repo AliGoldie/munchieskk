@@ -1,3 +1,10 @@
+!!! DO NOT RUN THIS AFTER THE SHOP OPENS !!!
+Archived 21 Oct 2026. Kept only as a record of how test data was wiped before launch.
+It deletes EVERY order, sets EVERY customer's points to 0 and turns all stock back on (50 each).
+On the live shop that destroys real sales history and customers' Monsta Coins, and cannot be undone.
+To remove test orders, ask the developer for a targeted clean-up that reads the rows first.
+--------------------------------------------------------------------------------
+
 Run this in Supabase → SQL Editor, all at once:
 
 
