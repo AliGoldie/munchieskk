@@ -10,6 +10,7 @@ import { supabase } from '../config/supabase';
 import { useAuth } from './AuthContext';
 import { parseTimeToMinutes, getMalaysiaNow } from '../utils/timeUtils';
 import { compressImage } from '../utils/compressImage';
+import { withDuePrice } from '../utils/rewardSchedule';
 
 const StoreContext = createContext();
 
@@ -190,6 +191,8 @@ export function StoreProvider({ children }) {
       // All five reads go out at once; they used to wait for each other, so the
       // menu only started loading after prizes and shop settings came back.
       const settle = (q) => Promise.resolve(q).catch((e) => ({ data: null, error: e }));
+      // Switch any reward price whose date has come (no-op most days).
+      settle(supabase.rpc('apply_due_reward_prices'));
       const [prizesRes, settingsRes, menuRes, addonsRes, assignmentsRes] = await Promise.all([
         settle(supabase.from('loyalty_prizes').select('*').eq('is_active', true).order('points_cost', { ascending: true })),
         settle(supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle()),
@@ -199,7 +202,7 @@ export function StoreProvider({ children }) {
       ]);
 
       // 0a. Loyalty Prizes
-      const prizesData = prizesRes.data;
+      const prizesData = prizesRes.data?.map(withDuePrice);
       if (prizesData) {
         // Rank perks (free for a rank, no points) share the table but are not
         // Prize Vault items; they are offered at checkout and on the rank card.
@@ -1708,6 +1711,8 @@ const clearManualOverride = async (id) => {
   // Everything is checked server-side (apply_order_reward); the order stands
   // either way, so a failure here only means no reward and no points taken.
   const applyOrderReward = async (orderId, prizeId) => {
+    // Make sure a price drop that is due has been switched before coins are taken.
+    await Promise.resolve(supabase.rpc('apply_due_reward_prices')).catch(() => {});
     const { data, error } = await supabase.rpc('apply_order_reward', { p_order_id: orderId, p_prize_id: prizeId });
     if (error) return { ok: false, message: error.message || 'The reward could not be added.' };
     const spent = Number(data?.points_spent) || 0;

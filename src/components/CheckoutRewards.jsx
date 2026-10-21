@@ -3,6 +3,7 @@ import { Gift, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { rewardBlockReason } from '../utils/rewardRules';
 import { rewardValueText } from '../utils/rewardValue';
+import { upcomingPriceChange, fmtMYDate } from '../utils/rewardSchedule';
 import './CheckoutRewards.css';
 
 // "Use a reward" picker for the Payment page. Shows the rewards a customer
@@ -43,6 +44,7 @@ export default function CheckoutRewards({ prizes, perks, points, menu, addons, i
         {options.map(p => {
           const blocked = rewardBlockReason(p, ctx);
           const selected = selectedId === p.id;
+          const drop = upcomingPriceChange(p);
           return (
             <button
               key={p.id}
@@ -54,7 +56,7 @@ export default function CheckoutRewards({ prizes, perks, points, menu, addons, i
               onClick={() => onSelect(selected ? null : p.id)}
             >
               <span className="checkout-reward-name">{p.name}{rewardValueText(p, menu, addons) && <small> ({rewardValueText(p, menu, addons)})</small>}</span>
-              <span className="checkout-reward-cost">{blocked ? blocked : p.perk_rank_order != null ? 'Rank perk' : `${pts(p.points_cost)} coins`}</span>
+              <span className="checkout-reward-cost">{blocked ? blocked : p.perk_rank_order != null ? 'Rank perk' : `${pts(p.points_cost)} coins${drop ? ` · ${pts(drop.cost)} from ${fmtMYDate(drop.from)}` : ''}`}</span>
               {selected && <CheckCircle2 size={18} className="checkout-reward-tick" aria-hidden="true" />}
             </button>
           );
