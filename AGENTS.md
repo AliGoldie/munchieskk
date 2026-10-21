@@ -21,12 +21,14 @@ GitHub: AliGoldie/munchieskk. Live Supabase project id: zlxuxxlnczpqmlcpzawm. Th
 - Sign-up has NO privacy/age checkbox (owner decision). No staff "give points by phone" button (owner decision). Catering stays Off. Wording is "sliders/packs", not "tray". Never say "smash burger".
 
 ## Where things live
+Full map: `docs/REPO_MAP.md`. Keep it current when you add or move a folder.
 - `src/pages/` customer pages and `Admin.jsx`; `src/components/` shared parts and admin panels; `src/hooks/`, `src/utils/`, `src/config/`.
 - Games: `src/components/TrexRunnerModal.jsx` (+ `trexStages.js`, art in `public/images/trex/`), `SpeedGrabModal.jsx`, `MunchManModal.jsx`.
 - Database: `supabase/migrations/` (applied in filename order), `supabase/tests/*.test.sql`. Business rules live in SECURITY DEFINER functions and triggers, not in the browser. Internal functions are REVOKEd from anon/authenticated.
 - `vercel.json`: the catch-all rewrite must point to `/` (pointing to `/index.html` caused 404s on refresh). Keep the CSP header in mind when adding external scripts or images.
 - PWA: `public/manifest.webmanifest`, `public/sw.js` (passthrough, no caching), `src/hooks/useInstallApp.js`.
-- Docs: `docs/` (points system, security audit, SEO playbook, arcade contest brief).
+- Docs: `docs/` (points system, security audit, SEO playbook, arcade contest brief). Old material in `docs/archive/` (not current). Source art in `design-originals/` (not used by the site).
+- Cost prices live ONLY in the admin-only `item_costs` table (moved off `menu_items`/`addons`, 21 Oct 2026). Never add a cost, margin or supplier column to a table the public can read.
 
 ## Never publish what is inside our patties
 No ingredients, seasoning, meat blend, fillers or weights in app text, menu descriptions, customer-visible admin screens, public pages or code comments. Keep descriptions to the approved wording. Saying where the meat comes from ("NZ lamb", "premium Australian beef") and quality words ("handcrafted", "premium") are allowed (owner decision, 16 Oct 2026); sizes and weights stay behind the scenes in Admin-only data, never in the repo. If you find such text, report it to Ali; do not invent replacement wording.

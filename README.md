@@ -1,16 +1,26 @@
-# React + Vite
+# MunchiesKK
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Ordering, loyalty (Monsta Coins) and arcade web app for MunchiesKK, a burger shop in Kota Kinabalu, Sabah.
+React 19 + Vite, Supabase database, hosted on Vercel at https://www.munchieskk.my.
 
-Currently, two official plugins are available:
+- **Where things are:** [`docs/REPO_MAP.md`](docs/REPO_MAP.md)
+- **Rules for developers and AI agents:** [`AGENTS.md`](AGENTS.md)
+- **Loyalty rules:** [`docs/POINTS_SYSTEM.md`](docs/POINTS_SYSTEM.md)
+- **For the content and marketing teams:** [`docs/CONTENT_TEAM_SYNC.md`](docs/CONTENT_TEAM_SYNC.md)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Run it locally
 
-## React Compiler
+```bash
+npm ci
+# create .env with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (the public anon key only)
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Checks (all must pass before a change is merged)
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```bash
+npm run lint
+npm run build
+npm run test:db    # needs a local Postgres, see supabase/tests/run-db-tests.sh
+npm run test:e2e   # browser tests, Playwright
+```

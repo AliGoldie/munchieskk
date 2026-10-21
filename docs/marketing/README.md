@@ -24,8 +24,8 @@ menu, pricing, social links, brand voice, pulled from the live site/DB.
 
 ## Coordination with the content team
 
-The content team's own `CLAUDE.md` expects a `docs/CONTENT_TEAM_SYNC.md` file
-in this repo, read read-only every session (`git show origin/main:<path>`).
-**That file doesn't exist yet** — flagged, not yet created, since it needs
-Ali to confirm what's safe/current to put in it before the content team starts
-treating it as the source of truth.
+The content team's own `CLAUDE.md` reads **`docs/CONTENT_TEAM_SYNC.md`** in this
+repo every session (`git show origin/main:<path>`). It is the source of truth for
+what is live and what is still undecided; nothing is published until it says LIVE.
+For where anything else lives in this repo, see **`docs/REPO_MAP.md`**. Source
+artwork (mascot, game screenshots, platter mock-ups) is in `design-originals/`.
