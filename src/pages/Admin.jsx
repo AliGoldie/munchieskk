@@ -14,6 +14,7 @@ import AdminCatering from '../components/AdminCatering';
 import AdminShareProofs from '../components/AdminShareProofs';
 import AdminFadingPoints from '../components/AdminFadingPoints';
 import { whatsAppLink } from '../utils/whatsapp';
+import { earliestPriceChangeDate, fmtMYDate } from '../utils/rewardSchedule';
 import AdminArcadeContest from '../components/AdminArcadeContest';
 import AdminPointsBoost from '../components/AdminPointsBoost';
 import {
@@ -674,6 +675,8 @@ export default function Admin() {
   const [newPrizePhotoStatus, setNewPrizePhotoStatus] = useState('idle'); // 'idle' | 'uploading'
   const [editingPrizeId, setEditingPrizeId] = useState(null);
   const [editingPrizeData, setEditingPrizeData] = useState({});
+  // Prizes CRM "Schedule price drop" drafts, keyed by prize id: { cost, from }.
+  const [priceDropDraft, setPriceDropDraft] = useState({});
   const [editingPrizePhotoStatus, setEditingPrizePhotoStatus] = useState('idle');
 
   const [now, setNow] = useState(Date.now());
@@ -5946,7 +5949,36 @@ export default function Admin() {
                       </div>
                     </div>
                   </td>
-                  <td className="text-orange font-bold">{prize.points_cost} PTS</td>
+                  <td>
+                    <span className="text-orange font-bold">{prize.points_cost} PTS</span>
+                    {prize.new_cost_from ? (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Drops to <strong>{prize.new_points_cost}</strong> on {fmtMYDate(prize.new_cost_from)}. Customers see a notice until then.
+                        <button className="btn btn-sm btn-outline" style={{ marginLeft: '6px' }}
+                          onClick={() => { if (window.confirm('Cancel this price drop? The notice disappears and the price stays the same.')) updateLoyaltyPrize(prize.id, { new_points_cost: null, new_cost_from: null }); }}>Cancel drop</button>
+                      </div>
+                    ) : priceDropDraft[prize.id] ? (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginTop: '4px' }}>
+                        <input type="number" min="1" max={prize.points_cost - 1} placeholder="New price" className="price-input" style={{ width: '90px' }}
+                          value={priceDropDraft[prize.id].cost}
+                          onChange={e => setPriceDropDraft(prev => ({ ...prev, [prize.id]: { ...prev[prize.id], cost: e.target.value } }))} />
+                        <input type="date" min={earliestPriceChangeDate()} className="price-input"
+                          value={priceDropDraft[prize.id].from}
+                          onChange={e => setPriceDropDraft(prev => ({ ...prev, [prize.id]: { ...prev[prize.id], from: e.target.value } }))} />
+                        <button className="btn btn-sm btn-primary" onClick={async () => {
+                          const d = priceDropDraft[prize.id];
+                          const cost = parseInt(d.cost, 10);
+                          if (!(cost >= 1 && cost < prize.points_cost)) { alert(`The new price must be lower than ${prize.points_cost}. Reward prices never go up.`); return; }
+                          if (!d.from || d.from < earliestPriceChangeDate()) { alert(`Pick ${fmtMYDate(earliestPriceChangeDate())} or later, so customers get 30 days' notice.`); return; }
+                          if (await updateLoyaltyPrize(prize.id, { new_points_cost: cost, new_cost_from: d.from })) setPriceDropDraft(prev => ({ ...prev, [prize.id]: undefined }));
+                        }}>Save</button>
+                        <button className="btn btn-sm btn-secondary" onClick={() => setPriceDropDraft(prev => ({ ...prev, [prize.id]: undefined }))}>Cancel</button>
+                      </div>
+                    ) : (
+                      <div><button className="btn btn-sm btn-outline" style={{ marginTop: '4px', fontSize: '0.7rem' }}
+                        onClick={() => setPriceDropDraft(prev => ({ ...prev, [prize.id]: { cost: '', from: earliestPriceChangeDate() } }))}>Schedule price drop</button></div>
+                    )}
+                  </td>
                   <td>
                     {linked ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>{linked.name} (Stock: {linked.stock_quantity})</span>
                       : prize.addon_id ? <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>Add-on: {(addons.find(a => String(a.id) === String(prize.addon_id)) || {}).name || prize.addon_id}</span>

@@ -8,6 +8,7 @@ import { useCountUp } from '../hooks/useCountUp';
 import RankCard from '../components/RankCard';
 import { ordersToGoText } from '../utils/ordersToReward';
 import { rewardValueText } from '../utils/rewardValue';
+import { upcomingPriceChange, fmtMYDate } from '../utils/rewardSchedule';
 import './Loyalty.css';
 
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kuching' });
@@ -18,6 +19,9 @@ export default function Loyalty() {
   const displayedPoints = useCountUp(points, 800);
   // The cheapest reward the customer cannot afford yet.
   const nextPrize = [...loyaltyPrizes].sort((a, b) => a.points_cost - b.points_cost).find(p => p.points_cost > (points || 0)) || null;
+
+  // Rewards whose Monsta Coin price drops on a set date (notice shown until then).
+  const priceDrops = loyaltyPrizes.map(p => ({ prize: p, change: upcomingPriceChange(p) })).filter(x => x.change);
 
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(5);
 
@@ -54,6 +58,12 @@ export default function Loyalty() {
               Any order stops it straight away.
             </>
           )}
+        </div>
+      )}
+      {priceDrops.length > 0 && (
+        <div className="expiry-banner" role="status">
+          <strong>Lower prices coming.</strong>{' '}
+          {priceDrops.map(({ prize, change }) => `${prize.name}: ${change.cost.toLocaleString()} Monsta Coins from ${fmtMYDate(change.from)} (now ${prize.points_cost.toLocaleString()})`).join(' · ')}
         </div>
       )}
       <RankCard points={points} displayedPoints={displayedPoints} />
@@ -96,6 +106,7 @@ export default function Loyalty() {
                 <div className="prize-info">
                   <h3>{prize.name}</h3>
                   {prize.description && <p style={{ fontSize: '0.75rem', color: 'var(--text-2)', margin: '2px 0 0 0' }}>{prize.description}</p>}
+                  {upcomingPriceChange(prize) && <p style={{ fontSize: '0.75rem', color: 'var(--gold, #FFC72C)', margin: '2px 0 0 0' }}>From {fmtMYDate(upcomingPriceChange(prize).from)}: {upcomingPriceChange(prize).cost.toLocaleString()} Coins</p>}
                   <p className="pts-req">{prize.points_cost.toLocaleString()} Coins{rewardValueText(prize, menu, addons) && ` · ${rewardValueText(prize, menu, addons)}`}{!canRedeem && ` · ${(prize.points_cost - (points || 0)).toLocaleString()} to go`}</p>
                 </div>
                 {/* Rewards are claimed in the app at checkout (no counter codes). */}

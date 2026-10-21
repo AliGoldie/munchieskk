@@ -60,6 +60,14 @@ announcing; rewards show "Out of stock" until the item is back in stock):
 | Free Mushy2 | **800** | RM20 |
 | Free Kawan MONSTA platter | **3,000** | RM30 until 31 Dec 2026, then to be reviewed |
 
+**Reward price changes** (owner decision, 21 Oct 2026). A reward's Monsta Coin
+price **never goes up**. It can be **lowered on a set date**: staff set the new price
+and the date in Admin > Prizes CRM ("Schedule price drop"). The date must be at
+least **30 days ahead**, and customers see a "Lower prices coming" notice on the
+Loyalty page and at checkout until then. On the date (Malaysia time) the new
+price takes over by itself. The database refuses a scheduled price that is not
+lower, or a date with less than 30 days' notice.
+
 **Claim at checkout.** On the payment page, tick "Use your points" and pick one
 reward. It is added to the order at **RM0.00** (or as a free add-on on a
 burger). Points are taken when the order is placed and **given back if the
