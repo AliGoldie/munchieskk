@@ -45,6 +45,7 @@ Where key business data lives:
 - **Recipes and ingredients:** `ingredients`, `recipe_items`, admin-only.
 - **Orders and points:** `orders` (points per order), `profiles` (balance), `engagement_points_log` (share, referral, game bonuses); rules in SECURITY DEFINER functions.
 - **Rewards:** `loyalty_prizes` (Prize Vault items and rank perks).
+- **Meat swaps:** `meat_ladder` (beef 0, chicken +RM1, lamb +RM2) and `swap_slots` (each burger's slots; public). Priced on the server by `price_meat_choices()` inside `place_order()`; rules and screens are in `src/utils/meatSwaps.js` and `src/components/MeatChoices.jsx`. Recipes and per-meat stock are a later step and stay admin-only (never in the repo).
 
 ## Docs (`docs/`)
 
