@@ -6,6 +6,7 @@ import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { siteConfig } from '../config/siteConfig';
+import OrderLineChoices from '../components/OrderLineChoices';
 import './Profile.css';
 
 const AVATAR_COLORS = [
@@ -364,6 +365,7 @@ export default function Profile() {
                             order.items.map((item, i) => (
                               <div key={i} style={{ marginBottom: '0.25rem', color: 'var(--text-2)' }}>
                                 <span style={{ fontWeight: 800 }}>{item.quantity || 1}x</span> {item.name}
+                                <OrderLineChoices item={item} className="" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.15rem' }} />
                                 {item.selectedAddons && item.selectedAddons.length > 0 && (
                                   <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.15rem' }}>
                                     + {item.selectedAddons.map(a => a.name).join(', ')}

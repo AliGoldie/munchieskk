@@ -11,6 +11,7 @@ import { useAuth } from './AuthContext';
 import { parseTimeToMinutes, getMalaysiaNow } from '../utils/timeUtils';
 import { compressImage } from '../utils/compressImage';
 import { withDuePrice } from '../utils/rewardSchedule';
+import { ladderMap, totalSwapCharge, toServerChoices, cartLineId } from '../utils/meatSwaps';
 
 const StoreContext = createContext();
 
@@ -31,6 +32,10 @@ export function StoreProvider({ children }) {
   // menu rows). { menu: { [id]: cents }, addon: { [id]: cents } } once loaded
   // for an admin; null for everyone else, or before that table exists.
   const [itemCosts, setItemCosts] = useState(null);
+  // Meat swap rules (public): each burger's slots and the price ladder. Empty
+  // until the swap SQL has been run, which simply hides the choices.
+  const [swapSlots, setSwapSlots] = useState([]);
+  const [meatLadder, setMeatLadder] = useState(ladderMap([]));
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   // Lets Menu.jsx tell "still loading" apart from "failed to load" -- both
   // used to render the same infinite shimmer with no way for a customer to
@@ -193,13 +198,17 @@ export function StoreProvider({ children }) {
       const settle = (q) => Promise.resolve(q).catch((e) => ({ data: null, error: e }));
       // Switch any reward price whose date has come (no-op most days).
       settle(supabase.rpc('apply_due_reward_prices'));
-      const [prizesRes, settingsRes, menuRes, addonsRes, assignmentsRes] = await Promise.all([
+      const [prizesRes, settingsRes, menuRes, addonsRes, assignmentsRes, slotsRes, ladderRes] = await Promise.all([
         settle(supabase.from('loyalty_prizes').select('*').eq('is_active', true).order('points_cost', { ascending: true })),
         settle(supabase.from('store_settings').select('*').eq('id', 'main_store').maybeSingle()),
         settle(supabase.from('menu_items').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true })),
         settle(supabase.from('addons').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true })),
         settle(supabase.from('item_addons').select('*')),
+        settle(supabase.from('swap_slots').select('*')),
+        settle(supabase.from('meat_ladder').select('*')),
       ]);
+      if (Array.isArray(slotsRes.data)) setSwapSlots(slotsRes.data);
+      if (Array.isArray(ladderRes.data)) setMeatLadder(ladderMap(ladderRes.data));
 
       // 0a. Loyalty Prizes
       const prizesData = prizesRes.data?.map(withDuePrice);
@@ -1281,9 +1290,9 @@ const clearManualOverride = async (id) => {
   };
 
   // --- Customer Actions ---
-  const addToCart = (item, selectedAddons = []) => {
-    const addonKey = selectedAddons.map(a => a.id).sort().join('_');
-    const cartItemId = addonKey ? `${item.id}_${addonKey}` : item.id;
+  const addToCart = (item, selectedAddons = [], choices = []) => {
+    const cartItemId = cartLineId(item.id, selectedAddons, choices);
+    const swapCharge = totalSwapCharge(item.id, choices, swapSlots, meatLadder);
 
     // ✅ Always look up the live menu item for stock — never trust the frozen prop snapshot
     // The 'item' passed in may be stale if the modal was opened before a realtime update arrived
@@ -1305,7 +1314,7 @@ const clearManualOverride = async (id) => {
       if (existing) {
         return prev.map(i => i.cartItemId === cartItemId ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { ...item, cartItemId, selectedAddons, quantity: 1 }];
+      return [...prev, { ...item, cartItemId, selectedAddons, choices, swapCharge, quantity: 1 }];
     });
   };
 
@@ -1336,8 +1345,7 @@ const clearManualOverride = async (id) => {
       const oldItem = prev.find(i => i.cartItemId === oldCartItemId);
       if (!oldItem) return prev;
 
-      const addonKey = newSelectedAddons.map(a => a.id).sort().join('_');
-      const newCartItemId = addonKey ? `${oldItem.id}_${addonKey}` : oldItem.id;
+      const newCartItemId = cartLineId(oldItem.id, newSelectedAddons, oldItem.choices);
 
       if (newCartItemId === oldCartItemId) return prev; // no change
 
@@ -1367,7 +1375,7 @@ const clearManualOverride = async (id) => {
       ? (isPromoActive(menuItem) ? menuItem.promo_price : menuItem.price)
       : cartItem.price;
     const addonsTotal = (cartItem.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0);
-    return total + ((priceToUse + addonsTotal) * cartItem.quantity);
+    return total + ((priceToUse + addonsTotal + (cartItem.swapCharge || 0)) * cartItem.quantity);
   }, 0);
 
 
@@ -1474,7 +1482,9 @@ const clearManualOverride = async (id) => {
       category: item.category,
       price: item.price,
       quantity: item.quantity,
-      selectedAddons: (item.selectedAddons || []).map(a => ({ id: a.id, name: a.name, price: a.price }))
+      selectedAddons: (item.selectedAddons || []).map(a => ({ id: a.id, name: a.name, price: a.price })),
+      // Only which meat; the server works out names and the charge itself.
+      ...((item.choices || []).length ? { choices: toServerChoices(item.choices) } : {})
     }));
 
     // id is minted atomically by place_order() server-side — a client-side
@@ -1720,6 +1730,14 @@ const clearManualOverride = async (id) => {
     return { ok: true, data };
   };
 
+  // The free platter reward still pays for meat swaps: price the customer's
+  // choices on the reward line and add the charge to the order.
+  const applyRewardSwaps = async (orderId, choices) => {
+    const { data, error } = await supabase.rpc('apply_reward_swaps', { p_order_id: orderId, p_choices: toServerChoices(choices) });
+    if (error) return { ok: false, message: error.message || 'The meat choices could not be added.' };
+    return { ok: true, charge: Number(data?.charge) || 0 };
+  };
+
   const addLoyaltyPrize = async (prizeData) => {
     const { data, error } = await supabase.from('loyalty_prizes').insert([prizeData]).select().single();
     if (error) { alert('Failed to create prize: ' + error.message); return null; }
@@ -1954,7 +1972,7 @@ const clearManualOverride = async (id) => {
       addAddon, deleteAddon, moveAddon, updateAddon, toggleItemAddon, uploadImage, updateAddonPrice, updateAddonStock, setAddonStockQuantity, updateAddonLowStockThreshold,
       addToCart, removeFromCart, updateQuantity, clearCart, updateCartItemAddons,
       placeOrder, claimShareBonus, fetchSingleOrder,
-      loyaltyPrizes, rankPerkPrizes, redemptions, redeemPrize, applyOrderReward, fetchAdminRedemptions, fulfillRedemption,
+      loyaltyPrizes, rankPerkPrizes, redemptions, redeemPrize, applyOrderReward, applyRewardSwaps, swapSlots, meatLadder, fetchAdminRedemptions, fulfillRedemption,
       addLoyaltyPrize, updateLoyaltyPrize, deleteLoyaltyPrize, logGrabfoodDailyEntry, undoGrabfoodEntry,
       ingredients, fetchIngredients, addIngredient, updateIngredientStock, updateIngredientCost,
       updateIngredientName, updateIngredientUnit,

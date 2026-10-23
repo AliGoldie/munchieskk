@@ -7,6 +7,7 @@ import { loyaltyConfig } from '../config/loyaltyConfig';
 import { supabase } from '../config/supabase';
 import { Flame, CheckCircle2, PartyPopper, Share2, ArrowRight } from 'lucide-react';
 import ShareProofUpload from '../components/ShareProofUpload';
+import OrderLineChoices from '../components/OrderLineChoices';
 import './OrderStatus.css';
 
 // " (double Coins day!)" when the order was placed on a boosted day (Malaysia
@@ -329,6 +330,7 @@ export default function OrderStatus() {
                 {order.items.map((item, i) => (
                   <li key={i} className="mb-2">
                     {item.quantity}x {item.name}
+                    <OrderLineChoices item={item} className="text-sm ml-4 opacity-75" />
                     {item.selectedAddons && item.selectedAddons.length > 0 && (
                       <div className="text-sm ml-4 opacity-75">
                         + {item.selectedAddons.map(a => a.name).join(', ')}

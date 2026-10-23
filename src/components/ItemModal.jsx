@@ -3,13 +3,18 @@ import { Gift, Plus, Minus } from 'lucide-react';
 import { getItemPoints } from '../utils/pointsCalculator';
 import { useStore } from '../contexts/StoreContext';
 import Modal from './Modal';
+import MeatChoices from './MeatChoices';
+import { slotsFor, defaultChoices, totalSwapCharge, choicesComplete } from '../utils/meatSwaps';
 import './ItemModal.css';
 import { mediumSrc } from '../utils/imageVariants';
 
 export default function ItemModal({ item, onClose, editMode = false, initialCartItem = null, onSave = null }) {
   const [selectedAddonIds, setSelectedAddonIds] = useState(initialCartItem ? (initialCartItem.selectedAddons || []).map(a => a.id) : []);
   const [quantity, setQuantity] = useState(1);
-  const { addToCart, addons, itemAddons, isPromoActive } = useStore();
+  const { addToCart, addons, itemAddons, isPromoActive, swapSlots, meatLadder, menu } = useStore();
+  // Meat choices: one per burger slot (none for items that cannot be swapped).
+  const slots = slotsFor(swapSlots, item?.id);
+  const [choices, setChoices] = useState(() => (initialCartItem?.choices?.length ? initialCartItem.choices : defaultChoices(slots)));
 
   if (!item) return null;
 
@@ -31,7 +36,9 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
   }, 0);
 
   const basePrice = isPromoActive(item) ? item.promo_price : item.price;
-  const unitPrice = basePrice + addonTotalCents;
+  const swapCents = editMode ? (initialCartItem?.swapCharge || 0) : totalSwapCharge(item.id, choices, swapSlots, meatLadder);
+  const unitPrice = basePrice + addonTotalCents + swapCents;
+  const choicesDone = editMode || choicesComplete(slots, choices);
   const totalPrice = unitPrice * quantity;
 
   const handleAddToCart = () => {
@@ -41,7 +48,7 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
     } else {
       const selected = addons.filter(a => selectedAddonIds.includes(a.id));
       for (let i = 0; i < quantity; i++) {
-        addToCart(item, selected);
+        addToCart(item, selected, slots.length ? choices : []);
       }
     }
     onClose();
@@ -73,6 +80,11 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
           <Gift size={20} />
           <span>Monsta Coins you'll earn: <strong>{pointsEarned}</strong></span>
         </div>
+
+        {/* Meat choices (burgers and platters that can be swapped) */}
+        {!editMode && slots.length > 0 && (
+          <MeatChoices slots={slots} swapSlots={swapSlots} ladder={meatLadder} menu={menu} choices={choices} onChange={setChoices} />
+        )}
 
         {/* Add-ons Section */}
         {availableAddons.length > 0 && (
@@ -142,10 +154,10 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
 
         <button 
           className="btn btn-primary w-full modal-add-btn"
-          disabled={!item.inStock}
+          disabled={!item.inStock || !choicesDone}
           onClick={handleAddToCart}
         >
-          {editMode ? 'Save Changes' : (item.inStock ? `Add to Cart • RM ${(totalPrice / 100).toFixed(2)}` : 'Sold Out')}
+          {editMode ? 'Save Changes' : (!item.inStock ? 'Sold Out' : (!choicesDone ? 'Choose your burgers' : `Add to Cart • RM ${(totalPrice / 100).toFixed(2)}`))}
         </button>
       </div>
     </Modal>

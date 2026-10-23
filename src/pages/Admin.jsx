@@ -17,6 +17,7 @@ import { whatsAppLink } from '../utils/whatsapp';
 import { earliestPriceChangeDate, fmtMYDate } from '../utils/rewardSchedule';
 import AdminArcadeContest from '../components/AdminArcadeContest';
 import AdminPointsBoost from '../components/AdminPointsBoost';
+import OrderLineChoices from '../components/OrderLineChoices';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   ComposedChart, Area, Line, Legend, PieChart, Pie, Cell
@@ -1970,7 +1971,7 @@ export default function Admin() {
     (order.items || []).forEach(item => {
       const cat = (menu.find(m => m.id === item.id) || item).category || 'Other';
       if (!categorySales[cat]) categorySales[cat] = 0;
-      const itemTotalCents = ((item.price || 0) + (item.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0)) * (item.quantity || 1);
+      const itemTotalCents = ((item.price || 0) + (item.swapCharge || 0) + (item.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0)) * (item.quantity || 1);
       categorySales[cat] += itemTotalCents;
     });
   });
@@ -4239,6 +4240,7 @@ export default function Admin() {
                         {order.items.map((item, i) => (
                           <div key={i} style={{ marginBottom: '0.25rem' }}>
                             <span style={{ fontWeight: 'bold' }}>{item.quantity}x</span> {item.name}
+                            <OrderLineChoices item={item} className="" style={{ color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 700, marginLeft: '1rem', marginTop: '0.25rem' }} />
                             {item.selectedAddons && item.selectedAddons.length > 0 && (
                               <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.25rem' }}>
                                 + {item.selectedAddons.map(a => a.name).join(', ')}
@@ -4888,6 +4890,7 @@ export default function Admin() {
                                   {order.items.map((item, i) => (
                                     <div key={i} style={{ marginBottom: '0.25rem' }}>
                                       <span style={{ fontWeight: 'bold' }}>{item.quantity}x</span> {item.name}
+                                      <OrderLineChoices item={item} className="" style={{ color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 700, marginLeft: '1rem', marginTop: '0.25rem' }} />
                                       {item.selectedAddons && item.selectedAddons.length > 0 && (
                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.25rem' }}>
                                           + {item.selectedAddons.map(a => a.name).join(', ')}
@@ -5475,6 +5478,7 @@ export default function Admin() {
                                         {order.items.map((item, i) => (
                                           <div key={i} style={{ color: 'var(--text-main)' }}>
                                             <span style={{ fontWeight: 800 }}>{item.quantity || 1}x</span> {item.name}
+                                            <OrderLineChoices item={item} className="" style={{ color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 700, marginLeft: '1rem', marginTop: '0.1rem' }} />
                                             {item.selectedAddons && item.selectedAddons.length > 0 && (
                                               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '1rem', marginTop: '0.1rem' }}>
                                                 + {item.selectedAddons.map(a => a.name).join(', ')}
