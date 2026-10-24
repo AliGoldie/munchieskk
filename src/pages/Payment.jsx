@@ -6,11 +6,14 @@ import { formatTime12Hour, generateOperatingTimeSlots } from '../utils/timeUtils
 import { supabase } from '../config/supabase';
 import { CreditCard, QrCode, Building2, CheckCircle2, Loader2, Clock, AlertTriangle, Zap, Tag } from 'lucide-react';
 import CheckoutRewards from '../components/CheckoutRewards';
+import OrderLineChoices from '../components/OrderLineChoices';
 import { rewardBlockReason } from '../utils/rewardRules';
+import MeatChoices from '../components/MeatChoices';
+import { slotsFor, defaultChoices, totalSwapCharge, choicesComplete } from '../utils/meatSwaps';
 import './Payment.css';
 
 export default function Payment() {
-  const { cart, cartTotal, placeOrder, shopSettings, isShopOpenNow, loyaltyPrizes, rankPerkPrizes, points, menu, addons, itemAddons, applyOrderReward } = useStore();
+  const { cart, cartTotal, placeOrder, shopSettings, isShopOpenNow, loyaltyPrizes, rankPerkPrizes, points, menu, addons, itemAddons, applyOrderReward, applyRewardSwaps, swapSlots, meatLadder } = useStore();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -53,6 +56,16 @@ export default function Payment() {
   // A reward the customer ticked (free item / add-on, paid for with points).
   const [rewardPrizeId, setRewardPrizeId] = useState(null);
   const rewardPrize = [...(loyaltyPrizes || []), ...(rankPerkPrizes || [])].find(p => p.id === rewardPrizeId) || null;
+  // A free platter reward still has burgers to choose, and any meat swap on it
+  // is paid for. The choices are saved on the reward line after it is added.
+  const rewardSlots = rewardPrize?.menu_item_id ? slotsFor(swapSlots, rewardPrize.menu_item_id) : [];
+  const [rewardChoices, setRewardChoices] = useState([]);
+  useEffect(() => {
+    setRewardChoices(defaultChoices(rewardSlots));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rewardPrizeId, swapSlots]);
+  const rewardSwapCents = rewardSlots.length ? totalSwapCharge(rewardPrize.menu_item_id, rewardChoices, swapSlots, meatLadder) : 0;
+  const rewardChoicesDone = rewardSlots.length === 0 || choicesComplete(rewardSlots, rewardChoices);
   // A promo code (or anything else) can push the order under a reward's
   // minimum after it was ticked: untick it instead of failing at payment.
   useEffect(() => {
@@ -144,6 +157,11 @@ export default function Payment() {
           const reward = await applyOrderReward(orderId, rewardPrizeId);
           if (!reward.ok) {
             alert(`Your order was placed, but we could not add your reward: ${reward.message} No Monsta Coins were used.`);
+          } else if (rewardSlots.length) {
+            const swaps = await applyRewardSwaps(orderId, rewardChoices);
+            if (!swaps.ok) {
+              alert(`Your reward was added, but we could not save your meat choices: ${swaps.message} Please tell us your choices when you collect.`);
+            }
           }
         }
 
@@ -325,8 +343,9 @@ export default function Payment() {
                 <div key={item.cartItemId} className="summary-item" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                     <span>{item.quantity}x {item.name}</span>
-                    <span>RM {(((item.price + addonTotal) * item.quantity) / 100).toFixed(2)}</span>
+                    <span>RM {(((item.price + addonTotal + (item.swapCharge || 0)) * item.quantity) / 100).toFixed(2)}</span>
                   </div>
+                  <OrderLineChoices item={item} className="text-muted text-sm" style={{ marginLeft: '20px', color: 'var(--text-dim)' }} />
                   {item.selectedAddons && item.selectedAddons.length > 0 && (
                     <span className="text-muted text-sm" style={{ alignSelf: 'flex-start', marginLeft: '20px', color: 'var(--text-dim)' }}>
                       + {item.selectedAddons.map(a => a.name).join(', ')}
@@ -445,6 +464,10 @@ export default function Payment() {
             onSelect={setRewardPrizeId}
           />
 
+          {rewardSlots.length > 0 && (
+            <MeatChoices slots={rewardSlots} swapSlots={swapSlots} ladder={meatLadder} menu={menu} choices={rewardChoices} onChange={setRewardChoices} />
+          )}
+
           <div style={{ marginBottom: '1.5rem' }}>
             <label htmlFor="order-notes" style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-2)', marginBottom: '6px' }}>
               Special requests (optional)
@@ -482,6 +505,13 @@ export default function Payment() {
              </div>
           )}
 
+          {rewardSwapCents > 0 && (
+             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-2)', marginBottom: '8px' }}>
+                <span>Meat swaps on your reward</span>
+                <span>RM {(rewardSwapCents / 100).toFixed(2)}</span>
+             </div>
+          )}
+
           {promoFreeItemName && (
              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--go)', fontWeight: 600, marginBottom: '8px' }}>
                 <span>Free Item ({appliedPromoCode})</span>
@@ -491,7 +521,7 @@ export default function Payment() {
 
           <div className="summary-total" style={{ borderTop: '1px solid var(--line)', paddingTop: '12px', marginTop: '4px' }}>
             <span>Total to Pay</span>
-            <span className="text-primary">RM {(finalTotal / 100).toFixed(2)}</span>
+            <span className="text-primary">RM {((finalTotal + rewardSwapCents) / 100).toFixed(2)}</span>
           </div>
 
           {user && pointsToEarn > 0 && (
@@ -503,15 +533,15 @@ export default function Payment() {
 
           <button
             className="btn btn-primary w-full pay-btn"
-            disabled={isProcessing}
+            disabled={isProcessing || !rewardChoicesDone}
             onClick={handlePayment}
           >
             {isProcessing ? (
               <><Loader2 className="spinner" size={20} /> Processing...</>
             ) : orderMode === 'SCHEDULED' ? (
-              `Confirm Scheduled Pre-Order (RM ${(finalTotal / 100).toFixed(2)})`
+              `Confirm Scheduled Pre-Order (RM ${((finalTotal + rewardSwapCents) / 100).toFixed(2)})`
             ) : (
-              `Pay RM ${(finalTotal / 100).toFixed(2)}`
+              `Pay RM ${((finalTotal + rewardSwapCents) / 100).toFixed(2)}`
             )}
           </button>
         </div>

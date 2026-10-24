@@ -4,6 +4,7 @@ import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Trash2, Plus, Sparkles, ChevronRight, Edit2 } from 'lucide-react';
 import ItemModal from '../components/ItemModal';
+import OrderLineChoices from '../components/OrderLineChoices';
 import './Cart.css';
 
 export default function Cart() {
@@ -58,13 +59,14 @@ export default function Cart() {
               >
                 <div className="cart-item-details">
                   <h3>{item.name}</h3>
+                  <OrderLineChoices item={item} className="text-sm text-muted mt-1 mb-1" />
                   {item.selectedAddons && item.selectedAddons.length > 0 && (
                     <p className="text-sm text-muted mt-1 mb-1">
                       + {item.selectedAddons.map(a => a.name).join(', ')}
                     </p>
                   )}
                   <span className="cart-item-price">
-                    RM {((item.price + (item.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0)) / 100).toFixed(2)}
+                    RM {((item.price + (item.swapCharge || 0) + (item.selectedAddons || []).reduce((sum, a) => sum + (a.price || 0), 0)) / 100).toFixed(2)}
                   </span>
                 </div>
                 <div className="cart-item-actions" onDoubleClick={(e) => e.stopPropagation()}>

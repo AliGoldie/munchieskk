@@ -1,0 +1,10 @@
+.meat-choices { margin: 1rem 0; }
+.meat-quick { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-2); }
+.meat-quick-btn { border: 1px solid var(--line-strong, var(--line)); background: var(--surface); color: inherit; border-radius: 999px; padding: 4px 12px; cursor: pointer; font: inherit; }
+.meat-slot { margin-bottom: 10px; }
+.meat-slot-label { font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; }
+.meat-pick { width: 100%; min-height: 42px; margin-bottom: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: inherit; padding: 0 10px; font: inherit; }
+.meat-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.meat-option { flex: 1 1 0; min-width: 96px; min-height: 44px; border: 1px solid var(--line-strong, var(--line)); background: var(--surface); color: inherit; border-radius: 10px; cursor: pointer; font: inherit; padding: 6px 8px; }
+.meat-option.selected { border-color: var(--gold, #FFC72C); background: rgba(255, 199, 44, 0.14); font-weight: 700; }
+.meat-fixed { font-size: 0.8rem; color: var(--text-muted); }
