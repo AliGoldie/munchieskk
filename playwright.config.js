@@ -4,7 +4,8 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
-  reporter: 'list',
+  // CI also writes an HTML report (with the phone screenshots) that the workflow uploads.
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'retain-on-failure',
