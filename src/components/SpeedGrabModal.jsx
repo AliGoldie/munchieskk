@@ -2,12 +2,28 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Volume2, VolumeX, Trophy, Award, Heart } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { isSoundMuted, setSoundMuted, playSfx, vibrate, createMusic, SONGS } from '../utils/gameFx';
 import './SpeedGrabModal.css';
 
-const ROUND_SECONDS = 30;
+const ROUND_SECONDS = 45;
 const GRID_SIZE = 9;
 const START_LIVES = 3;
 const GOOD_ICONS = { burger: '🍔', fries: '🍟', drink: '🥤' };
+// Lookalikes that are NOT on the menu: tapping one costs a life (red-edged so it is fair).
+const DECOY_ICONS = { burger: '🥪', fries: '🥔', drink: '🧃' };
+
+// Tuning knobs, all in one place.
+const RAMP_SECONDS = 18;       // seconds until the first full difficulty
+const LATE_START = 20;         // then a tougher second half builds up until the end of the round
+const GOLD_CHANCE = 0.06;      // share of good spawns that are a rare gold star
+const GOLD_POINTS = 40;        // flat bonus, never multiplied
+const FRENZY_EVERY = 10;       // a frenzy starts at every 10th combo
+const FRENZY_SECONDS = 4;
+const FRENZY_BONUS = 1.5;      // score multiplier during a frenzy (on top of the combo multiplier)
+// Safety net: the server rejects scores above about 110 x seconds + 100 (3,400 for a
+// 45-second round, about 5,000). Keeping every round under 4,500 and 100 x seconds keeps
+// honest scores valid.
+const MAX_ROUND_SCORE = 4500;
 
 // A whack-a-mole reflex game is a grid of discrete hit targets, not a
 // continuously moving scene -- so unlike MunchManModal/TrexRunnerModal this
@@ -26,7 +42,9 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
   const [combo, setCombo] = useState(0);
   const [timerDisplay, setTimerDisplay] = useState(String(ROUND_SECONDS).padStart(2, '0'));
   const [isUrgent, setIsUrgent] = useState(false);
-  const [soundOn, setSoundOn] = useState(true);
+  const [soundOn, setSoundOn] = useState(() => !isSoundMuted());
+  const [frenzy, setFrenzy] = useState(false);
+  const [pops, setPops] = useState([]);
   const [rewardMsg, setRewardMsg] = useState(null);
   const [weekInfo, setWeekInfo] = useState(null);
   const [isNewBest, setIsNewBest] = useState(false);
@@ -35,6 +53,9 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
   const gameRef = useRef(null);
   const audioCtxRef = useRef(null);
+  // The round loop is created once, so it reads the live sound setting through a ref.
+  const soundOnRef = useRef(soundOn);
+  soundOnRef.current = soundOn;
   const startSessionRef = useRef(null);
   const userRef = useRef(user);
 
@@ -92,7 +113,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
   };
 
   const tone = (freq, dur, type = 'square', vol = 0.12, delay = 0) => {
-    if (!soundOn || !audioCtxRef.current) return;
+    if (!soundOnRef.current || !audioCtxRef.current) return;
     try {
       const t0 = audioCtxRef.current.currentTime + delay;
       const osc = audioCtxRef.current.createOscillator();
@@ -108,17 +129,23 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
     } catch (err) {}
   };
 
-  const sfxGood = () => tone(700, 0.06, 'square', 0.11, 0);
+  const fx = (name, n) => playSfx(audioCtxRef.current, soundOnRef.current, name, n);
+  const sfxGood = (combo) => fx('tap', combo);
+  const sfxGold = () => fx('gold');
+  const sfxFrenzy = () => fx('frenzy');
+  const sfxDecoy = () => fx('decoy');
   const sfxBad = () => tone(140, 0.25, 'sawtooth', 0.2, 0);
   const sfxMiss = () => tone(220, 0.15, 'triangle', 0.12, 0);
   const sfxNewBest = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.14, i * 0.13));
-  const toggleSound = () => setSoundOn(prev => !prev);
+  const toggleSound = () => setSoundOn(prev => { setSoundMuted(prev); return !prev; });
 
   // Round-timing loop only -- no canvas, no continuous physics. Runs on rAF
   // (like the other two games) purely so spawn/expire timing stays smooth
   // and doesn't drift the way a chain of setTimeouts would.
   useEffect(() => {
     if (!isOpen) return;
+
+    const music = createMusic(SONGS.grab);
 
     const state = {
       cellData: Array(GRID_SIZE).fill(null),
@@ -129,6 +156,9 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       lives: START_LIVES,
       combo: 0,
       scoreThrottle: 0,
+      frenzyUntil: 0,
+      frenzyOn: false,
+      popId: 0,
       running: false,
       animFrameId: null
     };
@@ -143,7 +173,11 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       state.lives = START_LIVES;
       state.combo = 0;
       state.scoreThrottle = 0;
+      state.frenzyUntil = 0;
+      state.frenzyOn = false;
       state.running = false;
+      setFrenzy(false);
+      setPops([]);
       setCells(state.cellData.slice());
       setScore(0);
       setLives(START_LIVES);
@@ -154,7 +188,10 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
     async function endGame() {
       state.running = false;
-      const finalScore = state.score;
+      music.stop();
+      // never above what the server will accept for a round of this length
+      const finalScore = Math.min(state.score, Math.floor(100 * state.elapsed + 90));
+      setFrenzy(false);
       setGameOver(true);
       setGameStarted(false);
       setScore(finalScore);
@@ -190,7 +227,12 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
     }
 
     function difficultyT() {
-      return Math.min(1, state.elapsed / ROUND_SECONDS);
+      return Math.min(1, state.elapsed / RAMP_SECONDS);
+    }
+
+    // 0 until LATE_START, then rises to 1 at the end of the round.
+    function lateT() {
+      return Math.max(0, Math.min(1, (state.elapsed - LATE_START) / (ROUND_SECONDS - LATE_START)));
     }
 
     function lerp(a, b, t) {
@@ -199,7 +241,9 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
     function trySpawn() {
       const t = difficultyT();
-      const spawnInterval = lerp(0.85, 0.4, t);
+      const inFrenzy = state.elapsed < state.frenzyUntil;
+      const late = lateT();
+      const spawnInterval = lerp(0.8, 0.32, t) * (1 - 0.18 * late) * (inFrenzy ? 0.65 : 1);
       if (state.elapsed < state.nextSpawnAt) return;
 
       const emptyIdx = state.cellData
@@ -212,15 +256,25 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       }
 
       const idx = emptyIdx[Math.floor(Math.random() * emptyIdx.length)];
-      const badChance = lerp(0.15, 0.35, t);
-      const isBad = Math.random() < badChance;
-      const lifeMs = lerp(1000, 550, t);
+      const badChance = lerp(0.18, 0.38, t) + 0.06 * late;
+      const lifeMs = lerp(950, 480, t) * (1 - 0.15 * late);
       const variants = Object.keys(GOOD_ICONS);
+      const pickVariant = () => variants[Math.floor(Math.random() * variants.length)];
+      let type = 'good';
+      let variant = pickVariant();
+      if (Math.random() < badChance) {
+        // From a quarter of the way in, some bad items are lookalikes of real food.
+        type = t > 0.25 && Math.random() < 0.45 ? 'decoy' : 'bad';
+        if (type === 'bad') variant = 'bad';
+      } else if (t > 0.1 && Math.random() < GOLD_CHANCE) {
+        type = 'gold';
+        variant = 'gold';
+      }
       state.cellData[idx] = {
-        type: isBad ? 'bad' : 'good',
-        variant: isBad ? 'bad' : variants[Math.floor(Math.random() * variants.length)],
+        type,
+        variant,
         bornAt: state.elapsed,
-        lifeMs: lifeMs / 1000
+        lifeMs: (type === 'gold' ? lifeMs * 0.8 : lifeMs) / 1000
       };
 
       state.nextSpawnAt = state.elapsed + spawnInterval + Math.random() * 0.15;
@@ -256,8 +310,14 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
     function update(dt) {
       state.elapsed += dt;
+      music.setBpm(lerp(128, 164, difficultyT()) + 8 * lateT());
+      music.setIntensity(state.elapsed < state.frenzyUntil ? 1 : 0);
       trySpawn();
       expireCells();
+      if (state.frenzyOn && state.elapsed >= state.frenzyUntil) {
+        state.frenzyOn = false;
+        setFrenzy(false);
+      }
 
       state.scoreThrottle += dt;
       if (state.scoreThrottle >= 0.1) {
@@ -284,21 +344,48 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       state.animFrameId = requestAnimationFrame(loop);
     }
 
+    function addPop(i, text, gold) {
+      const id = ++state.popId;
+      setPops((prev) => [...prev, { id, i, text, gold }]);
+      setTimeout(() => setPops((prev) => prev.filter((p) => p.id !== id)), 750);
+    }
+
+    function startFrenzy() {
+      state.frenzyUntil = state.elapsed + FRENZY_SECONDS;
+      state.frenzyOn = true;
+      setFrenzy(true);
+      sfxFrenzy();
+    }
+
     function handleCellTap(i) {
       if (!state.running) return;
       const cell = state.cellData[i];
       if (!cell) return;
 
-      if (cell.type === 'good') {
+      if (cell.type === 'good' || cell.type === 'gold') {
         state.combo++;
         const multiplier = Math.min(4, 1 + Math.floor(state.combo / 5));
-        state.score += 10 * multiplier;
-        sfxGood();
+        const inFrenzy = state.elapsed < state.frenzyUntil;
+        let gain;
+        if (cell.type === 'gold') {
+          gain = GOLD_POINTS;
+          sfxGold();
+          vibrate(soundOnRef.current, 15);
+        } else {
+          gain = Math.round(10 * multiplier * (inFrenzy ? FRENZY_BONUS : 1));
+          sfxGood(state.combo);
+        }
+        state.score = Math.min(MAX_ROUND_SCORE, state.score + gain);
+        addPop(i, `+${gain}`, cell.type === 'gold');
+        if (state.combo % FRENZY_EVERY === 0) startFrenzy();
       } else {
+        // a wrong order or a lookalike decoy
         state.score = Math.max(0, state.score - 20);
         state.combo = 0;
         state.lives--;
-        sfxBad();
+        if (cell.type === 'decoy') sfxDecoy(); else sfxBad();
+        vibrate(soundOnRef.current, 40);
+        addPop(i, '-20', false);
       }
 
       state.cellData[i] = null;
@@ -314,6 +401,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
     startSessionRef.current = async () => {
       resetGame();
       state.running = true;
+      music.start(audioCtxRef.current, () => soundOnRef.current && state.running);
     };
 
     resetGame();
@@ -321,6 +409,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
     return () => {
       if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
+      music.stop();
     };
   }, [isOpen]);
 
@@ -371,7 +460,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
             {user && <span>Best: {bestScore}</span>}
           </div>
 
-          <div className={`grab-board-wrap ${missFlash ? 'flash-miss' : ''}`}>
+          <div className={`grab-board-wrap ${missFlash ? 'flash-miss' : ''} ${frenzy ? 'grab-frenzy-on' : ''}`}>
             <button className="grab-mute-btn" onClick={toggleSound} aria-label="Toggle sound">
               {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
@@ -387,7 +476,9 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
               ))}
             </div>
 
-            {combo >= 5 && (
+            {frenzy ? (
+              <div className="grab-combo grab-frenzy-label">FRENZY! x{FRENZY_BONUS}</div>
+            ) : combo >= 5 && (
               <div className="grab-combo">x{comboMultiplier} COMBO</div>
             )}
 
@@ -399,7 +490,10 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
                   onClick={() => handleCellClick(i)}
                   disabled={!gameStarted || gameOver}
                 >
-                  {cell && (cell.type === 'bad' ? '❌' : GOOD_ICONS[cell.variant])}
+                  {cell && (cell.type === 'bad' ? '❌' : cell.type === 'gold' ? '⭐' : cell.type === 'decoy' ? DECOY_ICONS[cell.variant] : GOOD_ICONS[cell.variant])}
+                  {pops.filter((p) => p.i === i).map((p) => (
+                    <span key={p.id} className={`grab-pop ${p.gold ? 'grab-pop-gold' : ''}`}>{p.text}</span>
+                  ))}
                 </button>
               ))}
             </div>
@@ -409,7 +503,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
                 {!gameOver ? (
                   <>
                     <h2>Ready to Grab?</h2>
-                    <p>Snacks and drinks flash across the counter -- tap the good ones before they vanish. Avoid the wrong orders (❌) and don't let a good one slip past. 3 misses ends the round, or ride out {ROUND_SECONDS} seconds for the win.</p>
+                    <p>Snacks and drinks flash across the counter -- tap the good ones before they vanish. Avoid the wrong orders (❌) and the red-edged lookalikes (🥪🥔🧃). Grab the rare ⭐ for a bonus and reach a 10 combo for FRENZY. 3 misses ends the round, or ride out {ROUND_SECONDS} seconds for the win.</p>
                     {user && bestScore > 0 && (
                       <p style={{ fontSize: 12, color: 'var(--munchies-yellow)', marginTop: -12 }}>Your Best: {bestScore}</p>
                     )}

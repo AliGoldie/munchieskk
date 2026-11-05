@@ -162,6 +162,7 @@
 }
 
 .grab-cell {
+  position: relative;
   aspect-ratio: 1;
   border-radius: 12px;
   border: 1px solid var(--line, rgba(255, 255, 255, 0.1));
@@ -291,4 +292,68 @@
     padding: 16px 36px;
     font-size: 16px;
   }
+}
+
+/* Rare gold star: glows so it is easy to spot */
+.grab-cell-gold {
+  animation: grab-pop-in 0.12s ease-out, grab-gold-glow 0.5s ease-in-out infinite alternate;
+  border-color: #ffc72c;
+  background: #3a2a05;
+}
+
+/* Lookalike decoy: red dashed edge so it is fair to avoid */
+.grab-cell-decoy {
+  animation: grab-pop-in 0.12s ease-out;
+  border: 2px dashed rgba(255, 90, 60, 0.85);
+  background: #2b1208;
+}
+
+@keyframes grab-gold-glow {
+  from { box-shadow: 0 0 6px rgba(255, 199, 44, 0.5); }
+  to { box-shadow: 0 0 18px rgba(255, 199, 44, 0.95); }
+}
+
+/* Floating score number from a tapped cell */
+.grab-pop {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  animation: grab-pop-up 0.7s ease-out forwards;
+}
+
+.grab-pop-gold {
+  color: #ffc72c;
+  font-size: 20px;
+}
+
+@keyframes grab-pop-up {
+  from { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -34px) scale(1.2); }
+}
+
+/* Frenzy: the board pulses and the label flashes */
+.grab-frenzy-on {
+  animation: grab-frenzy-pulse 0.35s ease-in-out infinite alternate;
+}
+
+.grab-frenzy-label {
+  color: #ff7a2f;
+  font-size: 14px;
+  animation: grab-frenzy-flash 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes grab-frenzy-pulse {
+  from { box-shadow: 0 0 10px rgba(255, 122, 47, 0.35); }
+  to { box-shadow: 0 0 28px rgba(255, 122, 47, 0.85); }
+}
+
+@keyframes grab-frenzy-flash {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
 }

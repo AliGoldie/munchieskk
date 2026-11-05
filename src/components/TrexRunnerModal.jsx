@@ -3,6 +3,7 @@ import { X, Volume2, VolumeX, Trophy, Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { STAGES, stageIndexForScore, drawSky, drawScenery, drawHazard } from './trexStages';
+import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake, createMusic, SONGS } from '../utils/gameFx';
 import './TrexRunnerModal.css';
 
 export default function TrexRunnerModal({ isOpen, onClose }) {
@@ -14,7 +15,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [burgersCollected, setBurgersCollected] = useState(0);
-  const [soundOn, setSoundOn] = useState(true);
+  const [soundOn, setSoundOn] = useState(() => !isSoundMuted());
   const [rewardMsg, setRewardMsg] = useState(null);
   const [weekInfo, setWeekInfo] = useState(null);
   const [isNewBest, setIsNewBest] = useState(false);
@@ -35,6 +36,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
   const gameStateRef = useRef(null);
   const audioCtxRef = useRef(null);
+  // The game loop is created once per open, so it reads the live sound setting through a ref.
+  const soundOnRef = useRef(soundOn);
+  soundOnRef.current = soundOn;
   const jumpRef = useRef(null);
   const startSessionRef = useRef(null);
 
@@ -113,7 +117,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   };
 
   const tone = (freq, dur, type = 'square', vol = 0.12, delay = 0) => {
-    if (!soundOn || !audioCtxRef.current) return;
+    if (!soundOnRef.current || !audioCtxRef.current) return;
     try {
       const t0 = audioCtxRef.current.currentTime + delay;
       const osc = audioCtxRef.current.createOscillator();
@@ -129,9 +133,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     } catch (err) {}
   };
 
-  const sfxJump = () => tone(520, 0.09, 'square', 0.10, 0);
-  const sfxCollect = () => tone(780, 0.06, 'square', 0.11, 0);
-  const sfxHit = () => tone(140, 0.3, 'sawtooth', 0.2, 0);
+  const fx = (name, n) => playSfx(audioCtxRef.current, soundOnRef.current, name, n);
+  const sfxJump = () => fx('jump');
+  const sfxLand = () => fx('land');
+  const sfxBird = () => fx('bird');
+  const sfxCollect = () => fx('collect');
+  const sfxHit = () => fx('crash');
   const sfxNewBest = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.14, i * 0.13));
   const sfxSmash = () => tone(300, 0.12, 'square', 0.16, 0);
   const sfxPowerupSpeed = () => [500, 700, 900].forEach((f, i) => tone(f, 0.08, 'sawtooth', 0.1, i * 0.05));
@@ -139,7 +146,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const sfxPowerupMagnet = () => [600, 450, 600, 800].forEach((f, i) => tone(f, 0.07, 'square', 0.1, i * 0.05));
   const sfxPowerupInvincible = () => [400, 600, 800, 1000].forEach((f, i) => tone(f, 0.1, 'triangle', 0.12, i * 0.06));
 
-  const toggleSound = () => setSoundOn(prev => !prev);
+  const toggleSound = () => setSoundOn(prev => { setSoundMuted(prev); return !prev; });
 
   // Setup Canvas & Game loop
   useEffect(() => {
@@ -206,11 +213,11 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // Minimum real-world spacing between obstacles regardless of how the
     // segment RNG lands, so back-to-back hazards can't stack into an
     // effectively unbeatable chain a couple of jumps in.
-    const MIN_OBSTACLE_SPACING = 200;
+    const MIN_OBSTACLE_SPACING = 240;
     // Chance a given segment gets a burger, and how much clear room it
     // needs from any obstacle on that same segment (see ensureTerrain).
     const COLLECTIBLE_CHANCE = 0.6;
-    const MIN_COLLECTIBLE_CLEARANCE = 45;
+    const MIN_COLLECTIBLE_CLEARANCE = 70;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
     // Feet sit at 105/121 of the sprite height (the rest is transparent).
@@ -239,13 +246,38 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     POWERUP_SPRITES.speed.src = '/images/trex_powerup_speed.png';
     POWERUP_SPRITES.invincible.src = '/images/trex_powerup_shield.png';
 
+    // Sizes keep each sprite's own proportions (the old crate was squashed tall, which is
+    // what made it look ugly). The cone is drawn in code.
     const OBSTACLE_VARIANTS = [
-      { w: 22, h: 26, spriteKey: 'crate' },
-      { w: 34, h: 20, spriteKey: 'pan' },
-      { w: 18, h: 38, spriteKey: 'bottle' },
+      { w: 30, h: 23, spriteKey: 'crate' },
+      { w: 40, h: 15, spriteKey: 'pan' },
+      { w: 15, h: 38, spriteKey: 'bottle' },
+      { w: 20, h: 28, spriteKey: 'cone' },
       // two stacked crates: too tall for a hop, needs a held jump
-      { w: 22, h: 52, spriteKey: 'crate', stack: 2, tall: true }
+      { w: 30, h: 46, spriteKey: 'crate', stack: 2, tall: true }
     ];
+    // Where on a platform an obstacle may sit (after the landing room): earlier or later in
+    // the stretch, chosen by weight and never the same twice in a row.
+    const POSITION_BUCKETS = [
+      { lo: 0.05, hi: 0.45, weight: 0.5 },
+      { lo: 0.45, hi: 0.95, weight: 0.5 }
+    ];
+    // Obstacles only go on platforms wide enough to land, then take off again.
+    const OBSTACLE_MIN_PLATFORM = 160;
+    const OBSTACLE_LANDING_ROOM = 50;
+    const PAIR_FROM_STAGE = 3;
+    // Late-game extras. Flying birds (last two landmarks) pass at head height: stay on the
+    // ground as one passes. Rolling barrels (from the third landmark) roll toward you on a
+    // flat platform: jump them.
+    const FLYER_FROM_STAGE = 3;
+    const FLYER_EXTRA_SPEED = 55;
+    const FLYER_HEIGHT = 44;       // bird centre above the ground; a standing runner clears it
+    const FLYER_SPAWN_OFFSET = 150; // starts this far off-screen so there is a warning
+    const BARREL_FROM_STAGE = 3;
+    const BARREL_CHANCE = 0.14;
+    const BARREL_EXTRA_SPEED = 70;
+    const PAIR_CHANCE = 0.12;      // chance of a two-item cluster (late stages only)
+    const OBSTACLE_SCALE_JITTER = 0.12; // each obstacle is a little bigger or smaller than its variant
 
     // Power-up tuning: speed boost multiplies world-scroll speed (and so
     // score, which is distance-based) for a limited window; invincibility
@@ -279,7 +311,18 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // the final stage adds a bit more on top.
     const DIFFICULTY_FULL_DISTANCE = 12000;
 
+    const particles = createParticles();
+    const shake = createShake();
+    const music = createMusic(SONGS.trex);
+    let shakeOffset = { x: 0, y: 0 };
+
     const state = {
+      birds: [],
+      lastVariantKey: '',
+      lastBucket: -1,
+      flyers: [],
+      nextFlyerAt: 0,
+      scrollPx: 0,
       player: { y: LOW_Y - PLAYER_H, vy: 0, onGround: true, coyote: 0 },
       holding: false,
       jumpBuffer: 0,
@@ -323,6 +366,32 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // breathing room before tier-change jumps get tight.
     function difficulty() {
       return Math.min(1, state.distance / DIFFICULTY_FULL_DISTANCE);
+    }
+
+    // Widest block (px) a full jump clears at the current speed: the time the
+    // runner stays above height h, times speed, minus the runner's own width.
+    function maxClearWidth(h) {
+      const up = JUMP_VELOCITY * JUMP_VELOCITY - 2 * GRAVITY * h;
+      if (up <= 0) return 0;
+      return (2 * Math.sqrt(up) / GRAVITY) * state.speed - 28;
+    }
+
+    function pickBucket() {
+      const choices = POSITION_BUCKETS.map((b, i) => ({ b, i })).filter((c) => c.i !== state.lastBucket);
+      const total = choices.reduce((sum, c) => sum + c.b.weight, 0);
+      let r = Math.random() * total;
+      for (const c of choices) {
+        r -= c.b.weight;
+        if (r <= 0) { state.lastBucket = c.i; return c.b; }
+      }
+      state.lastBucket = choices[0].i;
+      return choices[0].b;
+    }
+
+    function jitteredVariant(v) {
+      if (v.tall) return { ...v };
+      const k = 1 - OBSTACLE_SCALE_JITTER / 2 + Math.random() * OBSTACLE_SCALE_JITTER;
+      return { ...v, w: Math.round(v.w * k), h: Math.round(v.h * k) };
     }
 
     function maxJumpDistance() {
@@ -396,19 +465,60 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         // stops back-to-back hazards from stacking into an unfair chain
         // regardless of how the per-segment RNG lands.
         const inGrace = state.segmentsGenerated <= GRACE_SEGMENTS;
-        const obstacleChance = 0.4 + difficulty() * 0.25 + (STAGES[state.stageIdx].final ? 0.08 : 0);
+        const obstacleChance = 0.5 + difficulty() * 0.2 + (STAGES[state.stageIdx].final ? 0.06 : 0);
         let placedObstacle = null;
-        if (last && !inGrace && seg.xEnd - seg.xStart > 130 && Math.random() < obstacleChance) {
-          // Tall stacked crates only show up once the run is under way, and
-          // never on a raised tier (the climb plus the stack would be unfair).
-          const allowTall = difficulty() > 0.12 && seg.tier === 'low';
-          const pool = OBSTACLE_VARIANTS.filter((o) => allowTall || !o.tall);
-          const v = pool[Math.floor(Math.random() * pool.length)];
-          const ox = seg.xStart + 34 + Math.random() * (seg.xEnd - seg.xStart - 68);
-          if (ox - state.lastObstacleRightEdge >= MIN_OBSTACLE_SPACING) {
-            placedObstacle = { x: ox, w: v.w, h: v.h, tierY: seg.y, spriteKey: v.spriteKey, stack: v.stack || 1 };
-            state.obstacles.push(placedObstacle);
-            state.lastObstacleRightEdge = ox + v.w;
+        if (last && !inGrace && seg.xEnd - seg.xStart >= OBSTACLE_MIN_PLATFORM && Math.random() < obstacleChance) {
+          const wantsBarrel = state.stageIdx >= BARREL_FROM_STAGE && seg.xEnd - seg.xStart >= 190 && Math.random() < BARREL_CHANCE;
+          if (wantsBarrel) {
+            const bx = seg.xEnd - 40;
+            if (bx - state.lastObstacleRightEdge >= MIN_OBSTACLE_SPACING) {
+              state.obstacles.push({ x: bx, w: 22, h: 22, tierY: seg.y, spriteKey: 'barrel', stack: 1, roll: true, active: false, seg, extra: BARREL_EXTRA_SPEED, spin: 0 });
+              placedObstacle = { x: seg.xStart + 30, w: seg.xEnd - seg.xStart - 60, h: 22, tierY: seg.y };
+              state.lastObstacleRightEdge = bx + 22;
+            }
+          }
+          if (!placedObstacle) {
+            // Tall stacked crates only once the run is under way, and never on a raised tier.
+            const allowTall = difficulty() > 0.25 && seg.tier === 'low';
+            const pool = OBSTACLE_VARIANTS.filter((o) => (allowTall || !o.tall) && o.spriteKey + o.w + o.h !== state.lastVariantKey);
+            const base = pool[Math.floor(Math.random() * pool.length)];
+            const first = jitteredVariant(base);
+            // Late stages only: sometimes a cluster of two low items, as wide as a jump clears.
+            let items = [first];
+            if (!first.tall && state.stageIdx >= PAIR_FROM_STAGE && Math.random() < PAIR_CHANCE) {
+              const lowPool = OBSTACLE_VARIANTS.filter((o) => !o.tall);
+              const second = jitteredVariant(lowPool[Math.floor(Math.random() * lowPool.length)]);
+              const gapPx = 3 + Math.random() * 7;
+              const widest = Math.max(first.h, second.h);
+              if (first.w + gapPx + second.w <= maxClearWidth(widest)) items = [first, { ...second, gapPx }];
+            }
+            const blockW = items.reduce((sum, it) => sum + it.w + (it.gapPx || 0), 0);
+            const bucket = pickBucket();
+            // always leave room to land before it and to take off after it
+            const room = Math.max(0, seg.xEnd - seg.xStart - 2 * OBSTACLE_LANDING_ROOM - blockW);
+            const ox = seg.xStart + OBSTACLE_LANDING_ROOM + room * (bucket.lo + Math.random() * (bucket.hi - bucket.lo));
+            const minSpacing = MIN_OBSTACLE_SPACING * (0.9 + Math.random() * 0.4);
+            if (ox - state.lastObstacleRightEdge >= minSpacing) {
+              let cursor = ox;
+              for (const it of items) {
+                cursor += it.gapPx || 0;
+                state.obstacles.push({ x: cursor, w: it.w, h: it.h, tierY: seg.y, spriteKey: it.spriteKey, stack: it.stack || 1 });
+                cursor += it.w;
+              }
+              const topH = Math.max(...items.map((it) => it.h));
+              placedObstacle = { x: ox, w: blockW, h: topH, tierY: seg.y };
+              state.lastObstacleRightEdge = ox + blockW;
+              state.lastVariantKey = first.spriteKey + base.w + base.h;
+              // A small arc of burgers over the obstacle: they show where to jump.
+              if (Math.random() < 0.6) {
+                const mid = ox + blockW / 2;
+                state.collectibles.push(
+                  { x: mid - 24, y: seg.y - topH - 30, size: 9 },
+                  { x: mid, y: seg.y - topH - 44, size: 9 },
+                  { x: mid + 24, y: seg.y - topH - 30, size: 9 }
+                );
+              }
+            }
           }
         }
 
@@ -469,6 +579,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
 
     function resetGame() {
+      state.birds = [];
+      particles.clear();
       state.player = { y: LOW_Y - PLAYER_H, vy: 0, onGround: true, coyote: 0 };
       state.holding = false;
       state.jumpBuffer = 0;
@@ -493,6 +605,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.lastTime = null;
       state.segmentsGenerated = 0;
       state.lastObstacleRightEdge = -9999;
+      state.lastVariantKey = '';
+      state.lastBucket = -1;
+      state.flyers = [];
+      state.nextFlyerAt = 8;
       state.lastPowerupRightEdge = -9999;
       state.speedBoostUntil = 0;
       state.invincibleUntil = 0;
@@ -511,6 +627,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.jumpBuffer = 0;
       state.jumpCutApplied = false;
       sfxJump();
+      particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H, { n: 5, color: '230,220,200', speed: 40, life: 0.35, size: 3, spread: Math.PI * 0.8, angle: Math.PI / 2 });
     }
 
     function jump() {
@@ -547,6 +664,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // Lose a life. With lives left the run carries on from solid ground (the
     // world skips ahead past a pit or obstacle) with a short grace period.
     function crash(reason) {
+      shake.kick(8, 0.3);
+      vibrate(soundOnRef.current, 60);
+      particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H / 2, { n: 14, color: '255,140,60', speed: 150, life: 0.55, size: 4, gravity: 260 });
       state.lives -= 1;
       if (state.lives <= 0) {
         setLives(0);
@@ -593,6 +713,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     async function endGame(reason) {
       state.running = false;
+      music.stop();
       sfxHit();
 
       const finalScore = state.score;
@@ -635,6 +756,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     function update(dt) {
       state.elapsed += dt;
       state.speed = Math.min(MAX_SPEED, state.speed + SPEED_RAMP * dt);
+      music.setBpm(112 + state.stageIdx * 7);
 
       const speedBoostActive = state.elapsed < state.speedBoostUntil;
       const shieldActive = state.elapsed < state.invincibleUntil;
@@ -656,7 +778,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         state.prevStageIdx = state.stageIdx;
         state.stageIdx = nextStage;
         state.stageBlend = 0;
-        state.stageBannerUntil = state.elapsed + 2.6;
+        state.stageBannerUntil = state.elapsed + 2;
         sfxStage();
         setStageIdx(nextStage);
         setInfoChip(nextStage);
@@ -680,6 +802,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // left in screen space, same approach the flat-runner version used
       // for obstacles, just now applied to platform segments too.
       const moveBy = effectiveSpeed * dt;
+      state.scrollPx = moveBy;
+      updateBirds(dt, moveBy);
       for (const seg of state.terrain) {
         seg.xStart -= moveBy;
         seg.xEnd -= moveBy;
@@ -692,6 +816,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
       const prevBottom = state.player.y + PLAYER_H;
       state.player.vy += GRAVITY * dt;
+      const impactVy = state.player.vy;
       state.player.y += state.player.vy * dt;
       const newBottom = state.player.y + PLAYER_H;
 
@@ -728,6 +853,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         return;
       }
 
+      if (landed && !state.player.onGround && impactVy > 240) {
+        sfxLand();
+        particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H, { n: 8, color: '225,215,195', speed: 70, life: 0.45, size: 4, spread: Math.PI * 0.9, angle: -Math.PI / 2, gravity: 40 });
+      }
       state.player.onGround = landed;
       if (landed) {
         state.player.coyote = COYOTE_TIME;
@@ -770,6 +899,19 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           state.obstacles.splice(i, 1);
           continue;
         }
+        if (o.roll) {
+          if (!o.active && o.x < W + 4) o.active = true;
+          if (o.active) {
+            const dx = o.extra * dt;
+            o.x -= dx;
+            o.spin += (moveBy + dx) / (o.w / 2);
+            // it rolls off the end of its platform and is gone
+            if (o.seg && o.x < o.seg.xStart + 2) {
+              state.obstacles.splice(i, 1);
+              continue;
+            }
+          }
+        }
         const obY = o.tierY - o.h;
         if (overlap(hitboxX, hitboxY, hitboxW, hitboxH, o.x, obY, o.w, o.h)) {
           if (invincibleActive) {
@@ -783,6 +925,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           return;
         }
       }
+
+      updateFlyers(dt, moveBy, hitboxX, hitboxY, hitboxW, hitboxH, invincibleActive);
+      if (!state.running) return;
 
       for (let i = state.collectibles.length - 1; i >= 0; i--) {
         const c = state.collectibles[i];
@@ -804,6 +949,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         if (overlap(hitboxX, hitboxY, hitboxW, hitboxH, c.x - c.size, c.y - c.size, c.size * 2, c.size * 2)) {
           state.burgersCollected++;
           sfxCollect();
+          particles.emit(c.x, c.y, { n: 7, color: '255,214,80', speed: 90, life: 0.45, size: 3, gravity: 120 });
           state.collectibles.splice(i, 1);
         }
       }
@@ -838,6 +984,115 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
     }
 
+    // Height of the platform under screen x (the last one before it when over a gap).
+    function groundYAt(x) {
+      let best = LOW_Y;
+      for (const sg of state.terrain) {
+        if (x >= sg.xStart && x <= sg.xEnd) return sg.y;
+        if (sg.xEnd < x) best = sg.y;
+      }
+      return best;
+    }
+
+    // A bird only starts when, by the time it reaches the runner, the ground there is a
+    // flat stretch with no obstacle or gap nearby, so it is never combined with another hazard.
+    function trySpawnFlyer() {
+      if (state.stageIdx < FLYER_FROM_STAGE || state.elapsed < state.nextFlyerAt) return;
+      const spawnX = W + FLYER_SPAWN_OFFSET;
+      const t = (spawnX - PLAYER_X) / (state.speed + FLYER_EXTRA_SPEED);
+      const meetX = PLAYER_X + 12 + state.speed * t;
+      const seg = state.terrain.find((sg) => meetX - 90 >= sg.xStart && meetX + 90 <= sg.xEnd);
+      const clear = state.obstacles.every((o) => o.x + o.w < meetX - 100 || o.x > meetX + 100);
+      state.nextFlyerAt = state.elapsed + 0.5;
+      if (!seg || !clear) return;
+      state.nextFlyerAt = state.elapsed + (STAGES[state.stageIdx].final ? 4 : 6) + Math.random() * 4;
+      state.flyers.push({ x: spawnX, y: seg.y - FLYER_HEIGHT, phase: 0 });
+      sfxBird();
+    }
+
+    function updateFlyers(dt, moveBy, hx, hy, hw, hh, shielded) {
+      trySpawnFlyer();
+      for (let i = state.flyers.length - 1; i >= 0; i--) {
+        const f = state.flyers[i];
+        f.x -= moveBy + FLYER_EXTRA_SPEED * dt;
+        f.phase += dt * 11;
+        f.y += (groundYAt(f.x) - FLYER_HEIGHT - f.y) * Math.min(1, dt * 6);
+        if (f.x < -40) { state.flyers.splice(i, 1); continue; }
+        if (overlap(hx, hy, hw, hh, f.x - 13, f.y - 6, 26, 12)) {
+          if (shielded) {
+            state.effects.push({ x: f.x, y: f.y, ttl: 0.25 });
+            sfxSmash();
+            state.flyers.splice(i, 1);
+            continue;
+          }
+          crash('bird');
+          return;
+        }
+      }
+    }
+
+    function drawFlyers() {
+      for (const f of state.flyers) {
+        if (f.x > W - 4) {
+          // warning: a pulsing "!" at the right edge until the bird flies in
+          const pulse = 0.55 + 0.45 * Math.sin(state.elapsed * 14);
+          ctx.fillStyle = `rgba(255, 90, 60, ${pulse})`;
+          ctx.font = '900 18px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('!', W - 14, f.y + 6);
+          continue;
+        }
+        const flap = Math.sin(f.phase) * 9;
+        ctx.fillStyle = '#2b2430';
+        ctx.beginPath();
+        ctx.ellipse(f.x, f.y, 9, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#2b2430';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(f.x - 2, f.y - 1);
+        ctx.lineTo(f.x + 3, f.y - 4 - flap);
+        ctx.moveTo(f.x - 2, f.y + 1);
+        ctx.lineTo(f.x + 3, f.y + 4 + flap * 0.4);
+        ctx.stroke();
+        ctx.fillStyle = '#ff9a3c';
+        ctx.beginPath();
+        ctx.moveTo(f.x - 9, f.y - 1);
+        ctx.lineTo(f.x - 15, f.y + 1);
+        ctx.lineTo(f.x - 9, f.y + 3);
+        ctx.fill();
+      }
+    }
+
+    // Scenery birds: pure decoration drifting across the sky (no collisions).
+    function updateBirds(dt, moveBy) {
+      if (state.birds.length < 4 && Math.random() < dt * 0.35) {
+        state.birds.push({ x: W + 20, y: 28 + Math.random() * (LOW_Y * 0.45), speed: 30 + Math.random() * 40, phase: Math.random() * 6, size: 5 + Math.random() * 4 });
+      }
+      for (let i = state.birds.length - 1; i >= 0; i--) {
+        const b = state.birds[i];
+        b.x -= b.speed * dt + moveBy * 0.15;
+        b.y += Math.sin(state.elapsed * 1.5 + b.phase) * 0.15;
+        b.phase += dt * 9;
+        if (b.x < -30) state.birds.splice(i, 1);
+      }
+    }
+
+    function drawBirds() {
+      ctx.strokeStyle = 'rgba(20, 20, 30, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      for (const b of state.birds) {
+        const flap = Math.sin(b.phase) * b.size * 0.7;
+        ctx.beginPath();
+        ctx.moveTo(b.x - b.size, b.y - flap);
+        ctx.quadraticCurveTo(b.x - b.size * 0.4, b.y - flap * 0.2 - 2, b.x, b.y);
+        ctx.quadraticCurveTo(b.x + b.size * 0.4, b.y - flap * 0.2 - 2, b.x + b.size, b.y - flap);
+        ctx.stroke();
+      }
+    }
+
     function drawBackground() {
       ctx.clearRect(0, 0, W, H);
       const blending = state.stageBlend < 1;
@@ -846,6 +1101,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // previous one when a new stage starts.
       if (blending) drawScenery(ctx, W, LOW_Y, state.prevStageIdx, state.distance, 1, state.elapsed);
       drawScenery(ctx, W, LOW_Y, state.stageIdx, state.distance, blending ? state.stageBlend : 1, state.elapsed);
+      drawBirds();
       // dark pit walls between the road and the hazard, then the hazard itself
       const wall = ctx.createLinearGradient(0, LOW_Y, 0, H);
       wall.addColorStop(0, '#241d16');
@@ -870,22 +1126,23 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       if (gaps.length) drawHazard(ctx, W, H, HAZARD_Y, STAGES[state.stageIdx].hazard, state.distance, state.elapsed, 0.6, gaps);
     }
 
+    // Small translucent tag in the top-left corner: it never covers the track.
     function drawStageBanner() {
       const left = state.stageBannerUntil - state.elapsed;
       if (left <= 0) return;
-      const alpha = Math.min(1, left / 0.6);
       const stage = STAGES[state.stageIdx];
+      const label = `${stage.final ? 'FINAL' : `STAGE ${state.stageIdx + 1}`} · ${stage.name.toUpperCase()}`;
       ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fillRect(0, 40, W, 40);
+      ctx.globalAlpha = Math.min(0.8, left / 0.5);
+      ctx.font = '800 11px sans-serif';
+      const w = ctx.measureText(label).width + 16;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath();
+      ctx.roundRect(8, 8, w, 20, 10);
+      ctx.fill();
       ctx.fillStyle = '#FFC72C';
-      ctx.font = '900 12px sans-serif';
-      ctx.fillText(stage.final ? 'FINAL RUN' : `STAGE ${state.stageIdx + 1}`, W / 2, 56);
-      ctx.fillStyle = '#fff';
-      ctx.font = '800 17px sans-serif';
-      ctx.fillText(stage.name.toUpperCase(), W / 2, 74);
+      ctx.textAlign = 'left';
+      ctx.fillText(label, 16, 22);
       ctx.restore();
     }
 
@@ -915,15 +1172,78 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
     }
 
+    // A traffic cone drawn in code, with light and dark sides.
+    function drawCone(x, y, w, h) {
+      const cx = x + w / 2;
+      const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+      grad.addColorStop(0, '#ff9a3c');
+      grad.addColorStop(0.45, '#ff7a1a');
+      grad.addColorStop(1, '#c4540a');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(cx - w * 0.14, y);
+      ctx.lineTo(cx + w * 0.14, y);
+      ctx.lineTo(x + w * 0.86, y + h - 4);
+      ctx.lineTo(x + w * 0.14, y + h - 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      for (const f of [0.3, 0.62]) {
+        const yy = y + h * f;
+        const half = w * (0.16 + 0.34 * f);
+        ctx.beginPath();
+        ctx.moveTo(cx - half, yy);
+        ctx.lineTo(cx + half, yy);
+        ctx.lineTo(cx + half + w * 0.04, yy + h * 0.12);
+        ctx.lineTo(cx - half - w * 0.04, yy + h * 0.12);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = '#3a2f2a';
+      ctx.beginPath();
+      ctx.roundRect(x, y + h - 5, w, 5, 2);
+      ctx.fill();
+    }
+
     function drawObstacle(o) {
       const y = o.tierY - o.h;
       // Dark contact shadow behind every obstacle regardless of sprite --
       // keeps hazards readable against the busy background art instead of
       // blending into it.
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
       ctx.beginPath();
-      ctx.ellipse(o.x + o.w / 2, y + o.h / 2, o.w * 0.68, o.h * 0.68, 0, 0, Math.PI * 2);
+      ctx.ellipse(o.x + o.w / 2, y + o.h / 2, o.w * 0.62, o.h * 0.62, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.38)';
+      ctx.beginPath();
+      ctx.ellipse(o.x + o.w / 2, o.tierY - 1, o.w * 0.6, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (o.spriteKey === 'cone') {
+        drawCone(o.x, y, o.w, o.h);
+        return;
+      }
+      if (o.roll) {
+        const r = o.w / 2;
+        ctx.save();
+        ctx.translate(o.x + r, y + r);
+        ctx.rotate(o.spin || 0);
+        ctx.fillStyle = '#8a5a2b';
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#3f2810';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-r, 0); ctx.lineTo(r, 0);
+        ctx.moveTo(0, -r); ctx.lineTo(0, r);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
       const sprite = OBSTACLE_SPRITES[o.spriteKey];
       if (sprite && sprite.complete && sprite.naturalWidth > 0) {
         const n = o.stack || 1;
@@ -991,16 +1311,75 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
     }
 
-    function drawMiniBurger(cx, cy, size) {
-      ctx.fillStyle = '#C97A34';
+    // A shaded burger with a glossy bun, sesame seeds, lettuce, tomato, cheese and patty.
+    function drawMiniBurger(cx0, cy0, size) {
+      const k = size / 9;
+      const bob = Math.sin(state.elapsed * 4 + cx0 * 0.05) * 1.4;
+      const cx = cx0;
+      const cy = cy0 + bob;
+      const w = 12.5 * k;
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
       ctx.beginPath();
-      ctx.roundRect(cx - size, cy + size * 0.15, size * 2, size * 0.55, size * 0.3);
+      ctx.ellipse(cx, cy0 + 11 * k, w * 0.8, 2.6 * k, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#6B3A1F';
-      ctx.fillRect(cx - size * 0.95, cy - size * 0.15, size * 1.9, size * 0.4);
-      ctx.fillStyle = '#E8A84F';
+      let g = ctx.createLinearGradient(0, cy + 3 * k, 0, cy + 8 * k);
+      g.addColorStop(0, '#d98b3a');
+      g.addColorStop(1, '#9b5a1d');
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.arc(cx, cy - size * 0.25, size, Math.PI, 0);
+      ctx.roundRect(cx - w * 0.92, cy + 3.4 * k, w * 1.84, 5 * k, 2.4 * k);
+      ctx.fill();
+      g = ctx.createLinearGradient(0, cy, 0, cy + 4 * k);
+      g.addColorStop(0, '#7b4425');
+      g.addColorStop(1, '#4a2611');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.roundRect(cx - w, cy + 0.2 * k, w * 2, 3.6 * k, 1.8 * k);
+      ctx.fill();
+      ctx.fillStyle = '#d6372a';
+      ctx.fillRect(cx - w * 0.9, cy - 1.2 * k, w * 1.8, 1.6 * k);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(cx - w * 0.9, cy - 1.2 * k, w * 1.8, 0.5 * k);
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath();
+      ctx.moveTo(cx - w * 0.95, cy - 2.6 * k);
+      ctx.lineTo(cx + w * 0.95, cy - 2.6 * k);
+      ctx.lineTo(cx + w * 0.7, cy - 0.4 * k);
+      ctx.lineTo(cx + w * 0.3, cy - 1.8 * k);
+      ctx.lineTo(cx - w * 0.2, cy - 0.2 * k);
+      ctx.lineTo(cx - w * 0.6, cy - 1.8 * k);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#6fc24b';
+      ctx.beginPath();
+      ctx.moveTo(cx - w * 1.02, cy - 2.4 * k);
+      for (let i = 0; i <= 6; i++) {
+        const t = i / 6;
+        ctx.lineTo(cx - w * 1.02 + t * w * 2.04, cy - 2.4 * k + (i % 2 ? 1.6 : -0.3) * k);
+      }
+      ctx.lineTo(cx + w * 1.02, cy - 3.2 * k);
+      ctx.lineTo(cx - w * 1.02, cy - 3.2 * k);
+      ctx.closePath();
+      ctx.fill();
+      g = ctx.createRadialGradient(cx - w * 0.35, cy - 8 * k, 1, cx, cy - 4 * k, w * 1.15);
+      g.addColorStop(0, '#fbd185');
+      g.addColorStop(0.55, '#e39a45');
+      g.addColorStop(1, '#a8601f');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(cx - w, cy - 3 * k);
+      ctx.bezierCurveTo(cx - w * 1.05, cy - 11.5 * k, cx + w * 1.05, cy - 11.5 * k, cx + w, cy - 3 * k);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fff1cf';
+      for (const [sx, sy] of [[-0.45, -8.2], [0.05, -9.2], [0.5, -7.8], [-0.1, -6.4], [0.62, -5.6], [-0.7, -5.8]]) {
+        ctx.beginPath();
+        ctx.ellipse(cx + w * sx, cy + sy * k, 0.9 * k, 0.5 * k, sx, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath();
+      ctx.ellipse(cx - w * 0.38, cy - 8.6 * k, w * 0.32, 1.5 * k, -0.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -1044,15 +1423,20 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
 
     function draw() {
+      ctx.save();
+      ctx.translate(shakeOffset.x, shakeOffset.y);
       drawBackground();
       drawTerrain();
       state.obstacles.forEach(drawObstacle);
       state.collectibles.forEach(c => drawMiniBurger(c.x, c.y, c.size));
       state.powerups.forEach(drawPowerup);
+      drawFlyers();
       drawEffects();
       drawPlayer();
+      particles.draw(ctx);
       drawHazardFront();
       drawStageBanner();
+      ctx.restore();
     }
 
     function loop(timestamp) {
@@ -1065,6 +1449,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         const dt = Math.min((timestamp - state.lastTime) / 1000, 0.05);
         state.lastTime = timestamp;
         if (state.running) update(dt);
+        shakeOffset = shake.step(dt);
+        particles.update(dt, state.running ? state.scrollPx : 0);
         draw();
       } catch (err) {
         console.error('T-Rex Runner frame error:', err);
@@ -1104,6 +1490,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     startSessionRef.current = async () => {
       resetGame();
       state.running = true;
+      music.start(audioCtxRef.current, () => soundOnRef.current && state.running && !state.paused);
     };
 
     resetGame();
@@ -1116,6 +1503,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       window.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('pointercancel', handlePointerUp);
       if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
+      music.stop();
     };
   }, [isOpen]);
 
@@ -1256,6 +1644,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                         {deathReason === 'wall' && 'Ran into a platform mid-jump'}
                         {deathReason === 'pit' && (STAGES[stageIdx].hazard === 'lava' ? 'Fell into the lava' : 'Fell into the water')}
                         {deathReason === 'obstacle' && 'Hit an obstacle'}
+                        {deathReason === 'bird' && 'Jumped into a bird'}
                       </p>
                     )}
 
