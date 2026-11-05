@@ -68,6 +68,7 @@ const RECIPES = {
   collect: (ctx) => arp(ctx, [880, 1320], 0.055, { dur: 0.09, type: 'triangle', vol: 0.11 }),
   gold: (ctx) => arp(ctx, [880, 1175, 1568, 2093], 0.06, { dur: 0.14, type: 'triangle', vol: 0.13 }),
   frenzy: (ctx) => { blip(ctx, { freq: 260, endFreq: 1300, dur: 0.4, type: 'sawtooth', vol: 0.1 }); arp(ctx, [1046, 1318, 1568], 0.07, { dur: 0.16, type: 'square', vol: 0.08, delay: 0.3 }); },
+  bird: (ctx) => arp(ctx, [980, 700, 980], 0.075, { dur: 0.09, type: 'sawtooth', vol: 0.09 }),
   decoy: (ctx) => { blip(ctx, { freq: 120, endFreq: 70, dur: 0.28, type: 'sawtooth', vol: 0.2 }); blip(ctx, { freq: 90, dur: 0.28, type: 'square', vol: 0.1 }); },
   chomp: (ctx, n = 0) => blip(ctx, { freq: n % 2 ? 420 : 560, endFreq: n % 2 ? 640 : 330, dur: 0.07, type: 'triangle', vol: 0.12 }),
   ghost: (ctx) => { blip(ctx, { freq: 300, endFreq: 1200, dur: 0.18, type: 'sawtooth', vol: 0.14 }); arp(ctx, [1568, 2093], 0.07, { dur: 0.1, type: 'square', vol: 0.08, delay: 0.14 }); },
