@@ -247,11 +247,25 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     const OBSTACLE_VARIANTS = [
       { w: 22, h: 26, spriteKey: 'crate' },
+      { w: 16, h: 18, spriteKey: 'crate' },
+      { w: 30, h: 34, spriteKey: 'crate' },
       { w: 34, h: 20, spriteKey: 'pan' },
+      { w: 44, h: 26, spriteKey: 'pan' },
       { w: 18, h: 38, spriteKey: 'bottle' },
+      { w: 13, h: 28, spriteKey: 'bottle' },
       // two stacked crates: too tall for a hop, needs a held jump
       { w: 22, h: 52, spriteKey: 'crate', stack: 2, tall: true }
     ];
+    // Where in a platform an obstacle may sit: just after the landing, in the
+    // middle, or just before the next gap. Chosen by weight, never the same
+    // bucket twice in a row, so the rhythm keeps changing.
+    const POSITION_BUCKETS = [
+      { lo: 0, hi: 0.25, weight: 0.3 },
+      { lo: 0.25, hi: 0.65, weight: 0.4 },
+      { lo: 0.65, hi: 1, weight: 0.3 }
+    ];
+    const PAIR_CHANCE = 0.22;      // chance of a two-item cluster once the run is under way
+    const OBSTACLE_SCALE_JITTER = 0.2; // each obstacle is a little bigger or smaller than its variant
 
     // Power-up tuning: speed boost multiplies world-scroll speed (and so
     // score, which is distance-based) for a limited window; invincibility
@@ -292,6 +306,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     const state = {
       birds: [],
+      lastVariantKey: '',
+      lastBucket: -1,
       scrollPx: 0,
       player: { y: LOW_Y - PLAYER_H, vy: 0, onGround: true, coyote: 0 },
       holding: false,
@@ -336,6 +352,32 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // breathing room before tier-change jumps get tight.
     function difficulty() {
       return Math.min(1, state.distance / DIFFICULTY_FULL_DISTANCE);
+    }
+
+    // Widest block (px) a full jump clears at the current speed: the time the
+    // runner stays above height h, times speed, minus the runner's own width.
+    function maxClearWidth(h) {
+      const up = JUMP_VELOCITY * JUMP_VELOCITY - 2 * GRAVITY * h;
+      if (up <= 0) return 0;
+      return (2 * Math.sqrt(up) / GRAVITY) * state.speed - 28;
+    }
+
+    function pickBucket() {
+      const choices = POSITION_BUCKETS.map((b, i) => ({ b, i })).filter((c) => c.i !== state.lastBucket);
+      const total = choices.reduce((sum, c) => sum + c.b.weight, 0);
+      let r = Math.random() * total;
+      for (const c of choices) {
+        r -= c.b.weight;
+        if (r <= 0) { state.lastBucket = c.i; return c.b; }
+      }
+      state.lastBucket = choices[0].i;
+      return choices[0].b;
+    }
+
+    function jitteredVariant(v) {
+      if (v.tall) return { ...v };
+      const k = 1 - OBSTACLE_SCALE_JITTER / 2 + Math.random() * OBSTACLE_SCALE_JITTER;
+      return { ...v, w: Math.round(v.w * k), h: Math.round(v.h * k) };
     }
 
     function maxJumpDistance() {
@@ -415,13 +457,33 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           // Tall stacked crates only show up once the run is under way, and
           // never on a raised tier (the climb plus the stack would be unfair).
           const allowTall = difficulty() > 0.12 && seg.tier === 'low';
-          const pool = OBSTACLE_VARIANTS.filter((o) => allowTall || !o.tall);
-          const v = pool[Math.floor(Math.random() * pool.length)];
-          const ox = seg.xStart + 34 + Math.random() * (seg.xEnd - seg.xStart - 68);
-          if (ox - state.lastObstacleRightEdge >= MIN_OBSTACLE_SPACING) {
-            placedObstacle = { x: ox, w: v.w, h: v.h, tierY: seg.y, spriteKey: v.spriteKey, stack: v.stack || 1 };
-            state.obstacles.push(placedObstacle);
-            state.lastObstacleRightEdge = ox + v.w;
+          const pool = OBSTACLE_VARIANTS.filter((o) => (allowTall || !o.tall) && o.spriteKey + o.w + o.h !== state.lastVariantKey);
+          const base = pool[Math.floor(Math.random() * pool.length)];
+          const first = jitteredVariant(base);
+          // Sometimes a cluster of two low items side by side, but only as wide as a jump clears.
+          let items = [first];
+          if (!first.tall && difficulty() > 0.15 && Math.random() < PAIR_CHANCE) {
+            const lowPool = OBSTACLE_VARIANTS.filter((o) => !o.tall);
+            const second = jitteredVariant(lowPool[Math.floor(Math.random() * lowPool.length)]);
+            const gapPx = 3 + Math.random() * 7;
+            const widest = Math.max(first.h, second.h);
+            if (first.w + gapPx + second.w <= maxClearWidth(widest)) items = [first, { ...second, gapPx }];
+          }
+          const blockW = items.reduce((sum, it) => sum + it.w + (it.gapPx || 0), 0);
+          const bucket = pickBucket();
+          const room = Math.max(0, seg.xEnd - seg.xStart - 68 - blockW);
+          const ox = seg.xStart + 34 + room * (bucket.lo + Math.random() * (bucket.hi - bucket.lo));
+          const minSpacing = MIN_OBSTACLE_SPACING * (0.9 + Math.random() * 0.5);
+          if (room >= 0 && ox - state.lastObstacleRightEdge >= minSpacing) {
+            let cursor = ox;
+            for (const it of items) {
+              cursor += it.gapPx || 0;
+              state.obstacles.push({ x: cursor, w: it.w, h: it.h, tierY: seg.y, spriteKey: it.spriteKey, stack: it.stack || 1 });
+              cursor += it.w;
+            }
+            placedObstacle = { x: ox, w: blockW, h: Math.max(...items.map((it) => it.h)), tierY: seg.y };
+            state.lastObstacleRightEdge = ox + blockW;
+            state.lastVariantKey = first.spriteKey + base.w + base.h;
           }
         }
 
@@ -508,6 +570,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.lastTime = null;
       state.segmentsGenerated = 0;
       state.lastObstacleRightEdge = -9999;
+      state.lastVariantKey = '';
+      state.lastBucket = -1;
       state.lastPowerupRightEdge = -9999;
       state.speedBoostUntil = 0;
       state.invincibleUntil = 0;
