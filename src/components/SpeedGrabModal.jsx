@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { isSoundMuted, setSoundMuted, playSfx, vibrate, createMusic, SONGS } from '../utils/gameFx';
 import './SpeedGrabModal.css';
 
-const ROUND_SECONDS = 30;
+const ROUND_SECONDS = 45;
 const GRID_SIZE = 9;
 const START_LIVES = 3;
 const GOOD_ICONS = { burger: '🍔', fries: '🍟', drink: '🥤' };
@@ -13,15 +13,17 @@ const GOOD_ICONS = { burger: '🍔', fries: '🍟', drink: '🥤' };
 const DECOY_ICONS = { burger: '🥪', fries: '🥔', drink: '🧃' };
 
 // Tuning knobs, all in one place.
-const RAMP_SECONDS = 18;       // seconds until full difficulty (it used to take the whole round)
+const RAMP_SECONDS = 18;       // seconds until the first full difficulty
+const LATE_START = 20;         // then a tougher second half builds up until the end of the round
 const GOLD_CHANCE = 0.06;      // share of good spawns that are a rare gold star
 const GOLD_POINTS = 40;        // flat bonus, never multiplied
 const FRENZY_EVERY = 10;       // a frenzy starts at every 10th combo
 const FRENZY_SECONDS = 4;
 const FRENZY_BONUS = 1.5;      // score multiplier during a frenzy (on top of the combo multiplier)
 // Safety net: the server rejects scores above about 110 x seconds + 100 (3,400 for a
-// full round). Keeping every round under 3,000 and 100 x seconds keeps honest scores valid.
-const MAX_ROUND_SCORE = 3000;
+// 45-second round, about 5,000). Keeping every round under 4,500 and 100 x seconds keeps
+// honest scores valid.
+const MAX_ROUND_SCORE = 4500;
 
 // A whack-a-mole reflex game is a grid of discrete hit targets, not a
 // continuously moving scene -- so unlike MunchManModal/TrexRunnerModal this
@@ -228,6 +230,11 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       return Math.min(1, state.elapsed / RAMP_SECONDS);
     }
 
+    // 0 until LATE_START, then rises to 1 at the end of the round.
+    function lateT() {
+      return Math.max(0, Math.min(1, (state.elapsed - LATE_START) / (ROUND_SECONDS - LATE_START)));
+    }
+
     function lerp(a, b, t) {
       return a + (b - a) * t;
     }
@@ -235,7 +242,8 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
     function trySpawn() {
       const t = difficultyT();
       const inFrenzy = state.elapsed < state.frenzyUntil;
-      const spawnInterval = lerp(0.8, 0.32, t) * (inFrenzy ? 0.65 : 1);
+      const late = lateT();
+      const spawnInterval = lerp(0.8, 0.32, t) * (1 - 0.18 * late) * (inFrenzy ? 0.65 : 1);
       if (state.elapsed < state.nextSpawnAt) return;
 
       const emptyIdx = state.cellData
@@ -248,8 +256,8 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       }
 
       const idx = emptyIdx[Math.floor(Math.random() * emptyIdx.length)];
-      const badChance = lerp(0.18, 0.38, t);
-      const lifeMs = lerp(950, 480, t);
+      const badChance = lerp(0.18, 0.38, t) + 0.06 * late;
+      const lifeMs = lerp(950, 480, t) * (1 - 0.15 * late);
       const variants = Object.keys(GOOD_ICONS);
       const pickVariant = () => variants[Math.floor(Math.random() * variants.length)];
       let type = 'good';
@@ -302,7 +310,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
     function update(dt) {
       state.elapsed += dt;
-      music.setBpm(lerp(128, 164, difficultyT()));
+      music.setBpm(lerp(128, 164, difficultyT()) + 8 * lateT());
       music.setIntensity(state.elapsed < state.frenzyUntil ? 1 : 0);
       trySpawn();
       expireCells();
