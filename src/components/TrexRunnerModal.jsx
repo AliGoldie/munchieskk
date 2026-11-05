@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Volume2, VolumeX, Trophy, Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { STAGES, stageIndexForScore, drawSky, drawScenery, drawHazard } from './trexStages';
+import { STAGES, STAGE_MOODS, stageIndexForScore, drawSky, drawScenery, drawHazard, drawWeather, drawWeatherFront } from './trexStages';
 import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake, createMusic, SONGS } from '../utils/gameFx';
 import './TrexRunnerModal.css';
 
@@ -137,6 +137,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const sfxJump = () => fx('jump');
   const sfxLand = () => fx('land');
   const sfxBird = () => fx('bird');
+  const sfxGate = () => fx('gate');
   const sfxCollect = () => fx('collect');
   const sfxHit = () => fx('crash');
   const sfxNewBest = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.14, i * 0.13));
@@ -276,6 +277,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const BARREL_FROM_STAGE = 3;
     const BARREL_CHANCE = 0.14;
     const BARREL_EXTRA_SPEED = 70;
+    // Landmark gates: a glowing arch at the start of each landmark. Run through for a bonus.
+    const GATE_BONUS = 50;
+    const GATE_W = 56;
     const PAIR_CHANCE = 0.12;      // chance of a two-item cluster (late stages only)
     const OBSTACLE_SCALE_JITTER = 0.12; // each obstacle is a little bigger or smaller than its variant
 
@@ -321,6 +325,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       lastVariantKey: '',
       lastBucket: -1,
       flyers: [],
+      gates: [],
+      pops: [],
       nextFlyerAt: 0,
       scrollPx: 0,
       player: { y: LOW_Y - PLAYER_H, vy: 0, onGround: true, coyote: 0 },
@@ -608,6 +614,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.lastVariantKey = '';
       state.lastBucket = -1;
       state.flyers = [];
+      state.gates = [];
+      state.pops = [];
       state.nextFlyerAt = 8;
       state.lastPowerupRightEdge = -9999;
       state.speedBoostUntil = 0;
@@ -779,6 +787,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         state.stageIdx = nextStage;
         state.stageBlend = 0;
         state.stageBannerUntil = state.elapsed + 2;
+        state.gates.push({ x: W + 30, passed: false, name: STAGES[nextStage].name });
         sfxStage();
         setStageIdx(nextStage);
         setInfoChip(nextStage);
@@ -927,6 +936,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
 
       updateFlyers(dt, moveBy, hitboxX, hitboxY, hitboxW, hitboxH, invincibleActive);
+      updateGates(moveBy);
       if (!state.running) return;
 
       for (let i = state.collectibles.length - 1; i >= 0; i--) {
@@ -981,6 +991,71 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         e.x -= moveBy;
         e.ttl -= dt;
         if (e.ttl <= 0) state.effects.splice(i, 1);
+      }
+    }
+
+    // Landmark gate: purely visual, never in the way. Passing it pays a bonus.
+    function updateGates(moveBy) {
+      for (let i = state.gates.length - 1; i >= 0; i--) {
+        const g = state.gates[i];
+        g.x -= moveBy;
+        if (!g.passed && g.x + GATE_W < PLAYER_X) {
+          g.passed = true;
+          state.bonusScore += GATE_BONUS;
+          sfxGate();
+          const px = PLAYER_X + PLAYER_W / 2;
+          particles.emit(px, state.player.y + PLAYER_H / 2, { n: 18, color: '255,214,80', speed: 130, life: 0.7, size: 3, gravity: 80 });
+          state.pops.push({ x: px, y: state.player.y - 6, text: `+${GATE_BONUS} XP`, ttl: 1 });
+        }
+        if (g.x < -GATE_W - 20) state.gates.splice(i, 1);
+      }
+    }
+
+    function drawGates() {
+      for (const g of state.gates) {
+        const gy = groundYAt(g.x + GATE_W / 2);
+        const top = gy - 82;
+        const glow = ctx.createRadialGradient(g.x + GATE_W / 2, top + 20, 4, g.x + GATE_W / 2, top + 20, 60);
+        glow.addColorStop(0, g.passed ? 'rgba(255, 214, 80, 0.12)' : 'rgba(255, 214, 80, 0.28)');
+        glow.addColorStop(1, 'rgba(255, 214, 80, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(g.x - 30, top - 30, GATE_W + 60, 120);
+        const post = ctx.createLinearGradient(0, top, 0, gy);
+        post.addColorStop(0, 'rgba(255, 214, 80, 0.85)');
+        post.addColorStop(1, 'rgba(255, 170, 40, 0.55)');
+        ctx.fillStyle = post;
+        ctx.fillRect(g.x - 3, top + 8, 6, gy - top - 8);
+        ctx.fillRect(g.x + GATE_W - 3, top + 8, 6, gy - top - 8);
+        // the arch across the top and a small hanging sign with the landmark name
+        ctx.strokeStyle = 'rgba(255, 214, 80, 0.9)';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(g.x, top + 12);
+        ctx.quadraticCurveTo(g.x + GATE_W / 2, top - 8, g.x + GATE_W, top + 12);
+        ctx.stroke();
+        ctx.font = '800 8px sans-serif';
+        const label = g.name.toUpperCase();
+        const lw = ctx.measureText(label).width + 10;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.beginPath();
+        ctx.roundRect(g.x + GATE_W / 2 - lw / 2, top + 14, lw, 13, 6);
+        ctx.fill();
+        ctx.fillStyle = '#FFC72C';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, g.x + GATE_W / 2, top + 24);
+      }
+    }
+
+    function updateAndDrawPops(dt) {
+      ctx.font = '900 13px sans-serif';
+      ctx.textAlign = 'center';
+      for (let i = state.pops.length - 1; i >= 0; i--) {
+        const p = state.pops[i];
+        p.ttl -= dt;
+        if (p.ttl <= 0) { state.pops.splice(i, 1); continue; }
+        ctx.fillStyle = `rgba(255, 214, 80, ${Math.min(1, p.ttl * 1.6).toFixed(2)})`;
+        ctx.fillText(p.text, p.x, p.y - (1 - p.ttl) * 26);
       }
     }
 
@@ -1102,6 +1177,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       if (blending) drawScenery(ctx, W, LOW_Y, state.prevStageIdx, state.distance, 1, state.elapsed);
       drawScenery(ctx, W, LOW_Y, state.stageIdx, state.distance, blending ? state.stageBlend : 1, state.elapsed);
       drawBirds();
+      if (blending) drawWeather(ctx, W, LOW_Y, state.prevStageIdx, state.distance, 1, state.elapsed);
+      drawWeather(ctx, W, LOW_Y, state.stageIdx, state.distance, blending ? state.stageBlend : 1, state.elapsed);
       // dark pit walls between the road and the hazard, then the hazard itself
       const wall = ctx.createLinearGradient(0, LOW_Y, 0, H);
       wall.addColorStop(0, '#241d16');
@@ -1131,18 +1208,18 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       const left = state.stageBannerUntil - state.elapsed;
       if (left <= 0) return;
       const stage = STAGES[state.stageIdx];
-      const label = `${stage.final ? 'FINAL' : `STAGE ${state.stageIdx + 1}`} · ${stage.name.toUpperCase()}`;
+      const label = `${stage.final ? 'FINAL' : `STAGE ${state.stageIdx + 1}`} · ${stage.name.toUpperCase()} · ${(STAGE_MOODS[state.stageIdx] || '').toUpperCase()}`;
       ctx.save();
       ctx.globalAlpha = Math.min(0.8, left / 0.5);
       ctx.font = '800 11px sans-serif';
       const w = ctx.measureText(label).width + 16;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.beginPath();
-      ctx.roundRect(8, 8, w, 20, 10);
+      ctx.roundRect(8, 44, w, 20, 10);
       ctx.fill();
       ctx.fillStyle = '#FFC72C';
       ctx.textAlign = 'left';
-      ctx.fillText(label, 16, 22);
+      ctx.fillText(label, 16, 58);
       ctx.restore();
     }
 
@@ -1427,6 +1504,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       ctx.translate(shakeOffset.x, shakeOffset.y);
       drawBackground();
       drawTerrain();
+      drawGates();
       state.obstacles.forEach(drawObstacle);
       state.collectibles.forEach(c => drawMiniBurger(c.x, c.y, c.size));
       state.powerups.forEach(drawPowerup);
@@ -1434,7 +1512,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       drawEffects();
       drawPlayer();
       particles.draw(ctx);
+      updateAndDrawPops(1 / 60);
       drawHazardFront();
+      if (state.stageBlend < 1) drawWeatherFront(ctx, W, H, state.prevStageIdx, 1 - state.stageBlend, state.elapsed);
+      drawWeatherFront(ctx, W, H, state.stageIdx, state.stageBlend, state.elapsed);
       drawStageBanner();
       ctx.restore();
     }

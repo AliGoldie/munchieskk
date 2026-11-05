@@ -87,6 +87,7 @@ Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all 
 (T-Rex Runner, Speed Grab and Munch-Man).
 
 - **What counts:** your **best score in each of the three games, added together**. Each game counts **at most 5,000** (so 15,000 is the top Arcade Score). Playing more only helps if you beat your best.
+- **T-Rex Runner bonus:** running through a landmark gate (a glowing arch at the start of each landmark) adds **+50 Burger XP**. Burgers collected add a little XP too.
 - **Three lives** in every game: a crash costs a life, and the run carries on.
 - **Weekly goal:** reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) for **+25 loyalty points**, once a week.
   Because all three games add up, the goal is easy to reach. That is on purpose. (After the first 30 days, game bonuses need a collected order in the last 30 days.)
@@ -94,7 +95,7 @@ Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all 
   (the plan: 1st a burger, 2nd fries, 3rd a drink; the owner can change the prizes for each contest).
   - Ties go to whoever reached their score first. **One account per phone number.** A minimum score applies (300 by default).
   - Winners are picked automatically when the contest ends. Only **first names** are shown. Winners show a claim code at the counter
-    (claimed **with any order of RM10 or more**; the claim window is set per contest: **90 days** for the November contest).
+    (claimed **with any order of RM10 or more**; the claim window is set per contest: **90 days** for the first contest).
   - Scores are checked: impossible scores are not counted, and staff check the top players in person.
 - **Munch-Man matches the other two games:** no points for a win or a streak (the streak is only a badge). Its score counts toward Arcade Score.
 - **Do not say** that T-Rex Runner or Speed Grab give loyalty points for every personal best. They no longer do.
@@ -175,5 +176,5 @@ It is on now, but the owner can switch it off or change the days in Admin, so co
 ## Before you post
 
 Ask the owner to confirm the latest update is live (points at collection, double
-points days, ranks, 12-month expiry, fries at 100, the November arcade contest) and that stock is back on, because rewards show
+points days, ranks, 12-month expiry, fries at 100, the first arcade contest, planned for December) and that stock is back on, because rewards show
 "Out of stock" while the shop is closed or an item is at 0.

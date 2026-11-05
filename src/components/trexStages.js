@@ -315,3 +315,128 @@ export function drawHazard(ctx, W, H, y, kind, distance, time, alpha, gaps) {
   }
   ctx.restore();
 }
+
+
+// ---------------------------------------------------------------------------
+// Weather and time of day, layered over each stage's panorama. All light and
+// see-through, so the track, the runner and the pickups stay easy to read.
+// ---------------------------------------------------------------------------
+
+// One short word per stage for the small stage tag.
+export const STAGE_MOODS = ['Morning', 'Midday haze', 'Rainy afternoon', 'Sunset', 'Night'];
+
+const CLOUDS = [
+  { x: 0.05, y: 0.18, s: 1.0, v: 6 },
+  { x: 0.35, y: 0.08, s: 1.4, v: 4 },
+  { x: 0.62, y: 0.22, s: 0.9, v: 8 },
+  { x: 0.85, y: 0.12, s: 1.2, v: 5 }
+];
+
+function cloudPuff(ctx, x, y, s, color) {
+  ctx.fillStyle = color;
+  for (const [dx, dy, r] of [[0, 0, 14], [14, -6, 18], [32, 0, 14], [16, 4, 16]]) {
+    ctx.beginPath();
+    ctx.ellipse(x + dx * s, y + dy * s, r * s * 1.3, r * s * 0.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawClouds(ctx, W, g, distance, time, color, count) {
+  const span = W + 160;
+  for (let i = 0; i < count; i++) {
+    const c = CLOUDS[i];
+    const x = ((((c.x * span - time * c.v - distance * 0.02 * c.s) % span) + span) % span) - 80;
+    cloudPuff(ctx, x, g * c.y + 10, c.s, color);
+  }
+}
+
+// Behind the road and the runner.
+export function drawWeather(ctx, W, g, stageIdx, distance, alpha, time) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (stageIdx === 0) {
+    // bright morning: a soft sun glow and a few light clouds
+    const glow = ctx.createRadialGradient(W * 0.82, g * 0.2, 4, W * 0.82, g * 0.2, 110);
+    glow.addColorStop(0, 'rgba(255, 238, 180, 0.4)');
+    glow.addColorStop(1, 'rgba(255, 238, 180, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, g);
+    drawClouds(ctx, W, g, distance, time, 'rgba(255, 255, 255, 0.22)', 3);
+  } else if (stageIdx === 1) {
+    // hazy midday: warm haze toward the street
+    drawClouds(ctx, W, g, distance, time, 'rgba(255, 246, 228, 0.2)', 4);
+    const haze = ctx.createLinearGradient(0, 0, 0, g);
+    haze.addColorStop(0, 'rgba(255, 226, 160, 0)');
+    haze.addColorStop(1, 'rgba(255, 226, 160, 0.12)');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, 0, W, g);
+  } else if (stageIdx === 2) {
+    // rainy afternoon: darker sky and heavy clouds (the rain falls in front)
+    ctx.fillStyle = 'rgba(20, 30, 55, 0.22)';
+    ctx.fillRect(0, 0, W, g);
+    drawClouds(ctx, W, g, distance, time, 'rgba(45, 55, 78, 0.5)', 4);
+  } else if (stageIdx === 3) {
+    // sunset: warm glow toward the horizon and long streaky clouds
+    const warm = ctx.createLinearGradient(0, 0, 0, g);
+    warm.addColorStop(0, 'rgba(255, 110, 50, 0)');
+    warm.addColorStop(1, 'rgba(255, 110, 50, 0.22)');
+    ctx.fillStyle = warm;
+    ctx.fillRect(0, 0, W, g);
+    ctx.fillStyle = 'rgba(255, 150, 100, 0.22)';
+    for (let i = 0; i < 3; i++) {
+      const span = W + 240;
+      const x = ((((i * 0.37 * span - time * (3 + i) - distance * 0.015) % span) + span) % span) - 120;
+      ctx.beginPath();
+      ctx.ellipse(x, g * (0.2 + i * 0.1), 90 + i * 25, 5 + i * 1.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    // night: low drifting mist and the odd shooting star
+    for (let i = 0; i < 3; i++) {
+      const y = g - 26 - i * 16;
+      const drift = Math.sin(time * 0.3 + i * 2) * 30;
+      const mist = ctx.createLinearGradient(0, y - 10, 0, y + 12);
+      mist.addColorStop(0, 'rgba(190, 205, 235, 0)');
+      mist.addColorStop(0.5, 'rgba(190, 205, 235, 0.12)');
+      mist.addColorStop(1, 'rgba(190, 205, 235, 0)');
+      ctx.fillStyle = mist;
+      ctx.fillRect(drift - 20, y - 10, W + 40, 22);
+    }
+    const phase = (time % 8) / 0.7;
+    if (phase < 1) {
+      const n = Math.floor(time / 8);
+      const x0 = W * (0.12 + ((n * 0.37) % 0.5)) + phase * 130;
+      const y0 = 18 + phase * 55 + (n % 3) * 14;
+      const trail = ctx.createLinearGradient(x0 - 40, y0 - 14, x0, y0);
+      trail.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      trail.addColorStop(1, 'rgba(255, 255, 255, 0.85)');
+      ctx.strokeStyle = trail;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(x0 - 40, y0 - 14);
+      ctx.lineTo(x0, y0);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// In front of everything: thin rain streaks only (very light so nothing is hidden).
+export function drawWeatherFront(ctx, W, H, stageIdx, alpha, time) {
+  if (alpha <= 0 || stageIdx !== 2) return;
+  ctx.save();
+  ctx.strokeStyle = `rgba(210, 225, 255, ${(0.3 * alpha).toFixed(3)})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < 70; i++) {
+    const fx = (i * 97.13) % 1;
+    const fy = (i * 57.77) % 1;
+    const x = ((fx * (W + 40) + time * 30) % (W + 40)) - 20;
+    const y = (fy * H + time * (360 + 60 * (i % 3))) % H;
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 3, y + 10);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
