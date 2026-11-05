@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Volume2, VolumeX, Trophy, Award, Heart } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { isSoundMuted, setSoundMuted, playSfx, vibrate } from '../utils/gameFx';
+import { isSoundMuted, setSoundMuted, playSfx, vibrate, createMusic, SONGS } from '../utils/gameFx';
 import './SpeedGrabModal.css';
 
 const ROUND_SECONDS = 30;
@@ -143,6 +143,8 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) return;
 
+    const music = createMusic(SONGS.grab);
+
     const state = {
       cellData: Array(GRID_SIZE).fill(null),
       elapsed: 0,
@@ -184,6 +186,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
     async function endGame() {
       state.running = false;
+      music.stop();
       // never above what the server will accept for a round of this length
       const finalScore = Math.min(state.score, Math.floor(100 * state.elapsed + 90));
       setFrenzy(false);
@@ -299,6 +302,8 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
     function update(dt) {
       state.elapsed += dt;
+      music.setBpm(lerp(128, 164, difficultyT()));
+      music.setIntensity(state.elapsed < state.frenzyUntil ? 1 : 0);
       trySpawn();
       expireCells();
       if (state.frenzyOn && state.elapsed >= state.frenzyUntil) {
@@ -388,6 +393,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
     startSessionRef.current = async () => {
       resetGame();
       state.running = true;
+      music.start(audioCtxRef.current, () => soundOnRef.current && state.running);
     };
 
     resetGame();
@@ -395,6 +401,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
     return () => {
       if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
+      music.stop();
     };
   }, [isOpen]);
 

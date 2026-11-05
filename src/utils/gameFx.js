@@ -20,7 +20,7 @@ export function vibrate(on, pattern) {
 }
 
 // One oscillator note that can glide from freq to endFreq.
-function blip(ctx, { freq, endFreq, dur = 0.1, type = 'square', vol = 0.12, delay = 0 }) {
+function blip(ctx, { freq, endFreq, dur = 0.1, type = 'square', vol = 0.12, delay = 0, dest }) {
   const t0 = ctx.currentTime + delay;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -30,13 +30,13 @@ function blip(ctx, { freq, endFreq, dur = 0.1, type = 'square', vol = 0.12, dela
   gain.gain.setValueAtTime(vol, t0);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(dest || ctx.destination);
   osc.start(t0);
   osc.stop(t0 + dur + 0.02);
 }
 
 // A burst of filtered noise: dust, thuds, crashes.
-function noise(ctx, { dur = 0.15, vol = 0.15, delay = 0, cutoff = 600, endCutoff }) {
+function noise(ctx, { dur = 0.15, vol = 0.15, delay = 0, cutoff = 600, endCutoff, dest }) {
   const t0 = ctx.currentTime + delay;
   const frames = Math.max(1, Math.floor(ctx.sampleRate * dur));
   const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
@@ -53,7 +53,7 @@ function noise(ctx, { dur = 0.15, vol = 0.15, delay = 0, cutoff = 600, endCutoff
   gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   src.connect(filter);
   filter.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(dest || ctx.destination);
   src.start(t0);
   src.stop(t0 + dur + 0.02);
 }
@@ -129,5 +129,116 @@ export function createShake() {
       const m = mag * Math.min(1, k + 0.2);
       return { x: (Math.random() - 0.5) * 2 * m, y: (Math.random() - 0.5) * 2 * m };
     }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Background music: a small step sequencer (funky bass and drums with a
+// Japanese-arcade pentatonic melody). Everything is synthesized, no files.
+// ---------------------------------------------------------------------------
+
+// Hirajoshi-flavoured notes (A B C E F), the "old Japanese arcade" colour.
+const N = { A2: 110, B2: 123.5, C3: 130.8, E3: 164.8, F3: 174.6, A3: 220, B3: 246.9, C4: 261.6, E4: 329.6, F4: 349.2, A4: 440, B4: 493.9, C5: 523.3, E5: 659.3, F5: 698.5, A5: 880 };
+const row = (str) => str.trim().split(/\s+/).map((t) => (t === '.' ? 0 : N[t] || 0));
+const hits = (str) => str.replace(/\s+/g, '').split('').map((c) => (c === 'x' ? 1 : c === 'o' ? 0.5 : 0));
+
+// Each song is 2 bars of 16 steps. kick/snare/hat: x = hit, o = soft hit.
+export const SONGS = {
+  // Funky, bouncy: T-Rex Runner
+  trex: {
+    bpm: 112,
+    bass: row('A2 . . A2  . . C3 .  E3 . A2 .  . F3 E3 .   A2 . . A2  . . C3 .  E3 . F3 .  E3 C3 B2 .'),
+    lead: row('.  . . .   E5 . C5 .  . . B4 .  A4 . . .    .  . . .   F5 . E5 .  . C5 . .  B4 . A4 .'),
+    kick: hits('x...  ..x.  x...  ..x.   x...  ..x.  x...  .xx.'),
+    snare: hits('....  x...  ....  x...   ....  x...  ....  x..o'),
+    hat: hits('x.o.  x.o.  x.o.  x.ox   x.o.  x.o.  x.o.  xoxo'),
+    arp: row('A4 C5 E5 F5  E5 C5 A4 C5  A4 C5 E5 F5  E5 C5 B4 A4')
+  },
+  // Fast and tense: Speed Grab
+  grab: {
+    bpm: 128,
+    bass: row('A2 A2 . A2  A2 . C3 .  A2 A2 . A2  E3 . F3 .   A2 A2 . A2  A2 . C3 .  A2 A2 . A2  F3 . E3 E3'),
+    lead: row('A4 . . C5  . E5 . .  F5 . E5 .  C5 . . .   A4 . . C5  . E5 . .  B4 . C5 .  A4 . . .'),
+    kick: hits('x...  x...  x...  x.x.   x...  x...  x...  x.xx'),
+    snare: hits('....  x...  ....  x...   ....  x...  ....  x.xo'),
+    hat: hits('xoxo  xoxo  xoxo  xoxo   xoxo  xoxo  xoxo  xoxo'),
+    arp: row('A4 C5 E5 A5  F5 E5 C5 B4  A4 C5 E5 A5  F5 E5 C5 E5')
+  },
+  // Spooky-playful: Munch-Man
+  munch: {
+    bpm: 118,
+    bass: row('A2 . A2 .  C3 . C3 .  F3 . F3 .  E3 . B2 .   A2 . A2 .  C3 . E3 .  F3 . E3 .  C3 B2 A2 .'),
+    lead: row('A4 . C5 .  E5 . C5 .  F5 . E5 .  C5 . B4 .   A4 . C5 .  E5 . F5 .  E5 . C5 .  B4 . A4 .'),
+    kick: hits('x...  ....  x...  ....   x...  ....  x...  ..x.'),
+    snare: hits('....  x...  ....  x...   ....  x...  ....  x...'),
+    hat: hits('o.o.  o.o.  o.o.  o.o.   o.o.  o.o.  o.o.  oxox'),
+    arp: row('A4 C5 E5 C5  F5 E5 C5 B4  A4 C5 E5 C5  F5 E5 C5 A4')
+  }
+};
+
+export function createMusic(song) {
+  let timer = null;
+  let step = 0;
+  let nextTime = 0;
+  let bpm = song.bpm;
+  let intensity = 0;
+  let master = null;
+  let ctxRef = null;
+  let shouldPlay = () => true;
+
+  const playStep = (i, t) => {
+    const ctx = ctxRef;
+    const d = Math.max(0, t - ctx.currentTime);
+    const k = i % 32;
+    const stepDur = 60 / bpm / 4;
+    if (song.kick[k]) blip(ctx, { freq: 160, endFreq: 45, dur: 0.13, type: 'sine', vol: 0.22 * song.kick[k], delay: d, dest: master });
+    if (song.snare[k]) {
+      noise(ctx, { dur: 0.11, vol: 0.09 * song.snare[k], delay: d, cutoff: 5000, dest: master });
+      blip(ctx, { freq: 210, endFreq: 140, dur: 0.07, type: 'triangle', vol: 0.06 * song.snare[k], delay: d, dest: master });
+    }
+    if (song.hat[k] || (intensity > 0 && i % 2 === 1)) noise(ctx, { dur: 0.035, vol: 0.035 * (song.hat[k] || 0.4), delay: d, cutoff: 9000, dest: master });
+    if (song.bass[k]) blip(ctx, { freq: song.bass[k], dur: stepDur * 1.6, type: 'square', vol: 0.07, delay: d, dest: master });
+    // lead: pluck-like, with an octave-up arpeggio laid over it in intensity mode
+    if (song.lead[k]) blip(ctx, { freq: song.lead[k], endFreq: song.lead[k] * 0.99, dur: stepDur * 2.2, type: 'triangle', vol: 0.06, delay: d, dest: master });
+    if (intensity > 0 && song.arp[k % 16]) blip(ctx, { freq: song.arp[k % 16] * 2, dur: stepDur * 0.9, type: 'square', vol: 0.025, delay: d, dest: master });
+  };
+
+  const tick = () => {
+    const ctx = ctxRef;
+    if (!ctx) return;
+    if (!shouldPlay()) { nextTime = ctx.currentTime + 0.05; return; }
+    const tempo = bpm * (intensity > 0 ? 1.1 : 1);
+    while (nextTime < ctx.currentTime + 0.15) {
+      playStep(step, nextTime);
+      nextTime += 60 / tempo / 4;
+      step++;
+    }
+  };
+
+  return {
+    // shouldPlay() is asked on every tick; return false to pause (mute, game over, paused).
+    start(ctx, play) {
+      this.stop();
+      if (!ctx) return;
+      try {
+        ctxRef = ctx;
+        shouldPlay = play || (() => true);
+        master = ctx.createGain();
+        master.gain.value = 0.55;
+        master.connect(ctx.destination);
+        step = 0;
+        nextTime = ctx.currentTime + 0.08;
+        timer = setInterval(tick, 30);
+      } catch { /* music is never worth breaking a game */ }
+    },
+    stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      try { if (master) master.disconnect(); } catch { /* ignore */ }
+      master = null;
+      ctxRef = null;
+    },
+    setBpm(b) { bpm = b; },
+    setIntensity(v) { intensity = v; }
   };
 }

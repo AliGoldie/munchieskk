@@ -3,7 +3,7 @@ import { X, Volume2, VolumeX, Trophy, Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { STAGES, stageIndexForScore, drawSky, drawScenery, drawHazard } from './trexStages';
-import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake } from '../utils/gameFx';
+import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake, createMusic, SONGS } from '../utils/gameFx';
 import './TrexRunnerModal.css';
 
 export default function TrexRunnerModal({ isOpen, onClose }) {
@@ -287,6 +287,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     const particles = createParticles();
     const shake = createShake();
+    const music = createMusic(SONGS.trex);
     let shakeOffset = { x: 0, y: 0 };
 
     const state = {
@@ -611,6 +612,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
     async function endGame(reason) {
       state.running = false;
+      music.stop();
       sfxHit();
 
       const finalScore = state.score;
@@ -653,6 +655,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     function update(dt) {
       state.elapsed += dt;
       state.speed = Math.min(MAX_SPEED, state.speed + SPEED_RAMP * dt);
+      music.setBpm(112 + state.stageIdx * 7);
 
       const speedBoostActive = state.elapsed < state.speedBoostUntil;
       const shieldActive = state.elapsed < state.invincibleUntil;
@@ -1165,6 +1168,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     startSessionRef.current = async () => {
       resetGame();
       state.running = true;
+      music.start(audioCtxRef.current, () => soundOnRef.current && state.running && !state.paused);
     };
 
     resetGame();
@@ -1177,6 +1181,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       window.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('pointercancel', handlePointerUp);
       if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
+      music.stop();
     };
   }, [isOpen]);
 

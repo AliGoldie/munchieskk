@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Lock, Trophy, Flame, Volume2, VolumeX, Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake } from '../utils/gameFx';
+import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake, createMusic, SONGS } from '../utils/gameFx';
 import MunchManRulesModal from './MunchManRulesModal';
 import './MunchManModal.css';
 
@@ -42,7 +42,7 @@ export default function MunchManModal({ isOpen, onClose }) {
   const soundOnRef = useRef(soundOn);
   soundOnRef.current = soundOn;
   const chompRef = useRef(0);
-  const musicIntervalRef = useRef(null);
+  const musicRef = useRef(null);
 
   // The game-loop effect below only re-runs on `isOpen` changes, so its closures
   // (endGame in particular) would otherwise see a stale `user` snapshot from
@@ -109,34 +109,6 @@ export default function MunchManModal({ isOpen, onClose }) {
     } catch (err) {}
   };
 
-  // A short burst of filtered white noise -- the classic way retro sound
-  // chips (NES/Game Boy's noise channel) fake a hi-hat or snare hit without
-  // any sample playback, just synthesis like every other sound here.
-  const noiseBurst = (dur, vol, delay = 0) => {
-    if (!soundOnRef.current || !audioCtxRef.current) return;
-    try {
-      const ctx = audioCtxRef.current;
-      const t0 = ctx.currentTime + delay;
-      const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * dur));
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'highpass';
-      filter.frequency.value = 4000;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(vol, t0);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      src.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      src.start(t0);
-      src.stop(t0 + dur + 0.01);
-    } catch (err) {}
-  };
-
   const fx = (name, n) => playSfx(audioCtxRef.current, soundOnRef.current, name, n);
   const sfxEat = () => fx('chomp', chompRef.current++);
   const sfxPower = () => { tone(500, 0.08, 'triangle', 0.15, 0); tone(700, 0.08, 'triangle', 0.15, 0.08); tone(900, 0.12, 'triangle', 0.15, 0.16); };
@@ -149,30 +121,12 @@ export default function MunchManModal({ isOpen, onClose }) {
 
   const startMusic = () => {
     stopMusic();
-    let musicStep = 0;
-    // Same 8-step lead line as before (unchanged so the loop's overall feel
-    // and 260ms tempo stay familiar), now layered with a root-note bassline
-    // a couple octaves down and a soft noise click on every step (louder on
-    // the downbeats) -- three simple "channels" playing together is what
-    // actually makes 8-bit game music read as music instead of a single
-    // beeping lead line.
-    const leadPattern = [220, 220, 262, 196, 220, 246, 262, 196];
-    const bassPattern = [110, 110, 131, 98, 110, 123, 131, 98];
-    musicIntervalRef.current = setInterval(() => {
-      if (!gameStateRef.current || !gameStateRef.current.running) return;
-      const i = musicStep % 8;
-      tone(leadPattern[i], 0.18, 'triangle', 0.045, 0);
-      tone(bassPattern[i], 0.16, 'square', 0.05, 0);
-      noiseBurst(0.035, i % 4 === 0 ? 0.05 : 0.022, 0);
-      musicStep++;
-    }, 260);
+    if (!musicRef.current) musicRef.current = createMusic(SONGS.munch);
+    musicRef.current.start(audioCtxRef.current, () => soundOnRef.current && !!gameStateRef.current && gameStateRef.current.running);
   };
 
   const stopMusic = () => {
-    if (musicIntervalRef.current) {
-      clearInterval(musicIntervalRef.current);
-      musicIntervalRef.current = null;
-    }
+    if (musicRef.current) musicRef.current.stop();
   };
 
   // Check play status on open
@@ -906,6 +860,7 @@ export default function MunchManModal({ isOpen, onClose }) {
           tryMove(state.player, state.player.next, usedPlayerSpeed);
           clampToBounds(state.player);
           checkDotEat();
+          if (musicRef.current) musicRef.current.setIntensity(state.ghosts.some((g) => g.scared) ? 1 : 0);
 
           if (state.speedBoostTimer > 0) state.speedBoostTimer--;
           if (state.freezeTimer > 0) state.freezeTimer--;
