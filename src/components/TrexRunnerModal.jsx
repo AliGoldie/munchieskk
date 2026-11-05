@@ -213,11 +213,11 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // Minimum real-world spacing between obstacles regardless of how the
     // segment RNG lands, so back-to-back hazards can't stack into an
     // effectively unbeatable chain a couple of jumps in.
-    const MIN_OBSTACLE_SPACING = 200;
+    const MIN_OBSTACLE_SPACING = 240;
     // Chance a given segment gets a burger, and how much clear room it
     // needs from any obstacle on that same segment (see ensureTerrain).
     const COLLECTIBLE_CHANCE = 0.6;
-    const MIN_COLLECTIBLE_CLEARANCE = 45;
+    const MIN_COLLECTIBLE_CLEARANCE = 70;
     const TREX_DRAW_W = PLAYER_W + 8;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
     // Feet sit at 105/121 of the sprite height (the rest is transparent).
@@ -246,25 +246,26 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     POWERUP_SPRITES.speed.src = '/images/trex_powerup_speed.png';
     POWERUP_SPRITES.invincible.src = '/images/trex_powerup_shield.png';
 
+    // Sizes keep each sprite's own proportions (the old crate was squashed tall, which is
+    // what made it look ugly). The cone is drawn in code.
     const OBSTACLE_VARIANTS = [
-      { w: 22, h: 26, spriteKey: 'crate' },
-      { w: 16, h: 18, spriteKey: 'crate' },
-      { w: 30, h: 34, spriteKey: 'crate' },
-      { w: 34, h: 20, spriteKey: 'pan' },
-      { w: 44, h: 26, spriteKey: 'pan' },
-      { w: 18, h: 38, spriteKey: 'bottle' },
-      { w: 13, h: 28, spriteKey: 'bottle' },
+      { w: 30, h: 23, spriteKey: 'crate' },
+      { w: 40, h: 15, spriteKey: 'pan' },
+      { w: 15, h: 38, spriteKey: 'bottle' },
+      { w: 20, h: 28, spriteKey: 'cone' },
       // two stacked crates: too tall for a hop, needs a held jump
-      { w: 22, h: 52, spriteKey: 'crate', stack: 2, tall: true }
+      { w: 30, h: 46, spriteKey: 'crate', stack: 2, tall: true }
     ];
-    // Where in a platform an obstacle may sit: just after the landing, in the
-    // middle, or just before the next gap. Chosen by weight, never the same
-    // bucket twice in a row, so the rhythm keeps changing.
+    // Where on a platform an obstacle may sit (after the landing room): earlier or later in
+    // the stretch, chosen by weight and never the same twice in a row.
     const POSITION_BUCKETS = [
-      { lo: 0, hi: 0.25, weight: 0.3 },
-      { lo: 0.25, hi: 0.65, weight: 0.4 },
-      { lo: 0.65, hi: 1, weight: 0.3 }
+      { lo: 0.05, hi: 0.45, weight: 0.5 },
+      { lo: 0.45, hi: 0.95, weight: 0.5 }
     ];
+    // Obstacles only go on platforms wide enough to land, then take off again.
+    const OBSTACLE_MIN_PLATFORM = 160;
+    const OBSTACLE_LANDING_ROOM = 50;
+    const PAIR_FROM_STAGE = 3;
     // Late-game extras. Flying birds (last two landmarks) pass at head height: stay on the
     // ground as one passes. Rolling barrels (from the third landmark) roll toward you on a
     // flat platform: jump them.
@@ -272,11 +273,11 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const FLYER_EXTRA_SPEED = 55;
     const FLYER_HEIGHT = 44;       // bird centre above the ground; a standing runner clears it
     const FLYER_SPAWN_OFFSET = 150; // starts this far off-screen so there is a warning
-    const BARREL_FROM_STAGE = 2;
+    const BARREL_FROM_STAGE = 3;
     const BARREL_CHANCE = 0.14;
     const BARREL_EXTRA_SPEED = 70;
-    const PAIR_CHANCE = 0.22;      // chance of a two-item cluster once the run is under way
-    const OBSTACLE_SCALE_JITTER = 0.2; // each obstacle is a little bigger or smaller than its variant
+    const PAIR_CHANCE = 0.12;      // chance of a two-item cluster (late stages only)
+    const OBSTACLE_SCALE_JITTER = 0.12; // each obstacle is a little bigger or smaller than its variant
 
     // Power-up tuning: speed boost multiplies world-scroll speed (and so
     // score, which is distance-based) for a limited window; invincibility
@@ -464,11 +465,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         // stops back-to-back hazards from stacking into an unfair chain
         // regardless of how the per-segment RNG lands.
         const inGrace = state.segmentsGenerated <= GRACE_SEGMENTS;
-        const obstacleChance = 0.4 + difficulty() * 0.25 + (STAGES[state.stageIdx].final ? 0.08 : 0);
+        const obstacleChance = 0.5 + difficulty() * 0.2 + (STAGES[state.stageIdx].final ? 0.06 : 0);
         let placedObstacle = null;
-        if (last && !inGrace && seg.xEnd - seg.xStart > 130 && Math.random() < obstacleChance) {
-          // Tall stacked crates only show up once the run is under way, and
-          // never on a raised tier (the climb plus the stack would be unfair).
+        if (last && !inGrace && seg.xEnd - seg.xStart >= OBSTACLE_MIN_PLATFORM && Math.random() < obstacleChance) {
           const wantsBarrel = state.stageIdx >= BARREL_FROM_STAGE && seg.xEnd - seg.xStart >= 190 && Math.random() < BARREL_CHANCE;
           if (wantsBarrel) {
             const bx = seg.xEnd - 40;
@@ -478,34 +477,48 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
               state.lastObstacleRightEdge = bx + 22;
             }
           }
-          const allowTall = difficulty() > 0.12 && seg.tier === 'low';
-          const pool = OBSTACLE_VARIANTS.filter((o) => (allowTall || !o.tall) && o.spriteKey + o.w + o.h !== state.lastVariantKey);
-          const base = pool[Math.floor(Math.random() * pool.length)];
-          const first = jitteredVariant(base);
-          // Sometimes a cluster of two low items side by side, but only as wide as a jump clears.
-          let items = [first];
-          if (!first.tall && difficulty() > 0.15 && Math.random() < PAIR_CHANCE) {
-            const lowPool = OBSTACLE_VARIANTS.filter((o) => !o.tall);
-            const second = jitteredVariant(lowPool[Math.floor(Math.random() * lowPool.length)]);
-            const gapPx = 3 + Math.random() * 7;
-            const widest = Math.max(first.h, second.h);
-            if (first.w + gapPx + second.w <= maxClearWidth(widest)) items = [first, { ...second, gapPx }];
-          }
-          const blockW = items.reduce((sum, it) => sum + it.w + (it.gapPx || 0), 0);
-          const bucket = pickBucket();
-          const room = Math.max(0, seg.xEnd - seg.xStart - 68 - blockW);
-          const ox = seg.xStart + 34 + room * (bucket.lo + Math.random() * (bucket.hi - bucket.lo));
-          const minSpacing = MIN_OBSTACLE_SPACING * (0.9 + Math.random() * 0.5);
-          if (!placedObstacle && room >= 0 && ox - state.lastObstacleRightEdge >= minSpacing) {
-            let cursor = ox;
-            for (const it of items) {
-              cursor += it.gapPx || 0;
-              state.obstacles.push({ x: cursor, w: it.w, h: it.h, tierY: seg.y, spriteKey: it.spriteKey, stack: it.stack || 1 });
-              cursor += it.w;
+          if (!placedObstacle) {
+            // Tall stacked crates only once the run is under way, and never on a raised tier.
+            const allowTall = difficulty() > 0.25 && seg.tier === 'low';
+            const pool = OBSTACLE_VARIANTS.filter((o) => (allowTall || !o.tall) && o.spriteKey + o.w + o.h !== state.lastVariantKey);
+            const base = pool[Math.floor(Math.random() * pool.length)];
+            const first = jitteredVariant(base);
+            // Late stages only: sometimes a cluster of two low items, as wide as a jump clears.
+            let items = [first];
+            if (!first.tall && state.stageIdx >= PAIR_FROM_STAGE && Math.random() < PAIR_CHANCE) {
+              const lowPool = OBSTACLE_VARIANTS.filter((o) => !o.tall);
+              const second = jitteredVariant(lowPool[Math.floor(Math.random() * lowPool.length)]);
+              const gapPx = 3 + Math.random() * 7;
+              const widest = Math.max(first.h, second.h);
+              if (first.w + gapPx + second.w <= maxClearWidth(widest)) items = [first, { ...second, gapPx }];
             }
-            placedObstacle = { x: ox, w: blockW, h: Math.max(...items.map((it) => it.h)), tierY: seg.y };
-            state.lastObstacleRightEdge = ox + blockW;
-            state.lastVariantKey = first.spriteKey + base.w + base.h;
+            const blockW = items.reduce((sum, it) => sum + it.w + (it.gapPx || 0), 0);
+            const bucket = pickBucket();
+            // always leave room to land before it and to take off after it
+            const room = Math.max(0, seg.xEnd - seg.xStart - 2 * OBSTACLE_LANDING_ROOM - blockW);
+            const ox = seg.xStart + OBSTACLE_LANDING_ROOM + room * (bucket.lo + Math.random() * (bucket.hi - bucket.lo));
+            const minSpacing = MIN_OBSTACLE_SPACING * (0.9 + Math.random() * 0.4);
+            if (ox - state.lastObstacleRightEdge >= minSpacing) {
+              let cursor = ox;
+              for (const it of items) {
+                cursor += it.gapPx || 0;
+                state.obstacles.push({ x: cursor, w: it.w, h: it.h, tierY: seg.y, spriteKey: it.spriteKey, stack: it.stack || 1 });
+                cursor += it.w;
+              }
+              const topH = Math.max(...items.map((it) => it.h));
+              placedObstacle = { x: ox, w: blockW, h: topH, tierY: seg.y };
+              state.lastObstacleRightEdge = ox + blockW;
+              state.lastVariantKey = first.spriteKey + base.w + base.h;
+              // A small arc of burgers over the obstacle: they show where to jump.
+              if (Math.random() < 0.6) {
+                const mid = ox + blockW / 2;
+                state.collectibles.push(
+                  { x: mid - 24, y: seg.y - topH - 30, size: 9 },
+                  { x: mid, y: seg.y - topH - 44, size: 9 },
+                  { x: mid + 24, y: seg.y - topH - 30, size: 9 }
+                );
+              }
+            }
           }
         }
 
@@ -1159,15 +1172,56 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
     }
 
+    // A traffic cone drawn in code, with light and dark sides.
+    function drawCone(x, y, w, h) {
+      const cx = x + w / 2;
+      const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+      grad.addColorStop(0, '#ff9a3c');
+      grad.addColorStop(0.45, '#ff7a1a');
+      grad.addColorStop(1, '#c4540a');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(cx - w * 0.14, y);
+      ctx.lineTo(cx + w * 0.14, y);
+      ctx.lineTo(x + w * 0.86, y + h - 4);
+      ctx.lineTo(x + w * 0.14, y + h - 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      for (const f of [0.3, 0.62]) {
+        const yy = y + h * f;
+        const half = w * (0.16 + 0.34 * f);
+        ctx.beginPath();
+        ctx.moveTo(cx - half, yy);
+        ctx.lineTo(cx + half, yy);
+        ctx.lineTo(cx + half + w * 0.04, yy + h * 0.12);
+        ctx.lineTo(cx - half - w * 0.04, yy + h * 0.12);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = '#3a2f2a';
+      ctx.beginPath();
+      ctx.roundRect(x, y + h - 5, w, 5, 2);
+      ctx.fill();
+    }
+
     function drawObstacle(o) {
       const y = o.tierY - o.h;
       // Dark contact shadow behind every obstacle regardless of sprite --
       // keeps hazards readable against the busy background art instead of
       // blending into it.
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
       ctx.beginPath();
-      ctx.ellipse(o.x + o.w / 2, y + o.h / 2, o.w * 0.68, o.h * 0.68, 0, 0, Math.PI * 2);
+      ctx.ellipse(o.x + o.w / 2, y + o.h / 2, o.w * 0.62, o.h * 0.62, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.38)';
+      ctx.beginPath();
+      ctx.ellipse(o.x + o.w / 2, o.tierY - 1, o.w * 0.6, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (o.spriteKey === 'cone') {
+        drawCone(o.x, y, o.w, o.h);
+        return;
+      }
       if (o.roll) {
         const r = o.w / 2;
         ctx.save();
@@ -1257,16 +1311,75 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
     }
 
-    function drawMiniBurger(cx, cy, size) {
-      ctx.fillStyle = '#C97A34';
+    // A shaded burger with a glossy bun, sesame seeds, lettuce, tomato, cheese and patty.
+    function drawMiniBurger(cx0, cy0, size) {
+      const k = size / 9;
+      const bob = Math.sin(state.elapsed * 4 + cx0 * 0.05) * 1.4;
+      const cx = cx0;
+      const cy = cy0 + bob;
+      const w = 12.5 * k;
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
       ctx.beginPath();
-      ctx.roundRect(cx - size, cy + size * 0.15, size * 2, size * 0.55, size * 0.3);
+      ctx.ellipse(cx, cy0 + 11 * k, w * 0.8, 2.6 * k, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#6B3A1F';
-      ctx.fillRect(cx - size * 0.95, cy - size * 0.15, size * 1.9, size * 0.4);
-      ctx.fillStyle = '#E8A84F';
+      let g = ctx.createLinearGradient(0, cy + 3 * k, 0, cy + 8 * k);
+      g.addColorStop(0, '#d98b3a');
+      g.addColorStop(1, '#9b5a1d');
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.arc(cx, cy - size * 0.25, size, Math.PI, 0);
+      ctx.roundRect(cx - w * 0.92, cy + 3.4 * k, w * 1.84, 5 * k, 2.4 * k);
+      ctx.fill();
+      g = ctx.createLinearGradient(0, cy, 0, cy + 4 * k);
+      g.addColorStop(0, '#7b4425');
+      g.addColorStop(1, '#4a2611');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.roundRect(cx - w, cy + 0.2 * k, w * 2, 3.6 * k, 1.8 * k);
+      ctx.fill();
+      ctx.fillStyle = '#d6372a';
+      ctx.fillRect(cx - w * 0.9, cy - 1.2 * k, w * 1.8, 1.6 * k);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(cx - w * 0.9, cy - 1.2 * k, w * 1.8, 0.5 * k);
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath();
+      ctx.moveTo(cx - w * 0.95, cy - 2.6 * k);
+      ctx.lineTo(cx + w * 0.95, cy - 2.6 * k);
+      ctx.lineTo(cx + w * 0.7, cy - 0.4 * k);
+      ctx.lineTo(cx + w * 0.3, cy - 1.8 * k);
+      ctx.lineTo(cx - w * 0.2, cy - 0.2 * k);
+      ctx.lineTo(cx - w * 0.6, cy - 1.8 * k);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#6fc24b';
+      ctx.beginPath();
+      ctx.moveTo(cx - w * 1.02, cy - 2.4 * k);
+      for (let i = 0; i <= 6; i++) {
+        const t = i / 6;
+        ctx.lineTo(cx - w * 1.02 + t * w * 2.04, cy - 2.4 * k + (i % 2 ? 1.6 : -0.3) * k);
+      }
+      ctx.lineTo(cx + w * 1.02, cy - 3.2 * k);
+      ctx.lineTo(cx - w * 1.02, cy - 3.2 * k);
+      ctx.closePath();
+      ctx.fill();
+      g = ctx.createRadialGradient(cx - w * 0.35, cy - 8 * k, 1, cx, cy - 4 * k, w * 1.15);
+      g.addColorStop(0, '#fbd185');
+      g.addColorStop(0.55, '#e39a45');
+      g.addColorStop(1, '#a8601f');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(cx - w, cy - 3 * k);
+      ctx.bezierCurveTo(cx - w * 1.05, cy - 11.5 * k, cx + w * 1.05, cy - 11.5 * k, cx + w, cy - 3 * k);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fff1cf';
+      for (const [sx, sy] of [[-0.45, -8.2], [0.05, -9.2], [0.5, -7.8], [-0.1, -6.4], [0.62, -5.6], [-0.7, -5.8]]) {
+        ctx.beginPath();
+        ctx.ellipse(cx + w * sx, cy + sy * k, 0.9 * k, 0.5 * k, sx, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath();
+      ctx.ellipse(cx - w * 0.38, cy - 8.6 * k, w * 0.32, 1.5 * k, -0.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
