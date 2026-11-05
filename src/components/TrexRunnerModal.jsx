@@ -3,6 +3,7 @@ import { X, Volume2, VolumeX, Trophy, Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { STAGES, stageIndexForScore, drawSky, drawScenery, drawHazard } from './trexStages';
+import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake } from '../utils/gameFx';
 import './TrexRunnerModal.css';
 
 export default function TrexRunnerModal({ isOpen, onClose }) {
@@ -14,7 +15,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [burgersCollected, setBurgersCollected] = useState(0);
-  const [soundOn, setSoundOn] = useState(true);
+  const [soundOn, setSoundOn] = useState(() => !isSoundMuted());
   const [rewardMsg, setRewardMsg] = useState(null);
   const [weekInfo, setWeekInfo] = useState(null);
   const [isNewBest, setIsNewBest] = useState(false);
@@ -35,6 +36,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
   const gameStateRef = useRef(null);
   const audioCtxRef = useRef(null);
+  // The game loop is created once per open, so it reads the live sound setting through a ref.
+  const soundOnRef = useRef(soundOn);
+  soundOnRef.current = soundOn;
   const jumpRef = useRef(null);
   const startSessionRef = useRef(null);
 
@@ -113,7 +117,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   };
 
   const tone = (freq, dur, type = 'square', vol = 0.12, delay = 0) => {
-    if (!soundOn || !audioCtxRef.current) return;
+    if (!soundOnRef.current || !audioCtxRef.current) return;
     try {
       const t0 = audioCtxRef.current.currentTime + delay;
       const osc = audioCtxRef.current.createOscillator();
@@ -129,9 +133,11 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     } catch (err) {}
   };
 
-  const sfxJump = () => tone(520, 0.09, 'square', 0.10, 0);
-  const sfxCollect = () => tone(780, 0.06, 'square', 0.11, 0);
-  const sfxHit = () => tone(140, 0.3, 'sawtooth', 0.2, 0);
+  const fx = (name, n) => playSfx(audioCtxRef.current, soundOnRef.current, name, n);
+  const sfxJump = () => fx('jump');
+  const sfxLand = () => fx('land');
+  const sfxCollect = () => fx('collect');
+  const sfxHit = () => fx('crash');
   const sfxNewBest = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.14, i * 0.13));
   const sfxSmash = () => tone(300, 0.12, 'square', 0.16, 0);
   const sfxPowerupSpeed = () => [500, 700, 900].forEach((f, i) => tone(f, 0.08, 'sawtooth', 0.1, i * 0.05));
@@ -139,7 +145,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const sfxPowerupMagnet = () => [600, 450, 600, 800].forEach((f, i) => tone(f, 0.07, 'square', 0.1, i * 0.05));
   const sfxPowerupInvincible = () => [400, 600, 800, 1000].forEach((f, i) => tone(f, 0.1, 'triangle', 0.12, i * 0.06));
 
-  const toggleSound = () => setSoundOn(prev => !prev);
+  const toggleSound = () => setSoundOn(prev => { setSoundMuted(prev); return !prev; });
 
   // Setup Canvas & Game loop
   useEffect(() => {
@@ -279,7 +285,13 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // the final stage adds a bit more on top.
     const DIFFICULTY_FULL_DISTANCE = 12000;
 
+    const particles = createParticles();
+    const shake = createShake();
+    let shakeOffset = { x: 0, y: 0 };
+
     const state = {
+      birds: [],
+      scrollPx: 0,
       player: { y: LOW_Y - PLAYER_H, vy: 0, onGround: true, coyote: 0 },
       holding: false,
       jumpBuffer: 0,
@@ -469,6 +481,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
 
     function resetGame() {
+      state.birds = [];
+      particles.clear();
       state.player = { y: LOW_Y - PLAYER_H, vy: 0, onGround: true, coyote: 0 };
       state.holding = false;
       state.jumpBuffer = 0;
@@ -511,6 +525,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.jumpBuffer = 0;
       state.jumpCutApplied = false;
       sfxJump();
+      particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H, { n: 5, color: '230,220,200', speed: 40, life: 0.35, size: 3, spread: Math.PI * 0.8, angle: Math.PI / 2 });
     }
 
     function jump() {
@@ -547,6 +562,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // Lose a life. With lives left the run carries on from solid ground (the
     // world skips ahead past a pit or obstacle) with a short grace period.
     function crash(reason) {
+      shake.kick(8, 0.3);
+      vibrate(soundOnRef.current, 60);
+      particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H / 2, { n: 14, color: '255,140,60', speed: 150, life: 0.55, size: 4, gravity: 260 });
       state.lives -= 1;
       if (state.lives <= 0) {
         setLives(0);
@@ -680,6 +698,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // left in screen space, same approach the flat-runner version used
       // for obstacles, just now applied to platform segments too.
       const moveBy = effectiveSpeed * dt;
+      state.scrollPx = moveBy;
+      updateBirds(dt, moveBy);
       for (const seg of state.terrain) {
         seg.xStart -= moveBy;
         seg.xEnd -= moveBy;
@@ -692,6 +712,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
       const prevBottom = state.player.y + PLAYER_H;
       state.player.vy += GRAVITY * dt;
+      const impactVy = state.player.vy;
       state.player.y += state.player.vy * dt;
       const newBottom = state.player.y + PLAYER_H;
 
@@ -728,6 +749,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         return;
       }
 
+      if (landed && !state.player.onGround && impactVy > 240) {
+        sfxLand();
+        particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H, { n: 8, color: '225,215,195', speed: 70, life: 0.45, size: 4, spread: Math.PI * 0.9, angle: -Math.PI / 2, gravity: 40 });
+      }
       state.player.onGround = landed;
       if (landed) {
         state.player.coyote = COYOTE_TIME;
@@ -804,6 +829,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         if (overlap(hitboxX, hitboxY, hitboxW, hitboxH, c.x - c.size, c.y - c.size, c.size * 2, c.size * 2)) {
           state.burgersCollected++;
           sfxCollect();
+          particles.emit(c.x, c.y, { n: 7, color: '255,214,80', speed: 90, life: 0.45, size: 3, gravity: 120 });
           state.collectibles.splice(i, 1);
         }
       }
@@ -838,6 +864,34 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
     }
 
+    // Scenery birds: pure decoration drifting across the sky (no collisions).
+    function updateBirds(dt, moveBy) {
+      if (state.birds.length < 4 && Math.random() < dt * 0.35) {
+        state.birds.push({ x: W + 20, y: 28 + Math.random() * (LOW_Y * 0.45), speed: 30 + Math.random() * 40, phase: Math.random() * 6, size: 5 + Math.random() * 4 });
+      }
+      for (let i = state.birds.length - 1; i >= 0; i--) {
+        const b = state.birds[i];
+        b.x -= b.speed * dt + moveBy * 0.15;
+        b.y += Math.sin(state.elapsed * 1.5 + b.phase) * 0.15;
+        b.phase += dt * 9;
+        if (b.x < -30) state.birds.splice(i, 1);
+      }
+    }
+
+    function drawBirds() {
+      ctx.strokeStyle = 'rgba(20, 20, 30, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      for (const b of state.birds) {
+        const flap = Math.sin(b.phase) * b.size * 0.7;
+        ctx.beginPath();
+        ctx.moveTo(b.x - b.size, b.y - flap);
+        ctx.quadraticCurveTo(b.x - b.size * 0.4, b.y - flap * 0.2 - 2, b.x, b.y);
+        ctx.quadraticCurveTo(b.x + b.size * 0.4, b.y - flap * 0.2 - 2, b.x + b.size, b.y - flap);
+        ctx.stroke();
+      }
+    }
+
     function drawBackground() {
       ctx.clearRect(0, 0, W, H);
       const blending = state.stageBlend < 1;
@@ -846,6 +900,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // previous one when a new stage starts.
       if (blending) drawScenery(ctx, W, LOW_Y, state.prevStageIdx, state.distance, 1, state.elapsed);
       drawScenery(ctx, W, LOW_Y, state.stageIdx, state.distance, blending ? state.stageBlend : 1, state.elapsed);
+      drawBirds();
       // dark pit walls between the road and the hazard, then the hazard itself
       const wall = ctx.createLinearGradient(0, LOW_Y, 0, H);
       wall.addColorStop(0, '#241d16');
@@ -1044,6 +1099,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
 
     function draw() {
+      ctx.save();
+      ctx.translate(shakeOffset.x, shakeOffset.y);
       drawBackground();
       drawTerrain();
       state.obstacles.forEach(drawObstacle);
@@ -1051,8 +1108,10 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.powerups.forEach(drawPowerup);
       drawEffects();
       drawPlayer();
+      particles.draw(ctx);
       drawHazardFront();
       drawStageBanner();
+      ctx.restore();
     }
 
     function loop(timestamp) {
@@ -1065,6 +1124,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         const dt = Math.min((timestamp - state.lastTime) / 1000, 0.05);
         state.lastTime = timestamp;
         if (state.running) update(dt);
+        shakeOffset = shake.step(dt);
+        particles.update(dt, state.running ? state.scrollPx : 0);
         draw();
       } catch (err) {
         console.error('T-Rex Runner frame error:', err);
