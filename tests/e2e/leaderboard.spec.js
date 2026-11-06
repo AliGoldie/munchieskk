@@ -40,10 +40,10 @@ test('the leaderboard lists the players and the tabs ask for the right board', a
   await mockBoard(page, calls);
   await page.goto('/leaderboard', { waitUntil: 'networkidle' });
 
-  await expect(page.locator('.lb-pod.p1')).toContainText('Fast Alice');
-  await expect(page.locator('.lb-pod.p1')).toContainText('5,500');
-  await expect(page.locator('.lb-row')).toHaveCount(2);
-  await expect(page.locator('.lb-row').first()).toContainText('Dina');
+  await expect(page.locator('.lb-leader')).toContainText('Fast Alice');
+  await expect(page.locator('.lb-leader')).toContainText('5,500');
+  await expect(page.locator('.lb-row')).toHaveCount(4);
+  await expect(page.locator('.lb-row').first()).toContainText('Cara');
   expect(calls[0]).toEqual({ p_period: 'week', p_game: 'all' });
 
   await page.click('.lb-tab:has-text("T-Rex")');

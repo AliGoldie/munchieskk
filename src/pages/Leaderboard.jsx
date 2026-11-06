@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import './Leaderboard.css';
@@ -17,12 +16,13 @@ const PERIODS = [
   { id: 'month', label: 'This month' },
   { id: 'all', label: 'All time' }
 ];
-const THEMES = {
-  all: { img: '/images/hero_burger.webp', title: 'HALL OF FAME', tag: 'The best of all three games', hue: 45 },
-  trex_runner: { img: '/images/trex_runner_game.webp', title: 'T-REX RUNNER', tag: 'Who runs the farthest?', hue: 20 },
-  speed_grab: { img: '/images/fry_catch.webp', title: 'SPEED GRAB', tag: 'Who grabs the fastest?', hue: 50 },
-  munch_man: { img: '/images/munchman_game.webp', title: 'MUNCH-MAN', tag: 'Who munches the most?', hue: 280 }
+const ART = {
+  all: '/images/hero_burger.webp',
+  trex_runner: '/images/trex_runner_game.webp',
+  speed_grab: '/images/fry_catch.webp',
+  munch_man: '/images/munchman_game.webp'
 };
+const WHEN = { week: 'THIS WEEK', lastweek: 'LAST WEEK', month: 'THIS MONTH', all: 'ALL TIME' };
 const fmt = (n) => Number(n).toLocaleString();
 
 export default function Leaderboard() {
@@ -49,26 +49,13 @@ export default function Leaderboard() {
   const me = data?.me;
   const inTop = rows.some((r) => r.is_me);
 
-  const theme = THEMES[game];
-  const top = rows.slice(0, 3);
-  const rest = rows.slice(3);
-  const best = rows[0] ? Number(rows[0].score) : 1;
-  // podium order: 2nd, 1st, 3rd
-  const podium = [top[1], top[0], top[2]].filter(Boolean);
+  const leader = rows[0];
+  const rest = rows.slice(1);
 
   return (
-    <div className="leaderboard-page" style={{ '--lb-hue': theme.hue }}>
-      <div className="lb-sky" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /><i /></div>
-
-      <header className="lb-hero" key={game}>
-        <div className="lb-hero-img" style={{ backgroundImage: `url(${theme.img})` }} aria-hidden="true" />
-        <div className="lb-hero-shine" aria-hidden="true" />
-        <div className="lb-hero-text">
-          <span className="lb-hero-kicker"><Trophy size={14} /> ARCADE</span>
-          <h1>{theme.title}</h1>
-          <p>{theme.tag}</p>
-        </div>
-      </header>
+    <div className="leaderboard-page">
+      <h2>LEADERBOARD</h2>
+      <p className="lb-sub">Top players by Burger XP. The best score in each game counts.</p>
 
       <div className="lb-tabs" role="tablist" aria-label="Game">
         {GAMES.map((g) => (
@@ -82,47 +69,38 @@ export default function Leaderboard() {
       </div>
 
       {failed ? (
-        <div className="lb-card"><p className="lb-empty">Could not load the leaderboard. Please try again.</p></div>
+        <div className="card lb-board"><p className="lb-empty">Could not load the leaderboard. Please try again.</p></div>
       ) : !data ? (
-        <div className="lb-card"><p className="lb-empty">Loading…</p></div>
-      ) : rows.length === 0 ? (
-        <div className="lb-card lb-blank">
-          <img src="/images/ghost_burger.png" alt="" width="84" height="84" />
-          <p className="lb-empty">Nobody here yet. <b>Be the first on the board!</b></p>
-        </div>
+        <div className="card lb-board"><p className="lb-empty">Loading…</p></div>
+      ) : !leader ? (
+        <div className="card lb-board"><p className="lb-empty">No scores yet. Be the first on the board!</p></div>
       ) : (
-        <div key={`${game}-${period}`}>
-          <div className="lb-podium">
-            {podium.map((r) => (
-              <div key={r.rank} className={`lb-pod p${r.rank} ${r.is_me ? 'me' : ''}`}>
-                {r.rank === 1 && <span className="lb-crown" aria-hidden="true">👑</span>}
-                <span className="lb-medal" aria-hidden="true">{r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : '🥉'}</span>
-                <span className="lb-pod-name">{r.name}{r.is_me ? ' (you)' : ''}</span>
-                <span className="lb-pod-score">{fmt(r.score)}<small> XP</small></span>
-                <span className="lb-pod-block"><b>{r.rank}</b></span>
-              </div>
-            ))}
+        <>
+          <div className={`card lb-leader ${leader.is_me ? 'me' : ''}`}>
+            <span className="lb-badge">№1 · {WHEN[period]}</span>
+            <div className="lb-leader-body">
+              <h3>{leader.name}{leader.is_me ? ' (you)' : ''}</h3>
+              <div className="lb-leader-score">{fmt(leader.score)}<small> XP</small></div>
+            </div>
+            <div className="lb-leader-art"><div style={{ backgroundImage: `url(${ART[game]})` }} /></div>
           </div>
 
           {rest.length > 0 && (
-            <ol className="lb-list" start={4}>
-              {rest.map((r, i) => (
-                <li key={r.rank} className={`lb-row ${r.is_me ? 'me' : ''}`} style={{ animationDelay: `${0.5 + i * 0.05}s` }}>
+            <ol className="card lb-board lb-list" start={2}>
+              {rest.map((r) => (
+                <li key={r.rank} className={`lb-row ${r.is_me ? 'me' : ''}`}>
                   <span className="lb-rank">{r.rank}</span>
-                  <span className="lb-main">
-                    <span className="lb-name">{r.name}{r.is_me ? ' (you)' : ''}</span>
-                    <span className="lb-bar"><i style={{ width: `${Math.max(6, Math.round((Number(r.score) / best) * 100))}%` }} /></span>
-                  </span>
+                  <span className="lb-name">{r.name}{r.is_me ? ' (you)' : ''}</span>
                   <span className="lb-score">{fmt(r.score)} XP</span>
                 </li>
               ))}
             </ol>
           )}
-        </div>
+        </>
       )}
 
       {user && me && !me.hidden && !inTop && (
-        <div className="lb-you">Your place: <b>#{me.rank}</b> with {fmt(me.score)} XP. Keep climbing! 🔥</div>
+        <div className="lb-you">Your place: <b>#{me.rank}</b> with {fmt(me.score)} XP.</div>
       )}
       {user && me?.hidden && (
         <div className="lb-you">You are hidden from the leaderboard. You can change that in your <Link to="/profile">Profile</Link>.</div>
@@ -135,7 +113,7 @@ export default function Leaderboard() {
       )}
 
       <div className="lb-actions">
-        <Link to="/arcade" className="btn btn-primary lb-play">PLAY NOW</Link>
+        <Link to="/arcade" className="btn btn-primary">PLAY NOW</Link>
       </div>
     </div>
   );
