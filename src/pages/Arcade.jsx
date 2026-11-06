@@ -6,6 +6,8 @@ import MunchManModal from '../components/MunchManModal';
 import TrexRunnerModal from '../components/TrexRunnerModal';
 import SpeedGrabModal from '../components/SpeedGrabModal';
 import ArcadeContestCard from '../components/ArcadeContestCard';
+import ChampionsAnnouncement from '../components/ChampionsAnnouncement';
+import LeaderboardTeaser from '../components/LeaderboardTeaser';
 import './Arcade.css';
 
 export default function Arcade() {
@@ -52,9 +54,12 @@ export default function Arcade() {
 
   return (
     <div className="arcade-page">
-      
+      <ChampionsAnnouncement />
+
       {/* Arcade contest, weekly goal and any contest claim codes */}
       <ArcadeContestCard refreshKey={`${user?.id || 'guest'}-${isTrexRunnerOpen}-${isSpeedGrabOpen}`} />
+
+      <LeaderboardTeaser key={`${isTrexRunnerOpen}-${isSpeedGrabOpen}-${isMunchManOpen}`} />
 
       {/* High Contrast Colorful My Points Card */}
       <div className="card points-card">

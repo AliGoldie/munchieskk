@@ -1,0 +1,35 @@
+.leaderboard-page { padding: 1rem 1rem 6rem; max-width: 520px; margin: 0 auto; color: var(--text, #f6f1e7); }
+.lb-head { display: flex; align-items: center; gap: 8px; }
+.lb-head h1 { margin: 0; font-size: 1.4rem; letter-spacing: 1px; }
+.lb-sub { margin: 4px 0 14px; color: var(--text-2, #cfc7b8); font-size: 0.85rem; }
+.lb-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.lb-tab {
+  padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line-strong, rgba(255,255,255,0.18));
+  background: transparent; color: var(--text-2, #cfc7b8); font-weight: 700; font-size: 0.85rem; cursor: pointer;
+}
+.lb-tab.small { padding: 5px 10px; font-size: 0.78rem; }
+.lb-tab.on { background: var(--gold, #ffc72c); border-color: var(--gold, #ffc72c); color: #1a1a1a; }
+.lb-card { margin-top: 10px; background: var(--surface-raised, #1f1c19); border: 1px solid rgba(255,199,44,0.3); border-radius: 14px; padding: 6px 10px; }
+.lb-list { list-style: none; margin: 0; padding: 0; }
+.lb-row { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 8px; padding: 10px 4px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.lb-row:last-child { border-bottom: 0; }
+.lb-row.top .lb-name { font-weight: 800; }
+.lb-row.me { background: rgba(255,199,44,0.12); border-radius: 8px; }
+.lb-rank { text-align: center; font-weight: 800; color: var(--text-2, #cfc7b8); font-size: 1.05rem; }
+.lb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-score { color: var(--gold, #ffc72c); font-weight: 800; font-variant-numeric: tabular-nums; }
+.lb-empty { padding: 20px 8px; text-align: center; color: var(--text-2, #cfc7b8); margin: 0; }
+.lb-you { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.06); font-size: 0.88rem; }
+.lb-you a, .lb-note a { color: var(--gold, #ffc72c); }
+.lb-note { margin: 10px 2px 0; font-size: 0.78rem; color: var(--text-2, #cfc7b8); }
+.lb-actions { margin-top: 18px; display: flex; }
+.lb-actions .btn { flex: 1; text-align: center; text-decoration: none; }
+
+/* Top-3 teaser on the Arcade page */
+.lb-teaser { margin: 0 0 1rem; padding: 0.8rem 0.9rem; border-radius: 14px; background: var(--surface-raised, #1f1c19); border: 1px solid rgba(255,199,44,0.35); color: var(--text, #f6f1e7); }
+.lb-teaser-head { display: flex; align-items: center; gap: 6px; color: var(--gold, #ffc72c); font-size: 0.68rem; font-weight: 800; letter-spacing: 1px; }
+.lb-teaser-head a { margin-left: auto; color: var(--gold, #ffc72c); text-decoration: none; letter-spacing: 0.3px; }
+.lb-teaser ol { list-style: none; margin: 6px 0 0; padding: 0; }
+.lb-teaser li { display: grid; grid-template-columns: 26px 1fr auto; gap: 6px; padding: 4px 0; font-size: 0.88rem; }
+.lb-teaser li b { color: var(--gold, #ffc72c); font-variant-numeric: tabular-nums; }
+.lb-teaser p { margin: 6px 0 0; font-size: 0.8rem; color: var(--text-2, #cfc7b8); }

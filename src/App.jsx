@@ -18,6 +18,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Payment = lazy(() => import('./pages/Payment'));
 const Loyalty = lazy(() => import('./pages/Loyalty'));
 const Arcade = lazy(() => import('./pages/Arcade'));
+const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const OrderStatus = lazy(() => import('./pages/OrderStatus'));
 const Catering = lazy(() => import('./pages/Catering'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -50,6 +51,7 @@ function App() {
         <Route path="loyalty" element={<Loyalty />} />
         <Route element={<ArcadeRoute />}>
           <Route path="arcade" element={<Arcade />} />
+          <Route path="leaderboard" element={<Leaderboard />} />
         </Route>
         <Route path="cart" element={<Cart />} />
         <Route path="payment" element={<Payment />} />

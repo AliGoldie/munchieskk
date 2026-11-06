@@ -15,6 +15,7 @@ import AdminShareProofs from '../components/AdminShareProofs';
 import AdminFadingPoints from '../components/AdminFadingPoints';
 import { whatsAppLink } from '../utils/whatsapp';
 import { earliestPriceChangeDate, fmtMYDate } from '../utils/rewardSchedule';
+import AdminLeaderboardNames from '../components/AdminLeaderboardNames';
 import AdminArcadeContest from '../components/AdminArcadeContest';
 import AdminPointsBoost from '../components/AdminPointsBoost';
 import OrderLineChoices from '../components/OrderLineChoices';
@@ -5581,7 +5582,7 @@ export default function Admin() {
               </button>
             </div>
 
-            {activePromoSubTab === 'arcade' && <AdminArcadeContest />}
+            {activePromoSubTab === 'arcade' && (<><AdminArcadeContest /><AdminLeaderboardNames /></>)}
 
             {activePromoSubTab === 'codes' && (
               <div>
