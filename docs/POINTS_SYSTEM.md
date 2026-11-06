@@ -88,6 +88,7 @@ Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all 
 
 - **What counts:** your **best score in each of the three games, added together**. Each game counts **at most 5,000** (so 15,000 is the top Arcade Score). Playing more only helps if you beat your best.
 - **T-Rex Runner bonus:** running through a landmark gate (a glowing arch at the start of each landmark) adds **+50 Burger XP**. Burgers collected add a little XP too.
+- **Leaderboard:** a public board (also on the Arcade page, top three) ranks players by Burger XP, for **each game and overall**, for **this week, this month and all time**. Players can pick a **nickname** in their Profile (3 to 14 characters, rude words blocked); without one their **first name** is shown. A player can **hide** themselves. Staff accounts never appear. It is a bragging board: the only prizes are still the contest's.
 - **Three lives** in every game: a crash costs a life, and the run carries on.
 - **Weekly goal:** reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) for **+25 loyalty points**, once a week.
   Because all three games add up, the goal is easy to reach. That is on purpose. (After the first 30 days, game bonuses need a collected order in the last 30 days.)

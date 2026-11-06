@@ -22,7 +22,7 @@ One page so anyone (Ali, a developer, an AI agent) can find things fast. Updated
 
 | Path | What it is |
 |---|---|
-| `src/pages/` | One file per page: `Home`, `Menu`, `Cart`, `Payment`, `OrderStatus`, `Loyalty`, `Arcade`, `Profile`, `Catering`, `Login`, `Signup`, `ResetPassword`. |
+| `src/pages/` | One file per page: `Home`, `Menu`, `Cart`, `Payment`, `OrderStatus`, `Loyalty`, `Arcade`, `Leaderboard`, `Profile`, `Catering`, `Login`, `Signup`, `ResetPassword`. |
 | `src/pages/Admin.jsx` | The whole staff dashboard (very large; one section per sidebar tab). `AdminReports.jsx` is the PDF reports page. |
 | `src/components/` | Shared pieces: `RankCard`, `CheckoutRewards`, game modals (`TrexRunnerModal`, `SpeedGrabModal`, `MunchManModal`), and admin panels (`Admin*.jsx`). |
 | `src/contexts/StoreContext.jsx` | Loads the menu, add-ons, rewards, shop settings and orders from the database, and holds the cart. |

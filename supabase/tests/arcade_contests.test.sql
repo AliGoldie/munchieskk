@@ -64,6 +64,7 @@ $$;
 \i supabase/migrations/20261016000000_arcade_contests.sql
 \i supabase/migrations/20261017000000_munchman_match_games.sql
 \i supabase/migrations/20261019000000_arcade_score_cap.sql
+\i supabase/migrations/20261031000000_leaderboard.sql
 \i supabase/migrations/20261020000000_contest_claim_needs_phone.sql
 \i supabase/migrations/20261023000000_weekly_goal_rules.sql
 
@@ -421,6 +422,89 @@ BEGIN
   PERFORM pg_temp.expect(rk.total = 5500, 'a bigger raw score does not beat the cap');
   PERFORM pg_temp.expect((SELECT user_id FROM public.arcade_contest_ranking(cid, true) WHERE rnk = 1) = fay::uuid, 'tie at the cap goes to whoever reached it first');
   PERFORM pg_temp.expect(public.arcade_week_score(fay::uuid) = 5500, 'the weekly score uses the same cap');
+END $$;
+
+-- ---------------------------------------------------------------------
+-- 3c. Leaderboards and nicknames
+-- ---------------------------------------------------------------------
+DO $$
+DECLARE
+  admin constant text := 'a0000000-0000-0000-0000-00000000000a';
+  alice constant text := 'a0000000-0000-0000-0000-000000000001';
+  bob constant text := 'a0000000-0000-0000-0000-000000000002';
+  cara constant text := 'a0000000-0000-0000-0000-000000000003';
+  fay constant text := 'a0000000-0000-0000-0000-000000000008';
+  r jsonb;
+BEGIN
+  DELETE FROM arcade_scores;
+  INSERT INTO arcade_scores (user_id, game, score, run_seconds, scored_at) VALUES
+    (alice::uuid, 'trex_runner', 800, 60, now()), (alice::uuid, 'speed_grab', 500, 30, now()),
+    (bob::uuid, 'trex_runner', 1200, 60, now()), (bob::uuid, 'trex_runner', 2000, 60, now() - interval '40 days'),
+    (cara::uuid, 'trex_runner', 900, 60, now()), (cara::uuid, 'speed_grab', 600, 30, now()),
+    (fay::uuid, 'trex_runner', 9000, 200, now()), (fay::uuid, 'speed_grab', 500, 30, now()),
+    (admin::uuid, 'trex_runner', 4000, 120, now());
+
+  PERFORM pg_temp.as_user(alice);
+  r := public.arcade_leaderboard('week', 'all');
+  PERFORM pg_temp.expect((r->'rows'->0->>'name') = 'Fay' AND (r->'rows'->0->>'score')::int = 5500, 'overall: a capped 9,000 counts as 5,000, plus 500 = 5,500, first');
+  PERFORM pg_temp.expect((r->'rows'->1->>'name') = 'Cara' AND (r->'rows'->2->>'name') = 'Alice', 'overall order is by score');
+  PERFORM pg_temp.expect(NOT (r::text ILIKE '%Boss%'), 'staff accounts never appear');
+  PERFORM pg_temp.expect((r->'me'->>'rank')::int = 3 AND (r->'rows'->2->>'is_me')::boolean, 'a player sees their own place');
+
+  r := public.arcade_leaderboard('week', 'trex_runner');
+  PERFORM pg_temp.expect((r->'rows'->0->>'score')::int = 5000 AND (r->'rows'->1->>'name') = 'Bob', 'one game: its own best, capped, and only this week');
+  r := public.arcade_leaderboard('all', 'trex_runner');
+  PERFORM pg_temp.expect((r->'rows'->1->>'name') = 'Bob' AND (r->'rows'->1->>'score')::int = 2000, 'all time includes older scores');
+  r := public.arcade_leaderboard('month', 'speed_grab');
+  PERFORM pg_temp.expect((r->'rows'->0->>'name') = 'Cara', 'month board for one game');
+  PERFORM pg_temp.expect_error($q$SELECT public.arcade_leaderboard('year', 'all')$q$, 'Unknown period');
+  PERFORM pg_temp.expect_error($q$SELECT public.arcade_leaderboard('week', 'pong')$q$, 'Unknown game');
+
+  -- nicknames
+  PERFORM public.set_my_nickname('Fast Alice');
+  r := public.arcade_leaderboard('week', 'all');
+  PERFORM pg_temp.expect((r->'rows'->2->>'name') = 'Fast Alice', 'a nickname replaces the first name');
+  PERFORM pg_temp.as_user(bob);
+  PERFORM pg_temp.expect_error($q$SELECT public.set_my_nickname('fast alice')$q$, 'That nickname is already taken');
+  PERFORM pg_temp.expect_error($q$SELECT public.set_my_nickname('Sh1t Boy')$q$, 'Please choose a different nickname');
+  PERFORM pg_temp.expect_error($q$SELECT public.set_my_nickname('Admin01')$q$, 'Please choose a different nickname');
+  PERFORM pg_temp.expect_error($q$SELECT public.set_my_nickname('ab')$q$, 'Use 3 to 14');
+  PERFORM pg_temp.expect_error($q$SELECT public.set_my_nickname('bad<>name')$q$, 'Use 3 to 14');
+  PERFORM pg_temp.expect_error($q$SELECT public.set_my_nickname('this name is far too long')$q$, 'Use 3 to 14');
+  PERFORM pg_temp.as_user(alice);
+  PERFORM public.set_my_nickname('');
+  r := public.arcade_leaderboard('week', 'all');
+  PERFORM pg_temp.expect((r->'rows'->2->>'name') = 'Alice', 'clearing the nickname goes back to the first name');
+
+  -- hiding
+  PERFORM pg_temp.as_user(fay);
+  PERFORM public.set_my_nickname(NULL, true);
+  r := public.arcade_leaderboard('week', 'all');
+  PERFORM pg_temp.expect((r->'rows'->0->>'name') = 'Cara' AND NOT (r::text LIKE '%Fay%'), 'a hidden player is not listed and others move up');
+  PERFORM pg_temp.expect((r->'me'->>'hidden')::boolean, 'a hidden player is told they are hidden');
+
+  -- guests can read it but have no place of their own
+  PERFORM pg_temp.as_user('');
+  r := public.arcade_leaderboard('all', 'all');
+  PERFORM pg_temp.expect(jsonb_array_length(r->'rows') > 0 AND jsonb_typeof(r->'me') = 'null', 'guests see the board and no personal row');
+  PERFORM pg_temp.expect_error($q$SELECT public.set_my_nickname('Guest Name')$q$, 'Please log in first');
+
+  -- admin tools
+  PERFORM pg_temp.as_user(alice);
+  PERFORM pg_temp.expect_error($q$SELECT public.admin_list_leaderboard_names()$q$, 'permission denied');
+  PERFORM pg_temp.as_user(bob);
+  PERFORM public.set_my_nickname('Bobby Bold');
+  PERFORM pg_temp.as_user(admin);
+  PERFORM pg_temp.expect(jsonb_array_length(public.admin_list_leaderboard_names()) >= 2, 'admin sees the nicknames');
+  PERFORM public.admin_reset_nickname(bob::uuid);
+  PERFORM pg_temp.expect((SELECT nickname FROM leaderboard_names WHERE user_id = bob::uuid) IS NULL, 'admin can reset a nickname');
+  PERFORM pg_temp.as_user(alice);
+  PERFORM pg_temp.expect_error(format($q$SELECT public.admin_reset_nickname(%L)$q$, bob), 'permission denied');
+
+  -- who may call what
+  PERFORM pg_temp.expect(has_function_privilege('anon', 'public.arcade_leaderboard(text, text)', 'EXECUTE'), 'guests can read the leaderboard');
+  PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.set_my_nickname(text, boolean)', 'EXECUTE'), 'guests cannot set a nickname');
+  PERFORM pg_temp.expect(NOT has_table_privilege('authenticated', 'public.leaderboard_names', 'INSERT') AND NOT has_table_privilege('authenticated', 'public.leaderboard_names', 'UPDATE') AND NOT has_table_privilege('anon', 'public.leaderboard_names', 'SELECT'), 'nicknames cannot be written or read directly from the browser');
 END $$;
 
 -- ---------------------------------------------------------------------

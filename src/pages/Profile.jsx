@@ -1,4 +1,5 @@
 import InstallAppButton from '../components/InstallAppButton';
+import LeaderboardNameCard from '../components/LeaderboardNameCard';
 import { formatOrderId } from '../contexts/StoreContext';
 import { useState, useEffect } from 'react';
 import { ChevronDown, LogOut } from 'lucide-react';
@@ -271,6 +272,8 @@ export default function Profile() {
             <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0 0 12px' }}>Earn 1 coin for every RM1 you spend. Spend them on free food in the Prize Vault.</p>
             <a href="/loyalty" className="btn btn-primary w-full">View Prize Vault</a>
           </div>
+
+          <LeaderboardNameCard />
 
           <div className="promo-section" style={{marginTop: '2rem'}}>
             <h3>Share Referral Link</h3>
