@@ -299,6 +299,9 @@ export default function MunchManModal({ isOpen, onClose }) {
     const addPop = (x, y, text) => pops.push({ x, y, text, ttl: 0.8 });
 
     const state = {
+      runPhase: 0,
+      hurtTimer: 0,
+      gulp: 0,
       dots: [],
       totalDots: 0,
       dotsEaten: 0,
@@ -329,6 +332,9 @@ export default function MunchManModal({ isOpen, onClose }) {
     gameStateRef.current = state;
 
     function resetGame() {
+      state.runPhase = 0;
+      state.hurtTimer = 0;
+      state.gulp = 0;
       particles.clear();
       pops.length = 0;
       state.dots = [];
@@ -473,6 +479,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         state.score += 10;
         state.dotsEaten++;
         setScore(state.score);
+        state.gulp = 4;
         sfxEat();
       }
       state.pellets.forEach(p => {
@@ -553,6 +560,7 @@ export default function MunchManModal({ isOpen, onClose }) {
             sfxHit();
             shake.kick(7, 0.3);
             vibrate(soundOnRef.current, 60);
+            state.hurtTimer = 75;
             if (state.lives <= 0) {
               endGame(false, null);
             } else {
@@ -693,7 +701,41 @@ export default function MunchManModal({ isOpen, onClose }) {
     }
 
     const TREX_ART_FACES_LEFT = true;
-    const TREX_DRAW_W = 32;
+    const TREX_DRAW_W = 36;
+
+    // The runner: the body is the mascot picture, but the feet are drawn in code so they
+    // really run (they swing and lift in turn). It also leans and bounces while moving,
+    // breathes when still, gulps when it eats, glows when the ghosts are scared and sees
+    // stars when it is hit.
+    const SPRITE_CUT = 258;   // rows of the 300x297 picture kept as the body (the feet are redrawn)
+    const LEG = '#F3A21E';
+    const OUTLINE = '#2C292B';
+
+    function drawFoot(k, hipX, footX, phase, running) {
+      const swing = running ? Math.sin(phase) * 26 : 0;
+      const lift = running ? Math.max(0, Math.cos(phase)) * 24 : 0;
+      const fx = footX + swing;
+      const fy = 285 - lift;
+      // leg: dark outline underneath, orange on top
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = OUTLINE;
+      ctx.lineWidth = 32 * k;
+      ctx.beginPath();
+      ctx.moveTo(hipX * k, SPRITE_CUT * k);
+      ctx.lineTo(fx * k, (fy - 6) * k);
+      ctx.stroke();
+      ctx.strokeStyle = LEG;
+      ctx.lineWidth = 21 * k;
+      ctx.stroke();
+      // foot
+      ctx.fillStyle = LEG;
+      ctx.strokeStyle = OUTLINE;
+      ctx.lineWidth = 6 * k;
+      ctx.beginPath();
+      ctx.ellipse(fx * k, fy * k, 19 * k, 11 * k, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
 
     function drawPlayer() {
       const cx = state.player.x + CELL / 2;
@@ -703,24 +745,63 @@ export default function MunchManModal({ isOpen, onClose }) {
       let flip = faceRight ? 1 : -1;
       if (TREX_ART_FACES_LEFT) flip *= -1;
 
-      const moving = (state.player.dir.dx || state.player.dir.dy);
-      const bounce = moving ? Math.abs(Math.sin(Date.now() / 140)) * 2 : 0;
+      const moving = !!(state.player.dir.dx || state.player.dir.dy);
+      if (moving) state.runPhase += 0.3;
+      const ph = state.runPhase;
+      const powered = state.ghosts.some((g) => g.scared);
+      const bounce = moving ? Math.abs(Math.sin(ph)) * 2.4 : 0;
+      const lean = moving ? Math.sin(ph) * 0.07 : 0;
+      let sx = 1;
+      let sy = 1;
+      if (moving) { sy += Math.cos(ph * 2) * 0.035; sx -= Math.cos(ph * 2) * 0.035; }
+      else { sy += Math.sin(Date.now() / 420) * 0.02; }
+      if (state.gulp > 0) { state.gulp--; sx *= 1.07; sy *= 0.93; }
+
+      // glow while the ghosts are scared
+      if (powered) {
+        const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 120);
+        const glow = ctx.createRadialGradient(cx, cy, 4, cx, cy, 24);
+        glow.addColorStop(0, `rgba(255, 120, 60, ${0.35 + 0.2 * pulse})`);
+        glow.addColorStop(1, 'rgba(255, 120, 60, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(cx - 26, cy - 26, 52, 52);
+      }
 
       ctx.save();
+      // blink while protected after a hit
+      if (state.hurtTimer > 0 && Math.floor(state.hurtTimer / 5) % 2 === 0) ctx.globalAlpha = 0.45;
       ctx.translate(cx, cy - bounce);
-      ctx.scale(flip, 1);
+      ctx.rotate(lean * flip);
+      ctx.scale(flip * sx, sy);
 
       if (trexImg.complete && trexImg.naturalWidth > 0) {
-        const drawH = TREX_DRAW_W * (trexImg.naturalHeight / trexImg.naturalWidth);
-        ctx.drawImage(trexImg, -TREX_DRAW_W / 2, -drawH / 2, TREX_DRAW_W, drawH);
+        const k = TREX_DRAW_W / trexImg.naturalWidth;
+        const drawH = trexImg.naturalHeight * k;
+        ctx.save();
+        ctx.translate(-TREX_DRAW_W / 2, -drawH / 2);
+        drawFoot(k, 110, 106, ph, moving);
+        drawFoot(k, 158, 160, ph + Math.PI, moving);
+        ctx.drawImage(trexImg, 0, 0, trexImg.naturalWidth, SPRITE_CUT, 0, 0, TREX_DRAW_W, SPRITE_CUT * k);
+        ctx.restore();
       } else {
         ctx.fillStyle = '#FFC72C';
         ctx.beginPath();
         ctx.arc(0, 0, 9.5, 0, Math.PI * 2);
         ctx.fill();
       }
-
       ctx.restore();
+
+      // dizzy stars circling above the head after a hit
+      if (state.hurtTimer > 0) {
+        state.hurtTimer--;
+        ctx.fillStyle = '#FFD23F';
+        for (let i = 0; i < 3; i++) {
+          const a = Date.now() / 160 + (i * Math.PI * 2) / 3;
+          ctx.beginPath();
+          ctx.arc(cx + Math.cos(a) * 9, cy - 17 + Math.sin(a) * 3, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     }
 
     function drawGhosts() {
@@ -853,6 +934,7 @@ export default function MunchManModal({ isOpen, onClose }) {
     }
 
     function loop() {
+      if (import.meta.env.DEV) window.__munch = state;
       try {
         if (state.running) {
           const desiredPlayerSpeed = state.speedBoostTimer > 0 ? PLAYER_BOOST_SPEED : PLAYER_SPEED;
