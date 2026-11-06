@@ -302,6 +302,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       runPhase: 0,
       hurtTimer: 0,
       gulp: 0,
+      idleFrames: 0,
       dots: [],
       totalDots: 0,
       dotsEaten: 0,
@@ -333,6 +334,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     function resetGame() {
       state.runPhase = 0;
+      state.idleFrames = 0;
       state.hurtTimer = 0;
       state.gulp = 0;
       particles.clear();
@@ -746,11 +748,13 @@ export default function MunchManModal({ isOpen, onClose }) {
       if (TREX_ART_FACES_LEFT) flip *= -1;
 
       const moving = !!(state.player.dir.dx || state.player.dir.dy);
-      if (moving) state.runPhase += 0.3;
+      if (moving) { state.runPhase += 0.3; state.idleFrames = 0; } else state.idleFrames++;
+      // restless when it has been standing still for a while
+      const restless = state.idleFrames > 90;
       const ph = state.runPhase;
       const powered = state.ghosts.some((g) => g.scared);
       const bounce = moving ? Math.abs(Math.sin(ph)) * 2.4 : 0;
-      const lean = moving ? Math.sin(ph) * 0.07 : 0;
+      const lean = moving ? Math.sin(ph) * 0.07 : (restless ? Math.sin(Date.now() / 55) * 0.13 : 0);
       let sx = 1;
       let sy = 1;
       if (moving) { sy += Math.cos(ph * 2) * 0.035; sx -= Math.cos(ph * 2) * 0.035; }
@@ -801,6 +805,31 @@ export default function MunchManModal({ isOpen, onClose }) {
           ctx.arc(cx + Math.cos(a) * 9, cy - 17 + Math.sin(a) * 3, 1.8, 0, Math.PI * 2);
           ctx.fill();
         }
+      }
+
+      // a little speech bubble with how it feels
+      let mood = null;
+      const nearGhost = state.graceTimer <= 0 && state.ghosts.some((g) => !g.scared && Math.hypot(g.x - state.player.x, g.y - state.player.y) < CELL * 2.6);
+      if (nearGhost) mood = { text: '!', color: '#e0301e' };
+      else if (powered) mood = { text: '💢', color: '#e0301e' };
+      else if (state.speedBoostTimer > 0) mood = { text: '⚡', color: '#e8a400' };
+      else if (restless && !moving) mood = { text: '…', color: '#555' };
+      if (mood && state.hurtTimer <= 0) {
+        const bx = cx + 6;
+        const by = cy - 27 + Math.sin(Date.now() / 140) * 1;
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.beginPath();
+        ctx.roundRect(bx - 8, by - 8, 16, 15, 5);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(bx - 4, by + 6);
+        ctx.lineTo(bx - 7, by + 11);
+        ctx.lineTo(bx, by + 6);
+        ctx.fill();
+        ctx.fillStyle = mood.color;
+        ctx.font = '900 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(mood.text, bx, by + 4);
       }
     }
 
