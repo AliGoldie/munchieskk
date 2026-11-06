@@ -11,7 +11,13 @@ const BOARD = {
   me: null
 };
 
-async function mockBoard(page, calls, overrides = {}) {
+const thisMonday = () => {
+  const d = new Date(Date.now() + 8 * 3600e3);
+  return new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * 86400e3).toISOString().slice(0, 10);
+};
+
+async function mockBoard(page, calls, overrides = {}, { seen = true } = {}) {
+  if (seen) await page.addInitScript((w) => localStorage.setItem('mk_champions_seen', w), thisMonday());
   await page.route('**/rest/v1/**', async (route) => {
     const url = route.request().url();
     if (url.includes('/rest/v1/rpc/arcade_leaderboard')) {
@@ -59,4 +65,36 @@ test('an empty board invites the first player', async ({ page }) => {
   await mockBoard(page, [], { rows: [] });
   await page.goto('/leaderboard', { waitUntil: 'networkidle' });
   await expect(page.locator('.lb-empty')).toContainText('Be the first');
+});
+
+test('last week\'s champion is announced once, then not again that week', async ({ page }) => {
+  const calls = [];
+  await mockBoard(page, calls, {}, { seen: false });
+  await page.goto('/arcade', { waitUntil: 'networkidle' });
+  const overlay = page.locator('.champ-overlay');
+  await expect(overlay).toBeVisible();
+  await expect(overlay).toContainText('CHAMPION');
+  await expect(overlay).toContainText('Fast Alice');
+  await expect(overlay.locator('.champ-score')).toContainText('5,500', { timeout: 5000 });
+  expect(calls.some((c) => c.p_period === 'lastweek')).toBe(true);
+  await overlay.locator('.champ-close').click();
+  await expect(overlay).toHaveCount(0);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  await expect(page.locator('.champ-overlay')).toHaveCount(0);
+});
+
+test('no announcement when last week had no real champion', async ({ page }) => {
+  await mockBoard(page, [], { rows: [{ rank: 1, name: 'Tiny', score: 40, is_me: false }] }, { seen: false });
+  await page.goto('/arcade', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  await expect(page.locator('.champ-overlay')).toHaveCount(0);
+});
+
+test('the leaderboard has a Last week tab', async ({ page }) => {
+  const calls = [];
+  await mockBoard(page, calls);
+  await page.goto('/leaderboard', { waitUntil: 'networkidle' });
+  await page.click('.lb-tab:has-text("Last week")');
+  await expect.poll(() => calls.some((c) => c.p_period === 'lastweek')).toBe(true);
 });

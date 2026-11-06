@@ -13,6 +13,7 @@ const GAMES = [
 ];
 const PERIODS = [
   { id: 'week', label: 'This week' },
+  { id: 'lastweek', label: 'Last week' },
   { id: 'month', label: 'This month' },
   { id: 'all', label: 'All time' }
 ];

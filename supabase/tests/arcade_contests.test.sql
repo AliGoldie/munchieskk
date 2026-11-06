@@ -507,6 +507,25 @@ BEGIN
   PERFORM pg_temp.expect(NOT has_table_privilege('authenticated', 'public.leaderboard_names', 'INSERT') AND NOT has_table_privilege('authenticated', 'public.leaderboard_names', 'UPDATE') AND NOT has_table_privilege('anon', 'public.leaderboard_names', 'SELECT'), 'nicknames cannot be written or read directly from the browser');
 END $$;
 
+-- last week's board (used for the champions announcement)
+DO $$
+DECLARE
+  alice constant text := 'a0000000-0000-0000-0000-000000000001';
+  bob constant text := 'a0000000-0000-0000-0000-000000000002';
+  r jsonb;
+BEGIN
+  DELETE FROM arcade_scores;
+  INSERT INTO arcade_scores (user_id, game, score, run_seconds, scored_at) VALUES
+    (alice::uuid, 'trex_runner', 700, 60, public.arcade_week_start() - interval '2 days'),
+    (bob::uuid, 'trex_runner', 900, 60, public.arcade_week_start() - interval '3 days'),
+    (alice::uuid, 'speed_grab', 5000, 60, now());
+  PERFORM pg_temp.as_user('');
+  r := public.arcade_leaderboard('lastweek', 'all');
+  PERFORM pg_temp.expect(jsonb_array_length(r->'rows') = 2 AND (r->'rows'->0->>'name') = 'Bob' AND (r->'rows'->0->>'score')::int = 900, 'last week board holds only last week, best first');
+  r := public.arcade_leaderboard('week', 'all');
+  PERFORM pg_temp.expect(jsonb_array_length(r->'rows') = 1 AND (r->'rows'->0->>'name') = 'Alice', 'this week board does not include last week');
+END $$;
+
 -- ---------------------------------------------------------------------
 -- 4. Privileges
 -- ---------------------------------------------------------------------

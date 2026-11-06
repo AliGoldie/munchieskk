@@ -99,7 +99,7 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.my_leaderboard_name() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.my_leaderboard_name() TO authenticated;
 
--- 4. The leaderboard. p_period: 'week' (Monday to Sunday, Malaysia time), 'month' (calendar
+-- 4. The leaderboard. p_period: 'week' (Monday to Sunday, Malaysia time), 'lastweek' (the week before), 'month' (calendar
 --    month, Malaysia time) or 'all'. p_game: 'all' (best score in each game added up, each
 --    game capped like the contest) or one game. Returns the top 20 plus the caller's own place.
 CREATE OR REPLACE FUNCTION public.arcade_leaderboard(p_period text DEFAULT 'week', p_game text DEFAULT 'all')
@@ -112,10 +112,11 @@ AS $$
 DECLARE
   v_uid uuid := auth.uid();
   v_from timestamptz;
+  v_to timestamptz := 'infinity'::timestamptz;
   v_rows jsonb;
   v_me jsonb;
 BEGIN
-  IF p_period NOT IN ('week', 'month', 'all') THEN
+  IF p_period NOT IN ('week', 'lastweek', 'month', 'all') THEN
     RAISE EXCEPTION 'Unknown period.';
   END IF;
   IF p_game NOT IN ('all', 'trex_runner', 'speed_grab', 'munch_man') THEN
@@ -124,15 +125,17 @@ BEGIN
 
   v_from := CASE p_period
     WHEN 'week' THEN public.arcade_week_start()
+    WHEN 'lastweek' THEN public.arcade_week_start() - interval '7 days'
     WHEN 'month' THEN date_trunc('month', now() AT TIME ZONE 'Asia/Kuching') AT TIME ZONE 'Asia/Kuching'
     ELSE '-infinity'::timestamptz
   END;
+  IF p_period = 'lastweek' THEN v_to := public.arcade_week_start(); END IF;
 
   WITH best AS (
     SELECT DISTINCT ON (s.user_id, s.game) s.user_id, s.game,
            LEAST(s.score, public.arcade_game_cap()) AS score, s.scored_at
     FROM public.arcade_scores s
-    WHERE s.scored_at >= v_from AND (p_game = 'all' OR s.game = p_game)
+    WHERE s.scored_at >= v_from AND s.scored_at < v_to AND (p_game = 'all' OR s.game = p_game)
     ORDER BY s.user_id, s.game, LEAST(s.score, public.arcade_game_cap()) DESC, s.scored_at ASC
   ),
   tot AS (
