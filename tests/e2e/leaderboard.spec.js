@@ -6,7 +6,9 @@ const BOARD = {
   rows: [
     { rank: 1, name: 'Fast Alice', score: 5500, is_me: false },
     { rank: 2, name: 'Cara', score: 1500, is_me: false },
-    { rank: 3, name: 'Bob', score: 1200, is_me: false }
+    { rank: 3, name: 'Bob', score: 1200, is_me: false },
+    { rank: 4, name: 'Dina', score: 900, is_me: false },
+    { rank: 5, name: 'Eli', score: 400, is_me: false }
   ],
   me: null
 };
@@ -38,8 +40,10 @@ test('the leaderboard lists the players and the tabs ask for the right board', a
   await mockBoard(page, calls);
   await page.goto('/leaderboard', { waitUntil: 'networkidle' });
 
-  await expect(page.locator('.lb-row').first()).toContainText('Fast Alice');
-  await expect(page.locator('.lb-row').first()).toContainText('5,500 XP');
+  await expect(page.locator('.lb-pod.p1')).toContainText('Fast Alice');
+  await expect(page.locator('.lb-pod.p1')).toContainText('5,500');
+  await expect(page.locator('.lb-row')).toHaveCount(2);
+  await expect(page.locator('.lb-row').first()).toContainText('Dina');
   expect(calls[0]).toEqual({ p_period: 'week', p_game: 'all' });
 
   await page.click('.lb-tab:has-text("T-Rex")');
