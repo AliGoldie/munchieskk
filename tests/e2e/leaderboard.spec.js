@@ -40,11 +40,16 @@ test('the leaderboard lists the players and the tabs ask for the right board', a
   await mockBoard(page, calls);
   await page.goto('/leaderboard', { waitUntil: 'networkidle' });
 
-  await expect(page.locator('.lb-leader')).toContainText('Fast Alice');
-  await expect(page.locator('.lb-leader')).toContainText('5,500');
-  await expect(page.locator('.lb-row')).toHaveCount(4);
-  await expect(page.locator('.lb-row').first()).toContainText('Cara');
-  expect(calls[0]).toEqual({ p_period: 'week', p_game: 'all' });
+  // main banner: overall champion of the month; deck: one card per ranked player
+  await expect(page.locator('.lb-champ')).toContainText('CHAMPION OF');
+  await expect(page.locator('.lb-champ')).toContainText('Fast Alice');
+  await expect(page.locator('.lb-champ')).toContainText('5,500');
+  await expect(page.locator('.tcard')).toHaveCount(5);
+  await expect(page.locator('.tcard').first()).toContainText('GRILL MASTER');
+  await expect(page.locator('.tcard').nth(1)).toContainText('SAUCE BOSS');
+  await expect(page.locator('.tcard').nth(3)).toContainText('PATTY FLIPPER');
+  expect(calls).toContainEqual({ p_period: 'month', p_game: 'all' });
+  expect(calls).toContainEqual({ p_period: 'week', p_game: 'all' });
 
   await page.click('.lb-tab:has-text("T-Rex")');
   await page.click('.lb-tab:has-text("All time")');

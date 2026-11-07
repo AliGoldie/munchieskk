@@ -22,8 +22,51 @@ const ART = {
   speed_grab: '/images/fry_catch.webp',
   munch_man: '/images/munchman_game.webp'
 };
-const WHEN = { week: 'THIS WEEK', lastweek: 'LAST WEEK', month: 'THIS MONTH', all: 'ALL TIME' };
 const fmt = (n) => Number(n).toLocaleString();
+const MONTH_NAME = () => new Date().toLocaleString('en-GB', { month: 'long', timeZone: 'Asia/Kuching' }).toUpperCase();
+
+// A player's card tier follows their place on the board (not their spending).
+function tierOf(rank) {
+  if (rank === 1) return { id: 'master', name: 'GRILL MASTER' };
+  if (rank <= 3) return { id: 'boss', name: 'SAUCE BOSS' };
+  if (rank <= 10) return { id: 'flipper', name: 'PATTY FLIPPER' };
+  return { id: 'rookie', name: 'BUN ROOKIE' };
+}
+
+// One collectible card. Tilts and shows a foil shine under the pointer.
+function TradingCard({ row, art, index }) {
+  const tier = tierOf(row.rank);
+  const move = (e) => {
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    el.style.setProperty('--mx', x.toFixed(3));
+    el.style.setProperty('--my', y.toFixed(3));
+    el.style.setProperty('--rx', `${((0.5 - y) * 16).toFixed(1)}deg`);
+    el.style.setProperty('--ry', `${((x - 0.5) * 18).toFixed(1)}deg`);
+    el.classList.add('hot');
+  };
+  const leave = (e) => {
+    const el = e.currentTarget;
+    ['--mx', '--my', '--rx', '--ry'].forEach((k) => el.style.removeProperty(k));
+    el.classList.remove('hot');
+  };
+  return (
+    <li className={`tcard t-${tier.id} ${row.is_me ? 'me' : ''}`} style={{ '--i': index }}>
+      <div className="tcard-in" onPointerMove={move} onPointerLeave={leave} onPointerCancel={leave}>
+        <div className="tcard-face">
+          <span className="tcard-rank">#{row.rank}</span>
+          <div className="tcard-art" style={{ backgroundImage: `url(${art})` }} />
+          <span className="tcard-tier">{tier.name}</span>
+          <span className="tcard-name">{row.name}{row.is_me ? ' (you)' : ''}</span>
+          <span className="tcard-score">{fmt(row.score)}<small> XP</small></span>
+        </div>
+        <span className="tcard-foil" aria-hidden="true" />
+      </div>
+    </li>
+  );
+}
 
 export default function Leaderboard() {
   const { user } = useAuth();
@@ -31,6 +74,15 @@ export default function Leaderboard() {
   const [period, setPeriod] = useState('week');
   const [data, setData] = useState(null);
   const [failed, setFailed] = useState(false);
+  const [champ, setChamp] = useState(undefined); // overall champion of the month
+
+  useEffect(() => {
+    let active = true;
+    Promise.resolve(supabase.rpc('arcade_leaderboard', { p_period: 'month', p_game: 'all' }))
+      .then(({ data: d, error }) => { if (active) setChamp(error ? null : (d?.rows?.[0] || null)); })
+      .catch(() => { if (active) setChamp(null); });
+    return () => { active = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     let active = true;
@@ -49,13 +101,31 @@ export default function Leaderboard() {
   const me = data?.me;
   const inTop = rows.some((r) => r.is_me);
 
-  const leader = rows[0];
-  const rest = rows.slice(1);
-
   return (
     <div className="leaderboard-page">
       <h2>LEADERBOARD</h2>
-      <p className="lb-sub">Top players by Burger XP. The best score in each game counts.</p>
+
+      {champ !== undefined && (
+        <section className="lb-champ" aria-label="Champion of the month">
+          <div className="lb-champ-text">
+            <span className="lb-champ-kicker">CHAMPION OF {MONTH_NAME()}</span>
+            {champ ? (
+              <>
+                <h3>{champ.name}{champ.is_me ? ' (you)' : ''}</h3>
+                <div className="lb-champ-score">{fmt(champ.score)}<small> XP</small></div>
+                <span className="lb-champ-tier">GRILL MASTER · ALL THREE GAMES</span>
+              </>
+            ) : (
+              <>
+                <h3>Seat is empty</h3>
+                <span className="lb-champ-tier">Play any game to take the crown this month.</span>
+              </>
+            )}
+          </div>
+          <div className="lb-champ-art" style={{ backgroundImage: `url(${ART.all})` }} aria-hidden="true" />
+          <span className="tcard-foil lb-champ-foil" aria-hidden="true" />
+        </section>
+      )}
 
       <div className="lb-tabs" role="tablist" aria-label="Game">
         {GAMES.map((g) => (
@@ -69,34 +139,15 @@ export default function Leaderboard() {
       </div>
 
       {failed ? (
-        <div className="card lb-board"><p className="lb-empty">Could not load the leaderboard. Please try again.</p></div>
+        <p className="lb-empty">Could not load the leaderboard. Please try again.</p>
       ) : !data ? (
-        <div className="card lb-board"><p className="lb-empty">Loading…</p></div>
-      ) : !leader ? (
-        <div className="card lb-board"><p className="lb-empty">No scores yet. Be the first on the board!</p></div>
+        <p className="lb-empty">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="lb-empty">No scores yet. Be the first on the board!</p>
       ) : (
-        <>
-          <div className={`card lb-leader ${leader.is_me ? 'me' : ''}`}>
-            <span className="lb-badge">№1 · {WHEN[period]}</span>
-            <div className="lb-leader-body">
-              <h3>{leader.name}{leader.is_me ? ' (you)' : ''}</h3>
-              <div className="lb-leader-score">{fmt(leader.score)}<small> XP</small></div>
-            </div>
-            <div className="lb-leader-art"><div style={{ backgroundImage: `url(${ART[game]})` }} /></div>
-          </div>
-
-          {rest.length > 0 && (
-            <ol className="card lb-board lb-list" start={2}>
-              {rest.map((r) => (
-                <li key={r.rank} className={`lb-row ${r.is_me ? 'me' : ''}`}>
-                  <span className="lb-rank">{r.rank}</span>
-                  <span className="lb-name">{r.name}{r.is_me ? ' (you)' : ''}</span>
-                  <span className="lb-score">{fmt(r.score)} XP</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </>
+        <ol className="lb-deck" key={`${game}-${period}`} aria-label="Top players">
+          {rows.map((r, i) => <TradingCard key={r.rank} row={r} art={ART[game]} index={i} />)}
+        </ol>
       )}
 
       {user && me && !me.hidden && !inTop && (
@@ -109,7 +160,7 @@ export default function Leaderboard() {
         <div className="lb-you">Want to be on the board? <Link to="/signup">Sign up</Link> or <Link to="/login">log in</Link>, then play.</div>
       )}
       {user && (
-        <p className="lb-note">Pick a nickname in your <Link to="/profile">Profile</Link>. Without one, your first name is shown.</p>
+        <p className="lb-note">Pick a nickname in your <Link to="/profile">Profile</Link>. Without one, your first name is shown. Card tiers follow your place on the board.</p>
       )}
 
       <div className="lb-actions">

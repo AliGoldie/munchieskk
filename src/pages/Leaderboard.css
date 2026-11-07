@@ -1,37 +1,67 @@
-/* Leaderboard page: same flat cards, borders and type as the Arcade page */
+/* Leaderboard page: champion banner and a deck of collectible cards */
 .leaderboard-page { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) 0 6rem; color: var(--text); }
 .leaderboard-page h2 { margin: 0; }
-.lb-sub { margin: 0; color: var(--text-2); font-size: 0.85rem; }
-.lb-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
-.lb-tab { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 0.72rem; letter-spacing: .08em; text-transform: uppercase; padding: 7px 13px; border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: transparent; color: var(--text-2); cursor: pointer; }
-.lb-tab.small { padding: 5px 11px; font-size: 0.66rem; }
-.lb-tab.on { background: var(--gold); border-color: var(--gold); color: #1a1a1a; }
 
-.card.lb-leader { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4); background-color: var(--plate); border: 1px solid var(--line-strong); box-shadow: none; border-radius: var(--r-card); min-height: 150px; }
-.card.lb-leader::after { content: ''; position: absolute; inset: 0; background: radial-gradient(90% 70% at 15% 100%, rgba(199, 59, 15, .4) 0%, rgba(199, 59, 15, 0) 65%); mix-blend-mode: screen; pointer-events: none; }
-.lb-badge { position: absolute; top: var(--space-3); left: var(--space-4); z-index: 2; background: rgba(255, 199, 44, .16); color: var(--gold); font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 0.65rem; letter-spacing: .1em; padding: 5px 12px; border-radius: var(--r-pill); border: 1px solid rgba(255, 199, 44, .4); }
-.lb-leader-body { position: relative; z-index: 2; min-width: 0; margin-top: 38px; }
-.lb-leader-body h3 { margin: 0; font-size: 1.5rem; line-height: 1.1; color: #fff; overflow-wrap: anywhere; }
-.lb-leader-score { font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 2.2rem; color: var(--ember); font-variant-numeric: tabular-nums; }
-.lb-leader-score small { font-size: 0.8rem; color: var(--text-2); letter-spacing: .08em; }
-.lb-leader-art { position: relative; z-index: 1; flex: 0 0 auto; width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: var(--surface-raised); border: 1px solid var(--line-strong); }
-.lb-leader-art div { width: 100%; height: 100%; background-size: cover; background-position: center; }
-.card.lb-leader.me { border-color: var(--gold); }
+/* text tabs, no buttons */
+.lb-tabs { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.lb-tab { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 0.78rem; letter-spacing: .1em; text-transform: uppercase; padding: 6px 0; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--text-muted, #8d857a); cursor: pointer; }
+.lb-tab.small { font-size: 0.66rem; padding: 3px 0; }
+.lb-tab.on { color: var(--gold); border-bottom-color: var(--gold); }
 
-.card.lb-board { background: var(--surface-raised); border: 1px solid var(--line-strong); box-shadow: none; border-radius: var(--r-card); padding: 2px var(--space-3); margin: 0; }
-.lb-list { list-style: none; }
-.lb-row { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line-strong); }
-.lb-row:last-child { border-bottom: 0; }
-.lb-row.me { box-shadow: inset 3px 0 0 var(--gold); background: rgba(255, 199, 44, .08); padding: 12px 8px; margin: 0 -8px; border-radius: 6px; }
-.lb-rank { font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 1rem; color: var(--ember); }
-.lb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.lb-score { font-family: 'Archivo', sans-serif; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
+/* champion of the month */
+.lb-champ { position: relative; overflow: hidden; display: flex; align-items: stretch; justify-content: space-between; min-height: 170px; border-radius: var(--r-card); background: var(--plate); border: 2px solid #e8b12a; box-shadow: 0 0 0 1px rgba(255,199,44,.25) inset; }
+.lb-champ::before { content: ''; position: absolute; inset: 0; background: radial-gradient(90% 80% at 10% 100%, rgba(199,59,15,.45), transparent 65%); pointer-events: none; }
+.lb-champ-text { position: relative; z-index: 2; padding: var(--space-4); display: flex; flex-direction: column; justify-content: center; min-width: 0; flex: 1 1 58%; }
+.lb-champ-kicker { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 0.64rem; letter-spacing: .16em; color: var(--gold); }
+.lb-champ h3 { margin: 6px 0 0; font-size: clamp(1.5rem, 8vw, 2rem); line-height: 1.05; color: #fff; overflow-wrap: anywhere; }
+.lb-champ-score { font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 2.3rem; line-height: 1.1; color: var(--ember); font-variant-numeric: tabular-nums; }
+.lb-champ-score small { font-size: .8rem; letter-spacing: .08em; color: var(--text-2); }
+.lb-champ-tier { margin-top: 4px; font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 0.62rem; letter-spacing: .12em; color: var(--text-2); }
+.lb-champ-art { position: relative; z-index: 1; flex: 0 0 42%; background-size: cover; background-position: center; -webkit-mask-image: linear-gradient(90deg, transparent, #000 40%); mask-image: linear-gradient(90deg, transparent, #000 40%); }
+
+/* foil shine, shared by the banner and the cards */
+.tcard-foil { position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit; mix-blend-mode: color-dodge; opacity: 0; transition: opacity .25s;
+  background:
+    radial-gradient(circle at calc(var(--mx, .5) * 100%) calc(var(--my, .3) * 100%), rgba(255,255,255,.55), transparent 38%),
+    linear-gradient(115deg, transparent 15%, rgba(255,60,160,.45) 32%, rgba(60,230,255,.45) 48%, rgba(255,235,60,.45) 64%, transparent 82%);
+  background-size: 100% 100%, 260% 260%; background-position: 0 0, calc(var(--mx, .5) * 100%) calc(var(--my, .5) * 100%); }
+.lb-champ-foil { opacity: .35; animation: lb-foil 6s ease-in-out infinite alternate; }
+@keyframes lb-foil { from { background-position: 0 0, 0% 50%; } to { background-position: 0 0, 100% 50%; } }
+
+/* the deck */
+.lb-deck { list-style: none; margin: 0 calc(-1 * var(--space-4)); padding: 14px var(--space-4) 22px; display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-left: var(--space-4); -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.lb-deck::-webkit-scrollbar { display: none; }
+.tcard { flex: 0 0 150px; scroll-snap-align: start; perspective: 650px; animation: lb-deal .55s cubic-bezier(.2,.9,.3,1) both; animation-delay: calc(var(--i) * 45ms); }
+@keyframes lb-deal { from { opacity: 0; transform: translateX(110px) rotate(7deg) scale(.92); } to { opacity: 1; transform: none; } }
+.tcard-in { position: relative; border-radius: 14px; padding: 5px; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .18s ease-out, box-shadow .2s; transform-style: preserve-3d; box-shadow: 0 6px 16px rgba(0,0,0,.45); background: var(--frame); touch-action: pan-x; }
+.tcard-in.hot { box-shadow: 0 14px 28px rgba(0,0,0,.6); transition: transform .05s linear, box-shadow .2s; }
+.tcard-in.hot .tcard-foil { opacity: .75; }
+.tcard-face { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 8px 8px 10px; min-height: 212px; border-radius: 10px; background: var(--plate); overflow: hidden; }
+.tcard-face::before { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; background: linear-gradient(160deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 38%); }
+.tcard-rank { position: absolute; z-index: 5; top: 12px; left: 12px; padding: 1px 7px; border-radius: 6px; background: var(--frame); color: #1a1a1a; font-family: 'Archivo', sans-serif; font-weight: 900; font-size: .8rem; }
+.tcard-art { height: 98px; border-radius: 7px; background-size: cover; background-position: center; filter: saturate(1.1); }
+.tcard-tier { margin-top: 6px; font-family: 'Archivo', sans-serif; font-weight: 800; font-size: .58rem; letter-spacing: .14em; color: var(--text-2); }
+.tcard-name { font-weight: 800; font-size: 1rem; line-height: 1.15; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tcard-score { margin-top: auto; font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 1.35rem; color: var(--ember); font-variant-numeric: tabular-nums; }
+.tcard-score small { font-size: .65rem; letter-spacing: .08em; color: var(--text-2); }
+.t-master { --frame: linear-gradient(135deg, #ffe082, #c98a00 45%, #ffe082); }
+.t-boss { --frame: linear-gradient(135deg, #f0714a, #8a2205 55%, #f0714a); }
+.t-flipper { --frame: linear-gradient(135deg, #e8edf1, #7d8791 55%, #e8edf1); }
+.t-rookie { --frame: linear-gradient(135deg, #e0a56a, #8a5324 55%, #e0a56a); }
+.t-master .tcard-foil { opacity: .3; }
+.tcard.me .tcard-in { outline: 2px solid #fff; outline-offset: 2px; }
+
 .lb-empty { padding: 20px 8px; text-align: center; color: var(--text-2); margin: 0; }
 .lb-you { padding: 10px 12px; border-radius: var(--r-card); background: rgba(255, 255, 255, .06); border: 1px solid var(--line-strong); font-size: 0.88rem; }
 .lb-you a, .lb-note a { color: var(--gold); }
 .lb-note { margin: 0; font-size: 0.78rem; color: var(--text-2); }
 .lb-actions { display: flex; margin-top: var(--space-2); }
 .lb-actions .btn { flex: 1; text-align: center; text-decoration: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tcard, .lb-champ-foil { animation: none; }
+  .tcard-in { transform: none !important; }
+}
 
 /* Top-3 teaser on the Arcade page */
 .lb-teaser { margin: 0 0 1rem; padding: 0.8rem 0.9rem; border-radius: 14px; background: var(--surface-raised, #1f1c19); border: 1px solid rgba(255,199,44,0.35); color: var(--text, #f6f1e7); }
