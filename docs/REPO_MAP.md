@@ -58,6 +58,7 @@ Where key business data lives:
 | `FINANCE_BRIEF.md` | Numbers for the finance decisions (reward prices, costs). |
 | `SEO_PLAYBOOK.md` | Technical SEO done in code, plus the non-code checklist. |
 | `SECURITY_AUDIT_2026-10.md`, `POINTS_AUDIT_2026-10.md` | Past audits. |
+| `DESIGN_CHECKLIST.md` | Short checklist for customer-facing screen changes (phone width, focus, states, motion). Not a rulebook. |
 | `REPO_MAP.md` | This page. |
 | `marketing/README.md` | Pointer to the `content-team` repo, where campaigns live. |
 | `archive/` | Old material kept for history. **Not current.** Includes a pre-launch data-wipe script marked DO NOT RUN. |
