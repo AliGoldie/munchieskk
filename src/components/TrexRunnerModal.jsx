@@ -292,7 +292,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const POWERUP_DURATION = 6;
     const POWERUP_SPEED_MULTIPLIER = 1.5;
     const POWERUP_CHANCE = 0.3;
-    const MIN_POWERUP_SPACING = 380;
+    const MIN_POWERUP_SPACING = 800;
     // Three lives: a crash costs one and the run continues from solid ground
     // with a short grace period; the run ends on the third.
     const START_LIVES = 3;
@@ -326,6 +326,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       lastBucket: -1,
       flyers: [],
       gates: [],
+      pendingStage: null,
+      pendingGate: null,
       pops: [],
       nextFlyerAt: 0,
       jumpedAt: -9,
@@ -357,6 +359,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       segmentsGenerated: 0,
       lastObstacleRightEdge: -9999,
       lastPowerupRightEdge: -9999,
+      lastPowerupType: null,
       speedBoostUntil: 0,
       invincibleUntil: 0,
       magnetUntil: 0,
@@ -576,15 +579,38 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         // from the last power-up so speed/invincibility pickups can't
         // cluster together.
         if (last && !inGrace && Math.random() < POWERUP_CHANCE) {
-          const px = pickClearX(seg, placedObstacle, MIN_COLLECTIBLE_CLEARANCE);
+          // Placement varies: low on the road, high (a jump to reach it), or over the pit
+          // just before this segment. Burgers lead the eye into it.
+          const gapStartX = last.xEnd;
+          const gapW = seg.xStart - gapStartX;
+          const overGap = gapW >= 70 && Math.random() < 0.3;
+          const high = !overGap && Math.random() < 0.35;
+          const px = overGap ? gapStartX + gapW / 2 : pickClearX(seg, placedObstacle, MIN_COLLECTIBLE_CLEARANCE);
           if (px != null && px - state.lastPowerupRightEdge >= MIN_POWERUP_SPACING) {
-            const r = Math.random();
-            const type = r < 0.34 ? 'speed' : r < 0.68 ? 'invincible' : 'magnet';
-            state.powerups.push({ x: px, y: seg.y - PLAYER_H - 34, size: 11, type });
+            const baseY = overGap ? Math.min(last.y, seg.y) - PLAYER_H - 50 : seg.y - PLAYER_H - (high ? 64 : 34);
+            const type = pickPowerupType();
+            state.powerups.push({ x: px, y: baseY, size: 11, type });
             state.lastPowerupRightEdge = px;
+            state.lastPowerupType = type;
+            if (!overGap && px - seg.xStart >= 70) {
+              state.collectibles.push({ x: px - 44, y: baseY + 18, size: 9 }, { x: px - 22, y: baseY + 8, size: 9 });
+            }
           }
         }
       }
+    }
+
+    // Never the same power-up twice in a row, and never one that is still running: a speed
+    // boost is followed by something different, so the run keeps changing.
+    function pickPowerupType() {
+      const active = {
+        speed: state.speedBoostUntil - state.elapsed > 1.5,
+        invincible: state.invincibleUntil - state.elapsed > 1.5,
+        magnet: state.magnetUntil - state.elapsed > 1.5
+      };
+      let pool = ['speed', 'invincible', 'magnet'].filter((t) => t !== state.lastPowerupType && !active[t]);
+      if (pool.length === 0) pool = ['speed', 'invincible', 'magnet'].filter((t) => t !== state.lastPowerupType);
+      return pool[Math.floor(Math.random() * pool.length)];
     }
 
     function resetGame() {
@@ -618,12 +644,15 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.lastBucket = -1;
       state.flyers = [];
       state.gates = [];
+      state.pendingStage = null;
+      state.pendingGate = null;
       state.pops = [];
       state.nextFlyerAt = 8;
       state.jumpedAt = -9;
       state.landedAt = -9;
       state.lastStep = 0;
       state.lastPowerupRightEdge = -9999;
+      state.lastPowerupType = null;
       state.speedBoostUntil = 0;
       state.invincibleUntil = 0;
       state.magnetUntil = 0;
@@ -704,6 +733,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         for (const o of state.obstacles) o.x -= shift;
         for (const c of state.collectibles) c.x -= shift;
         for (const q of state.powerups) q.x -= shift;
+        for (const g of state.gates) g.x -= shift;
         for (const e of state.effects) e.x -= shift;
         state.lastObstacleRightEdge -= shift;
         state.lastPowerupRightEdge -= shift;
@@ -788,19 +818,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // invincibility). Distance already accrues faster while boosted, so
       // that alone rewards the speed power-up without a separate multiplier.
       state.score = Math.floor((state.distance + state.scoreAdjust) / 8) + state.burgersCollected * 5 + state.bonusScore;
+      // The next stage starts at its landmark gate, not the moment the score crosses the line:
+      // the gate is set on a flat stretch (placePendingGate) and the scenery changes as the
+      // runner passes through it (updateGates -> enterStage).
       const nextStage = stageIndexForScore(state.score);
-      if (nextStage !== state.stageIdx) {
-        state.prevStageIdx = state.stageIdx;
-        state.stageIdx = nextStage;
-        state.stageBlend = 0;
-        state.stageBannerUntil = state.elapsed + 2;
-        state.gates.push({ x: W + 30, passed: false, name: STAGES[nextStage].name });
-        sfxStage();
-        setStageIdx(nextStage);
-        setInfoChip(nextStage);
-        clearTimeout(chipTimerRef.current);
-        chipTimerRef.current = setTimeout(() => setInfoChip((c) => (c === nextStage ? null : c)), 4500);
-      }
+      if (nextStage !== state.stageIdx && state.pendingStage == null) state.pendingStage = nextStage;
+      placePendingGate();
       if (state.stageBlend < 1) state.stageBlend = Math.min(1, state.stageBlend + dt / 1.5);
       state.jumpBuffer = Math.max(0, state.jumpBuffer - dt);
       state.scoreThrottle += dt;
@@ -1003,10 +1026,48 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
 
     // Landmark gate: purely visual, never in the way. Passing it pays a bonus.
+    function enterStage(nextStage) {
+      state.prevStageIdx = state.stageIdx;
+      state.stageIdx = nextStage;
+      state.stageBlend = 0;
+      state.stageBannerUntil = state.elapsed + 2;
+      sfxStage();
+      setStageIdx(nextStage);
+      setInfoChip(nextStage);
+      clearTimeout(chipTimerRef.current);
+      chipTimerRef.current = setTimeout(() => setInfoChip((c) => (c === nextStage ? null : c)), 4500);
+    }
+
+    // Put the gate in the middle of the first wide flat stretch off-screen, and clear
+    // everything else out of the way, so the entrance is always a clean straight run-in.
+    function placePendingGate() {
+      if (state.pendingStage == null || state.pendingGate) return;
+      // usable stretch starts just off-screen, so the gate never pops in on view
+      const usableFrom = (sg) => Math.max(sg.xStart, W + 20);
+      const seg = state.terrain.find((sg) => sg.xEnd - usableFrom(sg) >= GATE_W + 110);
+      if (!seg) return;
+      const gx = (usableFrom(seg) + seg.xEnd) / 2 - GATE_W / 2;
+      const lo = gx - 55;
+      const hi = gx + GATE_W + 55;
+      state.obstacles = state.obstacles.filter((o) => o.x + o.w < lo || o.x > hi);
+      state.collectibles = state.collectibles.filter((c) => c.x < lo || c.x > hi);
+      state.powerups = state.powerups.filter((q) => q.x < lo || q.x > hi);
+      state.lastObstacleRightEdge = Math.max(state.lastObstacleRightEdge, hi);
+      const gate = { x: gx, passed: false, entered: false, name: STAGES[state.pendingStage].name, stage: state.pendingStage };
+      state.gates.push(gate);
+      state.pendingGate = gate;
+    }
+
     function updateGates(moveBy) {
       for (let i = state.gates.length - 1; i >= 0; i--) {
         const g = state.gates[i];
         g.x -= moveBy;
+        if (!g.entered && g.stage != null && g.x + GATE_W / 2 <= PLAYER_X + PLAYER_W / 2) {
+          g.entered = true;
+          state.pendingStage = null;
+          state.pendingGate = null;
+          enterStage(g.stage);
+        }
         if (!g.passed && g.x + GATE_W < PLAYER_X) {
           g.passed = true;
           state.bonusScore += GATE_BONUS;
@@ -1018,7 +1079,6 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         if (g.x < -GATE_W - 20) state.gates.splice(i, 1);
       }
     }
-
     function drawGates() {
       for (const g of state.gates) {
         const gy = groundYAt(g.x + GATE_W / 2);
@@ -1492,13 +1552,13 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       ctx.strokeStyle = TREX_OUTLINE;
       ctx.lineWidth = 25;
       ctx.beginPath();
-      ctx.moveTo(hipX, TREX_CUT + 2);
+      ctx.moveTo(hipX, TREX_CUT);
       ctx.lineTo(footX + 7, footY - 4);
       ctx.stroke();
       ctx.strokeStyle = fill;
       ctx.lineWidth = 17;
       ctx.beginPath();
-      ctx.moveTo(hipX, TREX_CUT - 6);
+      ctx.moveTo(hipX, TREX_CUT);
       ctx.lineTo(footX + 7, footY - 4);
       ctx.stroke();
       ctx.fillStyle = fill;
@@ -1515,18 +1575,19 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       const feetY = state.player.y + PLAYER_H + 1;
       const airborne = !state.player.onGround;
       const running = !airborne && state.running;
-      // Stride cycle: the body bobs twice per leg cycle and the legs swing in opposite
-      // directions, both speeding up as the world speed ramps.
+      // Same recipe as the Munch-Man runner: bounce twice per leg cycle, lean a little with
+      // each stride and breathe in and out. The cycle speeds up as the world speeds up.
       const strideSpeed = 12 + (state.speed - BASE_SPEED) * 0.04;
       const phase = state.elapsed * strideSpeed;
-      const bob = running ? Math.abs(Math.sin(phase)) * 2.5 : 0;
-      const lean = running ? Math.sin(phase * 2) * 0.05 : 0;
+      const bob = running ? Math.abs(Math.sin(phase)) * 2.4 : 0;
+      const lean = running ? Math.sin(phase) * 0.07 : 0;
       const invincibleActive = state.elapsed < state.invincibleUntil;
       const blinking = state.elapsed < state.graceUntil && Math.floor(state.elapsed * 10) % 2 === 0;
 
-      // squash and stretch: long and thin leaving the ground, short and wide on landing
+      // breathing while running; long and thin leaving the ground, short and wide on landing
       let sx = 1;
       let sy = 1;
+      if (running) { sy += Math.cos(phase * 2) * 0.035; sx -= Math.cos(phase * 2) * 0.035; }
       const sinceJump = state.elapsed - (state.jumpedAt || -9);
       const sinceLand = state.elapsed - (state.landedAt || -9);
       if (airborne && sinceJump < 0.14) { sx = 0.9; sy = 1.12; }
@@ -1544,15 +1605,16 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
 
       const k = TREX_DRAW_W / 180;
-      // foot positions in picture pixels: [x, y] for the near and the far leg
+      // Foot positions in picture pixels. The picture faces left, so forward is toward smaller x:
+      // a foot is lifted while it swings forward and planted while it slides back (no moonwalk).
       let near;
       let far;
       if (airborne) {
         near = [83, 82];
         far = [108, 87];
       } else if (running) {
-        near = [95 + Math.sin(phase) * 15, 94 - Math.max(0, Math.cos(phase)) * 14];
-        far = [95 + Math.sin(phase + Math.PI) * 15, 94 - Math.max(0, Math.cos(phase + Math.PI)) * 14];
+        near = [95 - Math.sin(phase) * 17, 94 - Math.max(0, Math.cos(phase)) * 14];
+        far = [95 - Math.sin(phase + Math.PI) * 17, 94 - Math.max(0, Math.cos(phase + Math.PI)) * 14];
       } else {
         near = [95, 94];
         far = [95, 94];
@@ -1570,9 +1632,9 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       ctx.translate(-TREX_DRAW_W / 2, -TREX_FEET_FRAC * TREX_DRAW_H);
       ctx.scale(k, k);
       if (trexImg.complete && trexImg.naturalWidth > 0) {
-        drawTrexLeg(94, far[0], far[1], TREX_LEG_FAR);
-        ctx.drawImage(trexImg, 0, 0, 180, TREX_CUT, 0, 0, 180, TREX_CUT);
+        drawTrexLeg(92, far[0], far[1], TREX_LEG_FAR);
         drawTrexLeg(101, near[0], near[1], TREX_LEG);
+        ctx.drawImage(trexImg, 0, 0, 180, TREX_CUT, 0, 0, 180, TREX_CUT);
       } else {
         ctx.fillStyle = '#FFC72C';
         ctx.beginPath();
