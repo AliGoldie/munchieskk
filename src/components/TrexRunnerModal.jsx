@@ -219,7 +219,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     // needs from any obstacle on that same segment (see ensureTerrain).
     const COLLECTIBLE_CHANCE = 0.6;
     const MIN_COLLECTIBLE_CLEARANCE = 70;
-    const TREX_DRAW_W = PLAYER_W + 8;
+    const TREX_DRAW_W = PLAYER_W + 14;
     const TREX_DRAW_H = TREX_DRAW_W * (121 / 180);
     // Feet sit at 105/121 of the sprite height (the rest is transparent).
     const TREX_FEET_FRAC = 105 / 121;
@@ -292,7 +292,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const POWERUP_DURATION = 6;
     const POWERUP_SPEED_MULTIPLIER = 1.5;
     const POWERUP_CHANCE = 0.3;
-    const MIN_POWERUP_SPACING = 380;
+    const MIN_POWERUP_SPACING = 800;
     // Three lives: a crash costs one and the run continues from solid ground
     // with a short grace period; the run ends on the third.
     const START_LIVES = 3;
@@ -326,8 +326,13 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       lastBucket: -1,
       flyers: [],
       gates: [],
+      pendingStage: null,
+      pendingGate: null,
       pops: [],
       nextFlyerAt: 0,
+      jumpedAt: -9,
+      landedAt: -9,
+      lastStep: 0,
       scrollPx: 0,
       player: { y: LOW_Y - PLAYER_H, vy: 0, onGround: true, coyote: 0 },
       holding: false,
@@ -354,6 +359,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       segmentsGenerated: 0,
       lastObstacleRightEdge: -9999,
       lastPowerupRightEdge: -9999,
+      lastPowerupType: null,
       speedBoostUntil: 0,
       invincibleUntil: 0,
       magnetUntil: 0,
@@ -573,15 +579,38 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         // from the last power-up so speed/invincibility pickups can't
         // cluster together.
         if (last && !inGrace && Math.random() < POWERUP_CHANCE) {
-          const px = pickClearX(seg, placedObstacle, MIN_COLLECTIBLE_CLEARANCE);
+          // Placement varies: low on the road, high (a jump to reach it), or over the pit
+          // just before this segment. Burgers lead the eye into it.
+          const gapStartX = last.xEnd;
+          const gapW = seg.xStart - gapStartX;
+          const overGap = gapW >= 70 && Math.random() < 0.3;
+          const high = !overGap && Math.random() < 0.35;
+          const px = overGap ? gapStartX + gapW / 2 : pickClearX(seg, placedObstacle, MIN_COLLECTIBLE_CLEARANCE);
           if (px != null && px - state.lastPowerupRightEdge >= MIN_POWERUP_SPACING) {
-            const r = Math.random();
-            const type = r < 0.34 ? 'speed' : r < 0.68 ? 'invincible' : 'magnet';
-            state.powerups.push({ x: px, y: seg.y - PLAYER_H - 34, size: 11, type });
+            const baseY = overGap ? Math.min(last.y, seg.y) - PLAYER_H - 50 : seg.y - PLAYER_H - (high ? 64 : 34);
+            const type = pickPowerupType();
+            state.powerups.push({ x: px, y: baseY, size: 11, type });
             state.lastPowerupRightEdge = px;
+            state.lastPowerupType = type;
+            if (!overGap && px - seg.xStart >= 70) {
+              state.collectibles.push({ x: px - 44, y: baseY + 18, size: 9 }, { x: px - 22, y: baseY + 8, size: 9 });
+            }
           }
         }
       }
+    }
+
+    // Never the same power-up twice in a row, and never one that is still running: a speed
+    // boost is followed by something different, so the run keeps changing.
+    function pickPowerupType() {
+      const active = {
+        speed: state.speedBoostUntil - state.elapsed > 1.5,
+        invincible: state.invincibleUntil - state.elapsed > 1.5,
+        magnet: state.magnetUntil - state.elapsed > 1.5
+      };
+      let pool = ['speed', 'invincible', 'magnet'].filter((t) => t !== state.lastPowerupType && !active[t]);
+      if (pool.length === 0) pool = ['speed', 'invincible', 'magnet'].filter((t) => t !== state.lastPowerupType);
+      return pool[Math.floor(Math.random() * pool.length)];
     }
 
     function resetGame() {
@@ -615,9 +644,15 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.lastBucket = -1;
       state.flyers = [];
       state.gates = [];
+      state.pendingStage = null;
+      state.pendingGate = null;
       state.pops = [];
       state.nextFlyerAt = 8;
+      state.jumpedAt = -9;
+      state.landedAt = -9;
+      state.lastStep = 0;
       state.lastPowerupRightEdge = -9999;
+      state.lastPowerupType = null;
       state.speedBoostUntil = 0;
       state.invincibleUntil = 0;
       state.magnetUntil = 0;
@@ -631,6 +666,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     function startJump() {
       state.player.vy = JUMP_VELOCITY;
       state.player.onGround = false;
+      state.jumpedAt = state.elapsed;
       state.player.coyote = 0;
       state.jumpBuffer = 0;
       state.jumpCutApplied = false;
@@ -697,6 +733,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         for (const o of state.obstacles) o.x -= shift;
         for (const c of state.collectibles) c.x -= shift;
         for (const q of state.powerups) q.x -= shift;
+        for (const g of state.gates) g.x -= shift;
         for (const e of state.effects) e.x -= shift;
         state.lastObstacleRightEdge -= shift;
         state.lastPowerupRightEdge -= shift;
@@ -781,19 +818,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       // invincibility). Distance already accrues faster while boosted, so
       // that alone rewards the speed power-up without a separate multiplier.
       state.score = Math.floor((state.distance + state.scoreAdjust) / 8) + state.burgersCollected * 5 + state.bonusScore;
+      // The next stage starts at its landmark gate, not the moment the score crosses the line:
+      // the gate is set on a flat stretch (placePendingGate) and the scenery changes as the
+      // runner passes through it (updateGates -> enterStage).
       const nextStage = stageIndexForScore(state.score);
-      if (nextStage !== state.stageIdx) {
-        state.prevStageIdx = state.stageIdx;
-        state.stageIdx = nextStage;
-        state.stageBlend = 0;
-        state.stageBannerUntil = state.elapsed + 2;
-        state.gates.push({ x: W + 30, passed: false, name: STAGES[nextStage].name });
-        sfxStage();
-        setStageIdx(nextStage);
-        setInfoChip(nextStage);
-        clearTimeout(chipTimerRef.current);
-        chipTimerRef.current = setTimeout(() => setInfoChip((c) => (c === nextStage ? null : c)), 4500);
-      }
+      if (nextStage !== state.stageIdx && state.pendingStage == null) state.pendingStage = nextStage;
+      placePendingGate();
       if (state.stageBlend < 1) state.stageBlend = Math.min(1, state.stageBlend + dt / 1.5);
       state.jumpBuffer = Math.max(0, state.jumpBuffer - dt);
       state.scoreThrottle += dt;
@@ -864,6 +894,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
 
       if (landed && !state.player.onGround && impactVy > 240) {
         sfxLand();
+        state.landedAt = state.elapsed;
         particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H, { n: 8, color: '225,215,195', speed: 70, life: 0.45, size: 4, spread: Math.PI * 0.9, angle: -Math.PI / 2, gravity: 40 });
       }
       state.player.onGround = landed;
@@ -995,10 +1026,48 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     }
 
     // Landmark gate: purely visual, never in the way. Passing it pays a bonus.
+    function enterStage(nextStage) {
+      state.prevStageIdx = state.stageIdx;
+      state.stageIdx = nextStage;
+      state.stageBlend = 0;
+      state.stageBannerUntil = state.elapsed + 2;
+      sfxStage();
+      setStageIdx(nextStage);
+      setInfoChip(nextStage);
+      clearTimeout(chipTimerRef.current);
+      chipTimerRef.current = setTimeout(() => setInfoChip((c) => (c === nextStage ? null : c)), 4500);
+    }
+
+    // Put the gate in the middle of the first wide flat stretch off-screen, and clear
+    // everything else out of the way, so the entrance is always a clean straight run-in.
+    function placePendingGate() {
+      if (state.pendingStage == null || state.pendingGate) return;
+      // usable stretch starts just off-screen, so the gate never pops in on view
+      const usableFrom = (sg) => Math.max(sg.xStart, W + 20);
+      const seg = state.terrain.find((sg) => sg.xEnd - usableFrom(sg) >= GATE_W + 110);
+      if (!seg) return;
+      const gx = (usableFrom(seg) + seg.xEnd) / 2 - GATE_W / 2;
+      const lo = gx - 55;
+      const hi = gx + GATE_W + 55;
+      state.obstacles = state.obstacles.filter((o) => o.x + o.w < lo || o.x > hi);
+      state.collectibles = state.collectibles.filter((c) => c.x < lo || c.x > hi);
+      state.powerups = state.powerups.filter((q) => q.x < lo || q.x > hi);
+      state.lastObstacleRightEdge = Math.max(state.lastObstacleRightEdge, hi);
+      const gate = { x: gx, passed: false, entered: false, name: STAGES[state.pendingStage].name, stage: state.pendingStage };
+      state.gates.push(gate);
+      state.pendingGate = gate;
+    }
+
     function updateGates(moveBy) {
       for (let i = state.gates.length - 1; i >= 0; i--) {
         const g = state.gates[i];
         g.x -= moveBy;
+        if (!g.entered && g.stage != null && g.x + GATE_W / 2 <= PLAYER_X + PLAYER_W / 2) {
+          g.entered = true;
+          state.pendingStage = null;
+          state.pendingGate = null;
+          enterStage(g.stage);
+        }
         if (!g.passed && g.x + GATE_W < PLAYER_X) {
           g.passed = true;
           state.bonusScore += GATE_BONUS;
@@ -1010,7 +1079,6 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         if (g.x < -GATE_W - 20) state.gates.splice(i, 1);
       }
     }
-
     function drawGates() {
       for (const g of state.gates) {
         const gy = groundYAt(g.x + GATE_W / 2);
@@ -1140,31 +1208,44 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
     }
 
-    // Scenery birds: pure decoration drifting across the sky (no collisions).
+    // Scenery birds: pure decoration drifting across the sky (no collisions). Now pale, so they
+    // show against the dark evening skies, and sometimes a small V-shaped flock.
     function updateBirds(dt, moveBy) {
-      if (state.birds.length < 4 && Math.random() < dt * 0.35) {
-        state.birds.push({ x: W + 20, y: 28 + Math.random() * (LOW_Y * 0.45), speed: 30 + Math.random() * 40, phase: Math.random() * 6, size: 5 + Math.random() * 4 });
+      if (state.birds.length < 6 && Math.random() < dt * 0.5) {
+        const y = 24 + Math.random() * (LOW_Y * 0.4);
+        const speed = 34 + Math.random() * 36;
+        const size = 6 + Math.random() * 4;
+        const flock = Math.random() < 0.35 ? 3 : 1;
+        for (let j = 0; j < flock; j++) {
+          const side = j === 0 ? 0 : (j === 1 ? -1 : 1);
+          state.birds.push({ x: W + 20 + (j ? 18 : 0), y: y + (j ? 9 : 0) * side + (j ? 4 : 0), speed, phase: Math.random() * 6 + j * 0.7, size: size * (j ? 0.85 : 1), base: y });
+        }
       }
       for (let i = state.birds.length - 1; i >= 0; i--) {
         const b = state.birds[i];
         b.x -= b.speed * dt + moveBy * 0.15;
         b.y += Math.sin(state.elapsed * 1.5 + b.phase) * 0.15;
         b.phase += dt * 9;
-        if (b.x < -30) state.birds.splice(i, 1);
+        if (b.x < -40) state.birds.splice(i, 1);
       }
     }
 
     function drawBirds() {
-      ctx.strokeStyle = 'rgba(20, 20, 30, 0.55)';
-      ctx.lineWidth = 2;
+      const tint = state.stageIdx === 3 ? '255, 226, 192' : state.stageIdx === 4 ? '215, 228, 255' : '255, 250, 240';
+      ctx.strokeStyle = `rgba(${tint}, 0.85)`;
+      ctx.fillStyle = `rgba(${tint}, 0.85)`;
+      ctx.lineWidth = 2.2;
       ctx.lineCap = 'round';
       for (const b of state.birds) {
-        const flap = Math.sin(b.phase) * b.size * 0.7;
+        const flap = Math.sin(b.phase) * b.size * 0.75;
         ctx.beginPath();
         ctx.moveTo(b.x - b.size, b.y - flap);
-        ctx.quadraticCurveTo(b.x - b.size * 0.4, b.y - flap * 0.2 - 2, b.x, b.y);
-        ctx.quadraticCurveTo(b.x + b.size * 0.4, b.y - flap * 0.2 - 2, b.x + b.size, b.y - flap);
+        ctx.quadraticCurveTo(b.x - b.size * 0.4, b.y - flap * 0.2 - 3, b.x, b.y);
+        ctx.quadraticCurveTo(b.x + b.size * 0.4, b.y - flap * 0.2 - 3, b.x + b.size, b.y - flap);
         ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(b.x, b.y + 0.5, 1.6, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
@@ -1460,40 +1541,104 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       ctx.fill();
     }
 
+    // The body comes from the picture, cut just under the hips. The two legs are drawn in
+    // code so they can run, tuck in the air and land (the picture has one still leg).
+    const TREX_CUT = 84;
+    const TREX_LEG = '#FFDD00';
+    const TREX_LEG_FAR = '#D9B400';
+    const TREX_OUTLINE = '#1B3B2D';
+    function drawTrexLeg(hipX, footX, footY, fill) {
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = TREX_OUTLINE;
+      ctx.lineWidth = 25;
+      ctx.beginPath();
+      ctx.moveTo(hipX, TREX_CUT);
+      ctx.lineTo(footX + 7, footY - 4);
+      ctx.stroke();
+      ctx.strokeStyle = fill;
+      ctx.lineWidth = 17;
+      ctx.beginPath();
+      ctx.moveTo(hipX, TREX_CUT);
+      ctx.lineTo(footX + 7, footY - 4);
+      ctx.stroke();
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = TREX_OUTLINE;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(footX, footY, 17, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
     function drawPlayer() {
       const cx = PLAYER_X + PLAYER_W / 2;
-      // The sprite has transparent padding under the feet, so place it by
-      // where the feet are drawn, not by the image centre: feet rest on the road.
-      const cy = state.player.y + PLAYER_H + 1 - TREX_FEET_FRAC * TREX_DRAW_H + TREX_DRAW_H / 2;
-      const running = state.player.onGround && state.running;
-      // Stride cycle standing in for a real run-cycle sprite sheet: a bob
-      // synced with a small forward/back lean, both speeding up as the
-      // world speed ramps. Deliberately not multiple AI-generated frames --
-      // independent image generations of "the same character running"
-      // don't reliably match each other in style/proportions, so swapping
-      // between them would look worse than a single well-animated pose.
+      const feetY = state.player.y + PLAYER_H + 1;
+      const airborne = !state.player.onGround;
+      const running = !airborne && state.running;
+      // Same recipe as the Munch-Man runner: bounce twice per leg cycle, lean a little with
+      // each stride and breathe in and out. The cycle speeds up as the world speeds up.
       const strideSpeed = 12 + (state.speed - BASE_SPEED) * 0.04;
       const phase = state.elapsed * strideSpeed;
-      const bob = running ? Math.abs(Math.sin(phase)) * 3 : 0;
-      const lean = running ? Math.sin(phase * 2) * 0.06 : 0;
+      const bob = running ? Math.abs(Math.sin(phase)) * 2.4 : 0;
+      const lean = running ? Math.sin(phase) * 0.07 : 0;
       const invincibleActive = state.elapsed < state.invincibleUntil;
       const blinking = state.elapsed < state.graceUntil && Math.floor(state.elapsed * 10) % 2 === 0;
 
+      // breathing while running; long and thin leaving the ground, short and wide on landing
+      let sx = 1;
+      let sy = 1;
+      if (running) { sy += Math.cos(phase * 2) * 0.035; sx -= Math.cos(phase * 2) * 0.035; }
+      const sinceJump = state.elapsed - (state.jumpedAt || -9);
+      const sinceLand = state.elapsed - (state.landedAt || -9);
+      if (airborne && sinceJump < 0.14) { sx = 0.9; sy = 1.12; }
+      else if (!airborne && sinceLand < 0.13) { const k = 1 - sinceLand / 0.13; sx = 1 + 0.16 * k; sy = 1 - 0.14 * k; }
+      // nose up while rising, nose down while falling
+      const tilt = airborne ? Math.max(-0.22, Math.min(0.22, state.player.vy / 1500)) : 0;
+
+      // a little puff of dust at each footfall
+      if (running) {
+        const step = Math.floor(phase / Math.PI);
+        if (step !== state.lastStep) {
+          state.lastStep = step;
+          particles.emit(cx - 6, feetY, { n: 2, color: '220,205,180', speed: 22, life: 0.28, size: 2, spread: Math.PI * 0.7, angle: -Math.PI * 0.85, gravity: 20 });
+        }
+      }
+
+      const k = TREX_DRAW_W / 180;
+      // Foot positions in picture pixels. The picture faces left, so forward is toward smaller x:
+      // a foot is lifted while it swings forward and planted while it slides back (no moonwalk).
+      let near;
+      let far;
+      if (airborne) {
+        near = [83, 82];
+        far = [108, 87];
+      } else if (running) {
+        near = [95 - Math.sin(phase) * 17, 94 - Math.max(0, Math.cos(phase)) * 14];
+        far = [95 - Math.sin(phase + Math.PI) * 17, 94 - Math.max(0, Math.cos(phase + Math.PI)) * 14];
+      } else {
+        near = [95, 94];
+        far = [95, 94];
+      }
+
       ctx.save();
       if (blinking) ctx.globalAlpha = 0.35;
-      ctx.translate(cx, cy - bob);
+      ctx.translate(cx, feetY - bob);
       if (invincibleActive) {
         ctx.shadowColor = 'rgba(255, 210, 63, 0.9)';
         ctx.shadowBlur = 14;
       }
-      ctx.rotate(lean);
-      ctx.scale(-1, 1); // T-Rex sprite art faces left; flip so it runs facing right
+      ctx.rotate(lean + tilt);
+      ctx.scale(-sx, sy); // the picture faces left; flip so it runs facing right
+      ctx.translate(-TREX_DRAW_W / 2, -TREX_FEET_FRAC * TREX_DRAW_H);
+      ctx.scale(k, k);
       if (trexImg.complete && trexImg.naturalWidth > 0) {
-        ctx.drawImage(trexImg, -TREX_DRAW_W / 2, -TREX_DRAW_H / 2, TREX_DRAW_W, TREX_DRAW_H);
+        drawTrexLeg(92, far[0], far[1], TREX_LEG_FAR);
+        drawTrexLeg(101, near[0], near[1], TREX_LEG);
+        ctx.drawImage(trexImg, 0, 0, 180, TREX_CUT, 0, 0, 180, TREX_CUT);
       } else {
         ctx.fillStyle = '#FFC72C';
         ctx.beginPath();
-        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.arc(90, 70, 40, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
