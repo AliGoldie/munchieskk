@@ -39,6 +39,9 @@ jobs:
 
       - run: npm ci
 
+      - name: SQL safety check (no dynamic SQL from caller input)
+        run: npm run check:sql
+
       # Non-blocking: the codebase currently has ~40 pre-existing lint
       # warnings (unused vars, missing hook deps) that predate this
       # workflow. Surfaced in the log, doesn't fail the build -- fixing
