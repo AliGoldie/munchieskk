@@ -57,6 +57,18 @@ serve(async (req: Request) => {
       });
     }
 
+    // The item id goes into a URL path, so it must be a plain id (no slashes,
+    // dots or query characters), and the price must be a sane whole number.
+    if (typeof loyverse_item_id !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(loyverse_item_id)
+        || !Number.isInteger(price_in_cents) || price_in_cents < 0 || price_in_cents > 1_000_000
+        || (item_name !== undefined && item_name !== null && (typeof item_name !== 'string' || item_name.length > 200))
+        || (category !== undefined && category !== null && (typeof category !== 'string' || category.length > 40))) {
+      return new Response(JSON.stringify({ error: 'Invalid loyverse_item_id, price_in_cents, item_name or category' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const default_price = Number((price_in_cents / 100).toFixed(2));
     const token = Deno.env.get('LOYVERSE_API_TOKEN');
     if (!token) {

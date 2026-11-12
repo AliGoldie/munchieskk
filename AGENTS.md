@@ -30,6 +30,9 @@ Full map: `docs/REPO_MAP.md`. Keep it current when you add or move a folder.
 - Docs: `docs/` (points system, security audit, SEO playbook, arcade contest brief). Old material in `docs/archive/` (not current). Source art in `design-originals/` (not used by the site).
 - Cost prices live ONLY in the admin-only `item_costs` table (moved off `menu_items`/`addons`, 21 Oct 2026). Never add a cost, margin or supplier column to a table the public can read.
 
+## SQL injection rules
+Never build SQL by joining strings with anything a caller sends. In database functions use plain queries with parameters; `EXECUTE` is allowed only with server-made values (dates, counters, catalog names), and `npm run check:sql` (also in CI) fails if a parameter (`p_*`) or the order payload reaches `EXECUTE`. In the app use the Supabase query builder; if a filter string must be built (like the Admin Grab search) strip `% , ( ) * " \` from the input first. Edge functions must validate any id that goes into a URL.
+
 ## Never publish what is inside our patties
 No ingredients, seasoning, meat blend, fillers or weights in app text, menu descriptions, customer-visible admin screens, public pages or code comments. Keep descriptions to the approved wording. Saying where the meat comes from ("NZ lamb", "premium Australian beef") and quality words ("handcrafted", "premium") are allowed (owner decision, 16 Oct 2026); sizes and weights stay behind the scenes in Admin-only data, never in the repo. If you find such text, report it to Ali; do not invent replacement wording.
 

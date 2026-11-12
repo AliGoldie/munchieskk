@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:e2e": "playwright test",
+    "check:sql": "bash scripts/check-sql-safety.sh",
     "test:db": "bash supabase/tests/run-db-tests.sh",
     "test": "npm run test:db && npm run test:e2e"
   },
