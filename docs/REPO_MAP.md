@@ -67,4 +67,4 @@ Where key business data lives:
 
 ## Branches
 
-`main` is the live site. Every change is made on its own branch and merged by PR when Ali says "open and merge". Cloud Claude sessions get a random branch name such as `claude/blissful-ptolemy-jzt6g2`; the name means nothing, it is just that session's workspace.
+`main` is the live site. Every change is made on its own branch and merged by PR when Ali says "open and merge". Automated cloud sessions get a random branch name such as `claude/blissful-ptolemy-jzt6g2`; the name means nothing, it is just that session's workspace.
