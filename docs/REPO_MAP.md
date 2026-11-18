@@ -24,7 +24,7 @@ One page so anyone (Ali, a developer, an AI agent) can find things fast. Updated
 |---|---|
 | `src/pages/` | One file per page: `Home`, `Menu`, `Cart`, `Payment`, `OrderStatus`, `Loyalty`, `Arcade`, `Leaderboard`, `Profile`, `Catering`, `Login`, `Signup`, `ResetPassword`. |
 | `src/pages/Admin.jsx` | The whole staff dashboard (very large; one section per sidebar tab). `AdminReports.jsx` is the PDF reports page. |
-| `src/components/` | Shared pieces: `RankCard`, `CheckoutRewards`, game modals (`TrexRunnerModal`, `SpeedGrabModal`, `MunchManModal`), and admin panels (`Admin*.jsx`). |
+| `src/components/` | Shared pieces (`PromoBanner` is the one banner look used on Menu, Loyalty and Arcade): `RankCard`, `CheckoutRewards`, game modals (`TrexRunnerModal`, `SpeedGrabModal`, `MunchManModal`), and admin panels (`Admin*.jsx`). |
 | `src/contexts/StoreContext.jsx` | Loads the menu, add-ons, rewards, shop settings and orders from the database, and holds the cart. |
 | `src/contexts/AuthContext.jsx` | Sign-in and the current user. |
 | `src/utils/` | Small helpers (reward rules, time zone, points maths, images). |

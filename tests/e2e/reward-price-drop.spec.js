@@ -2,7 +2,7 @@
 // the new price once the date has come; staff schedule a drop from the
 // Prizes CRM, and a price rise is refused.
 import { test, expect } from '@playwright/test';
-import { mockSupabase, loginAsDevAdmin } from './helpers.js';
+import { mockSupabase, loginAsDevAdmin, goClientSide } from './helpers.js';
 
 const myDate = (days) => new Date(Date.now() + 8 * 3600e3 + days * 86400e3).toISOString().slice(0, 10);
 
@@ -13,9 +13,10 @@ const PRIZES = [
 ];
 
 test('Loyalty shows the coming price drop, and the new price once its date has come', async ({ page }) => {
-  // Database functions answer "nothing" (null), as for a guest.
-  await mockSupabase(page, { '/rest/v1/loyalty_prizes': PRIZES, '/rest/v1/rpc/': null });
-  await page.goto('/loyalty', { waitUntil: 'networkidle' });
+    await mockSupabase(page, { '/rest/v1/loyalty_prizes': PRIZES, '/rest/v1/rpc/': null });
+  // The full vault (and this notice) is for logged-in customers; guests get a teaser.
+  await loginAsDevAdmin(page);
+  await goClientSide(page, '/loyalty');
 
   await expect(page.locator('.expiry-banner', { hasText: 'Lower prices coming' })).toContainText('Ice BB: 250 Monsta Coins from');
   await expect(page.locator('.expiry-banner', { hasText: 'Lower prices coming' })).toContainText('(now 350)');
