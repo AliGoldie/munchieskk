@@ -4,6 +4,7 @@ import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake, createMusic, SONGS } from '../utils/gameFx';
 import MunchManRulesModal from './MunchManRulesModal';
+import { LEVELS } from './munchManLevels';
 import './MunchManModal.css';
 
 export default function MunchManModal({ isOpen, onClose }) {
@@ -17,6 +18,7 @@ export default function MunchManModal({ isOpen, onClose }) {
   const [gameReason, setGameReason] = useState(null); // 'time' or null
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
+  const [levelNum, setLevelNum] = useState(1);
   const [timerDisplay, setTimerDisplay] = useState('01:30');
   const [isUrgent, setIsUrgent] = useState(false);
   const [soundOn, setSoundOn] = useState(() => !isSoundMuted());
@@ -226,21 +228,11 @@ export default function MunchManModal({ isOpen, onClose }) {
       mazePattern = ctx.createPattern(patternImg, 'repeat');
     };
 
-    function buildMaze() {
-      const g = [];
-      for (let r = 0; r < ROWS; r++) {
-        const row = [];
-        for (let c = 0; c < COLS; c++) {
-          let wall = (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1);
-          if (!wall && r % 2 === 0 && c % 2 === 0) wall = true;
-          row.push(wall);
-        }
-        g.push(row);
-      }
-      return g;
-    }
-
-    const maze = buildMaze();
+    // Four mazes (see munchManLevels.js). Clearing every dot and power-up moves the run on to the
+    // next maze; the score, lives and clock carry over.
+    const levelMaze = (idx) => LEVELS[idx].rows.map((row) => [...row].map((ch) => ch === '#'));
+    let levelIdx = 0;
+    let maze = levelMaze(0);
 
     function isWall(r, c) {
       if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return true;
@@ -248,11 +240,12 @@ export default function MunchManModal({ isOpen, onClose }) {
     }
 
     const PLAYER_START = { r: ROWS - 2, c: Math.floor(COLS / 2) };
-    const GHOST_STARTS = [
+    const ghostStartsFor = (idx) => [
       { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill', sprite: 'dill' },
       { r: 1, c: 11, color: '#E4483C', dark: '#A32E24', name: 'Bun', sprite: 'burger' },
-      { r: 7, c: 8, color: '#3FA9E0', dark: '#1E6F9C', name: 'Fry', sprite: 'fries' }
+      { r: LEVELS[idx].fry[0], c: LEVELS[idx].fry[1], color: '#3FA9E0', dark: '#1E6F9C', name: 'Fry', sprite: 'fries' }
     ];
+    let GHOST_STARTS = ghostStartsFor(0);
 
     const PELLET_SPOTS = [
       { r: 1, c: 1, type: 'scare' },
@@ -266,7 +259,7 @@ export default function MunchManModal({ isOpen, onClose }) {
     // ones -- it appears and disappears on a fixed schedule against the
     // round clock, cycling every CENTER_PELLET_INTERVAL seconds and staying
     // up for CENTER_PELLET_DURATION of that if the player doesn't grab it.
-    const CENTER_PELLET = { r: 7, c: 8 };
+    let CENTER_PELLET = { r: LEVELS[0].fry[0], c: LEVELS[0].fry[1] };
     const CENTER_PELLET_INTERVAL = 20;
     const CENTER_PELLET_DURATION = 8;
     const CENTER_PELLET_TYPES = ['scare', 'speed', 'freeze'];
@@ -275,10 +268,14 @@ export default function MunchManModal({ isOpen, onClose }) {
     const FREEZE_DURATION = 240;
     const PLAYER_SPEED = 2;
     const PLAYER_BOOST_SPEED = 3;
-    const GHOST_SPEED = 1.5;
+    // Ghost speed has to divide the 24 px cell evenly (1.5 or 2), so only the last level is faster;
+    // the chase chance and shorter scare timer ramp up on every level.
+    const LEVEL_GHOST_SPEED = [1.5, 1.5, 1.5, 2];
+    const LEVEL_CHASE = [0.65, 0.7, 0.75, 0.8];
+    const LEVEL_SCARED = [320, 300, 270, 240];
+    const LEVEL_TIME_BONUS = 20;      // seconds added to the clock for each maze cleared
+    const MAX_RUN_SCORE = 5000;       // the most one game counts toward Burger XP
     const GHOST_SCARED_SPEED = 1;
-    const GHOST_CHASE_CHANCE = 0.65;
-    const SCARED_DURATION = 320;
     const GRACE_PERIOD = 120;
     const TIME_LIMIT_SECONDS = 90;
 
@@ -305,6 +302,9 @@ export default function MunchManModal({ isOpen, onClose }) {
       idleFrames: 0,
       dots: [],
       totalDots: 0,
+      timeBonus: 0,
+      levelBannerUntil: 0,
+      level: 1,
       dotsEaten: 0,
       pelletsEaten: 0,
       ghostsEaten: 0,
@@ -332,13 +332,15 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     gameStateRef.current = state;
 
-    function resetGame() {
-      state.runPhase = 0;
-      state.idleFrames = 0;
-      state.hurtTimer = 0;
-      state.gulp = 0;
-      particles.clear();
-      pops.length = 0;
+    // Sets up one maze: dots, power-ups, the hero and the ghosts. The score, lives and clock are
+    // not touched here, so moving up a level keeps them.
+    function setupLevel(idx) {
+      levelIdx = idx;
+      maze = levelMaze(idx);
+      GHOST_STARTS = ghostStartsFor(idx);
+      CENTER_PELLET = { r: LEVELS[idx].fry[0], c: LEVELS[idx].fry[1] };
+      state.level = idx + 1;
+      setLevelNum(idx + 1);
       state.dots = [];
       let totalCount = 0;
       for (let r = 0; r < ROWS; r++) {
@@ -368,12 +370,10 @@ export default function MunchManModal({ isOpen, onClose }) {
           totalCount--;
         }
       });
-
       state.totalDots = totalCount;
-      state.dotsEaten = 0;
-      state.pelletsEaten = 0;
-      state.ghostsEaten = 0;
-
+      state.speedBoostTimer = 0;
+      state.freezeTimer = 0;
+      state.graceTimer = GRACE_PERIOD;
       state.player = {
         x: PLAYER_START.c * CELL,
         y: PLAYER_START.r * CELL,
@@ -391,10 +391,26 @@ export default function MunchManModal({ isOpen, onClose }) {
         spriteKey: g.sprite,
         scared: false,
         scaredTimer: 0,
-        speed: GHOST_SPEED,
+        speed: LEVEL_GHOST_SPEED[idx],
         spawn: { r: g.r, c: g.c },
         respawnFlash: 0
       }));
+    }
+
+    function resetGame() {
+      state.runPhase = 0;
+      state.idleFrames = 0;
+      state.hurtTimer = 0;
+      state.gulp = 0;
+      particles.clear();
+      pops.length = 0;
+      setupLevel(0);
+      state.dotsEaten = 0;
+      state.pelletsEaten = 0;
+      state.ghostsEaten = 0;
+      state.timeBonus = 0;
+      state.levelBannerUntil = 0;
+
       state.score = 0;
       state.lives = 3;
       state.running = false;
@@ -409,6 +425,25 @@ export default function MunchManModal({ isOpen, onClose }) {
       setLives(3);
       setTimerDisplay('01:30');
       setIsUrgent(false);
+    }
+
+    // The Play button calls this: a fresh run from the first maze.
+    function beginRun() {
+      resetGame();
+      state.running = true;
+      state.graceTimer = GRACE_PERIOD;
+      state.roundStartTime = performance.now();
+    }
+    state.beginRun = beginRun;
+
+    // Cleared a maze: on to the next one. Score, lives and clock carry over, with more time.
+    function levelUp() {
+      state.timeBonus += LEVEL_TIME_BONUS;
+      setupLevel(levelIdx + 1);
+      state.levelBannerUntil = performance.now() + 2400;
+      sfxWin();
+      particles.emit(state.player.x + CELL / 2, state.player.y + CELL / 2, { n: 24, color: '255,214,80', speed: 160, life: 0.8, size: 3.5 });
+      addPop(COLS * CELL / 2, ROWS * CELL / 2, `+${LEVEL_TIME_BONUS}s`);
     }
 
     function aligned(x, y) {
@@ -463,7 +498,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         return g.scared ? db - da : da - db;
       });
 
-      if (Math.random() < GHOST_CHASE_CHANCE) {
+      if (Math.random() < LEVEL_CHASE[levelIdx]) {
         g.dir = choices[0];
       } else {
         g.dir = choices[Math.floor(Math.random() * choices.length)];
@@ -498,7 +533,7 @@ export default function MunchManModal({ isOpen, onClose }) {
           } else if (p.type === 'freeze') {
             state.freezeTimer = FREEZE_DURATION;
           } else {
-            state.ghosts.forEach(g => { g.scared = true; g.scaredTimer = SCARED_DURATION; });
+            state.ghosts.forEach(g => { g.scared = true; g.scaredTimer = LEVEL_SCARED[levelIdx]; });
           }
         }
       });
@@ -597,13 +632,13 @@ export default function MunchManModal({ isOpen, onClose }) {
       setGameWon(win);
       setGameReason(reason);
       setGameStarted(false);
-      setBreakdown({ dots: state.dotsEaten, pellets: state.pelletsEaten, ghosts: state.ghostsEaten });
+      setBreakdown({ dots: state.dotsEaten, pellets: state.pelletsEaten, ghosts: state.ghostsEaten, level: levelIdx + 1 });
 
       const liveUser = userRef.current;
       if (liveUser && liveUser.id) {
         // The day's score also counts toward the Arcade Score (contest and weekly goal).
         try {
-          const { data: scoreData, error: scoreError } = await supabase.rpc('record_munchman_score', { p_score: state.score });
+          const { data: scoreData, error: scoreError } = await supabase.rpc('record_munchman_score', { p_score: Math.min(state.score, MAX_RUN_SCORE) });
           if (!scoreError && scoreData) {
             if (scoreData.goal_score) setWeekInfo({ week: scoreData.week_score, goal: scoreData.goal_score, bonus: scoreData.goal_points });
             if (scoreData.message) setRewardMsg(scoreData.message);
@@ -627,23 +662,44 @@ export default function MunchManModal({ isOpen, onClose }) {
     }
 
     function drawMaze() {
+      const lv = LEVELS[levelIdx];
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = mazePattern || '#FFC72C';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (lv.tint) {
+        // the middle levels get their own colour; the dinosaur pattern stays visible
+        ctx.globalCompositeOperation = 'color';
+        ctx.fillStyle = lv.tint;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgba(8, 6, 24, 0.20)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
+      // walls: solid dark cells, with a bright outline only where a wall meets a path
       ctx.fillStyle = '#242320';
-      ctx.shadowColor = 'rgba(199, 59, 15, 0.35)';
-      ctx.shadowBlur = 10;
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          if (maze[r][c]) {
-            ctx.beginPath();
-            ctx.roundRect(c * CELL + 2, r * CELL + 2, CELL - 4, CELL - 4, 4);
-            ctx.fill();
-          }
+          if (maze[r][c]) ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
         }
       }
-      ctx.shadowBlur = 0;
+      const open = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS && !maze[r][c];
+      ctx.strokeStyle = lv.outline;
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'butt';
+      const e = 3;
+      ctx.beginPath();
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (!maze[r][c]) continue;
+          const x = c * CELL, y = r * CELL;
+          if (open(r - 1, c)) { ctx.moveTo(x, y + e); ctx.lineTo(x + CELL, y + e); }
+          if (open(r + 1, c)) { ctx.moveTo(x, y + CELL - e); ctx.lineTo(x + CELL, y + CELL - e); }
+          if (open(r, c - 1)) { ctx.moveTo(x + e, y); ctx.lineTo(x + e, y + CELL); }
+          if (open(r, c + 1)) { ctx.moveTo(x + CELL - e, y); ctx.lineTo(x + CELL - e, y + CELL); }
+        }
+      }
+      ctx.stroke();
 
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -948,6 +1004,25 @@ export default function MunchManModal({ isOpen, onClose }) {
       }
     }
 
+    function drawLevelBanner() {
+      const left = state.levelBannerUntil - performance.now();
+      if (left <= 0) return;
+      const lv = LEVELS[levelIdx];
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.9, left / 500);
+      const label = `LEVEL ${levelIdx + 1}  ·  ${lv.name}`;
+      ctx.font = '900 14px sans-serif';
+      const w = ctx.measureText(label).width + 28;
+      ctx.fillStyle = 'rgba(20, 16, 12, 0.85)';
+      ctx.beginPath();
+      ctx.roundRect(canvas.width / 2 - w / 2, canvas.height / 2 - 34, w, 30, 10);
+      ctx.fill();
+      ctx.fillStyle = '#FFC72C';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, canvas.width / 2, canvas.height / 2 - 14);
+      ctx.restore();
+    }
+
     function drawScene() {
       const off = shake.step(1 / 60);
       particles.update(1 / 60);
@@ -960,6 +1035,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       particles.draw(ctx);
       drawPops();
       ctx.restore();
+      drawLevelBanner();
     }
 
     function loop() {
@@ -986,7 +1062,7 @@ export default function MunchManModal({ isOpen, onClose }) {
               }
               if (g.respawnFlash > 0) g.respawnFlash--;
               if (state.freezeTimer > 0) return;
-              const desiredGhostSpeed = g.scared ? GHOST_SCARED_SPEED : GHOST_SPEED;
+              const desiredGhostSpeed = g.scared ? GHOST_SCARED_SPEED : LEVEL_GHOST_SPEED[levelIdx];
               const usedGhostSpeed = stepSpeed(g, desiredGhostSpeed);
               ghostChooseDir(g);
               tryMove(g, g.dir, usedGhostSpeed);
@@ -997,7 +1073,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
           const elapsed = (performance.now() - state.roundStartTime) / 1000;
           updateCenterPellet(elapsed);
-          const timeLeft = Math.max(0, TIME_LIMIT_SECONDS - elapsed);
+          const timeLeft = Math.max(0, TIME_LIMIT_SECONDS + state.timeBonus - elapsed);
           const urgent = timeLeft <= 10 && timeLeft > 0;
 
           const s = Math.max(0, Math.ceil(timeLeft));
@@ -1017,7 +1093,9 @@ export default function MunchManModal({ isOpen, onClose }) {
             endGame(false, 'time');
           }
 
-          if (state.running && checkWin()) endGame(true, null);
+          if (state.running && checkWin()) {
+            if (levelIdx < LEVELS.length - 1) levelUp(); else endGame(true, null);
+          }
 
           drawScene();
           if (state.freezeTimer > 0) drawFreezeOverlay();
@@ -1104,77 +1182,8 @@ export default function MunchManModal({ isOpen, onClose }) {
     ensureAudio();
     startMusic();
 
-    if (gameStateRef.current) {
-      const s = gameStateRef.current;
-      s.dots = [];
-      let totalCount = 0;
-      const COLS = 17, ROWS = 15, CELL = 24;
-
-      function isWall(r, c) {
-        if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return true;
-        return (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (!(r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) && r % 2 === 0 && c % 2 === 0));
-      }
-
-      for (let r = 0; r < ROWS; r++) {
-        const row = [];
-        for (let c = 0; c < COLS; c++) {
-          const free = !isWall(r, c);
-          row.push(free);
-          if (free) totalCount++;
-        }
-        s.dots.push(row);
-      }
-
-      const PLAYER_START = { r: ROWS - 2, c: Math.floor(COLS / 2) };
-      const GHOST_STARTS = [
-        { r: 1, c: 5, color: '#6FBF3E', dark: '#3E7A21', name: 'Dill', sprite: 'dill' },
-        { r: 1, c: 11, color: '#E4483C', dark: '#A32E24', name: 'Bun', sprite: 'burger' },
-        { r: 7, c: 8, color: '#3FA9E0', dark: '#1E6F9C', name: 'Fry', sprite: 'fries' }
-      ];
-      const PELLET_SPOTS = [
-        { r: 1, c: 1, type: 'scare' },
-        { r: 1, c: COLS - 2, type: 'speed' },
-        { r: ROWS - 2, c: 1, type: 'freeze' },
-        { r: ROWS - 2, c: COLS - 2, type: 'scare' }
-      ];
-
-      s.pellets = PELLET_SPOTS.map(p => ({ ...p, eaten: false }));
-      s.centerPellet = null;
-      s.pellets.forEach(p => {
-        if (s.dots[p.r][p.c]) { s.dots[p.r][p.c] = false; totalCount--; }
-      });
-      if (s.dots[PLAYER_START.r][PLAYER_START.c]) {
-        s.dots[PLAYER_START.r][PLAYER_START.c] = false;
-        totalCount--;
-      }
-      GHOST_STARTS.forEach(g => {
-        if (s.dots[g.r][g.c]) { s.dots[g.r][g.c] = false; totalCount--; }
-      });
-
-      s.totalDots = totalCount;
-      s.dotsEaten = 0;
-
-      s.player.x = PLAYER_START.c * CELL;
-      s.player.y = PLAYER_START.r * CELL;
-      s.player.dir = { dx: 0, dy: 0 };
-      s.player.next = { dx: 0, dy: 0 };
-      s.player.speed = 2;
-
-      s.ghosts = GHOST_STARTS.map(g => ({
-        x: g.c * CELL, y: g.r * CELL, dir: { dx: 1, dy: 0 },
-        color: g.color, dark: g.dark, name: g.name, spriteKey: g.sprite, scared: false, scaredTimer: 0,
-        speed: 1, spawn: { r: g.r, c: g.c }, respawnFlash: 0
-      }));
-
-      s.score = 0;
-      s.lives = 3;
-      s.running = true;
-      s.won = false;
-      s.speedBoostTimer = 0;
-      s.freezeTimer = 0;
-      s.graceTimer = 120;
-      s.roundStartTime = performance.now();
-      s.lastTickSecond = null;
+    if (gameStateRef.current && gameStateRef.current.beginRun) {
+      gameStateRef.current.beginRun();
     }
 
     setScore(0);
@@ -1216,6 +1225,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
             <div className="munchman-hud">
               <span id="score">Score: {score}</span>
+              <span className="munchman-level">Lv {levelNum}/4</span>
               <span className={`munchman-timer ${isUrgent ? 'urgent-text' : ''}`}>
                 {timerDisplay}
               </span>
@@ -1317,6 +1327,7 @@ export default function MunchManModal({ isOpen, onClose }) {
                           <span>🍔 x{breakdown.dots}</span>
                           <span>⚡ x{breakdown.pellets}</span>
                           <span>👻 x{breakdown.ghosts}</span>
+                          <span>🏁 Level {breakdown.level}/4</span>
                         </div>
                       )}
 

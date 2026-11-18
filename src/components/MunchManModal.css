@@ -293,3 +293,5 @@
   }
 }
 
+
+.munchman-level { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; color: var(--munchies-yellow, #ffc72c); }

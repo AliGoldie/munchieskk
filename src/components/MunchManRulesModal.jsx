@@ -34,7 +34,7 @@ export default function MunchManRulesModal({ isOpen, onClose, onConfirm, streak 
         <div className="munchman-rules-list">
           <div className="munchman-rule-item">
             <span className="munchman-rule-icon">🟡</span>
-            <div><strong>Munch All Dots:</strong> Clear the maze to secure a WIN. Your score counts toward your <strong>Burger XP</strong>.</div>
+            <div><strong>Munch All Dots:</strong> Clear a maze to move up a level. There are 4 mazes, and each one you clear adds 20 seconds. Your score counts toward your <strong>Burger XP</strong>.</div>
           </div>
           <div className="munchman-rule-item">
             <span className="munchman-rule-icon">👻</span>
