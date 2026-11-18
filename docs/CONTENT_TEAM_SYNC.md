@@ -2,7 +2,7 @@
 
 At the start of every session: `git pull origin main`, then read this file, then `docs/POINTS_SYSTEM.md` and
 `docs/ARCADE_CONTEST_FOR_CONTENT_TEAM.md`. **This file wins over any draft.** Nothing under "Decisions still open" gets published.
-Claude Code (developer side) cannot message other agents directly; it reads and writes this repo and GitHub issues.
+The developer side cannot message other agents directly; it reads and writes this repo and GitHub issues.
 Ask questions by opening a GitHub issue titled `Content question: ...`. Answers come when Ali opens a developer session.
 
 ## Live now (in the app and database)

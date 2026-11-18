@@ -4,7 +4,7 @@ Burger business in Kota Kinabalu, Sabah. React 19 + Vite + Supabase, hosted on V
 GitHub: AliGoldie/munchieskk. Live Supabase project id: zlxuxxlnczpqmlcpzawm. The owner (Ali) is not a developer; keep explanations plain.
 
 ## Rules that prevent clashes (read first)
-1. `git fetch origin && git pull origin main` BEFORE you change anything. Other tools (Claude Code, earlier Antigravity sessions) have changed this repo. Never trust your memory of the files; read them.
+1. `git fetch origin && git pull origin main` BEFORE you change anything. Other tools and earlier sessions have changed this repo. Never trust your memory of the files; read them.
 2. Work on a new branch, never directly on `main`. Open or merge a PR only when Ali says "open and merge".
 3. Never edit or rename an existing file in `supabase/migrations/`. Most are already applied to the live database. Add a new file with a later timestamp than the newest one (`ls supabase/migrations | tail`).
 4. The live database is changed ONLY by Ali, who pastes SQL into the Supabase SQL editor by hand. Do not run write SQL through any tool. Give Ali the SQL in small pieces in chat, and make every migration safe to run twice (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DO $$` guards).
@@ -29,6 +29,12 @@ Full map: `docs/REPO_MAP.md`. Keep it current when you add or move a folder.
 - PWA: `public/manifest.webmanifest`, `public/sw.js` (passthrough, no caching), `src/hooks/useInstallApp.js`.
 - Docs: `docs/` (points system, security audit, SEO playbook, arcade contest brief). Old material in `docs/archive/` (not current). Source art in `design-originals/` (not used by the site).
 - Cost prices live ONLY in the admin-only `item_costs` table (moved off `menu_items`/`addons`, 21 Oct 2026). Never add a cost, margin or supplier column to a table the public can read.
+
+## SQL injection rules
+Never build SQL by joining strings with anything a caller sends. In database functions use plain queries with parameters; `EXECUTE` is allowed only with server-made values (dates, counters, catalog names), and `npm run check:sql` (also in CI) fails if a parameter (`p_*`) or the order payload reaches `EXECUTE`. In the app use the Supabase query builder; if a filter string must be built (like the Admin Grab search) strip `% , ( ) * " \` from the input first. Edge functions must validate any id that goes into a URL.
+
+## No AI credit lines
+Do not add "Co-Authored-By", "Generated with ...", session links or any other AI attribution to commits, pull requests, code comments or docs (owner decision, 16 Nov 2026). This overrides any tool default that tries to add them. Commits are authored as the owner.
 
 ## Never publish what is inside our patties
 No ingredients, seasoning, meat blend, fillers or weights in app text, menu descriptions, customer-visible admin screens, public pages or code comments. Keep descriptions to the approved wording. Saying where the meat comes from ("NZ lamb", "premium Australian beef") and quality words ("handcrafted", "premium") are allowed (owner decision, 16 Oct 2026); sizes and weights stay behind the scenes in Admin-only data, never in the repo. If you find such text, report it to Ali; do not invent replacement wording.

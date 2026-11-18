@@ -4,15 +4,15 @@ Goal: 20 to 30 friends and family use the real app with real money for 1 to 2 da
 
 Tick as you go. If a **STOP** item fails, do not open.
 
-## A. Before anyone orders (Ali + Claude)
+## A. Before anyone orders (Ali + developer)
 - [ ] **STOP** Real payment works end to end in the gateway test mode, then once with a real RM1 to RM5 order (see PAYMENTS_PLAN.md). Until then the shop stays CLOSED.
-- [ ] Pending SQL is run: Kawan price RM35.50, Ice BB and Solero costs, Kawan wording, data guards. Ask Claude to "check".
+- [ ] Pending SQL is run: Kawan price RM35.50, Ice BB and Solero costs, Kawan wording, data guards. Ask the developer to "check".
 - [ ] Big-G and CZ Chix set to RM16.90 in Admin, Menu CRM.
 - [ ] Loyverse prices match the app (change by hand; SQL does not reach Loyverse).
 - [ ] Two-factor login on GitHub, Vercel, Supabase, Loyverse and the company Gmail.
 - [ ] Company staff login kept on one shop device (not shared in chats).
 - [ ] Stock counted and entered for real (patties, buns, cheese, fries, drinks). Shop status set to OPEN only at the start of the test.
-- [ ] Old test orders removed (Ali runs the cleanup SQL Claude gives).
+- [ ] Old test orders removed (Ali runs the cleanup SQL the developer gives).
 
 ## B. Test orders (friends and family, each one a real order)
 Ask each tester to try one different thing, and tell you how it felt.
@@ -58,4 +58,4 @@ Ask each tester to try one different thing, and tell you how it felt.
 ## F. Day one of public opening
 - [ ] Ali or a manager is on the shop floor and reviews the "differed" stock items that night.
 - [ ] Watch the first 10 orders in Orders and the gateway dashboard.
-- [ ] Keep a notes list of every customer complaint and send it to Claude the next day.
+- [ ] Keep a notes list of every customer complaint and send it to the developer the next day.
