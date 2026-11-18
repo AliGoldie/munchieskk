@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { EmberFlameIcon, SpikyBadgeIcon } from '../components/icons';
+import { EmberFlameIcon } from '../components/icons';
 import { useStore } from '../contexts/StoreContext';
 import ItemModal from '../components/ItemModal';
 import { getItemPoints } from '../utils/pointsCalculator';
@@ -375,18 +375,34 @@ export default function Menu() {
         })}
       </div>
 
-      {/* Promos / Ads at the bottom */}
-      <div className="card loyalty-banner mt-6">
-        <SpikyBadgeIcon size={24} color="var(--munchies-white)" />
-        <h3 className="mt-2 text-white">LOYALTY PAYS OFF</h3>
-        <p className="text-white-dim">Earn 1 Monsta Coin for every RM1 you spend, then swap your Monsta Coins for free food.</p>
+      {/* Promos at the bottom: one shared banner style, gentle motion (see Menu.css) */}
+      <div className="card promo-banner loyalty-banner mt-6">
+        <span className="promo-sheen" aria-hidden="true" />
+        <span className="promo-decor" aria-hidden="true">
+          <i className="promo-coin promo-coin-1" />
+          <i className="promo-coin promo-coin-2" />
+          <i className="promo-coin promo-coin-3" />
+        </span>
+        <div className="promo-body">
+          <span className="promo-kicker">MONSTA COINS</span>
+          <h3 className="promo-title">LOYALTY PAYS OFF</h3>
+          <p className="promo-text">Earn 1 Monsta Coin for every RM1 you spend, then swap your Monsta Coins for free food.</p>
+          <Link to="/loyalty" className="promo-cta">SEE THE REWARDS <span className="promo-cta-arrow" aria-hidden="true">&rarr;</span></Link>
+        </div>
       </div>
 
-      <div className="card ad-banner mt-4 mb-4">
-        <div className="ad-content">
-          <h2>WANT IT FREE?</h2>
-          <p>Play the arcade, chase the weekly goal and win monthly prizes.</p>
-          <Link to="/arcade" className="btn btn-dark w-full mt-3" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>GO TO ARCADE</Link>
+      <div className="card promo-banner ad-banner mt-4 mb-4">
+        <span className="promo-sheen" aria-hidden="true" />
+        <span className="promo-decor" aria-hidden="true">
+          <i className="promo-pixel promo-pixel-1" />
+          <i className="promo-pixel promo-pixel-2" />
+          <i className="promo-pixel promo-pixel-3" />
+        </span>
+        <div className="promo-body">
+          <span className="promo-kicker">ARCADE</span>
+          <h3 className="promo-title">WANT IT FREE?</h3>
+          <p className="promo-text">Play the arcade, chase the weekly goal and win monthly prizes.</p>
+          <Link to="/arcade" className="promo-cta">GO TO ARCADE <span className="promo-cta-arrow" aria-hidden="true">&rarr;</span></Link>
         </div>
       </div>
 
