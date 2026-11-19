@@ -610,3 +610,7 @@
   }
 }
 .route-loading { min-height: 60vh; }
+
+/* Small footer link row at the end of each page. */
+.app-layout .site-footer-links { text-align: center; margin: var(--space-6) 0 0; font-size: .75rem; }
+.app-layout .site-footer-links a { color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }

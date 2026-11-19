@@ -21,6 +21,7 @@ const Arcade = lazy(() => import('./pages/Arcade'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const OrderStatus = lazy(() => import('./pages/OrderStatus'));
 const Catering = lazy(() => import('./pages/Catering'));
+const Privacy = lazy(() => import('./pages/Privacy'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Admin = lazy(() => import('./pages/Admin'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
@@ -57,6 +58,7 @@ function App() {
         <Route path="payment" element={<Payment />} />
         <Route path="order/:id" element={<OrderStatus />} />
         <Route path="catering" element={<Catering />} />
+        <Route path="privacy" element={<Privacy />} />
         <Route element={<AdminRoute />}>
           <Route path="admin" element={
             <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
