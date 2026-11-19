@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { isPasswordPwned } from '../utils/pwnedPassword';
@@ -22,6 +22,9 @@ export default function Signup() {
   const [isResetting, setIsResetting] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  // Send guests back to the page that asked them to log in (same-site paths only).
+  const backTo = typeof location.state?.from === 'string' && /^\/(?!\/)/.test(location.state.from) ? location.state.from : '/';
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
@@ -63,7 +66,7 @@ export default function Signup() {
         }
         const referredByValue = formData.referralCode ? formData.referralCode.trim().toUpperCase() : null;
         await signup(formData.email, formData.password, formData.name, formData.phone, referredByValue);
-        navigate('/');
+        navigate(backTo);
       } catch (err) {
         setError(err.message || 'Failed to create an account.');
       } finally {

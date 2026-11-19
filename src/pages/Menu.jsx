@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { EmberFlameIcon, SpikyBadgeIcon } from '../components/icons';
+import { EmberFlameIcon } from '../components/icons';
 import { useStore } from '../contexts/StoreContext';
 import ItemModal from '../components/ItemModal';
+import PromoBanner from '../components/PromoBanner';
 import { getItemPoints } from '../utils/pointsCalculator';
 import './Menu.css';
 import { mediumSrc } from '../utils/imageVariants';
@@ -375,20 +375,24 @@ export default function Menu() {
         })}
       </div>
 
-      {/* Promos / Ads at the bottom */}
-      <div className="card loyalty-banner mt-6">
-        <SpikyBadgeIcon size={24} color="var(--munchies-white)" />
-        <h3 className="mt-2 text-white">LOYALTY PAYS OFF</h3>
-        <p className="text-white-dim">Earn 1 Monsta Coin for every RM1 you spend, then swap your Monsta Coins for free food.</p>
-      </div>
-
-      <div className="card ad-banner mt-4 mb-4">
-        <div className="ad-content">
-          <h2>WANT IT FREE?</h2>
-          <p>Play the arcade, chase the weekly goal and win monthly prizes.</p>
-          <Link to="/arcade" className="btn btn-dark w-full mt-3" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>GO TO ARCADE</Link>
-        </div>
-      </div>
+      {/* Promos at the bottom: the shared banner look (components/PromoBanner) */}
+      <PromoBanner
+        className="loyalty-banner mt-6"
+        kicker="MONSTA COINS"
+        title="LOYALTY PAYS OFF"
+        text="Earn 1 Monsta Coin for every RM1 you spend, then swap your Monsta Coins for free food."
+        to="/loyalty"
+        cta="SEE THE REWARDS"
+      />
+      <PromoBanner
+        className="ad-banner mt-4 mb-4"
+        variant="pixels"
+        kicker="ARCADE"
+        title="WANT IT FREE?"
+        text="Play the arcade, chase the weekly goal and win monthly prizes."
+        to="/arcade"
+        cta="GO TO ARCADE"
+      />
 
       {/* Modals */}
       {selectedItem && (

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Star, Clock } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import MunchManModal from '../components/MunchManModal';
 import TrexRunnerModal from '../components/TrexRunnerModal';
 import SpeedGrabModal from '../components/SpeedGrabModal';
+import PromoBanner from '../components/PromoBanner';
 import ArcadeContestCard from '../components/ArcadeContestCard';
 import ChampionsAnnouncement from '../components/ChampionsAnnouncement';
 import LeaderboardTeaser from '../components/LeaderboardTeaser';
@@ -13,6 +14,16 @@ import './Arcade.css';
 export default function Arcade() {
   const { points } = useStore();
   const { user } = useAuth();
+  const gateRef = useRef(null);
+  const [nudged, setNudged] = useState(false);
+  // Guests can see the games but must log in to play: tapping one scrolls to
+  // the log-in banner and gives it a short pulse.
+  const guestGate = (open) => () => {
+    if (user) { open(); return; }
+    gateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setNudged(true);
+    setTimeout(() => setNudged(false), 1200);
+  };
   const [isMunchManOpen, setIsMunchManOpen] = useState(false);
   const [isTrexRunnerOpen, setIsTrexRunnerOpen] = useState(false);
   const [isSpeedGrabOpen, setIsSpeedGrabOpen] = useState(false);
@@ -26,7 +37,7 @@ export default function Arcade() {
       time: '1m',
       img: '/images/munchman_game.webp',
       bgClass: 'game-bg-yellow',
-      onClick: () => setIsMunchManOpen(true)
+      onClick: guestGate(() => setIsMunchManOpen(true))
     },
     {
       id: 2,
@@ -37,7 +48,7 @@ export default function Arcade() {
       time: 'Endless',
       img: '/images/trex_runner_game.webp',
       bgClass: 'game-bg-blue',
-      onClick: () => setIsTrexRunnerOpen(true)
+      onClick: guestGate(() => setIsTrexRunnerOpen(true))
     },
     {
       id: 3,
@@ -48,7 +59,7 @@ export default function Arcade() {
       time: '30s',
       img: '/images/fry_catch.webp',
       bgClass: 'game-bg-pink',
-      onClick: () => setIsSpeedGrabOpen(true)
+      onClick: guestGate(() => setIsSpeedGrabOpen(true))
     }
   ];
 
@@ -74,6 +85,21 @@ export default function Arcade() {
         </div>
       </div>
 
+      {!user && (
+        <PromoBanner
+          ref={gateRef}
+          className={`mt-4${nudged ? ' is-nudged' : ''}`}
+          variant="pixels"
+          kicker="MONTHLY PRIZES"
+          title="PRIZES AWAIT"
+          text="Log in to play, keep your scores and Monsta Coins, and climb the leaderboard for the monthly prizes."
+          to="/login"
+          cta="LOG IN TO PLAY"
+          secondary={{ to: '/signup', label: 'New here? Join free' }}
+          state={{ from: '/arcade' }}
+        />
+      )}
+
       <h2 className="mt-4 mb-2">CHOOSE YOUR<br/>GAME</h2>
 
       {/* Games List */}
@@ -89,6 +115,7 @@ export default function Arcade() {
               <span className={`difficulty-badge diff-${game.difficulty.toLowerCase()}`}>
                 {game.difficulty}
               </span>
+              {!user && <span className="game-lock-chip">LOG IN TO PLAY</span>}
               <div className="game-thumb" style={{backgroundImage: `url('${game.img}')`}}></div>
               {/* Fallback pattern if no image */}
               <div className="game-pattern"></div>

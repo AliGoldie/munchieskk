@@ -468,3 +468,33 @@
   border: 1px solid var(--line-strong);
 }
 .rank-birthday p { color: #ffb59b; font-size: .85rem; margin: 8px 0 0; }
+
+/* Guest teaser: the locked "more rewards" card. */
+.prize-mystery {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(255, 199, 44, .4) !important;
+}
+.mystery-tile {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #1a1612;
+  background: var(--munchies-yellow);
+}
+.mystery-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--munchies-yellow);
+  animation: promo-ring 2.4s ease-out infinite;
+}
+.prize-mystery .prize-info, .prize-mystery .prize-btn { position: relative; z-index: 2; }
+@media (prefers-reduced-motion: reduce) {
+  .mystery-tile::before { animation: none; display: none; }
+}
