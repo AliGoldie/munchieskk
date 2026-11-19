@@ -60,6 +60,7 @@ Where key business data lives:
 | `SECURITY_AUDIT_2026-10.md`, `POINTS_AUDIT_2026-10.md` | Past audits. |
 | `DESIGN_CHECKLIST.md` | Short checklist for customer-facing screen changes (phone width, focus, states, motion). Not a rulebook. |
 | `PAYMENTS_PLAN.md` | Online payment design, what is built, what is left, gateway notes. |
+| `IDEAS_AUTOMATION.md` | Saved wish list of automations (daily summary, ready-for-pickup message, review prompts), rated for us. Nothing built. |
 | `SOFT_LAUNCH_CHECKLIST.md` | Tick list for the friends-and-family test before opening to the public. |
 | `REPO_MAP.md` | This page. |
 | `marketing/README.md` | Pointer to the `content-team` repo, where campaigns live. |
