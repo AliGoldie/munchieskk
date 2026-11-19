@@ -1,0 +1,10 @@
+.privacy-page { padding: var(--space-4) 0 var(--space-6); max-width: 640px; margin: 0 auto; }
+.privacy-page h1 { font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 1.8rem; line-height: 1.05; margin: 0 0 var(--space-2); color: var(--text); }
+.privacy-page h2 { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: .04em; margin: var(--space-6) 0 var(--space-2); color: var(--munchies-yellow); }
+.privacy-page p, .privacy-page li { font-size: .92rem; line-height: 1.6; color: var(--text-2); }
+.privacy-page ul { padding-left: 1.1rem; margin: var(--space-2) 0; }
+.privacy-page li { margin-bottom: 8px; }
+.privacy-page li strong { color: var(--text); }
+.privacy-page a { color: var(--munchies-yellow); text-underline-offset: 3px; overflow-wrap: anywhere; }
+.privacy-updated { font-size: .8rem !important; color: var(--text-dim, #8b8378) !important; margin-bottom: var(--space-4); }
+.privacy-back { font-weight: 700; text-decoration: none; }

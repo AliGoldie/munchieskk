@@ -17,6 +17,7 @@ const PAGES = [
   ['login', '/login'],
   ['signup', '/signup'],
   ['catering', '/catering'],
+  ['privacy', '/privacy'],
 ];
 
 // Real images that ship with the site, so a missing file shows up as broken.
