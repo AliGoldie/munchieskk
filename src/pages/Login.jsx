@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { Mail } from 'lucide-react';
@@ -15,6 +15,9 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Send guests back to the page that asked them to log in (same-site paths only).
+  const backTo = typeof location.state?.from === 'string' && /^\/(?!\/)/.test(location.state.from) ? location.state.from : '/';
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
@@ -47,7 +50,7 @@ export default function Login() {
       setIsLoading(true);
       try {
         await login(email, password);
-        navigate('/');
+        navigate(backTo);
       } catch (err) {
         setError(err.message || 'Failed to sign in. Please check your credentials.');
       } finally {

@@ -27,3 +27,12 @@ export async function loginAsDevAdmin(page) {
   await page.click('button:has-text("Dev Admin")');
   await page.waitForTimeout(1000);
 }
+
+// Move to another page without a full reload, so an in-memory login survives.
+export async function goClientSide(page, path) {
+  await page.evaluate((p) => {
+    window.history.pushState({}, '', p);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, path);
+  await page.waitForLoadState('networkidle');
+}

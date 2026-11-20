@@ -242,27 +242,6 @@
 .w-full { width: 100%; }
 
 /* Banners */
-.card.loyalty-banner {
-  background: var(--surface-raised);
-  border: 1px solid var(--line-strong);
-  padding: var(--space-4);
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--r-card);
-  color: var(--ember);
-}
-
-.loyalty-banner::after {
-  content: "?";
-  font-family: 'Archivo', sans-serif;
-  font-size: 150px;
-  position: absolute;
-  right: -20px;
-  bottom: -40px;
-  opacity: 0.06;
-  color: var(--text);
-}
-
 .text-white { color: var(--text); }
 .text-white-dim { color: var(--text-2); font-size: 0.85rem; }
 
@@ -480,28 +459,6 @@
   font-size: 0.6rem;
   padding: 2px 6px;
   border-radius: var(--r-pill);
-}
-
-/* Bottom Ad */
-.card.ad-banner {
-  background: var(--surface-raised);
-  border: 1px solid rgba(255, 199, 44, .3);
-  padding: var(--space-6) var(--space-4);
-  text-align: center;
-  margin-top: var(--space-4);
-  border-radius: var(--r-card);
-}
-
-.ad-banner h2 {
-  font-size: 1.6rem;
-  margin-bottom: var(--space-2);
-  color: var(--text);
-}
-
-.ad-banner p {
-  font-weight: 500;
-  margin-bottom: var(--space-4);
-  color: var(--text-2);
 }
 
 /* Loading Skeleton */

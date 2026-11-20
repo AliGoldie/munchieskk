@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { useCountUp } from '../hooks/useCountUp';
 import RankCard from '../components/RankCard';
+import PromoBanner from '../components/PromoBanner';
 import { ordersToGoText } from '../utils/ordersToReward';
 import { rewardValueText } from '../utils/rewardValue';
 import { upcomingPriceChange, fmtMYDate } from '../utils/rewardSchedule';
@@ -14,7 +15,7 @@ import './Loyalty.css';
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kuching' });
 
 export default function Loyalty() {
-  const { setUser } = useAuth();
+  const { user, setUser } = useAuth();
   const { points, orders, pointHistory, loyaltyPrizes, menu, addons } = useStore();
   const displayedPoints = useCountUp(points, 800);
   // The cheapest reward the customer cannot afford yet.
@@ -40,6 +41,63 @@ export default function Loyalty() {
       })
       .catch(() => {});
   }, [setUser]);
+
+  // Guests get a taste, not the whole vault: three highlighted rewards (the
+  // cheapest, one in the middle and the biggest) and a locked card for the
+  // rest. Logging in opens everything. (This is a display choice; the full
+  // list is not secret data.)
+  if (!user) {
+    const sorted = [...loyaltyPrizes].filter(p => p.points_cost > 0).sort((a, b) => a.points_cost - b.points_cost);
+    const picks = sorted.length <= 3 ? sorted : [sorted[0], sorted[Math.floor((sorted.length - 1) / 2)], sorted[sorted.length - 1]];
+    const hiddenCount = sorted.length - picks.length;
+    const from = { from: '/loyalty' };
+    return (
+      <div className="loyalty-page">
+        <PromoBanner
+          variant="lock"
+          kicker="PRIZE VAULT"
+          title="FREE FOOD IS WAITING"
+          text="Join free, earn Monsta Coins on every order and unlock the whole vault."
+          to="/signup"
+          cta="JOIN FREE"
+          secondary={{ to: '/login', label: 'I already have an account' }}
+          state={from}
+        />
+
+        {picks.length > 0 && (
+          <>
+            <div className="section-header mt-4">
+              <h2>A TASTE OF THE VAULT</h2>
+              <Lock size={20} color="var(--text-dim)" />
+            </div>
+            <div className="prize-list">
+              {picks.map(prize => (
+                <div key={prize.id} className="card prize-card prize-teaser">
+                  <div className="prize-img" style={{ backgroundImage: `url('${prize.image_url || '/images/prize_placeholder.png'}')` }}></div>
+                  <div className="prize-info">
+                    <h3>{prize.name}</h3>
+                    {prize.description && <p style={{ fontSize: '0.75rem', color: 'var(--text-2)', margin: '2px 0 0 0' }}>{prize.description}</p>}
+                    <p className="pts-req">{prize.points_cost.toLocaleString()} Coins{rewardValueText(prize, menu, addons) && ` · ${rewardValueText(prize, menu, addons)}`}</p>
+                  </div>
+                </div>
+              ))}
+              {hiddenCount > 0 && (
+                <div className="card prize-card prize-mystery">
+                  <span className="promo-sheen" aria-hidden="true" />
+                  <div className="mystery-tile" aria-hidden="true"><Lock size={22} /></div>
+                  <div className="prize-info">
+                    <h3>{hiddenCount} MORE {hiddenCount === 1 ? 'REWARD' : 'REWARDS'}</h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-2)', margin: '2px 0 0 0' }}>Log in to see them all.</p>
+                  </div>
+                  <Link to="/login" state={from} className="btn btn-primary prize-btn" style={{ textAlign: 'center', textDecoration: 'none' }}>LOG IN</Link>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="loyalty-page">

@@ -11,6 +11,7 @@ import { useCountUp } from '../hooks/useCountUp';
 import CookingPopup from './CookingPopup';
 import ErrorBoundary from './ErrorBoundary';
 import WhatsAppFloatButton from './WhatsAppFloatButton';
+import InstallPrompt from './InstallPrompt';
 
 export default function Layout() {
   const location = useLocation();
@@ -108,6 +109,11 @@ export default function Layout() {
         <div className="container page-transition" key={location.pathname}>
           <RouteSeo />
           <Suspense fallback={<div className="route-loading" aria-hidden="true" />}><Outlet /></Suspense>
+          {!isAdmin && (
+            <p className="site-footer-links">
+              <Link to="/privacy">Privacy Policy</Link>
+            </p>
+          )}
         </div>
       </main>
 
@@ -147,6 +153,7 @@ export default function Layout() {
         <CookingPopup />
       </ErrorBoundary>
       <WhatsAppFloatButton />
+      <InstallPrompt />
     </div>
   );
 }

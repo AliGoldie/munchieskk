@@ -59,6 +59,12 @@ export const ROUTE_SEO = {
     changefreq: 'weekly',
     priority: '0.5',
   },
+  '/privacy': {
+    title: 'Privacy Policy | MunchiesKK',
+    description: 'How MunchiesKK collects, uses and protects your information when you order, earn Monsta Coins and play the arcade.',
+    changefreq: 'yearly',
+    priority: '0.2',
+  },
 };
 
 // Pages that should never be indexed (private, per-user or transactional).
