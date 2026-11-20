@@ -70,7 +70,7 @@ export const ROUTE_SEO = {
 // Pages that should never be indexed (private, per-user or transactional).
 export const NOINDEX_PREFIXES = [
   '/admin', '/cart', '/payment', '/profile', '/order', '/login', '/signup',
-  '/reset-password', '/arcade',
+  '/reset-password', '/arcade', '/leaderboard',
 ];
 
 export function normalizePath(pathname) {

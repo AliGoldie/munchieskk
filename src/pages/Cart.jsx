@@ -33,6 +33,7 @@ export default function Cart() {
   if (cart.length === 0) {
     return (
       <div className="container cart-empty">
+      <h1 className="sr-only">Your Order</h1>
         <div className="cart-empty-icon">🛍️</div>
         <h2>Your Cart is Empty</h2>
         <p className="text-muted">Looks like you haven't added anything yet.</p>

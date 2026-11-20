@@ -240,6 +240,7 @@ export default function Menu() {
 
   return (
     <div className="menu-page">
+      <h1 className="sr-only">MunchiesKK menu</h1>
       {/* Sticky Categories Navigation */}
       <div className="category-bar">
         {categories.map(cat => {

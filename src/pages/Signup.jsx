@@ -77,6 +77,7 @@ export default function Signup() {
 
   return (
     <div className="login-page">
+      <h1 className="sr-only">Join MunchiesKK</h1>
       <div className="login-card">
         <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
           <img src="/images/logo.png" alt="MUNCHIESKK Logo" style={{ height: '80px', borderRadius: '50%' }} />

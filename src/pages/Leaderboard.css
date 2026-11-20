@@ -4,10 +4,10 @@
 .lb-sub { margin: 4px 0 14px; color: var(--text-2, #cfc7b8); font-size: 0.85rem; }
 .lb-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .lb-tab {
-  padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line-strong, rgba(255,255,255,0.18));
+  min-height: 40px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line-strong, rgba(255,255,255,0.18));
   background: transparent; color: var(--text-2, #cfc7b8); font-weight: 700; font-size: 0.85rem; cursor: pointer;
 }
-.lb-tab.small { padding: 5px 10px; font-size: 0.78rem; }
+.lb-tab.small { min-height: 36px; padding: 5px 12px; font-size: 0.78rem; }
 .lb-tab.on { background: var(--gold, #ffc72c); border-color: var(--gold, #ffc72c); color: #1a1a1a; }
 .lb-card { margin-top: 10px; background: var(--surface-raised, #1f1c19); border: 1px solid rgba(255,199,44,0.3); border-radius: 14px; padding: 6px 10px; }
 .lb-list { list-style: none; margin: 0; padding: 0; }

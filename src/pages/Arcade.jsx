@@ -65,6 +65,7 @@ export default function Arcade() {
 
   return (
     <div className="arcade-page">
+      <h1 className="sr-only">Arcade</h1>
       <ChampionsAnnouncement />
 
       {/* Arcade contest, weekly goal and any contest claim codes */}
