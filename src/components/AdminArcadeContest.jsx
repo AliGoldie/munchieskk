@@ -23,6 +23,18 @@ function wholeMonth(ym) {
   return { start: `${ym}-01T00:00`, end: `${next}-01T00:00`, title: `${label} arcade contest` };
 }
 
+const COIN_GROUPS = [
+  { title: 'Month 1 (first 30 days of an account)', fields: [
+    ['ladder_m1_step_xp', 'Burger XP per step'], ['ladder_m1_step_coins', 'Coins per step'],
+    ['ladder_m1_week_max', 'Most coins per week'], ['ladder_m1_total_max', 'Most coins in month 1'] ] },
+  { title: 'Month 2 onward (needs a collected order in the last 30 days)', fields: [
+    ['ladder_m2_step_xp', 'Burger XP per step'], ['ladder_m2_step_coins', 'Coins per step'],
+    ['ladder_m2_week_max', 'Most coins per week'], ['ladder_m2_window_max', 'Most coins in any 30 days'] ] },
+  { title: 'Welcome bonus (once per account, after really playing all three games)', fields: [
+    ['welcome_coins', 'Coins'], ['welcome_min_seconds', 'Minimum seconds per run'],
+    ['welcome_min_trex', 'Minimum T-Rex score'], ['welcome_min_grab', 'Minimum Speed Grab score'], ['welcome_min_munch', 'Minimum Munch-Man score'] ] },
+];
+
 const emptyForm = () => ({
   id: null, title: '', starts: '', ends: '', active: true, min_score: '300', claim_days: '90', claim_min_rm: '10',
   prizes: DEFAULT_PRIZES.map((name, i) => ({ rank: i + 1, prize_name: name, menu_item_id: '' })),
@@ -34,7 +46,7 @@ export default function AdminArcadeContest() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm());
-  const [goal, setGoal] = useState({ score: '1000', points: '25' });
+  const [coins, setCoins] = useState({});
   const [ym, setYm] = useState(() => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Kuching' }).slice(0, 7));
 
   const load = useCallback(async () => {
@@ -42,7 +54,8 @@ export default function AdminArcadeContest() {
     if (err) { setError(err.message || 'Could not load the arcade contests.'); return; }
     setError('');
     setOverview(data);
-    if (data?.goal) setGoal({ score: String(data.goal.goal_score), points: String(data.goal.goal_points) });
+    const { data: cs } = await supabase.rpc('admin_get_game_coin_settings');
+    if (cs) setCoins(Object.fromEntries(Object.entries(cs).map(([k, v]) => [k, String(v)])));
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -103,12 +116,16 @@ export default function AdminArcadeContest() {
     load();
   };
 
-  const saveGoal = async (e) => {
+  const saveCoins = async (e) => {
     e.preventDefault();
-    const { error: err } = await supabase.rpc('admin_set_arcade_goal', {
-      p_goal_score: parseInt(goal.score, 10), p_goal_points: parseInt(goal.points, 10),
-    });
+    const payload = {};
+    COIN_GROUPS.forEach((g) => g.fields.forEach(([key]) => {
+      const n = parseInt(coins[key], 10);
+      if (!Number.isNaN(n)) payload[key] = n;
+    }));
+    const { error: err } = await supabase.rpc('admin_set_game_coin_settings', { p: payload });
     if (err) { alert(err.message); return; }
+    alert('Saved.');
     load();
   };
 
@@ -122,17 +139,25 @@ export default function AdminArcadeContest() {
       </p>
       {error && <p style={{ color: '#ef4444' }}>{error} (If this says a function is missing, the arcade contest SQL has not been run yet.)</p>}
 
-      <h4 style={{ margin: '1rem 0 .5rem' }}>Weekly goal</h4>
-      <form onSubmit={saveGoal} className="mp-form">
-        <div className="mp-row">
-          <label>Burger XP to reach in a week
-            <input className="price-input" type="number" min="1" value={goal.score} onChange={(e) => setGoal((g) => ({ ...g, score: e.target.value }))} />
-          </label>
-          <label>Monsta Coins paid (once a week)
-            <input className="price-input" type="number" min="0" max="200" value={goal.points} onChange={(e) => setGoal((g) => ({ ...g, points: e.target.value }))} />
-          </label>
-        </div>
-        <button type="submit" className="btn btn-sm btn-primary" style={{ alignSelf: 'flex-start' }}>Save goal</button>
+      <h4 style={{ margin: '1rem 0 .5rem' }}>Game Monsta Coins</h4>
+      <p className="text-muted" style={{ marginBottom: '.5rem', fontSize: '0.8rem' }}>
+        Coins come from Burger XP earned in the week (best score in each game, added together). Month 1 = the first 30 days of an account.
+        After that a player needs a collected order in the last 30 days. Changes apply from the next game played.
+      </p>
+      <form onSubmit={saveCoins} className="mp-form">
+        {COIN_GROUPS.map((g) => (
+          <div key={g.title} style={{ marginBottom: 8 }}>
+            <strong style={{ fontSize: '0.85rem' }}>{g.title}</strong>
+            <div className="mp-row">
+              {g.fields.map(([key, label]) => (
+                <label key={key}>{label}
+                  <input className="price-input" type="number" min="0" value={coins[key] ?? ''} onChange={(e) => setCoins((c) => ({ ...c, [key]: e.target.value }))} />
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+        <button type="submit" className="btn btn-sm btn-primary" style={{ alignSelf: 'flex-start' }}>Save coin settings</button>
       </form>
 
       <h4 style={{ margin: '1.5rem 0 .5rem' }}>{form.id ? 'Edit contest' : 'New contest'}</h4>

@@ -4,6 +4,7 @@ import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { STAGES, STAGE_MOODS, stageIndexForScore, drawSky, drawScenery, drawHazard, drawWeather, drawWeatherFront } from './trexStages';
 import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake, createMusic, SONGS } from '../utils/gameFx';
+import GameTopScore from './GameTopScore';
 import './TrexRunnerModal.css';
 
 export default function TrexRunnerModal({ isOpen, onClose }) {
@@ -776,7 +777,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         const { data, error } = await supabase.rpc('claim_trex_runner_reward', { p_score: finalScore });
         if (!error && data) {
           setRewardMsg(data.message || null);
-          if (data.goal_score) setWeekInfo({ week: data.week_score, goal: data.goal_score, bonus: data.goal_points });
+          if (data.goal_score) setWeekInfo({ week: data.week_score, goal: data.goal_score, bonus: data.goal_points, done: !!(data.goal && data.goal.done) });
           if (data.points_awarded > 0) {
             setUser(prev => prev ? ({ ...prev, points: data.total_points }) : prev);
           }
@@ -1905,10 +1906,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
                       </div>
                     )}
 
+                    <GameTopScore game="trex_runner" refreshKey={`${score}-${weekInfo ? weekInfo.week : ''}`} />
+
                     {weekInfo && (
                       <p style={{ fontSize: 12, color: '#ccc', marginTop: 0, marginBottom: 10 }}>
-                        Burger XP this week: <b>{Math.min(weekInfo.week, weekInfo.goal).toLocaleString()} / {weekInfo.goal.toLocaleString()}</b>
-                        {weekInfo.week >= weekInfo.goal ? ' (goal reached!)' : ` · reach it for +${weekInfo.bonus} Monsta Coins`}
+                        Burger XP this week: <b>{weekInfo.week.toLocaleString()}</b>
+                        {weekInfo.done ? ' · weekly Monsta Coins maxed out!' : ` · next +${weekInfo.bonus} Monsta Coins at ${weekInfo.goal.toLocaleString()} XP`}
                       </p>
                     )}
 

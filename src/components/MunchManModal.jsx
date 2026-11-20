@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Lock, Trophy, Flame, Volume2, VolumeX, Award } from 'lucide-react';
+import { X, Trophy, Flame, Volume2, VolumeX, Award } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { isSoundMuted, setSoundMuted, playSfx, vibrate, createParticles, createShake, createMusic, SONGS } from '../utils/gameFx';
+import GameTopScore from './GameTopScore';
 import MunchManRulesModal from './MunchManRulesModal';
 import { LEVELS } from './munchManLevels';
 import './MunchManModal.css';
@@ -24,8 +25,6 @@ export default function MunchManModal({ isOpen, onClose }) {
   const [soundOn, setSoundOn] = useState(() => !isSoundMuted());
 
   // Daily play state
-  const [canPlay, setCanPlay] = useState(true);
-  const [alreadyPlayedToday, setAlreadyPlayedToday] = useState(false);
   const [streak, setStreak] = useState(0);
   const [checkingPlayStatus, setCheckingPlayStatus] = useState(true);
 
@@ -135,48 +134,22 @@ export default function MunchManModal({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) return;
 
+    // Only the daily streak is read here. There is no daily play limit any more.
     const checkDailyStatus = async () => {
       setCheckingPlayStatus(true);
       if (!user) {
-        setCanPlay(true);
-        setAlreadyPlayedToday(false);
         setCheckingPlayStatus(false);
         return;
       }
-
       try {
-        // Time-boxed: on a hanging connection these calls never settle, which
-        // left the modal stuck on "Checking play status..." with no way to
-        // play. Falling through to canPlay is safe -- start_munchman_session
-        // enforces the one-play-a-day rule server-side regardless.
+        // Time-boxed so a hanging connection can never leave the modal on "Checking play status...".
         const { data, error } = await supabase
           .rpc('check_can_play_munchman')
           .abortSignal(AbortSignal.timeout(6000));
         if (error) throw error;
-
-        if (data) {
-          setCanPlay(data.can_play);
-          setAlreadyPlayedToday(data.played_today);
-          setStreak(data.streak || 0);
-        }
+        if (data) setStreak(data.streak || 0);
       } catch (err) {
         console.error('Error checking daily play status:', err);
-        const todayStr = new Date().toISOString().split('T')[0];
-        const { data: plays } = await supabase
-          .from('game_plays')
-          .select('id, played_at')
-          .eq('user_id', user.id)
-          .eq('game_name', 'munch_man')
-          .gte('played_at', `${todayStr}T00:00:00Z`)
-          .abortSignal(AbortSignal.timeout(5000));
-
-        if (plays && plays.length > 0) {
-          setCanPlay(false);
-          setAlreadyPlayedToday(true);
-        } else {
-          setCanPlay(true);
-          setAlreadyPlayedToday(false);
-        }
       } finally {
         setCheckingPlayStatus(false);
       }
@@ -640,7 +613,7 @@ export default function MunchManModal({ isOpen, onClose }) {
         try {
           const { data: scoreData, error: scoreError } = await supabase.rpc('record_munchman_score', { p_score: Math.min(state.score, MAX_RUN_SCORE) });
           if (!scoreError && scoreData) {
-            if (scoreData.goal_score) setWeekInfo({ week: scoreData.week_score, goal: scoreData.goal_score, bonus: scoreData.goal_points });
+            if (scoreData.goal_score) setWeekInfo({ week: scoreData.week_score, goal: scoreData.goal_score, bonus: scoreData.goal_points, done: !!(scoreData.goal && scoreData.goal.done) });
             if (scoreData.message) setRewardMsg(scoreData.message);
             if (scoreData.points_awarded > 0) {
               setUser(prev => prev ? ({ ...prev, points: scoreData.total_points }) : prev);
@@ -1177,8 +1150,6 @@ export default function MunchManModal({ isOpen, onClose }) {
       }
     }
 
-    setCanPlay(false);
-    setAlreadyPlayedToday(true);
     ensureAudio();
     startMusic();
 
@@ -1256,17 +1227,6 @@ export default function MunchManModal({ isOpen, onClose }) {
                 <div className="munchman-overlay-screen">
                   {checkingPlayStatus ? (
                     <p style={{ color: '#ccc' }}>Checking play status...</p>
-                  ) : alreadyPlayedToday && !gameOver ? (
-                    <>
-                      <Lock size={36} color="var(--munchies-yellow)" style={{ marginBottom: 8 }} />
-                      <h2>Played Today!</h2>
-                      <p>Come back tomorrow for another free play!</p>
-                      {streak > 0 && (
-                        <p style={{ fontSize: 12, color: 'var(--munchies-yellow)' }}>
-                          🔥 Daily Streak: {streak} Day{streak > 1 ? 's' : ''}
-                        </p>
-                      )}
-                    </>
                   ) : !gameOver ? (
                     <>
                       <h2>Ready to Munch?</h2>
@@ -1310,8 +1270,8 @@ export default function MunchManModal({ isOpen, onClose }) {
 
                       {weekInfo && (
                         <p style={{ fontSize: 12, color: '#ccc', marginTop: 0, marginBottom: 10 }}>
-                          Burger XP this week: <b>{Math.min(weekInfo.week, weekInfo.goal).toLocaleString()} / {weekInfo.goal.toLocaleString()}</b>
-                          {weekInfo.week >= weekInfo.goal ? ' (goal reached!)' : ` · reach it for +${weekInfo.bonus} Monsta Coins`}
+                          Burger XP this week: <b>{weekInfo.week.toLocaleString()}</b>
+                          {weekInfo.done ? ' · weekly Monsta Coins maxed out!' : ` · next +${weekInfo.bonus} Monsta Coins at ${weekInfo.goal.toLocaleString()} XP`}
                         </p>
                       )}
 
@@ -1337,8 +1297,13 @@ export default function MunchManModal({ isOpen, onClose }) {
                         </p>
                       )}
 
-                      <p style={{ fontSize: 12, color: '#aaa', marginTop: 0 }}>
-                        Come back tomorrow for your next free play!
+                      <GameTopScore game="munch_man" refreshKey={`${score}-${weekInfo ? weekInfo.week : ''}`} />
+
+                      <button className="munchman-btn" onClick={handlePlayButtonClick}>
+                        Play Again
+                      </button>
+                      <p style={{ fontSize: 12, color: '#aaa', marginTop: 8 }}>
+                        Play as often as you like. Monsta Coins come from your weekly Burger XP.
                       </p>
                     </>
                   )}
