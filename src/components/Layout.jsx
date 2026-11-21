@@ -11,6 +11,7 @@ import { useCountUp } from '../hooks/useCountUp';
 import CookingPopup from './CookingPopup';
 import ErrorBoundary from './ErrorBoundary';
 import WhatsAppFloatButton from './WhatsAppFloatButton';
+import { siteConfig } from '../config/siteConfig';
 import InstallPrompt from './InstallPrompt';
 
 export default function Layout() {
@@ -111,6 +112,7 @@ export default function Layout() {
           <Suspense fallback={<div className="route-loading" aria-hidden="true" />}><Outlet /></Suspense>
           {!isAdmin && (
             <p className="site-footer-links">
+              <a href={`https://wa.me/${siteConfig.whatsappNumber}`} target="_blank" rel="noopener noreferrer">WhatsApp us</a>
               <Link to="/privacy">Privacy Policy</Link>
             </p>
           )}
