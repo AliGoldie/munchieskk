@@ -9,6 +9,9 @@ import MunchManRulesModal from './MunchManRulesModal';
 import { LEVELS } from './munchManLevels';
 import './MunchManModal.css';
 
+// Share of the burgers on the maze you must eat to clear it: gentle on the first mazes, everything on the last.
+const LEVEL_NEED = [0.6, 0.75, 0.9, 1];
+
 export default function MunchManModal({ isOpen, onClose }) {
   const { user, setUser } = useAuth();
   const canvasRef = useRef(null);
@@ -566,12 +569,16 @@ export default function MunchManModal({ isOpen, onClose }) {
     }
 
     function checkWin() {
+      const need = LEVEL_NEED[levelIdx];
+      let remaining = 0;
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          if (state.dots[r][c]) return false;
+          if (state.dots[r][c]) remaining++;
         }
       }
-      return state.pellets.every(p => p.eaten);
+      if (need >= 1) return remaining === 0 && state.pellets.every(p => p.eaten);
+      // earlier mazes: clear them once enough burgers are eaten (power pellets are optional)
+      return remaining <= Math.floor(state.totalDots * (1 - need));
     }
 
     function checkGhostCollision() {
@@ -1244,7 +1251,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
             <div className="munchman-hud">
               <span id="score">Score: {score}</span>
-              <span className="munchman-level">Lv {levelNum}/4</span>
+              <span className="munchman-level">Lv {levelNum}/4 · {LEVEL_NEED[levelNum - 1] >= 1 ? 'eat all' : `eat ${Math.round(LEVEL_NEED[levelNum - 1] * 100)}%`}</span>
               <span className={`munchman-timer ${isUrgent ? 'urgent-text' : ''}`}>
                 {timerDisplay}
               </span>
