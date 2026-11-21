@@ -181,16 +181,15 @@
   padding-left: 18px;
   box-sizing: border-box;
   margin-top: 14px;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 .mm-dpad-cross {
   position: relative;
   width: 168px;
   height: 168px;
-  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .mm-dpad-cross::before,
@@ -205,6 +204,7 @@
 .mm-dpad-cross::after { left: 0; top: 56px; width: 168px; height: 56px; border-radius: 12px; }
 
 .mm-dpad-arm, .mm-dpad-hub {
+  pointer-events: none;
   position: absolute;
   width: 56px;
   height: 56px;

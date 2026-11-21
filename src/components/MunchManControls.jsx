@@ -23,33 +23,39 @@ export function DPad({ onDir }) {
   const activeId = useRef(null);
   const [arm, setArm] = useState(null);
 
+  const last = useRef(null);
+
+  // Send the direction straight away (not from inside a state update) so a quick tap always counts.
   const steer = (e) => {
     const r = ref.current.getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2);
     const dy = e.clientY - (r.top + r.height / 2);
     if (Math.hypot(dx, dy) < r.width * 0.1) return;
     const name = dominant(dx, dy);
-    setArm((prev) => {
-      if (prev !== name) onDir(DIRS[name]);
-      return name;
-    });
+    if (last.current !== name) {
+      last.current = name;
+      onDir(DIRS[name]);
+      setArm(name);
+    }
   };
 
+  const release = () => { activeId.current = null; last.current = null; setArm(null); };
+
   return (
-    <div
-      className="mm-dpad"
-      ref={ref}
-      aria-label="Direction pad"
-      onPointerDown={(e) => {
-        activeId.current = e.pointerId;
-        try { ref.current.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
-        steer(e);
-      }}
-      onPointerMove={(e) => { if (activeId.current === e.pointerId) steer(e); }}
-      onPointerUp={(e) => { if (activeId.current === e.pointerId) { activeId.current = null; setArm(null); } }}
-      onPointerCancel={() => { activeId.current = null; setArm(null); }}
-    >
-      <div className="mm-dpad-cross">
+    <div className="mm-dpad">
+      <div
+        className="mm-dpad-cross"
+        ref={ref}
+        aria-label="Direction pad"
+        onPointerDown={(e) => {
+          activeId.current = e.pointerId;
+          try { ref.current.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+          steer(e);
+        }}
+        onPointerMove={(e) => { if (activeId.current === e.pointerId) steer(e); }}
+        onPointerUp={(e) => { if (activeId.current === e.pointerId) release(); }}
+        onPointerCancel={release}
+      >
         <span className={`mm-dpad-arm up ${arm === 'up' ? 'on' : ''}`}>▲</span>
         <span className={`mm-dpad-arm left ${arm === 'left' ? 'on' : ''}`}>◀</span>
         <span className="mm-dpad-hub" />
