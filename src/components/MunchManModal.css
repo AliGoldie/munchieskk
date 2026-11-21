@@ -173,41 +173,60 @@
   transform: translateY(1px);
 }
 
-.munchman-touch-controls {
-  display: grid;
-  grid-template-columns: 58px 58px 58px;
-  grid-template-rows: 58px 58px 58px;
-  gap: 8px;
-  margin-top: 18px;
+/* Floating joystick pad: the stick appears under the thumb, anywhere in this strip. */
+.munchman-pad {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  height: 170px;
+  margin-top: 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  cursor: grab;
 }
 
-.munchman-tbtn {
-  background: var(--surface-raised, rgba(30, 41, 59, 0.8));
-  border: 1px solid var(--line, rgba(255, 255, 255, 0.1));
-  border-radius: 14px;
+.munchman-pad.active {
+  background: rgba(255, 199, 44, 0.07);
+  border-color: rgba(255, 199, 44, 0.45);
+}
+
+.munchman-stick {
+  position: absolute;
+  width: 112px;
+  height: 112px;
+  margin: -56px 0 0 -56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.14));
+  border: 2px solid rgba(255, 255, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255,255,255,0.6);
-  font-size: 22px;
-  user-select: none;
-  touch-action: manipulation;
-  transition: all 0.15s ease;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-  cursor: pointer;
+  pointer-events: none;
 }
 
-.munchman-tbtn:active {
-  background: rgba(255, 199, 44, 0.2);
-  border-color: var(--gold, var(--munchies-yellow));
-  color: var(--gold, var(--munchies-yellow));
-  transform: scale(0.92);
+.munchman-stick.idle { opacity: 0.55; }
+
+.munchman-stick-knob {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe27a, var(--munchies-yellow, #ffc72c) 70%, #d99a00);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
 }
 
-#mm-up { grid-column: 2; grid-row: 1; }
-#mm-left { grid-column: 1; grid-row: 2; }
-#mm-right { grid-column: 3; grid-row: 2; }
-#mm-down { grid-column: 2; grid-row: 3; }
+.munchman-stick-hint {
+  position: absolute;
+  top: 100%;
+  margin-top: 6px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
 
 .munchman-timer {
   font-variant-numeric: tabular-nums;
@@ -277,14 +296,9 @@
     overflow-y: auto;
   }
 
-  .munchman-touch-controls {
-    grid-template-columns: 72px 72px 72px;
-    grid-template-rows: 72px 72px 72px;
-    gap: 12px;
-  }
-
-  .munchman-tbtn {
-    font-size: 28px;
+  .munchman-pad {
+    height: 190px;
+    max-width: none;
   }
 
   .munchman-btn {

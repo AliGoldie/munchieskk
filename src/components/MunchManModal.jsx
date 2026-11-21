@@ -34,6 +34,10 @@ export default function MunchManModal({ isOpen, onClose }) {
   // Reward state
   const [rewardMsg, setRewardMsg] = useState(null);
   const [weekInfo, setWeekInfo] = useState(null);
+  // joystick pad (see stickDown below)
+  const padRef = useRef(null);
+  const stickRef = useRef(null);
+  const [stick, setStick] = useState(null);
   const [breakdown, setBreakdown] = useState(null);
   const [rankInfo, setRankInfo] = useState(null);
 
@@ -243,7 +247,7 @@ export default function MunchManModal({ isOpen, onClose }) {
     const PLAYER_BOOST_SPEED = 3;
     // Ghost speed has to divide the 24 px cell evenly (1.5 or 2), so only the last level is faster;
     // the chase chance and shorter scare timer ramp up on every level.
-    const LEVEL_GHOST_SPEED = [1.5, 1.5, 1.5, 2];
+    const LEVEL_GHOST_SPEED = [1, 1.5, 1.5, 2];
     const LEVEL_CHASE = [0.65, 0.7, 0.75, 0.8];
     const LEVEL_SCARED = [320, 300, 270, 240];
     const LEVEL_TIME_BONUS = 20;      // seconds added to the clock for each maze cleared
@@ -1165,6 +1169,53 @@ export default function MunchManModal({ isOpen, onClose }) {
     setGameOver(false);
   };
 
+  // Floating joystick: it appears wherever the thumb lands in the pad, so nothing is "too far away".
+  // Drag past the small dead zone to steer (the strongest direction wins). If the thumb is dragged far
+  // beyond the stick, the stick follows it, so quick turns never need a long swipe back.
+  const STICK_R = 44;
+  const DEAD_ZONE = 10;
+
+  const stickDown = (e) => {
+    const rect = padRef.current.getBoundingClientRect();
+    stickRef.current = { id: e.pointerId, ox: e.clientX, oy: e.clientY, dir: null };
+    try { padRef.current.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+    setStick({ bx: e.clientX - rect.left, by: e.clientY - rect.top, kx: 0, ky: 0 });
+  };
+
+  const stickMove = (e) => {
+    const st = stickRef.current;
+    if (!st || st.id !== e.pointerId) return;
+    let dx = e.clientX - st.ox;
+    let dy = e.clientY - st.oy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > STICK_R * 1.5) {
+      const pull = (dist - STICK_R * 1.5) / dist;
+      st.ox += dx * pull;
+      st.oy += dy * pull;
+      dx = e.clientX - st.ox;
+      dy = e.clientY - st.oy;
+    }
+    const d = Math.hypot(dx, dy) || 1;
+    const k = Math.min(1, STICK_R / d);
+    const rect = padRef.current.getBoundingClientRect();
+    setStick({ bx: st.ox - rect.left, by: st.oy - rect.top, kx: dx * k, ky: dy * k });
+    if (d < DEAD_ZONE) return;
+    const dir = Math.abs(dx) > Math.abs(dy)
+      ? { dx: dx > 0 ? 1 : -1, dy: 0 }
+      : { dx: 0, dy: dy > 0 ? 1 : -1 };
+    if (!st.dir || st.dir.dx !== dir.dx || st.dir.dy !== dir.dy) {
+      st.dir = dir;
+      setDir(dir);
+    }
+  };
+
+  const stickUp = (e) => {
+    if (stickRef.current && stickRef.current.id === e.pointerId) {
+      stickRef.current = null;
+      setStick(null);
+    }
+  };
+
   const setDir = (dir) => {
     if (gameStateRef.current) {
       gameStateRef.current.player.next = dir;
@@ -1311,11 +1362,25 @@ export default function MunchManModal({ isOpen, onClose }) {
               )}
             </div>
 
-            <div className="munchman-touch-controls">
-              <div className="munchman-tbtn" id="mm-up" onClick={() => setDir({ dx: 0, dy: -1 })}>&#9650;</div>
-              <div className="munchman-tbtn" id="mm-left" onClick={() => setDir({ dx: -1, dy: 0 })}>&#9664;</div>
-              <div className="munchman-tbtn" id="mm-right" onClick={() => setDir({ dx: 1, dy: 0 })}>&#9654;</div>
-              <div className="munchman-tbtn" id="mm-down" onClick={() => setDir({ dx: 0, dy: 1 })}>&#9660;</div>
+            <div
+              className={`munchman-pad ${stick ? 'active' : ''}`}
+              ref={padRef}
+              onPointerDown={stickDown}
+              onPointerMove={stickMove}
+              onPointerUp={stickUp}
+              onPointerCancel={stickUp}
+              aria-label="Joystick: touch and drag to steer"
+            >
+              {stick ? (
+                <div className="munchman-stick" style={{ left: stick.bx, top: stick.by }}>
+                  <div className="munchman-stick-knob" style={{ transform: `translate(${stick.kx}px, ${stick.ky}px)` }} />
+                </div>
+              ) : (
+                <div className="munchman-stick idle" style={{ left: '50%', top: '50%' }}>
+                  <div className="munchman-stick-knob" />
+                  <span className="munchman-stick-hint">Touch here and drag to steer</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
