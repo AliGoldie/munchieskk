@@ -173,27 +173,55 @@
   transform: translateY(1px);
 }
 
-/* Floating joystick pad: the stick appears under the thumb, anywhere in this strip. */
-.munchman-pad {
-  position: relative;
+/* Controls. Upright phone: Game Boy style D-pad. Sideways phone: a floating joystick zone on each lower side. */
+.mm-dpad {
   width: 100%;
-  max-width: 360px;
-  height: 170px;
+  display: flex;
+  justify-content: center;
   margin-top: 14px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed rgba(255, 255, 255, 0.16);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  overflow: hidden;
-  cursor: grab;
 }
 
-.munchman-pad.active {
-  background: rgba(255, 199, 44, 0.07);
-  border-color: rgba(255, 199, 44, 0.45);
+.mm-dpad-cross {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  pointer-events: none;
 }
+
+.mm-dpad-cross::before,
+.mm-dpad-cross::after {
+  content: '';
+  position: absolute;
+  background: linear-gradient(180deg, #3b4252, #232833);
+  border: 2px solid #0e1116;
+  box-shadow: 0 5px 0 #0e1116, 0 8px 14px rgba(0, 0, 0, 0.5);
+}
+.mm-dpad-cross::before { left: 56px; top: 0; width: 56px; height: 168px; border-radius: 12px; }
+.mm-dpad-cross::after { left: 0; top: 56px; width: 168px; height: 56px; border-radius: 12px; }
+
+.mm-dpad-arm, .mm-dpad-hub {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 22px;
+  border-radius: 10px;
+}
+.mm-dpad-hub { left: 56px; top: 56px; background: radial-gradient(circle, #1a1e27 30%, transparent 32%); z-index: 2; }
+.mm-dpad-arm.up { left: 56px; top: 0; }
+.mm-dpad-arm.down { left: 56px; top: 112px; }
+.mm-dpad-arm.left { left: 0; top: 56px; }
+.mm-dpad-arm.right { left: 112px; top: 56px; }
+.mm-dpad-arm.on { color: var(--munchies-yellow, #ffc72c); background: rgba(255, 199, 44, 0.18); }
+
+.mm-stickzone { display: none; }
 
 .munchman-stick {
   position: absolute;
@@ -219,14 +247,7 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
 }
 
-.munchman-stick-hint {
-  position: absolute;
-  top: 100%;
-  margin-top: 6px;
-  white-space: nowrap;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-}
+
 
 .munchman-timer {
   font-variant-numeric: tabular-nums;
@@ -296,10 +317,6 @@
     overflow-y: auto;
   }
 
-  .munchman-pad {
-    height: 190px;
-    max-width: none;
-  }
 
   .munchman-btn {
     padding: 16px 36px;
@@ -309,3 +326,43 @@
 
 
 .munchman-level { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; color: var(--munchies-yellow, #ffc72c); }
+
+
+/* Phone held sideways: no title, the maze fills the height, and a floating joystick zone sits on each lower side
+   (so it suits a left or a right thumb). The stick appears wherever the thumb lands in the zone. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .munchman-modal-overlay { padding: 0; align-items: stretch; }
+  .munchman-modal-content {
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+    padding: 6px 12px;
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+  .munchman-container h1 { display: none; }
+  .munchman-container { height: 100%; }
+  .munchman-hud { margin-bottom: 6px; padding: 4px 14px; max-width: 420px; font-size: 14px; }
+  .munchman-canvas-wrap { width: auto; height: calc(100dvh - 70px); }
+  .munchman-canvas-wrap canvas { height: 100%; width: auto; max-width: none; }
+  .mm-dpad { display: none; }
+  .mm-stickzone {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    top: 64px;
+    width: 26%;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    z-index: 6;
+  }
+  .mm-stickzone.left { left: 0; }
+  .mm-stickzone.right { right: 0; }
+  .mm-stickzone.active { background: rgba(255, 199, 44, 0.07); }
+}
