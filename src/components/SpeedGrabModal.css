@@ -357,3 +357,38 @@
   from { opacity: 0.7; }
   to { opacity: 1; }
 }
+
+.grab-countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 96px;
+  font-weight: 900;
+  color: var(--munchies-yellow, #ffc72c);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  z-index: 4;
+  animation: grab-count-pop 0.8s ease-out;
+}
+@keyframes grab-count-pop {
+  from { transform: scale(1.6); opacity: 0.2; }
+  to { transform: scale(1); opacity: 1; }
+}
+.grab-timebonus {
+  position: absolute;
+  top: 34px;
+  right: 12px;
+  font-weight: 900;
+  font-size: 18px;
+  color: #7dff9a;
+  pointer-events: none;
+  z-index: 4;
+  animation: grab-bonus-rise 1.2s ease-out forwards;
+}
+@keyframes grab-bonus-rise {
+  from { transform: translateY(8px); opacity: 0; }
+  20% { opacity: 1; }
+  to { transform: translateY(-14px); opacity: 0; }
+}

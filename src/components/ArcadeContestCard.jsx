@@ -47,7 +47,7 @@ function PhoneGate({ onSaved }) {
 }
 
 // Arcade contest + weekly goal. The score here is never spent: it only
-// decides the contest podium and the weekly goal bonus. Safe for guests.
+// decides the contest podium and the weekly Monsta Coins ladder. Safe for guests.
 export default function ArcadeContestCard({ refreshKey }) {
   const [data, setData] = useState(null);
   const [now, setNow] = useState(() => Date.now());
@@ -69,7 +69,7 @@ export default function ArcadeContestCard({ refreshKey }) {
 
   if (!data) return null;
   const { current, next, last, my, my_wins: wins = [], goal } = data;
-  const goalPct = goal ? Math.min(100, Math.round((goal.week_score / goal.goal_score) * 100)) : 0;
+  const goalPct = goal ? (goal.done ? 100 : Math.min(100, Math.round((goal.week_score / goal.goal_score) * 100))) : 0;
 
   return (
     <>
@@ -153,13 +153,20 @@ export default function ArcadeContestCard({ refreshKey }) {
           <div className="acc-goal">
             <div className="acc-goal-row">
               <Target size={14} />
-              <span>Weekly goal</span>
-              <b>{Math.min(goal.week_score, goal.goal_score).toLocaleString()} / {goal.goal_score.toLocaleString()}</b>
+              <span>Weekly Monsta Coins</span>
+              <b>{goal.week_score.toLocaleString()} XP{goal.done ? '' : ` / ${goal.goal_score.toLocaleString()}`}</b>
             </div>
             <div className="acc-bar"><div className="acc-bar-fill" style={{ width: `${goalPct}%` }} /></div>
             <p className="acc-fine">
-              {goal.done ? `Goal reached this week. +${goal.goal_points} Monsta Coins paid.` : `Reach it this week for +${goal.goal_points} Monsta Coins.`}
+              {goal.done
+                ? `Maxed out this week: ${goal.coins_this_week} Monsta Coins earned.`
+                : goal.eligible === false
+                ? 'Place an order and collect it to unlock weekly Monsta Coins.'
+                : `Next: +${goal.goal_points} Monsta Coins at ${goal.goal_score.toLocaleString()} XP. ${goal.week_max != null ? ` Earned this week: ${goal.coins_this_week || 0} of ${goal.week_max}.` : ''}`}
             </p>
+            {goal.welcome_done === false && (
+              <p className="acc-fine">Welcome bonus: play all three games once for +{goal.welcome_coins} Monsta Coins.</p>
+            )}
           </div>
         )}
       </div>

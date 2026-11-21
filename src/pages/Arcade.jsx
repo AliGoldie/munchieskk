@@ -53,10 +53,10 @@ export default function Arcade() {
     {
       id: 3,
       title: 'SPEED GRAB',
-      desc: 'Snacks and drinks flash across the counter -- tap the good ones before they vanish and dodge the wrong orders. Chase your combo for a new daily high score!',
+      desc: 'Snacks and drinks flash across the counter -- tap the good ones before they vanish and dodge the wrong orders. Chase your combo for a new high score!',
       difficulty: 'MEDIUM',
       rating: 4.8,
-      time: '30s',
+      time: '45s+',
       img: '/images/fry_catch.webp',
       bgClass: 'game-bg-pink',
       onClick: guestGate(() => setIsSpeedGrabOpen(true))

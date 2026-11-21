@@ -23,7 +23,7 @@ monthly prizes.**
    the inviter gets **+150** and the friend gets **+30**.
 6. **Spend points** at checkout on the Prize Vault (Free Cheese 50, Free Egg 60, **Free Fries 100**, and more).
 7. **Play the arcade** (optional): games give **no points per run**. They build an **Arcade Score**.
-   Reaching **1,000 in a week = +25 points**. The **top 3 in the month win free food**.
+   Burger XP earned in a week pays **Monsta Coins on a ladder** (see below), plus a one-time **+5 welcome bonus** for really playing all three games. The **top 3 in the month win free food**.
 8. **Rank up**: lifetime spend on collected orders decides the rank (Rookie to Ultimate), which adds bonus points.
 9. **Stay active**: points fade only after 12 months with no activity, 25% a month. Any order stops it.
 
@@ -39,12 +39,12 @@ monthly prizes.**
 | **Share + screenshot** | **40 in total** (+20 more) | Upload a screenshot of the public post (tag @munchieskk). Points are added after we approve it. Send it within 14 days of the order. |
 | **Invite a friend** | **+150 for you, +30 for them** | Friend signs up with your link or code. The 150 is paid when their **first collected order of RM20 or more** is done. Max 5 friends per person. **The friend's 30 points are paid at the same moment**, after their first collected order of RM20 or more (not at sign-up). |
 | **Rank bonus** | **+5% / +8% / +12%** extra points on every order | Pro / Master / Ultimate ranks only (see Burger Ranks). |
-| **Play the arcade (T-Rex Runner, Speed Grab, Munch-Man)** | **No loyalty points per run or win.** Your runs build your **Arcade Score** (see below). | Reach the weekly goal for **+25 points**; top scores win free food. |
+| **Play the arcade (T-Rex Runner, Speed Grab, Munch-Man)** | **No loyalty points per run or win.** Your runs build your **Arcade Score** (see below). | Weekly Monsta Coins ladder and a one-time welcome bonus; top scores win free food. |
 
 **Arcade bonus rules (say this clearly):**
-- The only loyalty points from games are the **+25 weekly goal bonus** (once a week).
-- **New accounts qualify freely for their first 30 days.** After that, the weekly goal bonus needs a collected order in the last 30 days. At most 4 goal bonuses per account per calendar month (setting `goal_max_per_month`).
-- Munch-Man gives one free play a day. Game days reset at **8:00 am Malaysia time**. The daily streak is just a badge now.
+- The only loyalty points from games are the **weekly Monsta Coins ladder** and the **one-time +5 welcome bonus**. All numbers are settings in Admin > Arcade (table `arcade_settings`); the defaults are below.
+- **Month 1 = the first 30 days of an account** (no order needed). **After that** the ladder needs a collected order in the last 30 days.
+- Munch-Man can be played **as often as you like** (3 lives per run). Extra plays only help if they beat your best score. The daily streak is just a badge.
 
 ## How customers SPEND points
 
@@ -90,8 +90,12 @@ Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all 
 - **T-Rex Runner bonus:** running through a landmark gate (a glowing arch at the start of each landmark) adds **+50 Burger XP**. Burgers collected add a little XP too.
 - **Leaderboard:** a public board (also on the Arcade page, top three) ranks players by Burger XP, for **each game and overall**, for **this week, this month and all time**. Players can pick a **nickname** in their Profile (3 to 14 characters, rude words blocked); without one their **first name** is shown. A player can **hide** themselves. Staff accounts never appear. It is a bragging board: the only prizes are still the contest's.
 - **Three lives** in every game: a crash costs a life, and the run carries on.
-- **Weekly goal:** reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) for **+25 loyalty points**, once a week.
-  Because all three games add up, the goal is easy to reach. That is on purpose. (After the first 30 days, game bonuses need a collected order in the last 30 days.)
+- **Weekly Monsta Coins ladder** (Monday to Sunday, Malaysia time; the week's XP is the sum of each game's best score that week). Defaults (all settings):
+  - **Month 1:** 3 coins for every 1,000 XP, at most **15 a week**, at most **60 in the first 30 days**.
+  - **Month 2 onward** (needs a collected order in the last 30 days): 2 coins for every 1,500 XP, at most **10 a week**, at most **40 in any 30 days**.
+  - Limits are enforced by the database, not the browser. Coins are paid as the rungs are reached during the week.
+- **Welcome bonus:** **+5 Monsta Coins once per account** after a real run in each of the three games (at least **15 seconds** each, and at least 300 / 200 / 300 Burger XP in T-Rex Runner / Speed Grab / Munch-Man). The run time is measured by the server.
+- **Speed Grab:** starts at 45 seconds, **+3 seconds for every 10 correct taps in a row**, never more than 90 seconds, 3-2-1 countdown, gentle start. Stops counting at 5,000.
 - **Monthly arcade contest:** one contest a month, running the whole calendar month. The **top 3** win free food
   (the plan: 1st a burger, 2nd fries, 3rd a drink; the owner can change the prizes for each contest).
   - Ties go to whoever reached their score first. **One account per phone number.** A minimum score applies (300 by default).

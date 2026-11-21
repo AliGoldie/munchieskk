@@ -3,6 +3,7 @@ import { X, Volume2, VolumeX, Trophy, Award, Heart } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { isSoundMuted, setSoundMuted, playSfx, vibrate, createMusic, SONGS } from '../utils/gameFx';
+import GameTopScore from './GameTopScore';
 import './SpeedGrabModal.css';
 
 const ROUND_SECONDS = 45;
@@ -13,17 +14,19 @@ const GOOD_ICONS = { burger: '🍔', fries: '🍟', drink: '🥤' };
 const DECOY_ICONS = { burger: '🥪', fries: '🥔', drink: '🧃' };
 
 // Tuning knobs, all in one place.
-const RAMP_SECONDS = 18;       // seconds until the first full difficulty
-const LATE_START = 20;         // then a tougher second half builds up until the end of the round
+const RAMP_SECONDS = 30;       // seconds until the first full difficulty (slow, gentle build)
+const LATE_START = 20;         // then a tougher part builds up (measured against the 45-second base round)
+const SAFE_START = 4;          // no wrong orders at all in the first seconds
+const TIME_BONUS = 3;          // +3 seconds for every 10 correct taps in a row (each frenzy)
+const MAX_SECONDS = 90;        // the round never runs longer than this
 const GOLD_CHANCE = 0.06;      // share of good spawns that are a rare gold star
 const GOLD_POINTS = 40;        // flat bonus, never multiplied
 const FRENZY_EVERY = 10;       // a frenzy starts at every 10th combo
 const FRENZY_SECONDS = 4;
 const FRENZY_BONUS = 1.5;      // score multiplier during a frenzy (on top of the combo multiplier)
-// Safety net: the server rejects scores above about 110 x seconds + 100 (3,400 for a
-// 45-second round, about 5,000). Keeping every round under 4,500 and 100 x seconds keeps
-// honest scores valid.
-const MAX_ROUND_SCORE = 4500;
+// Safety net: the server rejects scores above about 110 x seconds + 100. The game stops
+// counting at 5,000 (the most Burger XP one game can give) and 100 x seconds keeps honest scores valid.
+const MAX_ROUND_SCORE = 5000;
 
 // A whack-a-mole reflex game is a grid of discrete hit targets, not a
 // continuously moving scene -- so unlike MunchManModal/TrexRunnerModal this
@@ -50,6 +53,8 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
   const [isNewBest, setIsNewBest] = useState(false);
   const [rankInfo, setRankInfo] = useState(null);
   const [missFlash, setMissFlash] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [bonusPop, setBonusPop] = useState(0);
 
   const gameRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -58,6 +63,8 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
   soundOnRef.current = soundOn;
   const startSessionRef = useRef(null);
   const userRef = useRef(user);
+  const openRef = useRef(isOpen);
+  openRef.current = isOpen;
 
   useEffect(() => {
     userRef.current = user;
@@ -150,6 +157,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
     const state = {
       cellData: Array(GRID_SIZE).fill(null),
       elapsed: 0,
+      duration: ROUND_SECONDS,
       lastTime: null,
       nextSpawnAt: 0,
       score: 0,
@@ -167,8 +175,9 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
     function resetGame() {
       state.cellData = Array(GRID_SIZE).fill(null);
       state.elapsed = 0;
+      state.duration = ROUND_SECONDS;
       state.lastTime = null;
-      state.nextSpawnAt = 0.3;
+      state.nextSpawnAt = 0.6;
       state.score = 0;
       state.lives = START_LIVES;
       state.combo = 0;
@@ -204,7 +213,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
         const { data, error } = await supabase.rpc('claim_speed_grab_reward', { p_score: finalScore });
         if (!error && data) {
           setRewardMsg(data.message || null);
-          if (data.goal_score) setWeekInfo({ week: data.week_score, goal: data.goal_score, bonus: data.goal_points });
+          if (data.goal_score) setWeekInfo({ week: data.week_score, goal: data.goal_score, bonus: data.goal_points, done: !!(data.goal && data.goal.done) });
           if (data.points_awarded > 0) {
             setUser(prev => prev ? ({ ...prev, points: data.total_points }) : prev);
           }
@@ -243,7 +252,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       const t = difficultyT();
       const inFrenzy = state.elapsed < state.frenzyUntil;
       const late = lateT();
-      const spawnInterval = lerp(0.8, 0.32, t) * (1 - 0.18 * late) * (inFrenzy ? 0.65 : 1);
+      const spawnInterval = lerp(1.1, 0.34, t) * (1 - 0.18 * late) * (inFrenzy ? 0.65 : 1);
       if (state.elapsed < state.nextSpawnAt) return;
 
       const emptyIdx = state.cellData
@@ -256,8 +265,8 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       }
 
       const idx = emptyIdx[Math.floor(Math.random() * emptyIdx.length)];
-      const badChance = lerp(0.18, 0.38, t) + 0.06 * late;
-      const lifeMs = lerp(950, 480, t) * (1 - 0.15 * late);
+      const badChance = state.elapsed < SAFE_START ? 0 : lerp(0.1, 0.38, t) + 0.06 * late;
+      const lifeMs = lerp(1500, 480, t) * (1 - 0.15 * late);
       const variants = Object.keys(GOOD_ICONS);
       const pickVariant = () => variants[Math.floor(Math.random() * variants.length)];
       let type = 'good';
@@ -322,12 +331,12 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       state.scoreThrottle += dt;
       if (state.scoreThrottle >= 0.1) {
         state.scoreThrottle = 0;
-        const timeLeft = Math.max(0, ROUND_SECONDS - state.elapsed);
+        const timeLeft = Math.max(0, state.duration - state.elapsed);
         setTimerDisplay(String(Math.ceil(timeLeft)).padStart(2, '0'));
         setIsUrgent(timeLeft <= 5 && timeLeft > 0);
       }
 
-      if (state.elapsed >= ROUND_SECONDS && state.running) {
+      if (state.elapsed >= state.duration && state.running) {
         endGame();
       }
     }
@@ -355,6 +364,12 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       state.frenzyOn = true;
       setFrenzy(true);
       sfxFrenzy();
+      if (state.duration < MAX_SECONDS) {
+        const add = Math.min(TIME_BONUS, MAX_SECONDS - state.duration);
+        state.duration += add;
+        setBonusPop((n) => n + 1);
+        setTimeout(() => setBonusPop((n) => Math.max(0, n - 1)), 1200);
+      }
     }
 
     function handleCellTap(i) {
@@ -433,6 +448,14 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
     setGameOver(false);
     setScore(0);
     setGameStarted(true);
+    // 3-2-1 before the first snack appears
+    for (let n = 3; n >= 1; n--) {
+      setCountdown(n);
+      playSfx(audioCtxRef.current, soundOnRef.current, 'tap', 1);
+      await new Promise((r) => setTimeout(r, 800));
+    }
+    setCountdown(0);
+    if (!openRef.current) return;
     if (startSessionRef.current) startSessionRef.current();
   };
 
@@ -482,6 +505,9 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
               <div className="grab-combo">x{comboMultiplier} COMBO</div>
             )}
 
+            {countdown > 0 && <div className="grab-countdown" aria-live="assertive">{countdown}</div>}
+            {bonusPop > 0 && <div className="grab-timebonus">+{TIME_BONUS}s</div>}
+
             <div className="grab-grid">
               {cells.map((cell, i) => (
                 <button
@@ -503,7 +529,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
                 {!gameOver ? (
                   <>
                     <h2>Ready to Grab?</h2>
-                    <p>Snacks and drinks flash across the counter -- tap the good ones before they vanish. Avoid the wrong orders (❌) and the red-edged lookalikes (🥪🥔🧃). Grab the rare ⭐ for a bonus and reach a 10 combo for FRENZY. 3 misses ends the round, or ride out {ROUND_SECONDS} seconds for the win.</p>
+                    <p>Snacks and drinks flash across the counter -- tap the good ones before they vanish. Avoid the wrong orders (❌) and the red-edged lookalikes (🥪🥔🧃). Grab the rare ⭐ for a bonus and reach a 10 combo for FRENZY and +{TIME_BONUS} seconds. 3 misses ends the round, or ride out the clock (up to {MAX_SECONDS} seconds).</p>
                     {user && bestScore > 0 && (
                       <p style={{ fontSize: 12, color: 'var(--munchies-yellow)', marginTop: -12 }}>Your Best: {bestScore}</p>
                     )}
@@ -515,6 +541,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
                   <>
                     <h2>{isNewBest ? '🎉 New Best!' : '⏰ Round Over'}</h2>
                     <p>Score: {score}{!isNewBest && user ? ` -- Best: ${bestScore}` : ''}</p>
+                    <GameTopScore game="speed_grab" refreshKey={`${score}-${weekInfo ? weekInfo.week : ''}`} />
 
                     {rewardMsg && (
                       <div style={{
@@ -534,8 +561,8 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
 
                     {weekInfo && (
                       <p style={{ fontSize: 12, color: '#ccc', marginTop: 0, marginBottom: 10 }}>
-                        Burger XP this week: <b>{Math.min(weekInfo.week, weekInfo.goal).toLocaleString()} / {weekInfo.goal.toLocaleString()}</b>
-                        {weekInfo.week >= weekInfo.goal ? ' (goal reached!)' : ` · reach it for +${weekInfo.bonus} Monsta Coins`}
+                        Burger XP this week: <b>{weekInfo.week.toLocaleString()}</b>
+                        {weekInfo.done ? ' · weekly Monsta Coins maxed out!' : ` · next +${weekInfo.bonus} Monsta Coins at ${weekInfo.goal.toLocaleString()} XP`}
                       </p>
                     )}
 

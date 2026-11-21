@@ -67,6 +67,12 @@ $$;
 \i supabase/migrations/20261031000000_leaderboard.sql
 \i supabase/migrations/20261020000000_contest_claim_needs_phone.sql
 \i supabase/migrations/20261023000000_weekly_goal_rules.sql
+\i supabase/migrations/20261121000000_game_coin_ladder.sql
+-- The tests below were written for the old rule (1,000 Burger XP = 25 coins, once a week). The ladder has
+-- its own test file (game_coin_ladder.test.sql), so here the ladder is set to behave like the old goal.
+UPDATE arcade_settings SET
+  ladder_m1_step_xp = 1000, ladder_m1_step_coins = 25, ladder_m1_week_max = 25, ladder_m1_total_max = 100,
+  ladder_m2_step_xp = 1000, ladder_m2_step_coins = 25, ladder_m2_week_max = 25, ladder_m2_window_max = 100;
 
 CREATE FUNCTION pg_temp.expect(p_ok boolean, p_msg text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN IF NOT p_ok THEN RAISE EXCEPTION 'FAIL: %', p_msg; END IF; END $$;
@@ -182,22 +188,15 @@ DECLARE r jsonb;
   hal constant text := 'a0000000-0000-0000-0000-0000000000f1';
   ivy constant text := 'a0000000-0000-0000-0000-0000000000f2';
   v_week date := (public.arcade_week_start() AT TIME ZONE 'Asia/Kuching')::date;
-  v_first date;
 BEGIN
-  PERFORM pg_temp.expect((SELECT goal_max_per_month FROM arcade_settings) = 4, 'monthly limit defaults to 4 goal bonuses');
-
-  -- monthly limit: four bonuses already paid this month, so the fifth is held back
-  v_first := date_trunc('month', v_week::timestamp)::date;
-  INSERT INTO arcade_goal_awards (user_id, week_start, points)
-  SELECT hal::uuid, d::date, 25
-  FROM (SELECT v_first + i AS d FROM generate_series(0, 8) i) x
-  WHERE d::date <> v_week LIMIT 4;
+  -- overall limit for a player's first 30 days (here set to 100 coins): once it is used up, nothing more is paid
+  INSERT INTO engagement_points_log (user_id, source, points) SELECT hal::uuid, 'arcade_goal', 25 FROM generate_series(1, 4);
   r := pg_temp.run(hal, 'trex_runner', 60, 1200);
-  PERFORM pg_temp.expect((r->>'points_awarded')::int = 0 AND pg_temp.pts(hal) = 0, 'the fifth goal bonus in a month is not paid');
+  PERFORM pg_temp.expect((r->>'points_awarded')::int = 0 AND pg_temp.pts(hal) = 0, 'nothing more is paid once the first-30-days limit is used');
   PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM arcade_goal_awards WHERE user_id = hal::uuid AND week_start = v_week), 'a held-back week is left open, not marked paid');
-  DELETE FROM arcade_goal_awards WHERE user_id = hal::uuid AND week_start = (SELECT min(week_start) FROM arcade_goal_awards WHERE user_id = hal::uuid);
+  DELETE FROM engagement_points_log WHERE id = (SELECT min(id) FROM engagement_points_log WHERE user_id = hal::uuid AND source = 'arcade_goal');
   r := pg_temp.run(hal, 'trex_runner', 60, 1300);
-  PERFORM pg_temp.expect((r->>'points_awarded')::int = 25 AND pg_temp.pts(hal) = 25, 'with one slot free the goal bonus is paid');
+  PERFORM pg_temp.expect((r->>'points_awarded')::int = 25 AND pg_temp.pts(hal) = 25, 'with room left under the limit the bonus is paid');
 
   -- a collected order must be within the last 30 days
   INSERT INTO orders (id, user_id, status, total, created_at) VALUES ('O-OLD', ivy::uuid, 'COLLECTED', 2000, now() - interval '45 days');
@@ -258,7 +257,10 @@ BEGIN
   PERFORM pg_temp.expect((r->>'points_awarded')::int = 0 AND pg_temp.pts(h) = 10, 'a Munch-Man win pays no points any more');
   r := public.record_munchman_score(1500);
   PERFORM pg_temp.expect(NOT (r->>'verified')::boolean, 'a 1,500 score a split second after starting is rejected');
-  PERFORM pg_temp.expect_error($q$SELECT public.start_munchman_session()$q$, 'You have already used your free play today!');
+  -- Munch-Man can be played again the same day (only the best score counts); the streak is not counted twice
+  r := public.start_munchman_session();
+  PERFORM pg_temp.expect((r->>'success')::boolean AND (r->>'streak')::int = 3, 'a second play the same day is allowed and the streak stays at 3');
+  PERFORM pg_temp.expect((SELECT count(*) FROM game_plays WHERE user_id = h::uuid AND game_name = 'munch_man') = 2, 'each play has its own session');
   PERFORM pg_temp.expect(NOT has_function_privilege('anon', 'public.start_munchman_session()', 'execute'), 'guests cannot start Munch-Man');
 END $$;
 
