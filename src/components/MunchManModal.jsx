@@ -35,6 +35,7 @@ export default function MunchManModal({ isOpen, onClose }) {
   // Reward state
   const [rewardMsg, setRewardMsg] = useState(null);
   const [weekInfo, setWeekInfo] = useState(null);
+  const [boostOffer, setBoostOffer] = useState(false); // sideways play: the boost button is on offer
   const [breakdown, setBreakdown] = useState(null);
   const [rankInfo, setRankInfo] = useState(null);
 
@@ -239,6 +240,8 @@ export default function MunchManModal({ isOpen, onClose }) {
     const CENTER_PELLET_TYPES = ['scare', 'speed', 'freeze'];
 
     const SPEED_BOOST_DURATION = 300;
+    const BOOST_OFFER_MS = 5000;      // how long the boost button waits (sideways play only)
+    const BOOST_BUTTON_QUERY = '(orientation: landscape) and (max-height: 520px)';
     const FREEZE_DURATION = 240;
     const PLAYER_SPEED = 2;
     const PLAYER_BOOST_SPEED = 3;
@@ -300,6 +303,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       running: false,
       won: false,
       speedBoostTimer: 0,
+      boostOfferUntil: 0,
       freezeTimer: 0,
       graceTimer: GRACE_PERIOD,
       roundStartTime: 0,
@@ -349,6 +353,8 @@ export default function MunchManModal({ isOpen, onClose }) {
       });
       state.totalDots = totalCount;
       state.speedBoostTimer = 0;
+      state.boostOfferUntil = 0;
+      setBoostOffer(false);
       state.freezeTimer = 0;
       state.graceTimer = GRACE_PERIOD;
       state.player = {
@@ -393,6 +399,8 @@ export default function MunchManModal({ isOpen, onClose }) {
       state.running = false;
       state.won = false;
       state.speedBoostTimer = 0;
+      state.boostOfferUntil = 0;
+      setBoostOffer(false);
       state.freezeTimer = 0;
       state.graceTimer = GRACE_PERIOD;
       state.roundStartTime = performance.now();
@@ -412,6 +420,18 @@ export default function MunchManModal({ isOpen, onClose }) {
       state.roundStartTime = performance.now();
     }
     state.beginRun = beginRun;
+
+    function activateBoost() {
+      if (!state.running || state.boostOfferUntil <= performance.now()) return;
+      state.boostOfferUntil = 0;
+      setBoostOffer(false);
+      state.speedBoostTimer = SPEED_BOOST_DURATION;
+      sfxPower();
+      vibrate(soundOnRef.current, 30);
+      particles.emit(state.player.x + CELL / 2, state.player.y + CELL / 2, { n: 28, color: '255,200,40', speed: 190, life: 0.6, size: 4 });
+      shake.kick(4, 0.2);
+    }
+    state.activateBoost = activateBoost;
 
     // Cleared a maze: on to the next one. Score, lives and clock carry over, with more time.
     function levelUp() {
@@ -506,7 +526,13 @@ export default function MunchManModal({ isOpen, onClose }) {
           particles.emit(state.player.x + CELL / 2, state.player.y + CELL / 2, { n: 12, color: '255,214,80', speed: 100, life: 0.5, size: 3 });
           addPop(state.player.x + CELL / 2, state.player.y, '+50');
           if (p.type === 'speed') {
-            state.speedBoostTimer = SPEED_BOOST_DURATION;
+            if (window.matchMedia && window.matchMedia(BOOST_BUTTON_QUERY).matches) {
+              // phone held sideways: the boost becomes a button for a few seconds, used when the player chooses
+              state.boostOfferUntil = performance.now() + BOOST_OFFER_MS;
+              setBoostOffer(true);
+            } else {
+              state.speedBoostTimer = SPEED_BOOST_DURATION;
+            }
           } else if (p.type === 'freeze') {
             state.freezeTimer = FREEZE_DURATION;
           } else {
@@ -584,6 +610,8 @@ export default function MunchManModal({ isOpen, onClose }) {
               state.player.next = { dx: 0, dy: 0 };
               state.player.speed = PLAYER_SPEED;
               state.speedBoostTimer = 0;
+              state.boostOfferUntil = 0;
+              setBoostOffer(false);
               state.ghosts.forEach(gh => {
                 gh.x = gh.spawn.c * CELL;
                 gh.y = gh.spawn.r * CELL;
@@ -1026,7 +1054,17 @@ export default function MunchManModal({ isOpen, onClose }) {
           checkDotEat();
           if (musicRef.current) musicRef.current.setIntensity(state.ghosts.some((g) => g.scared) ? 1 : 0);
 
-          if (state.speedBoostTimer > 0) state.speedBoostTimer--;
+          if (state.speedBoostTimer > 0) {
+            state.speedBoostTimer--;
+            // speed trail behind the player while boosted
+            if (state.speedBoostTimer % 3 === 0) {
+              particles.emit(state.player.x + CELL / 2, state.player.y + CELL / 2, { n: 2, color: '255,210,60', speed: 30, life: 0.35, size: 3 });
+            }
+          }
+          if (state.boostOfferUntil && performance.now() > state.boostOfferUntil) {
+            state.boostOfferUntil = 0;
+            setBoostOffer(false);
+          }
           if (state.freezeTimer > 0) state.freezeTimer--;
 
           if (state.graceTimer > 0) {
@@ -1325,6 +1363,21 @@ export default function MunchManModal({ isOpen, onClose }) {
             <DPad onDir={setDir} />
             <StickZone side="left" onDir={setDir} />
             <StickZone side="right" onDir={setDir} />
+            {boostOffer && (
+              <button
+                type="button"
+                className="mm-boost-btn"
+                aria-label="Speed boost"
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  if (gameStateRef.current && gameStateRef.current.activateBoost) gameStateRef.current.activateBoost();
+                }}
+              >
+                <span className="mm-boost-ring" />
+                <span className="mm-boost-icon">⚡</span>
+                <span className="mm-boost-label">BOOST</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
