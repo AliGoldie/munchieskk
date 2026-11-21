@@ -356,7 +356,7 @@
     position: absolute;
     bottom: 0;
     top: 64px;
-    width: 26%;
+    width: 30%;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
@@ -365,7 +365,6 @@
     z-index: 6;
   }
   .mm-stickzone.left { left: 0; }
-  .mm-stickzone.right { right: 0; }
   .mm-stickzone.active { background: rgba(255, 199, 44, 0.07); }
 }
 

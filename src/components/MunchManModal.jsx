@@ -1359,10 +1359,9 @@ export default function MunchManModal({ isOpen, onClose }) {
               )}
             </div>
 
-            {/* upright phone: Game Boy style pad. Sideways phone: floating joystick on each lower side. */}
+            {/* upright phone: Game Boy style pad. Sideways phone: one floating joystick zone on the left; the boost button sits on the right. */}
             <DPad onDir={setDir} />
             <StickZone side="left" onDir={setDir} />
-            <StickZone side="right" onDir={setDir} />
             {boostOffer && (
               <button
                 type="button"
