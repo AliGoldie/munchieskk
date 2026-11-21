@@ -245,7 +245,10 @@ export default function MunchManModal({ isOpen, onClose }) {
     // Ghost speed has to divide the 24 px cell evenly (1.5 or 2), so only the last level is faster;
     // the chase chance and shorter scare timer ramp up on every level.
     const LEVEL_GHOST_SPEED = [1, 1.5, 1.5, 2];
-    const LEVEL_CHASE = [0.65, 0.7, 0.75, 0.8];
+    // Share of frames a ghost actually moves (skipping frames keeps it on the grid and makes it slightly
+    // slower than its speed number; 1 = full speed). The first maze is already at the slowest speed.
+    const LEVEL_GHOST_PACE = [1, 0.8, 0.8, 0.8];
+    const LEVEL_CHASE = [0.55, 0.6, 0.65, 0.7];
     const LEVEL_SCARED = [320, 300, 270, 240];
     const LEVEL_TIME_BONUS = 20;      // seconds added to the clock for each maze cleared
     const MAX_RUN_SCORE = 5000;       // the most one game counts toward Burger XP
@@ -1039,8 +1042,14 @@ export default function MunchManModal({ isOpen, onClose }) {
               const desiredGhostSpeed = g.scared ? GHOST_SCARED_SPEED : LEVEL_GHOST_SPEED[levelIdx];
               const usedGhostSpeed = stepSpeed(g, desiredGhostSpeed);
               ghostChooseDir(g);
-              tryMove(g, g.dir, usedGhostSpeed);
-              clampToBounds(g);
+              // scared ghosts (already slow) and the first maze keep full pace
+              const pace = g.scared ? 1 : LEVEL_GHOST_PACE[levelIdx];
+              g.pace = (g.pace || 0) + pace;
+              if (g.pace >= 1) {
+                g.pace -= 1;
+                tryMove(g, g.dir, usedGhostSpeed);
+                clampToBounds(g);
+              }
             });
             checkGhostCollision();
           }
