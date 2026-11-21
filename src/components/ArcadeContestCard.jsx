@@ -162,7 +162,7 @@ export default function ArcadeContestCard({ refreshKey }) {
                 ? `Maxed out this week: ${goal.coins_this_week} Monsta Coins earned.`
                 : goal.eligible === false
                 ? 'Place an order and collect it to unlock weekly Monsta Coins.'
-                : `Next: +${goal.goal_points} Monsta Coins at ${goal.goal_score.toLocaleString()} XP. Earned this week: ${goal.coins_this_week || 0} of ${goal.week_max}.`}
+                : `Next: +${goal.goal_points} Monsta Coins at ${goal.goal_score.toLocaleString()} XP. ${goal.week_max != null ? ` Earned this week: ${goal.coins_this_week || 0} of ${goal.week_max}.` : ''}`}
             </p>
             {goal.welcome_done === false && (
               <p className="acc-fine">Welcome bonus: play all three games once for +{goal.welcome_coins} Monsta Coins.</p>
