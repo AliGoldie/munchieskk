@@ -61,6 +61,7 @@ export default function Login() {
 
   return (
     <div className="login-page">
+      <h1 className="sr-only">Log in</h1>
       <div className="login-card">
         <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
           <img src="/images/logo.png" alt="MUNCHIESKK Logo" style={{ height: '80px', borderRadius: '50%' }} />
@@ -100,7 +101,7 @@ export default function Login() {
               <a
                 href="#"
                 onClick={handleForgotPassword}
-                style={{fontSize: '0.8rem', color: 'var(--gold)', fontWeight: 600, textDecoration: 'none', cursor: isResetting ? 'wait' : 'pointer', opacity: isResetting ? 0.6 : 1}}
+                style={{display: 'inline-block', padding: '12px 0', fontSize: '0.8rem', color: 'var(--gold)', fontWeight: 600, textDecoration: 'none', cursor: isResetting ? 'wait' : 'pointer', opacity: isResetting ? 0.6 : 1}}
               >
                 {isResetting ? 'Sending link...' : 'Forgot Password?'}
               </a>
