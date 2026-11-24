@@ -205,6 +205,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       setGameStarted(false);
       setScore(finalScore);
       sfxBad();
+      vibrate(soundOnRef.current, 90);
 
       const liveUser = userRef.current;
       if (!liveUser || !liveUser.id) return;
@@ -312,6 +313,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
         setCombo(0);
         setMissFlash(true);
         sfxMiss();
+        vibrate(soundOnRef.current, 30);
         setTimeout(() => setMissFlash(false), 200);
         if (state.lives <= 0) endGame();
       }
@@ -364,6 +366,7 @@ export default function SpeedGrabModal({ isOpen, onClose }) {
       state.frenzyOn = true;
       setFrenzy(true);
       sfxFrenzy();
+      vibrate(soundOnRef.current, [20, 40, 20]);
       if (state.duration < MAX_SECONDS) {
         const add = Math.min(TIME_BONUS, MAX_SECONDS - state.duration);
         state.duration += add;

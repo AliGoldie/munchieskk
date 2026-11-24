@@ -1007,12 +1007,15 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           if (p.type === 'speed') {
             state.speedBoostUntil = state.elapsed + POWERUP_DURATION;
             sfxPowerupSpeed();
+            vibrate(soundOnRef.current, 20);
           } else if (p.type === 'magnet') {
             state.magnetUntil = state.elapsed + POWERUP_DURATION;
             sfxPowerupMagnet();
+            vibrate(soundOnRef.current, 20);
           } else {
             state.invincibleUntil = state.elapsed + POWERUP_DURATION;
             sfxPowerupInvincible();
+            vibrate(soundOnRef.current, 20);
           }
           state.powerups.splice(i, 1);
         }
@@ -1073,6 +1076,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           g.passed = true;
           state.bonusScore += GATE_BONUS;
           sfxGate();
+          vibrate(soundOnRef.current, [25, 30, 25]);
           const px = PLAYER_X + PLAYER_W / 2;
           particles.emit(px, state.player.y + PLAYER_H / 2, { n: 18, color: '255,214,80', speed: 130, life: 0.7, size: 3, gravity: 80 });
           state.pops.push({ x: px, y: state.player.y - 6, text: `+${GATE_BONUS} XP`, ttl: 1 });
