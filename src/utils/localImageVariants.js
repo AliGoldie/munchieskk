@@ -8,6 +8,7 @@ export const LOCAL_VARIANTS = new Set([
   "cz_chix_burger.png",
   "hero_burger.png",
   "iceBB.jpg",
+  "kawan_monsta.jpg",
   "monsta_fries.jpg",
   "mushy_burger.jpg",
   "premium_platter.jpg",
