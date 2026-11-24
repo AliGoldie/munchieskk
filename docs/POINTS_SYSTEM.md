@@ -99,7 +99,7 @@ Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all 
 (T-Rex Runner, Speed Grab and Munch-Man).
 
 - **What counts:** your **best score in each of the three games, added together**. Each game counts **at most 5,000** (so 15,000 is the top Arcade Score). Playing more only helps if you beat your best.
-- **T-Rex Runner bonus:** running through a landmark gate (a glowing arch at the start of each landmark) adds **+50 Burger XP**. Burgers collected add a little XP too.
+- **T-Rex Runner bonus:** running through a landmark gate (a glowing arch at the start of each landmark) adds **+50 Burger XP**. Burgers collected add a little XP too. From the second landmark, jumping on a little pickle walker squashes it for **+10 Burger XP** and a bounce; spring pads throw you high toward a few burgers.
 - **Leaderboard:** a public board (also on the Arcade page, top three) ranks players by Burger XP, for **each game and overall**, for **this week, this month and all time**. Players can pick a **nickname** in their Profile (3 to 14 characters, rude words blocked); without one their **first name** is shown. A player can **hide** themselves. Staff accounts never appear. It is a bragging board: the only prizes are still the contest's.
 - **Three lives** in every game: a crash costs a life, and the run carries on.
 - **Weekly Monsta Coins ladder** (Monday to Sunday, Malaysia time; the week's XP is the sum of each game's best score that week). Defaults (all settings):
