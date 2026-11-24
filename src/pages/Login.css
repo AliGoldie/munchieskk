@@ -8,7 +8,7 @@
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(6, 6, 6, .75) 0%, rgba(6, 6, 6, .55) 40%, rgba(6, 6, 6, .97) 100%),
-    url('/images/premium_platter.jpg') center 35% / cover no-repeat,
+    url('/images/md/kawan_monsta.webp') center 42% / cover no-repeat,
     var(--ink);
 }
 
