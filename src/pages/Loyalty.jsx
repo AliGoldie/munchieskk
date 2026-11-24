@@ -53,6 +53,7 @@ export default function Loyalty() {
     const from = { from: '/loyalty' };
     return (
       <div className="loyalty-page">
+      <h1 className="sr-only">Rewards and Prize Vault</h1>
         <PromoBanner
           variant="lock"
           kicker="PRIZE VAULT"
@@ -101,6 +102,7 @@ export default function Loyalty() {
 
   return (
     <div className="loyalty-page">
+      <h1 className="sr-only">Rewards and Prize Vault</h1>
       {expiry && (expiry.state === 'soon' || expiry.state === 'fading') && expiry.points > 0 && (
         <div className="expiry-banner" role="status">
           {expiry.state === 'soon' ? (

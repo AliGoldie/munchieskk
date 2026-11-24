@@ -126,6 +126,9 @@
 
 .promo-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 18px; }
 .promo-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--text-2);
   font-size: .8rem;
   font-weight: 600;

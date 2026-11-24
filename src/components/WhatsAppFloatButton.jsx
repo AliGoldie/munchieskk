@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import { WhatsAppIcon } from './icons';
 import { siteConfig } from '../config/siteConfig';
 
@@ -14,6 +15,11 @@ const STOP_SPEED = 0.02; // px/ms -- below this the fling is considered settled
 const HOLD_SHAKE_MS = 550; // held still (no drag) this long before it starts to shake
 const HOLD_CLOSE_MS = 550; // then held still this much longer before it dismisses
 const CLOSE_ANIM_MS = 220; // fade/scale-out duration before it actually unmounts
+const HIDDEN_UNTIL_KEY = 'munchies_whatsapp_btn_hidden_until'; // set when dragged onto the close target
+const HIDE_DAYS = 30; // a deliberate drag-to-close hides it this long on this device
+const ZONE_SIZE = 56; // the close target at the bottom while dragging
+const ZONE_HIT = 64; // pointer within this many px of its centre counts as "over" it
+const TOAST_MS = 3500;
 
 // Keeps the button clear of the fixed header and bottom nav (it would
 // render behind both -- z-index 90 vs their 100 -- and become unreachable
@@ -28,6 +34,18 @@ function getBounds() {
   const minY = headerBottom + MARGIN;
   const maxY = Math.max(minY, navTop - BTN_SIZE - MARGIN);
   return { minX, maxX, minY, maxY };
+}
+
+// True when the customer deliberately closed the button recently.
+function isHiddenForGood() {
+  try { return Number(localStorage.getItem(HIDDEN_UNTIL_KEY) || 0) > Date.now(); } catch { return false; }
+}
+
+// Where the close target sits: bottom centre, just above the bottom nav.
+function zoneCenter() {
+  const nav = document.querySelector('.app-layout .bottom-nav');
+  const navTop = nav ? nav.getBoundingClientRect().top : window.innerHeight - 78;
+  return { x: window.innerWidth / 2, y: navTop - ZONE_SIZE / 2 - 20 };
 }
 
 function clampPosition(x, y) {
@@ -73,8 +91,15 @@ export default function WhatsAppFloatButton() {
   const [isShaking, setIsShaking] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isDismissed, setIsDismissed] = useState(() => {
+    if (isHiddenForGood()) return true;
     try { return sessionStorage.getItem(SESSION_DISMISS_KEY) === '1'; } catch { return false; }
   });
+  const [showZone, setShowZone] = useState(false); // close target visible while dragging
+  const [isOverZone, setIsOverZone] = useState(false);
+  const [zone, setZone] = useState({ x: 0, y: 0 });
+  const [toast, setToast] = useState(false);
+  const overZoneRef = useRef(false);
+  const zoneRef = useRef({ x: 0, y: 0 });
 
   const stopFling = () => {
     if (flingRef.current != null) {
@@ -95,6 +120,23 @@ export default function WhatsAppFloatButton() {
     setIsClosing(true);
     try { sessionStorage.setItem(SESSION_DISMISS_KEY, '1'); } catch {}
     setTimeout(() => setIsDismissed(true), CLOSE_ANIM_MS);
+  };
+
+  // Dragged onto the close target: hide it for HIDE_DAYS on this device and
+  // say where the WhatsApp link went (the footer link is always there).
+  const closeForGood = () => {
+    clearHoldTimers();
+    setIsShaking(false);
+    setShowZone(false);
+    setIsOverZone(false);
+    overZoneRef.current = false;
+    try { localStorage.setItem(HIDDEN_UNTIL_KEY, String(Date.now() + HIDE_DAYS * 24 * 3600 * 1000)); } catch {}
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsDismissed(true);
+      setToast(true);
+      setTimeout(() => setToast(false), TOAST_MS);
+    }, CLOSE_ANIM_MS);
   };
 
   const persistPosition = (p) => {
@@ -181,6 +223,8 @@ export default function WhatsAppFloatButton() {
     // if the hold continues -- each check bails if a real drag started or
     // the press already ended in the meantime.
     shakeTriggeredRef.current = false;
+    zoneRef.current = zoneCenter();
+    setZone(zoneRef.current);
     shakeTimerRef.current = setTimeout(() => {
       shakeTimerRef.current = null;
       if (!dragRef.current.dragging || dragRef.current.moved) return;
@@ -203,8 +247,11 @@ export default function WhatsAppFloatButton() {
       d.moved = true;
       clearHoldTimers(); // a real drag cancels any pending shake/close
       setIsShaking(false);
+      setShowZone(true); // reveal the close target at the bottom
     }
     if (d.moved) {
+      const over = Math.hypot(e.clientX - zoneRef.current.x, e.clientY - zoneRef.current.y) < ZONE_HIT;
+      if (over !== overZoneRef.current) { overZoneRef.current = over; setIsOverZone(over); }
       setPos(clampPosition(d.startPosX + dx, d.startPosY + dy));
       const hist = historyRef.current;
       hist.push({ x: e.clientX, y: e.clientY, t: performance.now() });
@@ -222,6 +269,14 @@ export default function WhatsAppFloatButton() {
     btnRef.current?.releasePointerCapture?.(e.pointerId);
     clearHoldTimers();
     setIsShaking(false);
+    setShowZone(false);
+    if (d.moved && overZoneRef.current) {
+      justDraggedRef.current = true;
+      closeForGood();
+      return;
+    }
+    setIsOverZone(false);
+    overZoneRef.current = false;
 
     if (shakeTriggeredRef.current) {
       // Released mid-shake (or right at close) -- not a real tap, so don't
@@ -268,9 +323,27 @@ export default function WhatsAppFloatButton() {
     window.open(href, '_blank', 'noopener,noreferrer');
   };
 
-  if (!pos || isDismissed) return null;
+  if (!pos) return null;
+
+  const closeTarget = (
+    <div
+      className={`whatsapp-close-zone${showZone ? ' is-visible' : ''}${isOverZone ? ' is-hot' : ''}`}
+      style={{ left: zone.x, top: zone.y }}
+      aria-hidden="true"
+    >
+      <X size={22} />
+    </div>
+  );
+  const hiddenToast = toast && (
+    <div className="whatsapp-hidden-toast" role="status">
+      Chat button hidden. You can still WhatsApp us from the bottom of any page.
+    </div>
+  );
+  if (isDismissed) return <>{hiddenToast}</>;
 
   return (
+    <>
+    {closeTarget}
     <div
       className="whatsapp-float-wrap"
       style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
@@ -284,11 +357,13 @@ export default function WhatsAppFloatButton() {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onClick={handleClick}
-        aria-label="Chat with us on WhatsApp. Drag or flick to move, hold to hide."
-        title="Chat with us on WhatsApp — drag or flick to move, hold to hide"
+        onKeyDown={(e) => { if (e.key === 'Delete' || e.key === 'Backspace') closeForGood(); }}
+        aria-label="Chat with us on WhatsApp. Drag it to the X at the bottom to hide it, or press Delete."
+        title="Chat with us on WhatsApp. Drag it to the X at the bottom to hide it."
       >
         <WhatsAppIcon size={20} color="#fff" />
       </button>
     </div>
+    </>
   );
 }

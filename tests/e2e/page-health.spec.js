@@ -69,6 +69,9 @@ for (const [name, path] of PAGES) {
     });
     expect(overflow, `page scrolls sideways: ${JSON.stringify(overflow)}`).toBeNull();
 
+    // One main heading per page (screen readers and search engines).
+    expect(await page.locator('h1').count(), 'exactly one h1').toBe(1);
+
     // 2. Broken images from this site (files the page asked for and could not show).
     const broken = await page.evaluate(() =>
       [...document.images]

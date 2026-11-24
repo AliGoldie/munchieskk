@@ -613,4 +613,45 @@
 
 /* Small footer link row at the end of each page. */
 .app-layout .site-footer-links { text-align: center; margin: var(--space-6) 0 0; font-size: .75rem; }
-.app-layout .site-footer-links a { color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }
+.app-layout .site-footer-links a { display: inline-block; padding: 14px 16px; color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Drag the WhatsApp bubble onto this target to hide it (like a chat head). */
+.app-layout .whatsapp-close-zone {
+  position: fixed;
+  width: 56px;
+  height: 56px;
+  z-index: 101; /* above the bottom nav (100) so it is never covered */
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(20, 18, 16, .88);
+  border: 2px solid rgba(255, 255, 255, .4);
+  transform: translate(-50%, -50%) scale(.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s cubic-bezier(0.22, 1, 0.36, 1), background .18s ease;
+}
+.app-layout .whatsapp-close-zone.is-visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.app-layout .whatsapp-close-zone.is-hot { background: #d93025; border-color: #fff; transform: translate(-50%, -50%) scale(1.25); }
+.app-layout .whatsapp-hidden-toast {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 84px;
+  max-width: 420px;
+  margin: 0 auto;
+  z-index: 101;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(20, 18, 16, .95);
+  border: 1px solid rgba(255, 255, 255, .2);
+  color: var(--text);
+  font-size: .8rem;
+  text-align: center;
+  animation: wa-toast-in .25s ease both;
+}
+@keyframes wa-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .app-layout .whatsapp-close-zone, .app-layout .whatsapp-hidden-toast { transition: none; animation: none; }
+}
