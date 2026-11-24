@@ -143,6 +143,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
   const sfxHit = () => fx('crash');
   const sfxNewBest = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.14, i * 0.13));
   const sfxSmash = () => tone(300, 0.12, 'square', 0.16, 0);
+  const sfxStomp = () => { tone(260, 0.06, 'square', 0.16, 0); tone(520, 0.09, 'square', 0.14, 0.05); };
+  const sfxSpring = () => { tone(300, 0.05, 'triangle', 0.15, 0); tone(560, 0.1, 'triangle', 0.15, 0.05); tone(900, 0.14, 'triangle', 0.13, 0.12); };
   const sfxPowerupSpeed = () => [500, 700, 900].forEach((f, i) => tone(f, 0.08, 'sawtooth', 0.1, i * 0.05));
   const sfxStage = () => [440, 554, 659, 880].forEach((f, i) => tone(f, 0.12, 'triangle', 0.13, i * 0.07));
   const sfxPowerupMagnet = () => [600, 450, 600, 800].forEach((f, i) => tone(f, 0.07, 'square', 0.1, i * 0.05));
@@ -301,6 +303,22 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
     const MAGNET_RADIUS = 120;
     const MAGNET_PULL = 320;
     const OBSTACLE_SMASH_BONUS = 15;
+    // Pickle walkers: from the second landmark a little pickle walks toward the runner on a flat
+    // stretch. Jump ON it (coming down) to squash it for a small bonus and a bounce (hold the jump for a
+    // bigger one); touching it from the side costs a life like any other hazard.
+    const WALKER_FROM_STAGE = 1;
+    const WALKER_W = 24;
+    const WALKER_H = 20;
+    const WALKER_EXTRA_SPEED = 35;
+    const STOMP_BONUS = 10;
+    const STOMP_BOUNCE = -400;
+    const STOMP_BOUNCE_HELD = -560;
+    // Spring pads: step on one to be thrown high, with a small arc of burgers on the way. They are only
+    // placed where the landing spot is safe (same height, solid ground, nothing in the way).
+    const SPRING_FROM_STAGE = 1;
+    const SPRING_W = 28;
+    const SPRING_H = 9;
+    const SPRING_VELOCITY = -760;
 
     // Variable-height jump: pressing jumps immediately at full power, and
     // letting go while still rising cuts the jump short. A full hold is the
@@ -326,6 +344,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       lastVariantKey: '',
       lastBucket: -1,
       flyers: [],
+      walkers: [],
+      springs: [],
+      squashes: [],
+      nextWalkerAt: 0,
+      nextSpringAt: 0,
+      flashUntil: 0,
       gates: [],
       pendingStage: null,
       pendingGate: null,
@@ -644,6 +668,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.lastVariantKey = '';
       state.lastBucket = -1;
       state.flyers = [];
+      state.walkers = [];
+      state.springs = [];
+      state.squashes = [];
+      state.nextWalkerAt = 12;
+      state.nextSpringAt = 15;
+      state.flashUntil = 0;
       state.gates = [];
       state.pendingStage = null;
       state.pendingGate = null;
@@ -734,6 +764,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         for (const o of state.obstacles) o.x -= shift;
         for (const c of state.collectibles) c.x -= shift;
         for (const q of state.powerups) q.x -= shift;
+        for (const w of state.walkers) w.x -= shift;
+        for (const sp of state.springs) sp.x -= shift;
         for (const g of state.gates) g.x -= shift;
         for (const e of state.effects) e.x -= shift;
         state.lastObstacleRightEdge -= shift;
@@ -744,6 +776,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
       // clear a little runway so the respawn is not on top of a hazard
       state.obstacles = state.obstacles.filter((o) => o.x > cx + 110 || o.x + o.w < cx - 40);
+      state.walkers = state.walkers.filter((w) => w.x > cx + 110 || w.x + WALKER_W < cx - 40);
       state.player.y = target.y - PLAYER_H;
       state.player.vy = 0;
       state.player.onGround = true;
@@ -897,6 +930,12 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         sfxLand();
         state.landedAt = state.elapsed;
         particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H, { n: 8, color: '225,215,195', speed: 70, life: 0.45, size: 4, spread: Math.PI * 0.9, angle: -Math.PI / 2, gravity: 40 });
+        if (impactVy > 520) {
+          // a hard landing throws up a wider ring of dust
+          particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H, { n: 14, color: '235,225,205', speed: 130, life: 0.5, size: 3.5, spread: Math.PI * 0.35, angle: 0, gravity: 10 });
+          particles.emit(PLAYER_X + PLAYER_W / 2, state.player.y + PLAYER_H, { n: 14, color: '235,225,205', speed: 130, life: 0.5, size: 3.5, spread: Math.PI * 0.35, angle: Math.PI, gravity: 10 });
+          shake.kick(2.5, 0.15);
+        }
       }
       state.player.onGround = landed;
       if (landed) {
@@ -968,6 +1007,14 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       }
 
       updateFlyers(dt, moveBy, hitboxX, hitboxY, hitboxW, hitboxH, invincibleActive);
+      if (!state.running) return;
+      updateWalkers(dt, moveBy, hitboxX, hitboxY, hitboxW, hitboxH, prevBottom, invincibleActive, speedBoostActive);
+      if (!state.running) return;
+      updateSprings(moveBy, hitboxX, hitboxW);
+      if (speedBoostActive) {
+        // a streak of light behind the runner while boosted
+        particles.emit(PLAYER_X + 3, state.player.y + PLAYER_H / 2, { n: 1, color: '255,205,70', speed: 150, life: 0.32, size: 3, spread: 0.3, angle: Math.PI, gravity: 0 });
+      }
       updateGates(moveBy);
       if (!state.running) return;
 
@@ -1056,6 +1103,8 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.obstacles = state.obstacles.filter((o) => o.x + o.w < lo || o.x > hi);
       state.collectibles = state.collectibles.filter((c) => c.x < lo || c.x > hi);
       state.powerups = state.powerups.filter((q) => q.x < lo || q.x > hi);
+      state.walkers = state.walkers.filter((w) => w.x + WALKER_W < lo || w.x > hi);
+      state.springs = state.springs.filter((sp) => sp.x + SPRING_W < lo || sp.x > hi);
       state.lastObstacleRightEdge = Math.max(state.lastObstacleRightEdge, hi);
       const gate = { x: gx, passed: false, entered: false, name: STAGES[state.pendingStage].name, stage: state.pendingStage };
       state.gates.push(gate);
@@ -1076,6 +1125,7 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
           g.passed = true;
           state.bonusScore += GATE_BONUS;
           sfxGate();
+          state.flashUntil = state.elapsed + 0.18;
           vibrate(soundOnRef.current, [25, 30, 25]);
           const px = PLAYER_X + PLAYER_W / 2;
           particles.emit(px, state.player.y + PLAYER_H / 2, { n: 18, color: '255,214,80', speed: 130, life: 0.7, size: 3, gravity: 80 });
@@ -1130,6 +1180,244 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
         ctx.fillStyle = `rgba(255, 214, 80, ${Math.min(1, p.ttl * 1.6).toFixed(2)})`;
         ctx.fillText(p.text, p.x, p.y - (1 - p.ttl) * 26);
       }
+    }
+
+    // ---- pickle walkers (stompable) ----
+    function trySpawnWalker(speedBoostActive) {
+      if (state.stageIdx < WALKER_FROM_STAGE || state.elapsed < state.nextWalkerAt) return;
+      state.nextWalkerAt = state.elapsed + 0.5;
+      if (state.pendingGate || state.flyers.length || state.walkers.length || speedBoostActive) return;
+      const spawnX = W + 20;
+      const tMeet = (spawnX - PLAYER_X) / (state.speed + WALKER_EXTRA_SPEED);
+      const room = WALKER_EXTRA_SPEED * tMeet + 30;
+      const seg = state.terrain.find((sg) => sg.xStart <= spawnX - room && sg.xEnd >= spawnX + 40);
+      if (!seg) return;
+      // nothing else on that stretch, so the walker is never combined with another hazard
+      const busy = state.obstacles.some((o) => o.x + o.w >= seg.xStart - 10 && o.x <= seg.xEnd + 10)
+        || state.springs.some((sp) => sp.x + SPRING_W >= seg.xStart && sp.x <= seg.xEnd)
+        || state.gates.some((g) => g.x + GATE_W >= seg.xStart - 60 && g.x <= seg.xEnd + 60);
+      if (busy) return;
+      state.nextWalkerAt = state.elapsed + (STAGES[state.stageIdx].final ? 6 : 8) + Math.random() * 5;
+      state.walkers.push({ x: spawnX, seg, phase: 0 });
+    }
+
+    function stompWalker(w, i) {
+      state.walkers.splice(i, 1);
+      state.squashes.push({ x: w.x + WALKER_W / 2, y: w.seg.y, ttl: 0.45 });
+      state.bonusScore += STOMP_BONUS;
+      state.pops.push({ x: PLAYER_X + PLAYER_W / 2, y: state.player.y - 6, text: `STOMP! +${STOMP_BONUS}`, ttl: 1 });
+      particles.emit(w.x + WALKER_W / 2, w.seg.y - 8, { n: 14, color: '120,200,90', speed: 120, life: 0.5, size: 3.5, gravity: 220 });
+      state.effects.push({ x: w.x + WALKER_W / 2, y: w.seg.y - 8, ttl: 0.25 });
+      sfxStomp();
+      vibrate(soundOnRef.current, 25);
+      shake.kick(3, 0.15);
+    }
+
+    function updateWalkers(dt, moveBy, hx, hy, hw, hh, prevBottom, shielded, speedBoostActive) {
+      trySpawnWalker(speedBoostActive);
+      for (let i = state.walkers.length - 1; i >= 0; i--) {
+        const w = state.walkers[i];
+        w.x -= moveBy + WALKER_EXTRA_SPEED * dt;
+        w.phase += dt * 9;
+        // it walks off the end of its platform and is gone
+        if (w.x < w.seg.xStart + 2 || w.x + WALKER_W < -10) { state.walkers.splice(i, 1); continue; }
+        const wy = w.seg.y - WALKER_H;
+        if (overlap(hx, hy, hw, hh, w.x + 2, wy, WALKER_W - 4, WALKER_H)) {
+          const fromAbove = state.player.vy > 0 && prevBottom <= wy + 8;
+          if (fromAbove) {
+            stompWalker(w, i);
+            state.player.vy = state.holding ? STOMP_BOUNCE_HELD : STOMP_BOUNCE;
+            state.player.onGround = false;
+            state.player.coyote = 0;
+            state.jumpCutApplied = false;
+            continue;
+          }
+          if (shielded) {
+            state.walkers.splice(i, 1);
+            state.effects.push({ x: w.x + WALKER_W / 2, y: wy + WALKER_H / 2, ttl: 0.25 });
+            if (state.elapsed < state.invincibleUntil) state.bonusScore += OBSTACLE_SMASH_BONUS;
+            sfxSmash();
+            continue;
+          }
+          crash('obstacle');
+          return;
+        }
+      }
+      for (let i = state.squashes.length - 1; i >= 0; i--) {
+        state.squashes[i].x -= moveBy;
+        state.squashes[i].ttl -= dt;
+        if (state.squashes[i].ttl <= 0) state.squashes.splice(i, 1);
+      }
+    }
+
+    function drawWalkers() {
+      for (const q of state.squashes) {
+        const a = Math.max(0, q.ttl / 0.45);
+        ctx.fillStyle = `rgba(90, 160, 70, ${a.toFixed(2)})`;
+        ctx.beginPath();
+        ctx.ellipse(q.x, q.y - 2, 15, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (const w of state.walkers) {
+        const bx = w.x + WALKER_W / 2;
+        const by = w.seg.y;
+        const hop = Math.abs(Math.sin(w.phase)) * 2;
+        // little feet
+        ctx.fillStyle = '#2f5a24';
+        const step = Math.sin(w.phase) * 3;
+        ctx.beginPath(); ctx.ellipse(bx - 6 + step, by - 1.5, 4, 2.4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(bx + 6 - step, by - 1.5, 4, 2.4, 0, 0, Math.PI * 2); ctx.fill();
+        // body
+        const g = ctx.createLinearGradient(0, by - WALKER_H - hop, 0, by - 3);
+        g.addColorStop(0, '#8fd45a');
+        g.addColorStop(1, '#4f9a3a');
+        ctx.fillStyle = g;
+        ctx.strokeStyle = '#2f5a24';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(bx - 10, by - WALKER_H - hop + 1, 20, WALKER_H - 4, 9);
+        ctx.fill();
+        ctx.stroke();
+        // bumps
+        ctx.fillStyle = 'rgba(47, 90, 36, 0.55)';
+        for (const [dx, dy] of [[-4, 6], [3, 10], [-1, 13]]) { ctx.beginPath(); ctx.arc(bx + dx, by - WALKER_H - hop + dy, 1.2, 0, Math.PI * 2); ctx.fill(); }
+        // angry eyes, looking left (the way it walks)
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(bx - 5, by - WALKER_H - hop + 6, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(bx + 2, by - WALKER_H - hop + 6, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1b1b1b';
+        ctx.beginPath(); ctx.arc(bx - 6, by - WALKER_H - hop + 6.5, 1.3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(bx + 1, by - WALKER_H - hop + 6.5, 1.3, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#1b3d14';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(bx - 8, by - WALKER_H - hop + 2.5); ctx.lineTo(bx - 3, by - WALKER_H - hop + 4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(bx + 5, by - WALKER_H - hop + 2.5); ctx.lineTo(bx + 0, by - WALKER_H - hop + 4); ctx.stroke();
+      }
+    }
+
+    // ---- spring pads ----
+    function trySpawnSpring(speedBoostActive) {
+      if (state.stageIdx < SPRING_FROM_STAGE || state.elapsed < state.nextSpringAt) return;
+      state.nextSpringAt = state.elapsed + 0.5;
+      if (state.pendingGate || state.flyers.length || state.walkers.length || speedBoostActive) return;
+      const flightTime = (2 * Math.abs(SPRING_VELOCITY)) / GRAVITY;
+      for (const seg of state.terrain) {
+        if (seg.y < MID_Y) continue; // not on the high tier: the jump would leave the screen
+        const x = Math.max(seg.xStart + 40, W + 25);
+        if (x + SPRING_W > seg.xEnd - 30) continue;
+        const landX = x + SPRING_W / 2 + state.speed * flightTime;
+        const land = state.terrain.find((sg) => landX - 22 >= sg.xStart && landX + 22 <= sg.xEnd);
+        if (!land || land.y !== seg.y) continue;
+        const blocked = state.obstacles.some((o) => (o.x + o.w >= x - 35 && o.x <= x + SPRING_W + 35) || (o.x + o.w >= landX - 45 && o.x <= landX + 45) || o.roll);
+        if (blocked || state.gates.some((g) => g.x + GATE_W >= x - 60 && g.x <= landX + 80)) continue;
+        state.nextSpringAt = state.elapsed + 14 + Math.random() * 8;
+        state.springs.push({ x, y: seg.y, press: 0, used: false });
+        // a small arc of burgers along the flight path
+        const sp = state.speed;
+        for (const t of [0.3, 0.543, 0.8]) {
+          const h = -SPRING_VELOCITY * t - 0.5 * GRAVITY * t * t;
+          state.collectibles.push({ x: x + SPRING_W / 2 + sp * t, y: seg.y - h - PLAYER_H / 2, size: 9 });
+        }
+        return;
+      }
+    }
+
+    function updateSprings(moveBy, hx, hw) {
+      trySpawnSpring(state.elapsed < state.speedBoostUntil);
+      for (let i = state.springs.length - 1; i >= 0; i--) {
+        const sp = state.springs[i];
+        sp.x -= moveBy;
+        sp.press = Math.max(0, sp.press - 1 / 60);
+        if (sp.x + SPRING_W < -10) { state.springs.splice(i, 1); continue; }
+        const feet = state.player.y + PLAYER_H;
+        if (!sp.used && state.player.vy >= 0 && hx < sp.x + SPRING_W && hx + hw > sp.x && feet >= sp.y - SPRING_H - 3 && feet <= sp.y + 4) {
+          sp.used = true;
+          sp.press = 0.3;
+          state.player.vy = SPRING_VELOCITY;
+          state.player.onGround = false;
+          state.player.coyote = 0;
+          state.jumpCutApplied = true; // a launch cannot be cut short
+          state.jumpedAt = state.elapsed;
+          state.effects.push({ x: sp.x + SPRING_W / 2, y: sp.y - SPRING_H, ttl: 0.25 });
+          particles.emit(sp.x + SPRING_W / 2, sp.y - SPRING_H, { n: 12, color: '255,214,80', speed: 110, life: 0.5, size: 3, spread: Math.PI * 0.8, angle: -Math.PI / 2, gravity: 160 });
+          sfxSpring();
+          vibrate(soundOnRef.current, [20, 30, 20]);
+          shake.kick(3, 0.18);
+        }
+      }
+    }
+
+    function drawSprings() {
+      for (const sp of state.springs) {
+        const c = sp.x + SPRING_W / 2;
+        const squash = sp.press > 0 ? 0.45 + 0.55 * (1 - sp.press / 0.3) : 1;
+        const top = sp.y - 3 - (SPRING_H + 6) * squash;
+        // base plate
+        ctx.fillStyle = '#3b4252';
+        ctx.beginPath(); ctx.roundRect(sp.x, sp.y - 4, SPRING_W, 4, 2); ctx.fill();
+        // coil
+        ctx.strokeStyle = '#c9ccd6';
+        ctx.lineWidth = 2.2;
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        const coils = 4;
+        ctx.moveTo(c - 8, sp.y - 4);
+        for (let k = 0; k < coils; k++) {
+          const y1 = sp.y - 4 - ((sp.y - 4 - top) * (k + 0.5)) / coils;
+          const y2 = sp.y - 4 - ((sp.y - 4 - top) * (k + 1)) / coils;
+          ctx.lineTo(c + 8, y1);
+          ctx.lineTo(c - 8, y2);
+        }
+        ctx.stroke();
+        // top pad in the brand yellow
+        ctx.fillStyle = '#ffc72c';
+        ctx.strokeStyle = '#a87500';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.roundRect(sp.x - 1, top - 3, SPRING_W + 2, 5, 2.5); ctx.fill(); ctx.stroke();
+      }
+    }
+
+    // ---- extra effects ----
+    function drawSpeedLines() {
+      if (state.elapsed >= state.speedBoostUntil) return;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < 7; i++) {
+        const x = W - ((state.elapsed * 900 + i * 131) % (W + 80)) + 20;
+        const y = 24 + ((i * 47) % 200);
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 38, y);
+      }
+      ctx.stroke();
+    }
+
+    function drawShieldBubble() {
+      const left = state.invincibleUntil - state.elapsed;
+      if (left <= 0) return;
+      if (left < 1.5 && Math.floor(state.elapsed * 8) % 2 === 0) return;
+      const cx = PLAYER_X + PLAYER_W / 2;
+      const cy = state.player.y + PLAYER_H / 2;
+      const r = 27 + Math.sin(state.elapsed * 6) * 1.2;
+      const g = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r);
+      g.addColorStop(0, 'rgba(255, 214, 80, 0)');
+      g.addColorStop(1, 'rgba(255, 214, 80, 0.32)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 236, 160, 0.75)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, r - 4, Math.PI * 1.15, Math.PI * 1.45); ctx.stroke();
+    }
+
+    function drawFlash() {
+      const left = state.flashUntil - state.elapsed;
+      if (left <= 0) return;
+      ctx.fillStyle = `rgba(255, 244, 200, ${((left / 0.18) * 0.28).toFixed(3)})`;
+      ctx.fillRect(0, 0, W, H);
     }
 
     // Height of the platform under screen x (the last one before it when over a gap).
@@ -1658,15 +1946,20 @@ export default function TrexRunnerModal({ isOpen, onClose }) {
       state.obstacles.forEach(drawObstacle);
       state.collectibles.forEach(c => drawMiniBurger(c.x, c.y, c.size));
       state.powerups.forEach(drawPowerup);
+      drawSprings();
+      drawWalkers();
       drawFlyers();
       drawEffects();
+      drawSpeedLines();
       drawPlayer();
+      drawShieldBubble();
       particles.draw(ctx);
       updateAndDrawPops(1 / 60);
       drawHazardFront();
       if (state.stageBlend < 1) drawWeatherFront(ctx, W, H, state.prevStageIdx, 1 - state.stageBlend, state.elapsed);
       drawWeatherFront(ctx, W, H, state.stageIdx, state.stageBlend, state.elapsed);
       drawStageBanner();
+      drawFlash();
       ctx.restore();
     }
 
