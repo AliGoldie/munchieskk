@@ -1,8 +1,20 @@
 # MunchiesKK points system: brief for the content team
 
-Updated 14 Oct 2026 from the live app and database. Numbers can change: check
+Updated 14 Oct 2026 from the live app and database; Quick reference added 24 Nov 2026. Numbers can change: check
 with the owner before printing anything permanent. Items marked
 **(confirm live)** need the owner's OK before you announce them.
+
+## Quick reference (24 Nov 2026, worked out from the live code; this file is the one source of truth)
+
+- **Points maths, in this order:** the order total in whole RM (rounded to the nearest RM) x the double-day multiplier (x2 on Tue/Wed/Thu, Malaysia time) x (1 + rank bonus %), then rounded to the nearest whole point (half rounds up). Example: Ultimate (+12%) on a Tuesday earns **2 x 1.12 = 2.24x**, not 2.12x.
+- **The +6 collection bonus is flat.** It is never doubled and never gets the rank bonus. It is paid when the order is collected.
+- **One reward OR one perk per order, never both.** A rank perk counts as the one reward on that order. A second reward on the same order is refused by the database.
+- **The RM20 / RM30 minimum** is checked against the order total: items and add-ons, after any promo discount. No SST or packaging line exists in the order today. If one is ever added, the rule needs a new decision first.
+- **Arcade Score and Burger XP use the same numbers.** XP is what one run scores. Arcade Score is the sum of your best score in each game (each game counts at most 5,000). The weekly coin ladder uses that week's best scores the same way. For finance, the ladder maximums are the cost cap: 15 a week and 60 in the first 30 days, then 10 a week and 40 in any 30 days.
+- **"Really playing" (the one-time +5 welcome bonus)** means each of the three games has one run of at least **15 seconds** (timed by the server) with a minimum score: T-Rex 300, Speed Grab 200, Munch-Man 300. These are settings in Admin > Arcade.
+- **Prize prices:** the point prices in the tables below are the standard values. The "Plan v2" values (Ice BB 250, Mushy2 500, platter 2,000) are a switch that is OFF. Check Admin > Prizes for what is live.
+- **Not decided:** weekly goal size, Mushy2 and platter point prices, the platter minimum after 31 Dec 2026, online payments (built, switched off).
+- Outside chats that cannot read this repo get a dated copy of this block. That copy is a snapshot, never a maintained file.
 
 ## The one-line version
 
