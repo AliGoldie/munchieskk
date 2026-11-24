@@ -438,6 +438,7 @@ export default function MunchManModal({ isOpen, onClose }) {
 
     // Cleared a maze: on to the next one. Score, lives and clock carry over, with more time.
     function levelUp() {
+      vibrate(soundOnRef.current, [40, 50, 40, 50, 90]);
       state.timeBonus += LEVEL_TIME_BONUS;
       setupLevel(levelIdx + 1);
       state.levelBannerUntil = performance.now() + 2400;
@@ -526,6 +527,7 @@ export default function MunchManModal({ isOpen, onClose }) {
           state.pelletsEaten++;
           setScore(state.score);
           sfxPower();
+          vibrate(soundOnRef.current, 15);
           particles.emit(state.player.x + CELL / 2, state.player.y + CELL / 2, { n: 12, color: '255,214,80', speed: 100, life: 0.5, size: 3 });
           addPop(state.player.x + CELL / 2, state.player.y, '+50');
           if (p.type === 'speed') {
@@ -638,7 +640,7 @@ export default function MunchManModal({ isOpen, onClose }) {
       state.running = false;
       state.won = win;
       stopMusic();
-      if (win) { sfxWin(); } else { sfxLose(); }
+      if (win) { sfxWin(); vibrate(soundOnRef.current, [60, 40, 60, 40, 140]); } else { sfxLose(); vibrate(soundOnRef.current, 140); }
 
       setGameOver(true);
       setGameWon(win);
