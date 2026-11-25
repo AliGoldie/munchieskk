@@ -10,7 +10,7 @@ with the owner before printing anything permanent. Items marked
 - **The +6 collection bonus is flat.** It is never doubled and never gets the rank bonus. It is paid when the order is collected.
 - **One reward OR one perk per order, never both.** A rank perk counts as the one reward on that order. A second reward on the same order is refused by the database.
 - **The RM20 / RM30 minimum** is checked against the order total: items and add-ons, after any promo discount. No SST or packaging line exists in the order today. If one is ever added, the rule needs a new decision first.
-- **Arcade Score and Burger XP use the same numbers.** XP is what one run scores. Arcade Score is the sum of your best score in each game (each game counts at most 5,000). The weekly coin ladder uses that week's best scores the same way. For finance, the ladder maximums are the cost cap: 15 a week and 60 in the first 30 days, then 10 a week and 40 in any 30 days.
+- **Arcade Score and Burger XP use the same numbers.** XP is what one run scores. Arcade Score is the sum of your best score in each game (each game counts at most 5,000). The weekly coin ladder uses that week's best scores the same way. For finance, the ladder maximums are the cost cap: 25 a week and 100 in the first 30 days, then 15 a week and 60 in any 30 days.
 - **"Really playing" (the one-time +5 welcome bonus)** means each of the three games has one run of at least **15 seconds** (timed by the server) with a minimum score: T-Rex 300, Speed Grab 200, Munch-Man 300. These are settings in Admin > Arcade.
 - **Prize prices:** the point prices in the tables below are the standard values. The "Plan v2" values (Ice BB 250, Mushy2 500, platter 2,000) are a switch that is OFF. Check Admin > Prizes for what is live.
 - **Not decided:** weekly goal size, Mushy2 and platter point prices, the platter minimum after 31 Dec 2026, online payments (built, switched off).
@@ -103,8 +103,9 @@ Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all 
 - **Leaderboard:** a public board (also on the Arcade page, top three) ranks players by Burger XP, for **each game and overall**, for **this week, this month and all time**. Players can pick a **nickname** in their Profile (3 to 14 characters, rude words blocked); without one their **first name** is shown. A player can **hide** themselves. Staff accounts never appear. It is a bragging board: the only prizes are still the contest's.
 - **Three lives** in every game: a crash costs a life, and the run carries on.
 - **Weekly Monsta Coins ladder** (Monday to Sunday, Malaysia time; the week's XP is the sum of each game's best score that week). Defaults (all settings):
-  - **Month 1:** 3 coins for every 1,000 XP, at most **15 a week**, at most **60 in the first 30 days**.
-  - **Month 2 onward** (needs a collected order in the last 30 days): 2 coins for every 1,500 XP, at most **10 a week**, at most **40 in any 30 days**.
+  - **Month 1:** 5 coins for every 1,000 XP, at most **25 a week**, at most **100 in the first 30 days**.
+  - **Month 2 onward** (needs a collected order in the last 30 days): 3 coins for every 1,500 XP, at most **15 a week**, at most **60 in any 30 days**.
+  - These are **Option A** (chosen by Ali on 25 Nov 2026). Finance has not confirmed them yet. The cheaper Option B was 3 coins per 1,000 XP (15 a week, 60 total) and 2 per 1,500 XP (10 a week, 40 per 30 days).
   - Limits are enforced by the database, not the browser. Coins are paid as the rungs are reached during the week.
 - **Welcome bonus:** **+5 Monsta Coins once per account** after a real run in each of the three games (at least **15 seconds** each, and at least 300 / 200 / 300 Burger XP in T-Rex Runner / Speed Grab / Munch-Man). The run time is measured by the server.
 - **Speed Grab:** starts at 45 seconds, **+3 seconds for every 10 correct taps in a row**, never more than 90 seconds, 3-2-1 countdown, gentle start. Stops counting at 5,000.
