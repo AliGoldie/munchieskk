@@ -12,5 +12,6 @@ export const LOCAL_VARIANTS = new Set([
   "monsta_fries.jpg",
   "mushy_burger.jpg",
   "premium_platter.jpg",
+  "rank_hero.jpg",
   "regular_fries.png"
 ]);

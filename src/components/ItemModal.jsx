@@ -1,3 +1,4 @@
+import { haptic } from '../utils/haptics';
 import { useState } from 'react';
 import { Gift, Plus, Minus } from 'lucide-react';
 import { getItemPoints } from '../utils/pointsCalculator';
@@ -50,6 +51,7 @@ export default function ItemModal({ item, onClose, editMode = false, initialCart
       for (let i = 0; i < quantity; i++) {
         addToCart(item, selected, slots.length ? choices : []);
       }
+      haptic('press');
     }
     onClose();
   };
