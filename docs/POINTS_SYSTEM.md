@@ -13,7 +13,7 @@ with the owner before printing anything permanent. Items marked
 - **Arcade Score and Burger XP use the same numbers.** XP is what one run scores. Arcade Score is the sum of your best score in each game (each game counts at most 5,000). The weekly coin ladder uses that week's best scores the same way. For finance, the ladder maximums are the cost cap: 25 a week and 100 in the first 30 days, then 15 a week and 60 in any 30 days.
 - **"Really playing" (the one-time +5 welcome bonus)** means each of the three games has one run of at least **15 seconds** (timed by the server) with a minimum score: T-Rex 300, Speed Grab 200, Munch-Man 300. These are settings in Admin > Arcade.
 - **Prize prices:** the point prices in the tables below are the standard values. The "Plan v2" values (Ice BB 250, Mushy2 500, platter 2,000) are a switch that is OFF. Check Admin > Prizes for what is live.
-- **Not decided:** weekly goal size, Mushy2 and platter point prices, the platter minimum after 31 Dec 2026, online payments (built, switched off).
+- **Not decided:** the finance confirmation of the weekly coin ladder (Option A), Mushy2 and platter point prices, the platter minimum after 31 Dec 2026, online payments (built, switched off).
 - Outside chats that cannot read this repo get a dated copy of this block. That copy is a snapshot, never a maintained file.
 
 ## The one-line version
@@ -92,9 +92,9 @@ and the kitchen is notified like any order. In the Prize Vault the button now sa
 "Use at checkout". (Arcade contest prizes are different: winners still show their
 claim code at the counter.)
 
-## Arcade Score, weekly goal and the monthly arcade contest (new)
+## Arcade Score, weekly coin ladder and the monthly arcade contest
 
-**Arcade Score is not points.** It cannot be spent. It only decides the contest ranking and the weekly goal.
+**Arcade Score is not points.** It cannot be spent. It only decides the contest ranking and the weekly coin ladder.
 Say it that way: *points buy food, Arcade Score wins prizes.* It applies to all three arcade games
 (T-Rex Runner, Speed Grab and Munch-Man).
 
@@ -168,7 +168,7 @@ Safe wording: "Points expire after 12 months of no activity. Order once a year a
 - "Bring a friend: you get **150**, they get **30** to start."
 - "**Free fries** from just **100 points**. **Free egg** from 60."
 - "Ice BB for **350 points**. The big one: a **Kawan MONSTA platter** for **3,000**."
-- "New here? Play the arcade free and chase the weekly goal for bonus points while you wait."
+- "New here? Play the arcade free and earn weekly Monsta Coins while you wait."
 
 ## Install the app (new)
 
@@ -181,7 +181,7 @@ On iPhone the app shows a short hint (Share, then Add to Home Screen). Nothing i
 - **A free burger.** No plain burger reward exists. Only the items in the table above.
 - **Points for counter (Loyverse) purchases.** Only app orders earn points for now.
 - **"Points never expire."** They fade after 12 months of no activity (above).
-- **Points for every game win, or a streak bonus.** Games only pay through the weekly goal.
+- **Points for every game win, or a streak bonus.** Games only pay through the weekly coin ladder and the one-time welcome bonus.
 - **Any reward, price or discount not in this document.** No "RM5 off" or percent-off codes for points.
 - **A rank leaderboard or other customers' spend.** Monthly winners are first name only.
 - **A "top spender" monthly prize.** It has been removed. The only monthly prize is the arcade contest.

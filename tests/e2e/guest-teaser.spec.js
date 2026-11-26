@@ -65,3 +65,22 @@ test('Reduced motion switches the padlock and ring animation off', async ({ page
   const name = await page.locator('.promo-lock').evaluate((e) => getComputedStyle(e).animationName);
   expect(name).toBe('none');
 });
+
+test('The Home page invites a guest to join the Monsta Gang, and a logged-in customer does not see it', async ({ page }) => {
+  await mockSupabase(page, { '/rest/v1/loyalty_prizes': EIGHT, '/rest/v1/rpc/': null });
+  await page.goto('/', { waitUntil: 'networkidle' });
+
+  const join = page.locator('.c-join .promo-banner');
+  await expect(join).toContainText('JOIN THE MONSTA GANG');
+  await expect(join.locator('a.promo-cta')).toHaveAttribute('href', '/signup');
+  await expect(join.locator('a.promo-link')).toHaveAttribute('href', '/login');
+  // The vault card for a guest is an invitation, not a "0 Coins" balance.
+  await expect(page.locator('.c-vault-card--guest')).toContainText('Monsta Coins');
+  await expect(page.locator('.c-vault-card--guest')).not.toContainText('0 Coins');
+
+  await loginAsDevAdmin(page);
+  await goClientSide(page, '/');
+  await expect(page.locator('.c-join')).toHaveCount(0);
+  await expect(page.locator('.c-vault-card--guest')).toHaveCount(0);
+  await expect(page.locator('.c-vault-label')).toHaveText('YOUR VAULT');
+});
