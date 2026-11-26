@@ -1,3 +1,4 @@
+import { haptic, hapticsSupported, isHapticsEnabled, setHapticsEnabled } from '../utils/haptics';
 import InstallAppButton from '../components/InstallAppButton';
 import LeaderboardNameCard from '../components/LeaderboardNameCard';
 import { formatOrderId } from '../contexts/StoreContext';
@@ -19,6 +20,7 @@ const AVATAR_COLORS = [
 ];
 
 export default function Profile() {
+  const [hapticsOn, setHapticsOn] = useState(isHapticsEnabled());
   const { points, orders, redemptions, fetchAdminRedemptions } = useStore();
   const { user, setUser, logout } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
@@ -327,6 +329,20 @@ export default function Profile() {
             💬 Support via WhatsApp
           </a>
         </div>
+
+        {hapticsSupported() && (
+          <div className="profile-card haptics-card">
+            <h3>App feel</h3>
+            <label className="haptics-row">
+              <input
+                type="checkbox"
+                checked={hapticsOn}
+                onChange={(e) => { setHapticsOn(e.target.checked); setHapticsEnabled(e.target.checked); if (e.target.checked) haptic('press'); }}
+              />
+              <span>Button vibration<small>A short buzz when you add to cart, order and tap the bottom menu.</small></span>
+            </label>
+          </div>
+        )}
 
         <div className="profile-card">
           <h3>Order History</h3>

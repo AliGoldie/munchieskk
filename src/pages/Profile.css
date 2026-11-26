@@ -299,3 +299,9 @@
   background: rgba(95, 214, 140, 0.13);
   color: var(--go);
 }
+
+/* Button vibration setting */
+.haptics-row { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.haptics-row input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--gold, #ffc72c); flex: none; }
+.haptics-row span { display: flex; flex-direction: column; gap: 2px; font-weight: 700; }
+.haptics-row small { font-weight: 400; font-size: .8rem; color: var(--text-2, #b9ada0); }

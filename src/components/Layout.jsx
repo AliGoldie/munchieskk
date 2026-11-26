@@ -1,3 +1,4 @@
+import { haptic } from '../utils/haptics';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { User, Menu as MenuIcon, Home, Gift, Gamepad2, LogOut, Star } from 'lucide-react';
@@ -122,23 +123,23 @@ export default function Layout() {
       {/* Bottom Navigation */}
       <nav className="bottom-nav">
         <div className="container nav-container">
-          <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}>
+          <Link onClick={() => haptic('tap')} to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}>
             <Home size={24} />
             <span>Home</span>
           </Link>
-          <Link to="/menu" className={`nav-item ${location.pathname === '/menu' ? 'active' : ''}`}>
+          <Link onClick={() => haptic('tap')} to="/menu" className={`nav-item ${location.pathname === '/menu' ? 'active' : ''}`}>
             <MenuIcon size={24} />
             <span>Menu</span>
           </Link>
-          <Link to="/arcade" className={`nav-item ${location.pathname === '/arcade' ? 'active' : ''}`}>
+          <Link onClick={() => haptic('tap')} to="/arcade" className={`nav-item ${location.pathname === '/arcade' ? 'active' : ''}`}>
             <Gamepad2 size={24} />
             <span>Arcade</span>
           </Link>
-          <Link to="/loyalty" className={`nav-item ${location.pathname === '/loyalty' ? 'active' : ''}`}>
+          <Link onClick={() => haptic('tap')} to="/loyalty" className={`nav-item ${location.pathname === '/loyalty' ? 'active' : ''}`}>
             <Gift size={24} />
             <span>Loyalty</span>
           </Link>
-          <Link to={user ? "/profile" : "/login"} className={`nav-item ${location.pathname === '/profile' || location.pathname === '/login' ? 'active' : ''}`}>
+          <Link onClick={() => haptic('tap')} to={user ? "/profile" : "/login"} className={`nav-item ${location.pathname === '/profile' || location.pathname === '/login' ? 'active' : ''}`}>
             <User size={24} />
             <span>Profile</span>
           </Link>

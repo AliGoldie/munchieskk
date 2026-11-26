@@ -1,3 +1,4 @@
+import { haptic } from '../utils/haptics';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
@@ -132,6 +133,7 @@ export default function Payment() {
 
     isPlacingOrderRef.current = true;
     setIsProcessing(true);
+    haptic('press');
 
     setTimeout(async () => {
       try {
@@ -165,6 +167,7 @@ export default function Payment() {
           }
         }
 
+        haptic('success');
         setIsSuccess(true);
         localStorage.setItem('munchies_active_order', orderId);
 
@@ -461,7 +464,7 @@ export default function Payment() {
             cart={cart}
             orderTotal={finalTotal}
             selectedId={rewardPrizeId}
-            onSelect={setRewardPrizeId}
+            onSelect={(id) => { haptic('tap'); setRewardPrizeId(id); }}
           />
 
           {rewardSlots.length > 0 && (

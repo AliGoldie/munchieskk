@@ -1,3 +1,4 @@
+import { haptic } from '../utils/haptics';
 import { useState } from 'react';
 import { useStore } from '../contexts/StoreContext';
 import Modal from './Modal';
@@ -20,6 +21,7 @@ export default function AddonModal({ item, onClose }) {
   const handleConfirm = () => {
     const selected = addons.filter(a => selectedAddonIds.includes(a.id));
     addToCart(item, selected);
+    haptic('press');
     onClose();
   };
 

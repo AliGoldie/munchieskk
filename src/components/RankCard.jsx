@@ -3,6 +3,7 @@ import { Check, Lock } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { COINS } from '../config/rewardNames';
 import { thumbSrc } from '../utils/imageVariants';
+import { haptic } from '../utils/haptics';
 import './RankCard.css';
 
 // Burger Rank card for the Loyalty page. The rank comes from lifetime spend on
@@ -59,7 +60,7 @@ export default function RankCard({ points, displayedPoints }) {
     try {
       const idx = rank.tiers.findIndex(t => t.name === rank.tier);
       const stored = localStorage.getItem('munchies_rank_seen');
-      if (stored !== null && idx > Number(stored)) setRankUp(rank.tier);
+      if (stored !== null && idx > Number(stored)) { setRankUp(rank.tier); haptic('celebrate'); }
       localStorage.setItem('munchies_rank_seen', String(idx));
     } catch { /* private mode: no message, no problem */ }
   }, [rank]);

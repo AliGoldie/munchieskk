@@ -1,3 +1,4 @@
+import { haptic } from '../utils/haptics';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
@@ -26,6 +27,7 @@ export default function Cart() {
 
   const handleQuickAdd = (item) => {
     addToCart(item);
+    haptic('press');
     setAddedIds(prev => ({ ...prev, [item.id]: true }));
     setTimeout(() => setAddedIds(prev => ({ ...prev, [item.id]: false })), 1200);
   };
