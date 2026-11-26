@@ -27,7 +27,7 @@ Two kinds of numbers exist, and they must not be confused:
 | Rank bonus | **+5% / +8% / +12%** of the order points | Ranks Pro / Master / Ultimate, from lifetime spend on collected orders: Regular RM100, Pro RM300, Master RM600, Ultimate RM1,200 (approved 16 Oct 2026; ranks never go down). Rank perks (free Cheese once, birthday Ice BB yearly, free Egg monthly, free platter yearly) need a paid order and are one reward per order. |
 | Sharing a meal | **+20**, or **+40 in total** with an approved screenshot | Once per order, collected orders only. |
 | Inviting a friend | **+150 to the inviter, +30 to the friend** | Paid when the friend's **first collected order is RM20 or more**. Each person can earn this for a maximum of 5 friends. |
-| Arcade weekly goal | **+25 per week** | When a player's Arcade Score reaches 1,000 in a Monday to Sunday week. After the account's first 30 days, the player must also have a collected order in the last 30 days. Maximum 4 goal bonuses per account per calendar month. |
+| Arcade weekly coins | **Up to 25 a week in the first 30 days, then up to 15 a week** | Paid on a ladder by the XP a player earns in a Monday to Sunday week (Malaysia time). Month 1: 5 coins per 1,000 XP, at most 25 a week and 100 in the first 30 days. After that: 3 coins per 1,500 XP, at most 15 a week and 60 in any 30 days, and the player needs a collected order in the last 30 days. Plus a **one-time +5 welcome bonus** for really playing all three games (one run of at least 15 seconds in each, with a minimum score). All numbers are settings in Admin > Arcade. **Option A, chosen by Ali on 25 Nov 2026; finance has not confirmed it yet.** |
 
 Games pay **no** points per play. There is no daily game payout.
 
@@ -54,7 +54,7 @@ Any order stops it.
 Three games: T-Rex Runner, Speed Grab, Munch-Man. Each run adds to Arcade Score. Only a player's **best score in each game** counts, and each game counts **at most 5,000**.
 The highest possible Arcade Score is 15,000.
 
-- **Weekly goal:** 1,000 Arcade Score in a week gives **+25 Order Points**, once a week. At most about 100 points in a new account's first month.
+- **Weekly coin ladder (Option A, finance not yet confirmed):** month 1 pays 5 coins per 1,000 XP, at most **25 a week** and **100 in the first 30 days**. After that it pays 3 coins per 1,500 XP, at most **15 a week** and **60 in any 30 days**. Plus a one-time **+5 welcome bonus** per account. The cheaper Option B was 3 per 1,000 XP (15 a week, 60 total), then 2 per 1,500 XP (10 a week, 40 total).
 - **Monthly contest:** the top 3 players for the calendar month win a **free burger, free fries and a free drink**.
   The first contest is planned for December 2026 (start date to be confirmed, around the shop opening).
   A player needs at least 300 Arcade Score to qualify. Ties go to whoever reached the score first, and one account per phone number counts.
@@ -65,7 +65,7 @@ The highest possible Arcade Score is 15,000.
 1. **Free rewards** bought with Order Points (section 3). This is the main cost and it scales with sales.
 2. **Contest prizes**: at most 3 items a month (section 4). The content team estimated RM19 a month. Is that our cost or the menu price?
 3. **Referrals**: 180 points per successful invite (150 + 30).
-4. **Weekly goal**: up to 25 points a week per active player.
+4. **Weekly arcade coins**: up to 25 a week in a player's first 30 days (100 in total), then up to 15 a week (60 in any 30 days), plus a one-time +5 welcome bonus.
 
 No cash is ever paid out. Points have no cash value and cannot be transferred. Every reward needs an order of at least RM20 (RM10 for contest prizes), which is also revenue.
 
@@ -77,7 +77,7 @@ In practice not all points are spent and some fade, so this is a ceiling for tha
 
 ## 7. Controls the owner has, without a developer
 
-The double-points days and multiplier; the weekly goal size and points; each reward's point price and stock; the contest prizes, dates, minimum score, claim minimum and claim window; and
+The double-points days and multiplier; the weekly arcade coin ladder (step size, coins per step, weekly and 30-day maximums, welcome bonus) in Admin > Arcade; each reward's point price and stock; the contest prizes, dates, minimum score, claim minimum and claim window; and
 whether each reward is available. The flat +6 collection bonus and the 5,000-per-game cap need a developer to change.
 
 ## 8. Things I'd ask finance to look at

@@ -856,3 +856,7 @@
 }
 .c-about a { color: var(--munchies-orange); font-weight: 700; }
 .c-about-link { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Guest-only "join" banner sits close under the arcade band */
+.c-join { padding-block: 8px 24px; }
+.c-vault-card--guest .c-vault-points { font-size: 1.25rem; line-height: 1.15; }

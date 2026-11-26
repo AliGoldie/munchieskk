@@ -6,7 +6,7 @@ the contest only starts once the owner has set it up in the Admin panel and the 
 ## The idea in one line
 
 **Play the three arcade games on munchieskk.my. Every month, the top 3 players win free food.
-Hit the weekly goal for bonus points.**
+Earn Monsta Coins every week you play.**
 
 ## Two different things (please keep them separate)
 
@@ -14,7 +14,7 @@ Hit the weekly goal for bonus points.**
 |---|---|---|
 | What it is | Spend them on free food | Your game score. **Cannot be spent.** |
 | How you get it | Orders, collecting, sharing, inviting friends | Playing T-Rex Runner, Speed Grab and Munch-Man |
-| What it does | Buys rewards in the Prize Vault | Ranks you in the monthly contest and unlocks the weekly goal bonus |
+| What it does | Buys rewards in the Prize Vault | Ranks you in the monthly contest and earns weekly Monsta Coins on the ladder |
 
 A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
 
@@ -27,12 +27,12 @@ A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
 - You need to be **logged in** for scores to count. Guests can play for fun.
 - Scores are **checked by the server**. Impossible scores are not counted.
 
-## The weekly goal
+## The weekly coin ladder (replaces the old weekly goal)
 
-- Reach **1,000 Arcade Score in a week** (Monday to Sunday, Malaysia time) and get **+25 loyalty points**. Once a week.
-- Because the three games add together, most regular players can reach it. That is on purpose.
-- New accounts qualify freely for their first 30 days. After that, an account needs a collected order in the last 30 days. It pays at most 4 times in a calendar month.
-- The owner can change the goal and the bonus. Always check the numbers with the owner before printing them.
+- The XP a player earns in a week (Monday to Sunday, Malaysia time) pays Monsta Coins on a ladder, up to a weekly limit. The three games add together.
+- **Option A (chosen by the owner on 25 Nov 2026; finance has not confirmed it, so do not print exact numbers yet).** Month 1 (first 30 days of an account): up to 25 coins a week and 100 in the 30 days. After that: up to 15 a week and 60 in any 30 days, and the account needs a collected order in the last 30 days.
+- A one-time **+5 welcome bonus** for really playing all three games.
+- The owner can change all of these in Admin > Arcade. Always check the numbers with the owner before printing them.
 
 ## The monthly contest **(confirm live)**
 
@@ -52,14 +52,14 @@ A simple way to say it: **"Points buy food. Arcade Score wins prizes."**
 
 ## When does the first contest start? **(confirm live)**
 
-The first contest is now planned for **December 2026** (the November contest is cancelled). The exact start date is to be confirmed, around the shop opening, and it will run online through the app for about a month (Malaysia time). Winners are picked automatically when it ends. Until then, players can already play and chase the weekly goal.
+The first contest is now planned for **December 2026** (the November contest is cancelled). The exact start date is to be confirmed, around the shop opening, and it will run online through the app for about a month (Malaysia time). Winners are picked automatically when it ends. Until then, players can already play and earn weekly Monsta Coins.
 The prizes are claimed at the counter. The claim window is 90 days from the win, so there is room if the shop opens later than planned.
 Do not promise a pickup date until the owner confirms the shop opening, and do not say the window will be extended.
 
 ## What players see in the app
 
 - The Arcade page shows the current contest: the prizes, how much time is left, **their own rank and score**, and how far they are from the podium.
-- A progress bar shows the weekly goal.
+- A progress bar shows the next coin step of the weekly ladder.
 - After a contest ends, the app shows **first names only** of the winners. There is **no public full leaderboard**. Please do not post one.
 - Winners see a gold card with their claim code.
 
@@ -75,12 +75,12 @@ Do not promise a pickup date until the owner confirms the shop opening, and do n
 
 Sample captions (edit freely, keep to the facts above):
 - "Play, score, win. Top 3 players each month win free MunchiesKK food. Play now on munchieskk.my."
-- "Weekly goal: 1,000 Arcade Score = +25 loyalty points. Three games, one score."
+- "Play the arcade every week and earn Monsta Coins. Three games, one score."
 - "Congratulations to this month's winners: [first name], [first name] and [first name]! Show your code at the counter with any order of RM10 or more."
 
 ## Please do NOT
 
-- Say that games give loyalty points for every win, streak or personal best. Only the **weekly goal** gives points.
+- Say that games give loyalty points for every win, streak or personal best. Only the **weekly coin ladder** and the one-time welcome bonus give coins.
 - Promise a prize that is not confirmed for that month, or say "free burger" for everyone.
 - Post a full leaderboard, full names, phone numbers or scores of other players.
 - Say "free, no purchase". The prize is claimed **with an order of RM10 or more**. Say "90 days to claim" for the first contest.
@@ -89,7 +89,7 @@ Sample captions (edit freely, keep to the facts above):
 
 ## Quick FAQ for replies and comments
 
-- **Do I need to order food to play?** No. Playing is free for everyone who has an account. (After the first 30 days, the weekly goal bonus needs a collected order in the last 30 days.)
+- **Do I need to order food to play?** No. Playing is free for everyone who has an account. (After the first 30 days, the weekly coins need a collected order in the last 30 days.)
 - **Do I need to order to collect my prize?** Yes: show the claim code with any order of RM10 or more.
 - **Can I use two accounts?** One account per phone number counts. Please do not.
 - **What if there is a tie?** The player who reached the score first wins.

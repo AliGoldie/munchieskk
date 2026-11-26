@@ -11,6 +11,7 @@ import { siteConfig } from '../config/siteConfig';
 import ItemModal from '../components/ItemModal';
 import Modal from '../components/Modal';
 import { BurgerIcon } from '../components/icons';
+import PromoBanner from '../components/PromoBanner';
 import { InstagramIcon, FacebookIcon, TiktokIcon } from '../components/SocialIcons';
 import './Home.css';
 import { thumbSrc, mediumSrc, cardSrc, loadFirst, onThumbError } from '../utils/imageVariants';
@@ -354,7 +355,7 @@ export default function Home() {
           <p className="c-arcade-body">
             Earn Monsta Coins when you collect your order and spend them on free treats
             {firstPrize ? ` — ${firstPrize.name} from ${firstPrize.points_cost.toLocaleString()} coins.` : '.'}
-            {' '}Play the games to build your Burger XP, hit the weekly goal for bonus Monsta Coins, and compete for the monthly prizes.
+            {' '}Play the games to build your Burger XP, earn weekly Monsta Coins, and compete for the monthly prizes.
           </p>
           <div className="c-arcade-games">
             <Link to="/arcade" className="c-game-thumb">
@@ -372,6 +373,7 @@ export default function Home() {
           </div>
           <Link to="/arcade" className="btn c-arcade-cta">PLAY NOW</Link>
         </div>
+        {user ? (
         <div className="c-vault-card">
           <p className="c-vault-label">YOUR VAULT</p>
           <p className="c-vault-points">{userPoints.toLocaleString()} Coins</p>
@@ -389,7 +391,33 @@ export default function Home() {
             </>
           )}
         </div>
+        ) : (
+          <div className="c-vault-card c-vault-card--guest">
+            <p className="c-vault-label">THE VAULT</p>
+            <p className="c-vault-points">FREE FOOD, UNLOCKED BY COINS</p>
+            <p className="c-vault-sub">
+              Earn Monsta Coins on every order you collect.
+              {firstPrize ? ` ${firstPrize.name} costs ${firstPrize.points_cost.toLocaleString()} coins.` : ''}
+            </p>
+          </div>
+        )}
       </section>
+
+      {/* ================= JOIN (guests only) ================= */}
+      {!user && (
+        <section className="c-section c-join" aria-label="Join the Monsta Gang">
+          <PromoBanner
+            variant="coins"
+            kicker="MONSTA GANG"
+            title="JOIN THE MONSTA GANG"
+            text="Free to join. Earn Monsta Coins on every order you collect, play the arcade, and climb the burger ranks to free food."
+            to="/signup"
+            state={{ from: '/' }}
+            cta="JOIN FREE"
+            secondary={{ to: '/login', label: 'I already have an account' }}
+          />
+        </section>
+      )}
 
       {/* ================= TYPOGRAPHIC MENU ================= */}
       <section className="c-section c-typemenu">
