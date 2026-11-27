@@ -123,7 +123,7 @@ export default function Home() {
   const [reviewCTAOpen, setReviewCTAOpen] = useState(false);
 
   // ---- Craving rail: real items, matched by name ----
-  const cravingNames = ['Jucy Bae', 'Monsta Fries', 'Kawan Monsta', 'CZ Chix Burger'];
+  const cravingNames = ['Jucy Bae', 'Monsta Fries', 'Kawan Monsta', 'CZ Chix Burger', 'MONSTA Platter'];
   const cravingItems = cravingNames
     .map(n => findByName(menu, n))
     .filter(Boolean);
@@ -146,7 +146,7 @@ export default function Home() {
   ), null);
 
   const kawanMonsta = findByName(menu, 'Kawan Monsta');
-  const kawanPerHead = kawanMonsta ? kawanMonsta.price / 4 : null;
+  const kawanPerHead = kawanMonsta ? kawanMonsta.price / 3 : null; // feeds 2-3: the best-case (3 people) per-head price
 
   // ---- Arcade / loyalty vault -- real prize + real points ----
   const userPoints = points || 0;
@@ -263,7 +263,8 @@ export default function Home() {
                 <img src={cardSrc(item.image)} onError={onThumbError(item.image)} alt="" className="c-craving-img" loading="lazy" decoding="async" />
                 <div className="c-craving-scrim" />
                 {i === 0 && <span className="c-craving-badge"><Star size={12} fill="currentColor" /> BEST SELLER</span>}
-                {/^kawan monsta$/i.test(item.name) && <span className="c-craving-badge"><Users size={12} /> FEEDS 3–4</span>}
+                {/^kawan monsta$/i.test(item.name) && <span className="c-craving-badge"><Users size={12} /> FEEDS 2–3</span>}
+                {/^monsta platter$/i.test(item.name) && <span className="c-craving-badge"><Users size={12} /> SHARE THE LOT</span>}
                 <div className="c-craving-info">
                   <h3>{item.name.toUpperCase()}</h3>
                   <span className="c-craving-price">RM {money(isPromoActive(item) ? item.promo_price : item.price)}</span>
@@ -306,7 +307,7 @@ export default function Home() {
             <h3>KAWAN MONSTA</h3>
             {kawanMonsta ? (
               <>
-                <p className="c-deal-line">Feeds 3–4 · RM {money(kawanPerHead)}/head</p>
+                <p className="c-deal-line">Feeds 2–3 · from RM {money(kawanPerHead)}/head</p>
                 <p className="c-deal-big">RM {money(kawanMonsta.price)}</p>
                 <span className="c-best-value">BEST VALUE</span>
               </>
@@ -318,7 +319,7 @@ export default function Home() {
       {/* ================= PORTION EDITORIAL ================= */}
       <section className="c-section c-portion">
         <div className="c-portion-img" style={{ backgroundImage: "url('/images/monsta_fries.webp')" }}>
-          <span className="c-portion-badge">150g<small>OF FRIES PER PORTION · +RM 4.50 FOR BEEF STRIPS</small></span>
+          <span className="c-portion-badge">+RM 4.50<small>FOR BEEF STRIPS</small></span>
         </div>
         <div className="c-portion-copy">
           <h2>THE REVIEWS ALL<br />SAY THE SAME THING</h2>

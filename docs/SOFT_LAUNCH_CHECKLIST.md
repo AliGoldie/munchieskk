@@ -6,7 +6,7 @@ Tick as you go. If a **STOP** item fails, do not open.
 
 ## A. Before anyone orders (Ali + developer)
 - [ ] **STOP** Real payment works end to end in the gateway test mode, then once with a real RM1 to RM5 order (see PAYMENTS_PLAN.md). Until then the shop stays CLOSED.
-- [ ] Pending SQL is run: Kawan price RM35.50, Ice BB and Solero costs, Kawan wording, data guards. Ask the developer to "check".
+- [ ] Pending SQL is run: Ice BB and Solero costs, Kawan wording, data guards. Ask the developer to "check". (Kawan price RM35.50: DONE, live price verified 27 Nov 2026.)
 - [ ] Big-G and CZ Chix set to RM16.90 in Admin, Menu CRM.
 - [ ] Loyverse prices match the app (change by hand; SQL does not reach Loyverse).
 - [ ] Two-factor login on GitHub, Vercel, Supabase, Loyverse and the company Gmail.
